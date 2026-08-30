@@ -156,4 +156,22 @@ For complete_phase: confirm which phase before executing unless the user has alr
   }
 });
 
+// POST /api/ai/cleanup — tidy a raw dictated transcript
+router.post('/cleanup', async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'No text provided' });
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      system: 'You clean up raw voice dictation for a tennis club staff communications log. Fix punctuation and capitalization, remove filler words (um, uh, like, you know, so), and make the sentence read naturally. Keep the original meaning and casual tone — do not rewrite or expand. Return ONLY the cleaned text, no explanation, no quotes.',
+      messages: [{ role: 'user', content: text.trim() }]
+    });
+    res.json({ cleaned: response.content[0]?.text?.trim() || text.trim() });
+  } catch (err) {
+    console.error('[ai/cleanup error]', err);
+    res.status(500).json({ error: 'Cleanup failed' });
+  }
+});
+
 module.exports = router;

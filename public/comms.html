@@ -353,8 +353,9 @@
               <option value="reminders">Reminders</option>
               <option value="academy">Academy</option>
             </select>
-            <span style="font-size:11px;color:var(--text3);font-weight:500">Show on:</span>
-            <input type="date" id="compose-showon" class="select-pill" title="Leave blank for today. Pick a future date to leave this note for an upcoming shift — it surfaces on that day.">
+            <span style="font-size:11px;color:var(--text3);font-weight:500">Schedule for:</span>
+            <input type="date" id="compose-showon" class="select-pill" title="Leave blank to post today. Pick a future date to surface this note for an upcoming shift." onchange="document.getElementById('showon-hint').style.display=this.value?'none':'inline'">
+            <span id="showon-hint" style="font-size:11px;color:var(--text3);font-style:italic">today</span>
             <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
               <button id="compose-mic-btn" onclick="toggleComposeMic()" title="Dictate" style="display:none;padding:6px 10px;border-radius:9px;border:1px solid var(--input-border);background:transparent;cursor:pointer;transition:all 0.18s;display:none;align-items:center;justify-content:center">
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -970,6 +971,7 @@
     document.getElementById('compose-text').value = '';
     document.getElementById('compose-category').value = 'general';
     document.getElementById('compose-showon').value = '';
+    document.getElementById('showon-hint').style.display = 'inline';
     selectedRecipients = [];
     document.querySelectorAll('#recipient-chips .chip').forEach(c => {
       c.classList.remove('selected'); c.style.background = ''; c.style.color = '';
@@ -1132,13 +1134,20 @@
       const ta = document.getElementById('compose-text');
       const sep = ta.value && !ta.value.endsWith(' ') ? ' ' : '';
       ta.value = (ta.value + sep + transcript).trim();
+      composeSpeech._hasText = true;
     };
-    composeSpeech.onend = () => {
+    composeSpeech.onend = async () => {
       composeMicActive = false;
       updateComposeMicUI();
+      const ta = document.getElementById('compose-text');
+      if (composeSpeech._hasText && ta.value.trim()) {
+        composeSpeech._hasText = false;
+        await runComposeMicCleanup();
+      }
     };
     composeSpeech.onerror = () => {
       composeMicActive = false;
+      composeSpeech._hasText = false;
       updateComposeMicUI();
     };
   }
@@ -1154,13 +1163,46 @@
     updateComposeMicUI();
   }
 
-  function updateComposeMicUI() {
-    document.getElementById('compose-mic-icon').style.display = composeMicActive ? 'none' : 'block';
-    document.getElementById('compose-mic-dot').style.display = composeMicActive ? 'inline-block' : 'none';
-    const btn = document.getElementById('compose-mic-btn');
+  function updateComposeMicUI(cleaning = false) {
+    const icon = document.getElementById('compose-mic-icon');
+    const dot  = document.getElementById('compose-mic-dot');
+    const btn  = document.getElementById('compose-mic-btn');
+    if (cleaning) {
+      icon.style.display = 'none';
+      dot.style.display = 'inline-block';
+      dot.style.background = '#6366f1';
+      dot.style.animation = 'pulse-rec 0.6s infinite';
+      btn.style.borderColor = 'rgba(99,102,241,0.35)';
+      btn.style.background = 'rgba(99,102,241,0.06)';
+      btn.title = 'Cleaning up…';
+      return;
+    }
+    dot.style.background = '#f87171';
+    dot.style.animation = 'pulse-rec 1s infinite';
+    icon.style.display = composeMicActive ? 'none' : 'block';
+    dot.style.display  = composeMicActive ? 'inline-block' : 'none';
     btn.style.borderColor = composeMicActive ? 'rgba(239,68,68,0.4)' : '';
-    btn.style.background = composeMicActive ? 'rgba(239,68,68,0.06)' : 'transparent';
+    btn.style.background  = composeMicActive ? 'rgba(239,68,68,0.06)' : 'transparent';
     btn.title = composeMicActive ? 'Stop recording' : 'Dictate';
+  }
+
+  async function runComposeMicCleanup() {
+    const ta = document.getElementById('compose-text');
+    const raw = ta.value.trim();
+    if (!raw) return;
+    updateComposeMicUI(true);
+    try {
+      const res = await fetch('/api/ai/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: raw })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.cleaned) ta.value = data.cleaned;
+      }
+    } catch(_) {}
+    updateComposeMicUI(false);
   }
 
   init();
