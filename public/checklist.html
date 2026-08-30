@@ -541,7 +541,8 @@
       loadAssignment();
       try {
         const res = await fetch(`/api/checklist?shift=${currentShift}&date=${currentDate}`);
-        if (!res.ok) throw new Error();
+        if (res.status === 401) { window.location.href = '/login.html'; return; }
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
         const items = await res.json();
         render(items);
         updateProgress(items);
@@ -762,7 +763,7 @@
     // ── Init ─────────────────────────────────────────────────────────
     async function init() {
       const res = await fetch('/api/me');
-      if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
+      if (res.status === 401) { window.location.href = '/login.html'; return; }
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');

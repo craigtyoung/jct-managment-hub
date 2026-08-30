@@ -17,10 +17,10 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 12 } // 12-hour session
 }));
 
-// Auth guard middleware
+// Auth guard middleware — returns 401 JSON for API routes so fetch() can detect it
 function requireAuth(req, res, next) {
   if (req.session && req.session.staffId) return next();
-  res.redirect('/login.html');
+  res.status(401).json({ error: 'Not authenticated' });
 }
 
 // Routes

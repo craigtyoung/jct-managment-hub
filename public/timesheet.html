@@ -596,7 +596,7 @@
     // ── Init ───────────────────────────────────────────────────────
     async function init() {
       const res = await fetch('/api/me');
-      if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
+      if (res.status === 401) { window.location.href = '/login.html'; return; }
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');
