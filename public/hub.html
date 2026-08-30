@@ -68,12 +68,11 @@
 
     .spine-top {
       display: flex; flex-direction: column; align-items: center;
-      padding: 18px 0 0;
+      padding: 16px 0 0;
       gap: 0;
     }
 
-    /* JCT three-circle mark */
-    .spine-mark { width: 40px; height: 28px; }
+    .spine-mark { width: 44px; height: 44px; object-fit: contain; filter: brightness(0) invert(1) opacity(0.55); }
 
     .spine-divider {
       width: 30px; height: 1px;
@@ -172,6 +171,13 @@
       background: rgba(177,201,251,0.07);
       font-weight: 500;
     }
+    .nav-link.nav-soon {
+      opacity: 0.45; cursor: default;
+    }
+    .nav-link.nav-soon:hover {
+      color: rgba(177,201,251,0.55);
+      background: none;
+    }
 
     .nav-icon { width: 15px; height: 15px; flex-shrink: 0; }
 
@@ -263,28 +269,50 @@
       padding: 36px 32px 64px;
     }
 
+    /* ─────────────────────────────────────────────
+       HERO HEADER
+    ───────────────────────────────────────────── */
+    .page-hero {
+      display: flex; align-items: center; gap: 28px;
+      margin-bottom: 32px;
+      padding: 28px 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .hero-logo {
+      width: 140px; flex-shrink: 0;
+      opacity: 0.92;
+    }
+    .hero-divider {
+      width: 1px; height: 72px; flex-shrink: 0;
+      background: var(--border);
+    }
+    .hero-text { flex: 1; }
     .page-greeting {
       font-family: var(--font-display);
-      font-size: 2rem; font-weight: 600;
+      font-size: 1.85rem; font-weight: 600;
       color: var(--text); line-height: 1.15;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
     .page-sub { font-size: 13px; color: var(--text-2); }
 
     /* ─────────────────────────────────────────────
-       STAT CARDS
+       STAT CARDS — coming soon state
     ───────────────────────────────────────────── */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin: 24px 0 36px;
+      margin-bottom: 36px;
     }
     .stat-card {
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 1px dashed rgba(12,23,56,0.12);
       border-radius: 14px;
       padding: 16px 18px;
+      opacity: 0.55;
+      position: relative;
     }
     .stat-label {
       font-size: 9px; font-weight: 700;
@@ -292,14 +320,17 @@
       color: var(--text-3); margin-bottom: 7px;
     }
     .stat-value {
-      font-size: 1.65rem; font-weight: 600;
-      color: var(--text); line-height: 1;
+      font-size: 1.4rem; font-weight: 600;
+      color: var(--text-3); line-height: 1;
     }
     .stat-value span { font-size: 0.9rem; font-weight: 400; color: var(--text-3); }
     .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 5px; }
-    .stat-sub.green  { color: #10b981; }
-    .stat-sub.amber  { color: #d97706; }
-    .stat-sub.blue   { color: var(--blue); }
+    .stat-soon-badge {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 8px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      background: rgba(143,160,184,0.14); color: var(--text-3);
+      padding: 2px 7px; border-radius: 100px;
+    }
 
     /* ─────────────────────────────────────────────
        LATEST NOTES PANEL (view-only → comms log)
@@ -335,8 +366,15 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
       margin-bottom: 14px; margin-top: 36px;
+      display: flex; align-items: center; gap: 10px;
     }
     .section-title:first-of-type { margin-top: 0; }
+    .section-live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #10b981;
+      animation: blink 2.5s ease infinite;
+      flex-shrink: 0;
+    }
 
     /* ─────────────────────────────────────────────
        TILE GRID
@@ -421,10 +459,21 @@
     .t-violet:hover  { border-color: rgba(139,92,246,0.28); box-shadow: 0 8px 28px rgba(139,92,246,0.07); }
     .t-violet:hover .tile-icon { color: #8b5cf6; }
 
-    /* Coming-soon / roadmap tiles — captured but not yet built */
-    .tile.soon { opacity: 0.72; cursor: default; border-style: dashed; }
-    .tile.soon:hover { transform: none; box-shadow: none; border-color: var(--border); }
-    .soon-tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; background: rgba(143,160,184,0.16); color: var(--text-3); }
+    /* Coming-soon tiles */
+    .tile.soon {
+      opacity: 0.52; cursor: default;
+      border-style: dashed;
+      background: rgba(240,244,249,0.6);
+    }
+    .tile.soon:hover { transform: none; box-shadow: none; border-color: rgba(12,23,56,0.10); }
+    .tile.soon .tile-name { color: var(--text-2); }
+    .tile.soon .tile-desc { color: var(--text-3); }
+    .soon-tag {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 100px;
+      background: rgba(143,160,184,0.16); color: var(--text-3);
+    }
 
     /* ─────────────────────────────────────────────
        FOOTER
@@ -460,6 +509,9 @@
       .main { padding: 20px 16px 48px; }
       .topstrip { padding: 12px 16px; }
       .tile-grid { grid-template-columns: 1fr; }
+      .page-hero { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
+      .hero-divider { display: none; }
+      .hero-logo { width: 110px; }
     }
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -473,28 +525,7 @@
   ══════════════════════════════════════════ -->
   <div class="spine">
     <div class="spine-top">
-      <!-- JCT three-circle mark recreated as SVG -->
-      <svg class="spine-mark" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Left circle: J -->
-        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
-        <text x="15" y="22.5" text-anchor="middle"
-          font-family="'Playfair Display', serif"
-          font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
-        <!-- Middle circle: tennis ball fill -->
-        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)"
-          stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
-        <!-- Tennis ball curves -->
-        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5"
-          stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5"
-          stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-        <!-- Right circle: C -->
-        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
-        <text x="39" y="22.5" text-anchor="middle"
-          font-family="'Playfair Display', serif"
-          font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
-      </svg>
-
+      <img src="/jct-logo.png" class="spine-mark" alt="JCT" />
       <div class="spine-divider"></div>
       <div class="spine-label">Staff Hub</div>
     </div>
@@ -541,7 +572,7 @@
         Shift Checklist
       </a>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
           <line x1="3" y1="12" x2="21" y2="12"/>
@@ -552,7 +583,7 @@
         Courts
       </a>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <rect x="2" y="6" width="20" height="13" rx="2"/>
           <circle cx="12" cy="12" r="3"/>
@@ -560,7 +591,7 @@
         Cash Summary
       </a>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
@@ -570,7 +601,7 @@
 
       <div class="nav-group-label">Facility</div>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
         </svg>
@@ -579,7 +610,7 @@
 
       <div class="nav-group-label">Programs</div>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
           <path d="M6 12v5c3 3 9 3 12 0v-5"/>
@@ -587,7 +618,7 @@
         Academy
       </a>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
@@ -599,7 +630,7 @@
 
       <div class="nav-group-label">Store</div>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
           <line x1="3" y1="6" x2="21" y2="6"/>
@@ -636,7 +667,7 @@
         <span id="comms-nav-badge" class="nav-badge" style="display:none"></span>
       </a>
 
-      <a href="#" class="nav-link">
+      <a href="#" class="nav-link nav-soon" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
           <line x1="9" y1="21" x2="15" y2="21"/>
@@ -679,7 +710,7 @@
       <div class="ts-date"  id="dateline">—</div>
     </div>
     <div class="ts-right">
-      <button class="assistant-btn" title="Ask the Staff Assistant a question about the hub — coming soon">
+      <button class="assistant-btn" title="Staff Assistant — coming soon">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Assistant
         <span class="assistant-soon">Soon</span>
@@ -696,35 +727,49 @@
   ══════════════════════════════════════════ -->
   <main class="main">
 
-    <h1 class="page-greeting" id="greeting">Good day.</h1>
-    <p class="page-sub" id="subheading">What do you need today?</p>
-
-    <!-- Quick Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Courts Open</div>
-        <div class="stat-value">4 <span>/ 6</span></div>
-        <div class="stat-sub green">2 reserved now</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Today's Bookings</div>
-        <div class="stat-value">31</div>
-        <div class="stat-sub">↑ 4 from yesterday</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Cash — Today</div>
-        <div class="stat-value">$842</div>
-        <div class="stat-sub amber">Shift not closed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Members In</div>
-        <div class="stat-value">18</div>
-        <div class="stat-sub">on site right now</div>
+    <!-- ── Hero Header ──────────────────────── -->
+    <div class="page-hero">
+      <img src="/jct-logo.png" class="hero-logo" alt="Joshua Creek Tennis" />
+      <div class="hero-divider"></div>
+      <div class="hero-text">
+        <h1 class="page-greeting" id="greeting">Good day.</h1>
+        <p class="page-sub" id="subheading">What do you need today?</p>
       </div>
     </div>
 
-    <!-- ── Latest Notes (view-only → comms) ── -->
-    <div class="section-title" style="margin-top:0">Latest Notes</div>
+    <!-- ── Placeholder Stats ─────────────────── -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-soon-badge">Coming Soon</span>
+        <div class="stat-label">Courts Open</div>
+        <div class="stat-value">— <span>/ 6</span></div>
+        <div class="stat-sub">Live court data</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-soon-badge">Coming Soon</span>
+        <div class="stat-label">Today's Bookings</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">Booking integration</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-soon-badge">Coming Soon</span>
+        <div class="stat-label">Cash — Today</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">Cash module</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-soon-badge">Coming Soon</span>
+        <div class="stat-label">Members In</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">Check-in integration</div>
+      </div>
+    </div>
+
+    <!-- ── Latest Notes ───────────────────────── -->
+    <div class="section-title" style="margin-top:0">
+      <div class="section-live-dot"></div>
+      Latest Notes
+    </div>
     <a href="/comms.html" class="notes-link">
       <div class="notes-panel">
         <div class="notes-panel-head">
@@ -739,8 +784,11 @@
       </div>
     </a>
 
-    <!-- ── Daily Ops ───────────────────────── -->
-    <div class="section-title">Daily Ops</div>
+    <!-- ── Active Modules ─────────────────────── -->
+    <div class="section-title">
+      <div class="section-live-dot"></div>
+      Active Modules
+    </div>
     <div class="tile-grid">
 
       <a href="/checklist.html" class="tile t-green" id="checklist-tile">
@@ -759,159 +807,6 @@
         <div class="tile-desc">Open and close your shift. Track tasks as you go.</div>
         <div class="tile-footer" id="checklist-tile-footer" style="color:#10b981">Loading…</div>
       </a>
-
-      <a href="#" class="tile t-blue">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="12" y1="3" x2="12" y2="21"/>
-              <line x1="3" y1="7" x2="21" y2="7"/>
-              <line x1="3" y1="17" x2="21" y2="17"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Courts</div>
-        <div class="tile-desc">Book, view, and manage court reservations in real time.</div>
-        <div class="tile-footer">
-          <div class="dot-row">
-            <div class="dot-item"><div style="width:7px;height:7px;border-radius:50%;background:#10b981"></div><span>4 open</span></div>
-            <div class="dot-item"><div style="width:7px;height:7px;border-radius:50%;background:#d97706"></div><span>2 in use</span></div>
-          </div>
-        </div>
-      </a>
-
-      <a href="#" class="tile t-amber">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <rect x="2" y="6" width="20" height="13" rx="2"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </div>
-          <div style="display:flex;align-items:center;gap:7px">
-            <span class="tile-tag" style="background:rgba(217,119,6,0.10);color:#d97706;border:1px solid rgba(217,119,6,0.20)">Open</span>
-            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </div>
-        </div>
-        <div class="tile-name">Cash Summary</div>
-        <div class="tile-desc">Log daily cash, close your shift, view sales reports.</div>
-        <div class="tile-footer" style="color:#d97706">Shift close pending</div>
-      </a>
-
-      <a href="#" class="tile t-sky">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Cleaning</div>
-        <div class="tile-desc">Daily and weekly cleaning tasks by area and zone.</div>
-      </a>
-
-    </div>
-
-    <!-- ── Facility ────────────────────────── -->
-    <div class="section-title">Facility</div>
-    <div class="tile-grid">
-
-      <a href="#" class="tile t-amber">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Maintenance</div>
-        <div class="tile-desc">Log issues, track repairs, and manage facility upkeep.</div>
-      </a>
-
-    </div>
-
-    <!-- ── Programs & People ──────────────── -->
-    <div class="section-title">Programs &amp; People</div>
-    <div class="tile-grid">
-
-      <a href="#" class="tile t-blue">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Academy</div>
-        <div class="tile-desc">Program registrations, lesson scheduling, and player progress.</div>
-        <div class="tile-footer" style="color:var(--blue)">Junior Spring session active</div>
-      </a>
-
-      <a href="#" class="tile t-navy">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Members</div>
-        <div class="tile-desc">Look up member profiles, check-in, and manage accounts.</div>
-        <div class="tile-footer" style="color:var(--text-3)">500 active members</div>
-      </a>
-
-    </div>
-
-    <!-- ── Store ──────────────────────────── -->
-    <div class="section-title">Store</div>
-    <div class="tile-grid">
-
-      <a href="#" class="tile t-blue">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Pro Shop</div>
-        <div class="tile-desc">Process sales, track inventory, and manage stringing orders.</div>
-      </a>
-
-    </div>
-
-    <!-- ── Team ──────────────────────────── -->
-    <div class="section-title">Team</div>
-    <div class="tile-grid">
 
       <a href="/schedule.html" class="tile t-sky">
         <div class="tile-head">
@@ -969,69 +864,156 @@
         <div class="tile-desc">Staff notes, shift handovers, and team announcements.</div>
       </a>
 
-      <a href="#" class="tile t-violet">
-        <div class="tile-head">
-          <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
-              <line x1="9" y1="21" x2="15" y2="21"/>
-              <line x1="10" y1="19" x2="14" y2="19"/>
-            </svg>
-          </div>
-          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="tile-name">Idea Board</div>
-        <div class="tile-desc">Share suggestions and improvements with the whole team.</div>
-      </a>
-
     </div>
 
-    <!-- ── Coming Soon (roadmap capture) ──── -->
-    <div class="section-title">Coming Soon · Roadmap</div>
+    <!-- ── Coming Soon ────────────────────────── -->
+    <div class="section-title" style="color:var(--text-3)">On the Roadmap</div>
     <div class="tile-grid">
 
       <div class="tile soon">
         <div class="tile-head">
           <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <line x1="3" y1="7" x2="21" y2="7"/>
+              <line x1="3" y1="17" x2="21" y2="17"/>
             </svg>
           </div>
           <span class="soon-tag">Coming Soon</span>
         </div>
-        <div class="tile-name">Staff Training Manual</div>
-        <div class="tile-desc">Onboarding guides, policies, and how-tos — built out like an academy for staff.</div>
+        <div class="tile-name">Courts</div>
+        <div class="tile-desc">Book, view, and manage court reservations in real time.</div>
       </div>
 
       <div class="tile soon">
         <div class="tile-head">
           <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 7v5l3 2"/>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <rect x="2" y="6" width="20" height="13" rx="2"/>
+              <circle cx="12" cy="12" r="3"/>
             </svg>
           </div>
           <span class="soon-tag">Coming Soon</span>
         </div>
-        <div class="tile-name">Shift Sign-In / Hours</div>
-        <div class="tile-desc">Clock in and out at shift start and end, with automatic hours tracking per staff member.</div>
+        <div class="tile-name">Cash Summary</div>
+        <div class="tile-desc">Log daily cash, close your shift, view sales reports.</div>
       </div>
 
       <div class="tile soon">
         <div class="tile-head">
           <div class="tile-icon">
-            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Cleaning</div>
+        <div class="tile-desc">Daily and weekly cleaning tasks by area and zone.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Maintenance</div>
+        <div class="tile-desc">Log issues, track repairs, and manage facility upkeep.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Academy</div>
+        <div class="tile-desc">Program registrations, lesson scheduling, and player progress.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Members</div>
+        <div class="tile-desc">Look up member profiles, check-in, and manage accounts.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Pro Shop</div>
+        <div class="tile-desc">Process sales, track inventory, and manage stringing orders.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+              <line x1="9" y1="21" x2="15" y2="21"/>
+              <line x1="10" y1="19" x2="14" y2="19"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Idea Board</div>
+        <div class="tile-desc">Share suggestions and improvements with the whole team.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               <path d="M8 9h8M8 13h5"/>
             </svg>
           </div>
           <span class="soon-tag">Coming Soon</span>
         </div>
-        <div class="tile-name">Staff Assistant (AI)</div>
-        <div class="tile-desc">Ask a question about any feature — comm log, sign-in, checklists. A help-scoped chatbot, grounded in how the hub works.</div>
+        <div class="tile-name">Staff Assistant</div>
+        <div class="tile-desc">Ask the AI assistant anything about the hub — schedule, comms, checklists. Coming soon.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Staff Manual</div>
+        <div class="tile-desc">Onboarding guides, policies, and how-tos — built out like an academy for staff.</div>
       </div>
 
     </div>
@@ -1158,7 +1140,7 @@
         }
       } catch (e) { /* non-critical */ }
 
-      // Latest notes preview (view-only; whole panel links to the comms log)
+      // Latest notes preview
       try {
         const notesRes = await fetch('/api/messages?limit=10&offset=0');
         const notes = await notesRes.json();
@@ -1181,7 +1163,6 @@
       const wrap = document.getElementById('notes-list');
       const x = new Date();
       const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-      // Skip notes scheduled for a future day — they surface in the log on their day, not here.
       const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr).slice(0, 4);
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
       const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
