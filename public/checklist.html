@@ -461,6 +461,9 @@
     let currentShift = 'morning';
     let currentDate  = today();
     let pendingNR    = null; // { itemId }
+    // Expose for ai-widget.js
+    window.currentShift = currentShift;
+    window.currentDate  = currentDate;
 
     const PHASE_LABELS = { start:'Start of Shift', during:'During Shift', bookings:'Bookings', end:'End of Shift' };
 
@@ -490,14 +493,18 @@
     // ── Shift & Date ─────────────────────────────────────────────────
     function selectShift(shift) {
       currentShift = shift;
+      window.currentShift = shift;
       document.querySelectorAll('.shift-tab').forEach(t =>
         t.classList.toggle('active', t.dataset.shift === shift)
       );
+      if (window.aiWidget) window.aiWidget.setContext(shift, currentDate);
       load();
     }
 
     function onDateChange() {
       currentDate = document.getElementById('date-picker').value || today();
+      window.currentDate = currentDate;
+      if (window.aiWidget) window.aiWidget.setContext(currentShift, currentDate);
       load();
     }
 
@@ -808,5 +815,6 @@
   </script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
+  <script src="/ai-widget.js"></script>
 </body>
 </html>
