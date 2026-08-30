@@ -274,7 +274,8 @@
 
       list.innerHTML = sorted.map(s => `
         <div class="flex items-center gap-4 px-6 py-3.5">
-          <div class="avatar" style="background:${s.color}22; color:${s.color}">${s.name.slice(0,2).toUpperCase()}</div>
+          <div class="avatar" id="av-${s.id}" style="background:${s.color}22; color:${s.color}; overflow:hidden">${s.name.slice(0,2).toUpperCase()}</div>
+          <input type="file" id="photo-input-${s.id}" accept="image/*" style="display:none" onchange="uploadPhoto(${s.id}, '${s.name}', '${s.color}', this)">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-white">${s.name}</span>
@@ -282,12 +283,16 @@
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('photo-input-${s.id}').click()" title="Upload a photo for ${s.name}">Photo</button>
             <button class="btn btn-ghost btn-sm" onclick="openEditModal(${s.id})">Edit</button>
             <button class="btn btn-amber btn-sm" onclick="openPwModal(${s.id}, '${s.name}')">Password</button>
             <button class="btn btn-danger btn-sm" onclick="deleteStaff(${s.id}, '${s.name}')">Remove</button>
           </div>
         </div>
       `).join('');
+
+      // Load photos after render
+      sorted.forEach(s => staffAvatar(document.getElementById(`av-${s.id}`), s.id, s.name, s.color));
     }
 
     // ── Add / Edit Modal ──────────────────────────────────────────────────────
@@ -399,6 +404,23 @@
       await loadStaff();
     }
 
+    // ── Photo Upload ──────────────────────────────────────────────────────────
+
+    async function uploadPhoto(id, name, color, input) {
+      const file = input.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('photo', file);
+      const res = await fetch(`/api/staff/${id}/photo`, { method: 'POST', body: fd });
+      input.value = '';
+      if (res.ok) {
+        staffAvatar(document.getElementById(`av-${id}`), id, name, color, true);
+        showToast(`${name}'s photo updated`);
+      } else {
+        showToast('Upload failed', 'error');
+      }
+    }
+
     // ── Clear Day ─────────────────────────────────────────────────────────────
 
     async function clearDay() {
@@ -435,6 +457,7 @@
 
     init();
   </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>

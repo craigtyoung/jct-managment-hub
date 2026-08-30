@@ -383,6 +383,9 @@
       }
 
       document.getElementById('ts-main').innerHTML = visible.map(sid => renderPersonCard(groups[sid])).join('');
+
+      // Load staff photos after render
+      visible.forEach(sid => staffAvatar(document.getElementById(`ts-av-${sid}`), sid, groups[sid].name, groups[sid].color));
     }
 
     function renderPersonCard(person) {
@@ -415,8 +418,10 @@
         <div class="person-card">
           <div class="person-head">
             <div class="person-head-left">
+              <div id="ts-av-${person.id}" style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:${person.color}22;color:${person.color}">
+                ${esc(person.name).slice(0,2).toUpperCase()}
+              </div>
               <span class="person-chip" style="background:${person.color}18;color:${person.color}">
-                <span class="person-dot" style="background:${person.color}"></span>
                 ${esc(person.name)}
               </span>
               <span class="person-role">${person.role}</span>
@@ -595,9 +600,7 @@
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');
-      av.textContent = me.name.slice(0,2).toUpperCase();
-      av.style.background = me.color + '28';
-      av.style.color = me.color;
+      staffAvatar(av, me.id, me.name, me.color);
       document.getElementById('nav-name').textContent = me.name;
       document.getElementById('nav-role').textContent = me.role;
       if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
@@ -623,6 +626,7 @@
 
     init();
   </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>
