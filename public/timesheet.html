@@ -12,7 +12,7 @@
     :root {
       --spine-w:68px; --nav-w:214px; --total-nav:calc(var(--spine-w) + var(--nav-w));
       --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
-      --blue:#2c5c9c; --blue-soft:rgba(44,92,156,0.10); --powder:#b1c9fb;
+      --blue:#2c5c9c; --powder:#b1c9fb;
       --canvas:#f0f4f9; --surface:#ffffff;
       --border:rgba(12,23,56,0.08); --border-nav:rgba(177,201,251,0.07);
       --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
@@ -22,15 +22,17 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     body{padding-left:var(--total-nav);background:var(--canvas);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.5;min-height:100vh;}
 
+    /* ── Spine ── */
     .spine{position:fixed;left:0;top:0;width:var(--spine-w);height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;z-index:200;border-right:1px solid var(--border-nav);}
-    .spine-top{display:flex;flex-direction:column;align-items:center;padding:18px 0 0;}
-    .spine-mark{width:40px;height:28px;}
+    .spine-top{display:flex;flex-direction:column;align-items:center;padding:16px 0 0;}
+    .spine-mark{width:44px;height:44px;object-fit:contain;filter:brightness(0) invert(1) opacity(0.55);}
     .spine-divider{width:30px;height:1px;background:var(--border-nav);margin:14px 0 10px;}
     .spine-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-family:var(--font-body);font-size:9px;font-weight:600;letter-spacing:0.20em;text-transform:uppercase;color:rgba(177,201,251,0.30);flex:1;}
     .spine-foot{padding-bottom:18px;display:flex;flex-direction:column;align-items:center;gap:10px;}
     .spine-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:rgba(177,201,251,0.32);transition:all 0.18s;text-decoration:none;}
     .spine-btn:hover{color:var(--powder);background:var(--navy-hover);}
 
+    /* ── Sidenav ── */
     .sidenav{position:fixed;left:var(--spine-w);top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
     .sidenav::-webkit-scrollbar{width:0;}
     .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);flex-shrink:0;}
@@ -51,14 +53,16 @@
     .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font-body);font-size:11px;color:rgba(177,201,251,0.32);transition:color 0.15s,border-color 0.15s;}
     .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
 
+    /* ── Topstrip ── */
     .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
     .ts-clock{font-size:13px;font-weight:500;color:var(--text);line-height:1;}
     .ts-date{font-size:11px;color:var(--text-3);margin-top:2px;}
 
-    .main{max-width:1060px;margin:0 auto;padding:32px 32px 80px;}
+    /* ── Main ── */
+    .main{max-width:900px;margin:0 auto;padding:32px 32px 80px;}
 
-    /* Period nav */
-    .period-nav{display:flex;align-items:center;gap:12px;margin:24px 0 20px;}
+    /* ── Period nav ── */
+    .period-nav{display:flex;align-items:center;gap:12px;margin:24px 0 24px;}
     .period-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--surface);border:1px solid var(--border);cursor:pointer;color:var(--text-2);transition:all 0.15s;}
     .period-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
     .period-label{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--text);}
@@ -66,58 +70,103 @@
     .today-btn{padding:5px 14px;border-radius:100px;background:none;border:1px solid var(--border);font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all 0.15s;margin-left:4px;}
     .today-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
 
-    /* Table */
-    .ts-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;}
-    .ts-table{width:100%;border-collapse:collapse;}
-    .ts-table th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);background:var(--canvas);}
-    .ts-table th.right,.ts-table td.right{text-align:right;}
-    .ts-table td{padding:9px 14px;font-size:13px;border-bottom:1px solid rgba(12,23,56,0.05);vertical-align:middle;}
-    .ts-table tr:last-child td{border-bottom:none;}
-    .ts-table tr.day-header td{background:var(--canvas);padding:7px 14px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
-    .ts-table tr.day-header.today-row td{color:var(--blue);}
+    /* ── Person cards ── */
+    .person-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:16px;}
 
-    .ts-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:12px;font-weight:600;}
-    .ts-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-    .shift-badge{display:inline-block;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}
+    .person-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px 20px;border-bottom:1px solid var(--border);
+      background:var(--canvas);
+    }
+    .person-head-left{display:flex;align-items:center;gap:10px;}
+    .person-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px 4px 8px;border-radius:100px;font-size:13px;font-weight:600;}
+    .person-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .person-role{font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);}
+    .person-head-right{display:flex;align-items:center;gap:14px;}
+    .progress-text{font-size:12px;color:var(--text-3);}
+    .hours-pill{display:inline-block;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:600;}
+    .hours-pill.has{background:rgba(22,163,74,0.08);color:var(--green);}
+    .hours-pill.none{color:var(--text-3);font-weight:400;font-size:12px;}
+
+    /* ── Shift rows ── */
+    .shift-row{
+      display:flex;align-items:center;gap:0;
+      padding:11px 20px;border-bottom:1px solid rgba(12,23,56,0.04);
+      transition:background 0.12s;
+    }
+    .shift-row:last-of-type{border-bottom:none;}
+    .shift-row:hover{background:rgba(240,244,249,0.6);}
+
+    .shift-cb-wrap{display:flex;align-items:center;flex-shrink:0;margin-right:14px;}
+    .shift-cb{
+      width:17px;height:17px;border-radius:5px;cursor:pointer;
+      accent-color:var(--navy);flex-shrink:0;
+    }
+    .shift-cb:disabled{cursor:default;opacity:0.5;}
+
+    .shift-row-date{width:96px;font-size:12.5px;color:var(--text-2);flex-shrink:0;}
+    .shift-badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;flex-shrink:0;}
     .shift-badge.morning{background:rgba(251,191,36,0.12);color:#b45309;}
     .shift-badge.afternoon{background:rgba(44,92,156,0.10);color:var(--blue);}
     .shift-badge.closing{background:rgba(12,23,56,0.07);color:var(--text-2);}
 
-    .time-input{width:80px;padding:4px 7px;border-radius:7px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--canvas);transition:border-color 0.15s;}
+    .shift-sched{font-size:12px;color:var(--text-3);margin:0 14px;flex-shrink:0;min-width:120px;}
+
+    .shift-status-area{flex:1;display:flex;align-items:center;gap:8px;}
+    .shift-status-confirmed{font-size:12px;font-weight:600;color:var(--green);}
+    .shift-status-override{font-size:12px;font-weight:600;color:var(--blue);}
+    .shift-status-pending{font-size:12px;color:var(--text-3);}
+
+    .edit-times-btn{
+      font-size:11px;color:var(--text-3);background:none;border:none;cursor:pointer;
+      padding:2px 7px;border-radius:6px;transition:color 0.15s,background 0.15s;
+      text-decoration:underline;text-underline-offset:2px;
+    }
+    .edit-times-btn:hover{color:var(--blue);background:rgba(44,92,156,0.06);text-decoration:none;}
+
+    /* ── Override form (inline, below row) ── */
+    .override-form{
+      display:none;
+      padding:10px 20px 12px 51px; /* aligns under the checkbox */
+      background:rgba(44,92,156,0.03);
+      border-top:1px solid var(--border);
+      gap:10px;align-items:center;flex-wrap:wrap;
+    }
+    .override-form.open{display:flex;}
+    .ov-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:0.04em;text-transform:uppercase;width:38px;}
+    .time-input{width:86px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--surface);transition:border-color 0.15s;}
     .time-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
-    .time-input.filled{background:var(--surface);border-color:rgba(44,92,156,0.18);}
-    .exp-input{width:72px;padding:4px 7px;border-radius:7px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--canvas);text-align:right;}
+    .sep{font-size:12px;color:var(--text-3);}
+    .ov-save-btn{padding:5px 14px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:12px;color:#f0f4ff;cursor:pointer;font-weight:500;transition:background 0.15s;}
+    .ov-save-btn:hover{background:var(--blue);}
+    .ov-cancel-btn{padding:5px 10px;border-radius:100px;background:none;border:none;font-family:var(--font-body);font-size:12px;color:var(--text-3);cursor:pointer;transition:color 0.15s;}
+    .ov-cancel-btn:hover{color:var(--text-2);}
+
+    /* ── Person card footer (expenses) ── */
+    .person-footer{
+      padding:12px 20px;border-top:1px solid var(--border);
+      display:flex;align-items:center;gap:14px;
+      background:rgba(248,250,252,0.6);
+    }
+    .exp-label{font-size:12px;color:var(--text-2);flex-shrink:0;}
+    .exp-input{
+      width:96px;padding:5px 9px;border-radius:8px;
+      border:1px solid var(--border);font-family:var(--font-body);font-size:13px;
+      color:var(--text);background:var(--surface);text-align:right;
+      transition:border-color 0.15s;
+    }
     .exp-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
-    .exp-input.filled{background:var(--surface);border-color:rgba(44,92,156,0.18);}
+    .exp-saved{font-size:11px;color:var(--green);font-weight:600;display:none;}
 
-    .hours-pill{display:inline-block;padding:2px 9px;border-radius:100px;font-size:12px;font-weight:600;}
-    .hours-pill.has{background:rgba(22,163,74,0.08);color:var(--green);}
-    .hours-pill.none{color:var(--text-3);font-weight:400;}
-
-    .sched-ref{font-size:11px;color:var(--text-3);}
-
-    .save-btn{padding:3px 11px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:11px;color:#f0f4ff;cursor:pointer;font-weight:500;transition:background 0.15s;}
-    .save-btn:hover{background:var(--blue);}
-    .save-btn:disabled{opacity:0.4;cursor:default;}
-    .saved-tick{font-size:11px;color:var(--green);font-weight:600;}
-
-    /* Totals */
-    .totals-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-top:24px;}
-    .totals-title{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--text);padding:18px 22px 4px;}
-    .totals-sub{font-size:12px;color:var(--text-3);padding:0 22px 14px;}
-    .totals-table{width:100%;border-collapse:collapse;}
-    .totals-table th{padding:8px 22px;text-align:left;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);border-top:1px solid var(--border);background:var(--canvas);}
-    .totals-table td{padding:11px 22px;font-size:13px;border-bottom:1px solid rgba(12,23,56,0.05);}
-    .totals-table tr:last-child td{border-bottom:none;}
-    .totals-table th.right,.totals-table td.right{text-align:right;}
-
-    /* Defaults */
+    /* ── Defaults panel ── */
     .defaults-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-top:24px;}
     .defaults-title{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--text);margin-bottom:4px;}
     .defaults-sub{font-size:12px;color:var(--text-3);margin-bottom:16px;}
     .defaults-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(12,23,56,0.05);}
     .defaults-row:last-child{border-bottom:none;}
     .defaults-label{width:90px;font-size:13px;font-weight:500;color:var(--text);}
+    .save-btn{padding:5px 14px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:12px;color:#f0f4ff;cursor:pointer;font-weight:500;transition:background 0.15s;}
+    .save-btn:hover{background:var(--blue);}
 
     .empty-state{padding:60px 40px;text-align:center;color:var(--text-3);font-size:13px;}
 
@@ -129,15 +178,7 @@
   <!-- Spine -->
   <div class="spine">
     <div class="spine-top">
-      <svg class="spine-mark" viewBox="0 0 54 36" fill="none">
-        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
-        <text x="15" y="22.5" text-anchor="middle" font-family="'Playfair Display',serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
-        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)" stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
-        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
-        <text x="39" y="22.5" text-anchor="middle" font-family="'Playfair Display',serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
-      </svg>
+      <img src="/jct-logo.png" class="spine-mark" alt="JCT" />
       <div class="spine-divider"></div>
       <div class="spine-label">Staff Hub</div>
     </div>
@@ -184,7 +225,7 @@
   <!-- Main -->
   <main class="main">
     <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Timesheets</h1>
-    <p style="font-size:13px;color:var(--text-2)" id="page-hint"></p>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:0" id="page-hint"></p>
 
     <!-- Period Nav -->
     <div class="period-nav">
@@ -201,30 +242,15 @@
       <button class="today-btn" onclick="goToday()">Current period</button>
     </div>
 
-    <!-- Timesheet table -->
-    <div class="ts-card" id="ts-card">
+    <!-- Person cards -->
+    <div id="ts-main">
       <div class="empty-state">Loading…</div>
-    </div>
-
-    <!-- Period totals -->
-    <div class="totals-panel" id="totals-panel" style="display:none">
-      <div class="totals-title">Period Totals</div>
-      <div class="totals-sub" id="totals-sub"></div>
-      <table class="totals-table">
-        <thead><tr>
-          <th>Staff member</th>
-          <th>Shifts</th>
-          <th class="right">Hours</th>
-          <th class="right">Expenses</th>
-        </tr></thead>
-        <tbody id="totals-body"></tbody>
-      </table>
     </div>
 
     <!-- Shift defaults (admin only) -->
     <div class="defaults-panel" id="defaults-panel" style="display:none">
       <div class="defaults-title">Default Shift Times</div>
-      <div class="defaults-sub">Pre-fills the Scheduled column for each shift. Adjust actual times per row.</div>
+      <div class="defaults-sub">These pre-fill the scheduled times shown on each shift row.</div>
       <div id="defaults-rows"></div>
     </div>
   </main>
@@ -232,13 +258,16 @@
   <script>
     const SHIFTS       = ['morning','afternoon','closing'];
     const SHIFT_LABELS = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' };
+    const SHIFT_ORDER  = { morning:0, afternoon:1, closing:2 };
     const DAY_FULL     = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const DAY_SHORT    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const MONTHS       = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    let me = null, canEdit = false;
+    let me = null;
+    let isAdmin = false;    // admin or manager — can edit any row, see all staff, add expenses
+    let canConfirm = false; // all logged-in users — can confirm their own shifts
     let currentStart = '', currentEnd = '';
-    let weekRows = [], weekDefaults = {};
+    let weekRows = [], weekDefaults = {}, periodExpenses = {};
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -246,16 +275,29 @@
       document.getElementById('clock').textContent = now.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});
       document.getElementById('dateline').textContent = now.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
     }
-    updateClock(); setInterval(updateClock,1000);
+    updateClock(); setInterval(updateClock, 1000);
 
-    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function fmt12(t) {
       if (!t) return '—';
       const [h, m] = t.split(':').map(Number);
       const ampm = h >= 12 ? 'pm' : 'am';
-      const h12 = h % 12 || 12;
-      return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+      return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`;
+    }
+
+    function calcHours(start, end) {
+      if (!start || !end) return null;
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      return mins > 0 ? mins / 60 : null;
+    }
+
+    function fmtHours(h) {
+      if (h === null || h === undefined || isNaN(h)) return '—';
+      const hrs = Math.floor(h), mins = Math.round((h - hrs) * 60);
+      return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
     }
 
     // ── Period helpers ─────────────────────────────────────────────
@@ -267,31 +309,15 @@
     function computePeriod(dateStr) {
       const d = new Date(dateStr + 'T12:00:00');
       const yr = d.getFullYear(), mo = String(d.getMonth()+1).padStart(2,'0'), day = d.getDate();
-      if (day <= 15) {
-        return { start: `${yr}-${mo}-01`, end: `${yr}-${mo}-15` };
-      }
+      if (day <= 15) return { start: `${yr}-${mo}-01`, end: `${yr}-${mo}-15` };
       const last = new Date(yr, d.getMonth()+1, 0).getDate();
       return { start: `${yr}-${mo}-16`, end: `${yr}-${mo}-${last}` };
     }
 
-    function shiftPeriod(startStr, direction) {
+    function shiftPeriod(startStr, dir) {
       const d = new Date(startStr + 'T12:00:00');
-      if (direction === -1) {
-        // Go back: if current start is 1st → go to 16th of prev month; if 16th → go to 1st of same month
-        if (d.getDate() === 1) {
-          d.setDate(0); // last day of prev month
-        } else {
-          d.setDate(1);
-        }
-      } else {
-        // Go forward: if start is 1st → 16th; if 16th → 1st of next month
-        if (d.getDate() === 1) {
-          d.setDate(16);
-        } else {
-          d.setDate(d.getDate() + 16); // roughly next month 1st
-          d.setDate(1);
-        }
-      }
+      if (dir === -1) { d.getDate() === 1 ? d.setDate(0) : d.setDate(1); }
+      else { d.getDate() === 1 ? d.setDate(16) : (d.setDate(d.getDate() + 16), d.setDate(1)); }
       return computePeriod(d.toISOString().slice(0,10));
     }
 
@@ -300,223 +326,252 @@
       return `${MONTHS[s.getMonth()]} ${s.getDate()}–${e.getDate()}, ${s.getFullYear()}`;
     }
 
-    function calcHours(start, end) {
-      if (!start || !end) return null;
-      const [sh,sm] = start.split(':').map(Number);
-      const [eh,em] = end.split(':').map(Number);
-      const mins = (eh*60+em) - (sh*60+sm);
-      return mins > 0 ? mins/60 : null;
-    }
-    function fmtHours(h) {
-      if (h === null) return '—';
-      const hrs = Math.floor(h), mins = Math.round((h-hrs)*60);
-      return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
-    }
-    function fmtMoney(v) {
-      if (v == null) return '—';
-      return `$${parseFloat(v).toFixed(2)}`;
-    }
-
     // ── Nav ────────────────────────────────────────────────────────
-    function prevPeriod() { const p = shiftPeriod(currentStart, -1); currentStart = p.start; currentEnd = p.end; load(); }
-    function nextPeriod() { const p = shiftPeriod(currentStart,  1); currentStart = p.start; currentEnd = p.end; load(); }
-    function goToday()    { const p = computePeriod(todayStr()); currentStart = p.start; currentEnd = p.end; load(); }
+    function prevPeriod() { const p = shiftPeriod(currentStart,-1); currentStart=p.start; currentEnd=p.end; load(); }
+    function nextPeriod() { const p = shiftPeriod(currentStart, 1); currentStart=p.start; currentEnd=p.end; load(); }
+    function goToday()    { const p = computePeriod(todayStr()); currentStart=p.start; currentEnd=p.end; load(); }
 
     // ── Load ───────────────────────────────────────────────────────
     async function load() {
       document.getElementById('period-label').textContent = fmtPeriodLabel(currentStart, currentEnd);
-      document.getElementById('period-sub').textContent = `(${currentStart} to ${currentEnd})`;
-      document.getElementById('ts-card').innerHTML = '<div class="empty-state">Loading…</div>';
+      document.getElementById('period-sub').textContent   = `(${currentStart} to ${currentEnd})`;
+      document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
       try {
-        const res = await fetch(`/api/timesheet/week?start=${currentStart}&end=${currentEnd}`);
+        const res  = await fetch(`/api/timesheet/week?start=${currentStart}&end=${currentEnd}`);
         const data = await res.json();
-        weekRows     = data.rows || [];
+        weekRows     = data.rows     || [];
         weekDefaults = data.defaults || {};
+        periodExpenses = data.period_expenses || {};
         render();
-        renderTotals();
-        if (canEdit) renderDefaults();
+        if (isAdmin) renderDefaults();
       } catch(e) {
-        document.getElementById('ts-card').innerHTML = '<div class="empty-state">Failed to load timesheet.</div>';
+        document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load timesheets.</div>';
       }
     }
 
-    // ── Render table ───────────────────────────────────────────────
+    // ── Render ─────────────────────────────────────────────────────
     function render() {
-      const today = todayStr();
-
       if (!weekRows.length) {
-        document.getElementById('ts-card').innerHTML =
+        document.getElementById('ts-main').innerHTML =
           '<div class="empty-state">No shifts scheduled this period.<br>Assign staff on the <a href="/schedule.html" style="color:var(--blue)">Schedule</a> page first.</div>';
         return;
       }
 
-      const shiftOrder = {morning:0,afternoon:1,closing:2};
-      const sorted = [...weekRows].sort((a,b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return (shiftOrder[a.shift]||0) - (shiftOrder[b.shift]||0);
-      });
+      // Group by staff
+      const groups = {};
+      for (const row of weekRows) {
+        if (!groups[row.staff_id]) {
+          groups[row.staff_id] = { id: row.staff_id, name: row.staff_name, color: row.staff_color, role: row.staff_role, rows: [] };
+        }
+        groups[row.staff_id].rows.push(row);
+      }
 
-      const colCount = canEdit ? 9 : 6;
-      let html = '<table class="ts-table"><thead><tr>';
-      html += '<th>Staff</th><th>Day</th><th>Shift</th><th>Scheduled</th>';
-      if (canEdit) {
-        html += '<th>Clock In</th><th>Clock Out</th><th class="right">Expenses ($)</th><th class="right">Hours</th><th></th>';
+      // Sort each person's shifts by date then shift order
+      for (const g of Object.values(groups)) {
+        g.rows.sort((a, b) => a.date.localeCompare(b.date) || (SHIFT_ORDER[a.shift]||0) - (SHIFT_ORDER[b.shift]||0));
+      }
+
+      // Determine which staff to show
+      const staffIds = Object.keys(groups)
+        .map(Number)
+        .sort((a, b) => groups[a].name.localeCompare(groups[b].name));
+      const visible = isAdmin ? staffIds : staffIds.filter(id => id === me.id);
+
+      if (!visible.length) {
+        document.getElementById('ts-main').innerHTML = '<div class="empty-state">No shifts found for this period.</div>';
+        return;
+      }
+
+      document.getElementById('ts-main').innerHTML = visible.map(sid => renderPersonCard(groups[sid])).join('');
+    }
+
+    function renderPersonCard(person) {
+      const totalHours = person.rows.reduce((sum, r) => {
+        return sum + (calcHours(r.actual_start, r.actual_end) || 0);
+      }, 0);
+      const confirmed = person.rows.filter(r => r.actual_start).length;
+      const total     = person.rows.length;
+      const expenses  = periodExpenses[person.id] ?? null;
+
+      const hoursPill = totalHours > 0
+        ? `<span class="hours-pill has">${fmtHours(totalHours)}</span>`
+        : `<span class="hours-pill none">No hours logged</span>`;
+
+      const shiftRowsHtml = person.rows.map(r => renderShiftRow(r, person)).join('');
+
+      const expensesRow = isAdmin ? `
+        <div class="person-footer">
+          <span class="exp-label">Expenses this period</span>
+          <input type="number" class="exp-input" id="exp-${person.id}"
+            value="${expenses !== null ? expenses : ''}"
+            min="0" step="0.01" placeholder="$0.00"
+            onblur="saveExpenses(${person.id})"
+            onkeydown="if(event.key==='Enter')this.blur()">
+          <span class="exp-saved" id="exp-saved-${person.id}">Saved ✓</span>
+          ${expenses !== null && expenses > 0 ? `<span style="font-size:12px;color:var(--amber);font-weight:600">$${parseFloat(expenses).toFixed(2)}</span>` : ''}
+        </div>` : '';
+
+      return `
+        <div class="person-card">
+          <div class="person-head">
+            <div class="person-head-left">
+              <span class="person-chip" style="background:${person.color}18;color:${person.color}">
+                <span class="person-dot" style="background:${person.color}"></span>
+                ${esc(person.name)}
+              </span>
+              <span class="person-role">${person.role}</span>
+            </div>
+            <div class="person-head-right">
+              <span class="progress-text">${confirmed}/${total} shifts</span>
+              ${hoursPill}
+            </div>
+          </div>
+          ${shiftRowsHtml}
+          ${expensesRow}
+        </div>`;
+    }
+
+    function renderShiftRow(row, person) {
+      const key = `${row.staff_id}-${row.date}-${row.shift}`;
+      const isConfirmed = !!row.actual_start;
+      const isOverride  = isConfirmed && (
+        row.actual_start !== row.scheduled_start ||
+        row.actual_end   !== row.scheduled_end
+      );
+
+      const dt = new Date(row.date + 'T12:00:00');
+      const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
+
+      const canConfirmThisRow = isAdmin || (row.staff_id === me.id);
+
+      let statusHtml = '';
+      if (isOverride) {
+        statusHtml = `<span class="shift-status-override">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
+      } else if (isConfirmed) {
+        statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
       } else {
-        html += '<th>Actual</th><th class="right">Expenses</th><th class="right">Hours</th>';
+        statusHtml = `<span class="shift-status-pending">Not confirmed</span>`;
       }
-      html += '</tr></thead><tbody>';
 
-      let lastDate = null;
-      sorted.forEach((row, idx) => {
-        if (row.date !== lastDate) {
-          const dt = new Date(row.date + 'T12:00:00');
-          const isToday = row.date === today;
-          html += `<tr class="day-header${isToday?' today-row':''}">
-            <td colspan="${colCount}">
-              ${DAY_FULL[dt.getDay()]}, ${MONTHS[dt.getMonth()]} ${dt.getDate()}${isToday?' · Today':''}
-            </td>
-          </tr>`;
-          lastDate = row.date;
-        }
+      const editBtn = isAdmin && isConfirmed
+        ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
+        : '';
 
-        const hours = calcHours(row.actual_start, row.actual_end);
-        const hoursPill = hours !== null
-          ? `<span class="hours-pill has">${fmtHours(hours)}</span>`
-          : `<span class="hours-pill none">—</span>`;
+      const overrideForm = isAdmin ? `
+        <div class="override-form" id="override-${key}">
+          <span class="ov-label">Start</span>
+          <input type="time" class="time-input" id="ov-start-${key}" value="${row.actual_start || row.scheduled_start || ''}">
+          <span class="sep">–</span>
+          <span class="ov-label" style="width:30px">End</span>
+          <input type="time" class="time-input" id="ov-end-${key}" value="${row.actual_end || row.scheduled_end || ''}">
+          <button class="ov-save-btn" onclick="saveOverride('${key}', ${row.staff_id}, '${row.date}', '${row.shift}')">Save</button>
+          <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
+        </div>` : '';
 
-        html += `<tr>`;
-        html += `<td><span class="ts-chip" style="background:${row.staff_color}18;color:${row.staff_color}">
-          <span class="ts-dot" style="background:${row.staff_color}"></span>${esc(row.staff_name)}
-        </span></td>`;
-        html += `<td style="color:var(--text-2)">${DAY_SHORT[new Date(row.date+'T12:00:00').getDay()]}</td>`;
-        html += `<td><span class="shift-badge ${row.shift}">${SHIFT_LABELS[row.shift]}</span></td>`;
-        html += `<td class="sched-ref">${fmt12(row.scheduled_start)} – ${fmt12(row.scheduled_end)}</td>`;
+      // Store row data for JS access
+      window._rowData = window._rowData || {};
+      window._rowData[key] = row;
 
-        if (canEdit) {
-          const inVal  = row.actual_start || '';
-          const outVal = row.actual_end   || '';
-          const expVal = row.expenses != null ? row.expenses : '';
-          html += `<td><input type="time" id="in-${idx}"  class="time-input${inVal?' filled':''}"  value="${inVal}"  onchange="markChanged(${idx})"></td>`;
-          html += `<td><input type="time" id="out-${idx}" class="time-input${outVal?' filled':''}" value="${outVal}" onchange="markChanged(${idx})"></td>`;
-          html += `<td class="right"><input type="number" id="exp-${idx}" class="exp-input${expVal!==''?' filled':''}" value="${expVal}" min="0" step="0.01" placeholder="0.00" onchange="markChanged(${idx})"></td>`;
-          html += `<td class="right" id="hours-${idx}">${hoursPill}</td>`;
-          html += `<td><button class="save-btn" id="save-${idx}" onclick="saveRow(${idx})" disabled>Save</button>
-            <span class="saved-tick" id="tick-${idx}" style="display:none">✓</span></td>`;
-        } else {
-          const actualDisplay = row.actual_start ? `${fmt12(row.actual_start)} – ${fmt12(row.actual_end)||'?'}` : '—';
-          html += `<td style="color:var(--text-2)">${actualDisplay}</td>`;
-          html += `<td class="right" style="color:var(--text-2)">${fmtMoney(row.expenses)}</td>`;
-          html += `<td class="right">${hoursPill}</td>`;
-        }
-        html += '</tr>';
-      });
-
-      html += '</tbody></table>';
-      document.getElementById('ts-card').innerHTML = html;
-      window._tsRows = sorted;
+      return `
+        <div class="shift-row" id="row-${key}">
+          <div class="shift-cb-wrap">
+            <input type="checkbox" class="shift-cb"
+              id="cb-${key}"
+              ${isConfirmed ? 'checked' : ''}
+              ${!canConfirmThisRow ? 'disabled' : ''}
+              onchange="toggleShift('${key}', ${row.staff_id}, '${row.date}', '${row.shift}', '${row.scheduled_start || ''}', '${row.scheduled_end || ''}')">
+          </div>
+          <span class="shift-row-date">${dateLabel}</span>
+          <span class="shift-badge ${row.shift}">${SHIFT_LABELS[row.shift]}</span>
+          <span class="shift-sched">${fmt12(row.scheduled_start)} – ${fmt12(row.scheduled_end)}</span>
+          <div class="shift-status-area">
+            ${statusHtml}
+            ${editBtn}
+          </div>
+        </div>
+        ${overrideForm}`;
     }
 
-    function markChanged(idx) {
-      const inEl  = document.getElementById(`in-${idx}`);
-      const outEl = document.getElementById(`out-${idx}`);
-      const expEl = document.getElementById(`exp-${idx}`);
-      if (inEl)  inEl.classList.toggle('filled', !!inEl.value);
-      if (outEl) outEl.classList.toggle('filled', !!outEl.value);
-      if (expEl) expEl.classList.toggle('filled', expEl.value !== '');
+    // ── Toggle shift confirmation ──────────────────────────────────
+    async function toggleShift(key, staffId, date, shift, scheduledStart, scheduledEnd) {
+      const cb = document.getElementById(`cb-${key}`);
+      const isChecked = cb.checked;
 
-      const hours = calcHours(inEl?.value, outEl?.value);
-      const hoursEl = document.getElementById(`hours-${idx}`);
-      if (hoursEl) {
-        hoursEl.innerHTML = hours !== null
-          ? `<span class="hours-pill has">${fmtHours(hours)}</span>`
-          : `<span class="hours-pill none">—</span>`;
-      }
-      const btn = document.getElementById(`save-${idx}`);
-      if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
-      const tick = document.getElementById(`tick-${idx}`);
-      if (tick) tick.style.display = 'none';
-    }
-
-    async function saveRow(idx) {
-      const row = window._tsRows[idx];
-      if (!row) return;
-      const actualStart = document.getElementById(`in-${idx}`)?.value  || null;
-      const actualEnd   = document.getElementById(`out-${idx}`)?.value || null;
-      const expVal      = document.getElementById(`exp-${idx}`)?.value;
-      const expenses    = expVal !== '' && expVal != null ? parseFloat(expVal) : null;
-
-      const btn = document.getElementById(`save-${idx}`);
-      btn.disabled = true; btn.textContent = '…';
+      cb.disabled = true;
       try {
         await fetch('/api/timesheet/entry', {
           method: 'PUT',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({ staff_id: row.staff_id, date: row.date, shift: row.shift, actual_start: actualStart, actual_end: actualEnd, expenses }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staff_id:     staffId,
+            date,
+            shift,
+            actual_start: isChecked ? (scheduledStart || null) : null,
+            actual_end:   isChecked ? (scheduledEnd   || null) : null,
+          }),
         });
-        btn.style.display = 'none';
-        document.getElementById(`tick-${idx}`).style.display = 'inline';
-        renderTotals();
-      } catch(e) { btn.textContent = 'Save'; btn.disabled = false; alert('Failed to save.'); }
+        // Update local row data
+        if (window._rowData && window._rowData[key]) {
+          window._rowData[key].actual_start = isChecked ? scheduledStart : null;
+          window._rowData[key].actual_end   = isChecked ? scheduledEnd   : null;
+        }
+        // Re-render just this person's card by reloading
+        await load();
+      } catch(e) {
+        cb.checked = !isChecked; // revert
+        cb.disabled = false;
+      }
     }
 
-    // ── Totals ─────────────────────────────────────────────────────
-    function renderTotals() {
-      const rows = window._tsRows || weekRows;
-      if (!rows.length) { document.getElementById('totals-panel').style.display = 'none'; return; }
-
-      const staffMap = {};
-      rows.forEach((row, idx) => {
-        const inEl  = document.getElementById(`in-${idx}`);
-        const outEl = document.getElementById(`out-${idx}`);
-        const expEl = document.getElementById(`exp-${idx}`);
-        const start = inEl  ? inEl.value  : row.actual_start;
-        const end   = outEl ? outEl.value : row.actual_end;
-        const exp   = expEl ? (parseFloat(expEl.value)||0) : (row.expenses||0);
-        const h = calcHours(start, end);
-        if (!staffMap[row.staff_id]) staffMap[row.staff_id] = { name: row.staff_name, color: row.staff_color, hours: 0, shifts: 0, expenses: 0 };
-        if (h !== null) { staffMap[row.staff_id].hours += h; staffMap[row.staff_id].shifts++; }
-        staffMap[row.staff_id].expenses += exp;
-      });
-
-      const entries = Object.values(staffMap);
-      const hasAny = entries.some(s => s.shifts > 0 || s.expenses > 0);
-      if (!hasAny) { document.getElementById('totals-panel').style.display = 'none'; return; }
-
-      document.getElementById('totals-panel').style.display = 'block';
-      document.getElementById('totals-sub').textContent = fmtPeriodLabel(currentStart, currentEnd);
-
-      const totalHours = entries.reduce((sum, s) => sum + s.hours, 0);
-      const totalExp   = entries.reduce((sum, s) => sum + s.expenses, 0);
-
-      let html = entries.map(s => `
-        <tr>
-          <td><span class="ts-chip" style="background:${s.color}18;color:${s.color}"><span class="ts-dot" style="background:${s.color}"></span>${esc(s.name)}</span></td>
-          <td style="color:var(--text-2)">${s.shifts} shift${s.shifts!==1?'s':''}</td>
-          <td class="right" style="font-weight:600;color:${s.hours>0?'var(--green)':'var(--text-3)'}">${fmtHours(s.hours||null)}</td>
-          <td class="right" style="color:${s.expenses>0?'var(--amber)':'var(--text-3)'}">${s.expenses>0?fmtMoney(s.expenses):'—'}</td>
-        </tr>
-      `).join('');
-
-      html += `<tr style="background:var(--canvas)">
-        <td style="font-weight:600;color:var(--text)">Total</td>
-        <td></td>
-        <td class="right" style="font-weight:700;color:var(--green)">${fmtHours(totalHours||null)}</td>
-        <td class="right" style="font-weight:700;color:var(--amber)">${totalExp>0?fmtMoney(totalExp):'—'}</td>
-      </tr>`;
-
-      document.getElementById('totals-body').innerHTML = html;
+    // ── Override (edit times) ──────────────────────────────────────
+    function openOverride(key) {
+      document.getElementById(`override-${key}`)?.classList.add('open');
+    }
+    function closeOverride(key) {
+      document.getElementById(`override-${key}`)?.classList.remove('open');
     }
 
-    // ── Defaults ───────────────────────────────────────────────────
+    async function saveOverride(key, staffId, date, shift) {
+      const start = document.getElementById(`ov-start-${key}`)?.value;
+      const end   = document.getElementById(`ov-end-${key}`)?.value;
+      if (!start || !end) { alert('Enter both start and end times.'); return; }
+      try {
+        await fetch('/api/timesheet/entry', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end }),
+        });
+        await load();
+      } catch(e) { alert('Failed to save.'); }
+    }
+
+    // ── Expenses per person per period ────────────────────────────
+    async function saveExpenses(staffId) {
+      const input = document.getElementById(`exp-${staffId}`);
+      const saved = document.getElementById(`exp-saved-${staffId}`);
+      if (!input) return;
+      const amount = input.value !== '' ? parseFloat(input.value) : null;
+      try {
+        await fetch('/api/timesheet/period-expenses', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId, period_start: currentStart, amount }),
+        });
+        periodExpenses[staffId] = amount;
+        if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
+      } catch(e) { alert('Failed to save expenses.'); }
+    }
+
+    // ── Defaults (admin only) ──────────────────────────────────────
     function renderDefaults() {
       document.getElementById('defaults-panel').style.display = 'block';
       document.getElementById('defaults-rows').innerHTML = SHIFTS.map(shift => {
         const d = weekDefaults[shift] || {};
         return `<div class="defaults-row">
           <span class="defaults-label">${SHIFT_LABELS[shift]}</span>
-          <input type="time" id="def-start-${shift}" class="time-input${d.start?' filled':''}" value="${d.start||''}" style="width:80px">
+          <input type="time" id="def-start-${shift}" class="time-input" value="${d.start||''}" style="width:82px">
           <span style="font-size:12px;color:var(--text-3)">–</span>
-          <input type="time" id="def-end-${shift}"   class="time-input${d.end?' filled':''}"   value="${d.end||''}"   style="width:80px">
+          <input type="time" id="def-end-${shift}"   class="time-input" value="${d.end||''}"   style="width:82px">
           <button class="save-btn" onclick="saveDefault('${shift}')" style="margin-left:8px">Update</button>
         </div>`;
       }).join('');
@@ -526,11 +581,8 @@
       const start = document.getElementById(`def-start-${shift}`)?.value;
       const end   = document.getElementById(`def-end-${shift}`)?.value;
       if (!start || !end) { alert('Enter both start and end times.'); return; }
-      try {
-        await fetch(`/api/timesheet/defaults/${shift}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({start,end}) });
-        weekDefaults[shift] = {start,end};
-        renderDefaults();
-      } catch(e) { alert('Failed to save.'); }
+      await fetch(`/api/timesheet/defaults/${shift}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({start,end}) });
+      weekDefaults[shift] = {start,end};
     }
 
     // ── Logout ─────────────────────────────────────────────────────
@@ -550,10 +602,12 @@
       document.getElementById('nav-role').textContent = me.role;
       if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
 
-      canEdit = ['admin','manager'].includes(me.role);
-      document.getElementById('page-hint').textContent = canEdit
-        ? 'Semi-monthly pay periods · Enter actual times and expenses per shift row.'
-        : 'View-only. Admins and managers enter the hours.';
+      isAdmin  = ['admin','manager'].includes(me.role);
+      canConfirm = true; // everyone can confirm their own
+
+      document.getElementById('page-hint').textContent = isAdmin
+        ? 'Semi-monthly periods · Check a shift to confirm hours worked. Edit times only if different from scheduled. Expenses are per person per period.'
+        : 'Check off your shifts to confirm you worked as scheduled. Your manager handles time adjustments and expenses.';
 
       try {
         const ur = await fetch('/api/messages/unread-count');

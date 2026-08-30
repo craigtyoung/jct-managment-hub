@@ -211,6 +211,12 @@ if (!Array.isArray(_data.timesheet_entries)) {
   save();
 }
 
+// Migration: period expenses (per-person per-period, not per-shift)
+if (!_data.period_expenses) {
+  _data.period_expenses = {};
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -721,6 +727,32 @@ function deleteTimesheetEntry(id) {
   if (idx !== -1) { _data.timesheet_entries.splice(idx, 1); save(); }
 }
 
+// ─── Period Expenses ──────────────────────────────────────────────────────────
+
+function getPeriodExpenses(staffId, periodStart) {
+  return _data.period_expenses[`${staffId}:${periodStart}`] ?? null;
+}
+
+function setPeriodExpenses(staffId, periodStart, amount) {
+  const key = `${staffId}:${periodStart}`;
+  const val = parseFloat(amount);
+  if (amount === null || amount === '' || isNaN(val) || val === 0) {
+    delete _data.period_expenses[key];
+  } else {
+    _data.period_expenses[key] = val;
+  }
+  save();
+}
+
+function getPeriodExpensesForRange(periodStart) {
+  const result = {};
+  for (const [key, val] of Object.entries(_data.period_expenses || {})) {
+    const [sid, ps] = key.split(':');
+    if (ps === periodStart) result[parseInt(sid)] = val;
+  }
+  return result;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -761,4 +793,7 @@ module.exports = {
   getTimesheetForRange,
   upsertTimesheetEntry,
   deleteTimesheetEntry,
+  getPeriodExpenses,
+  setPeriodExpenses,
+  getPeriodExpensesForRange,
 };

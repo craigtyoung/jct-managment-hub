@@ -8,7 +8,7 @@ router.use((req, res, next) => {
 });
 
 // GET a pay period's scheduled shifts + timesheet entries merged
-// ?start=YYYY-MM-DD&end=YYYY-MM-DD  (client computes semi-monthly period)
+// ?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/week', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const start = req.query.start || periodStart(today);
@@ -18,6 +18,7 @@ router.get('/week', (req, res) => {
   const entries     = db.getTimesheetForRange(start, end);
   const defaults    = db.getShiftDefaults();
   const overrides   = db.getTimeOverridesForRange(start, end);
+  const periodExp   = db.getPeriodExpensesForRange(start);
 
   const entryMap = {};
   for (const e of entries) {
@@ -35,33 +36,42 @@ router.get('/week', (req, res) => {
       scheduled_end:   ov?.end   || def.end   || null,
       actual_start:    entry ? entry.actual_start : null,
       actual_end:      entry ? entry.actual_end   : null,
-      expenses:        entry ? entry.expenses     : null,
       timesheet_id:    entry ? entry.id           : null,
       notes:           entry ? entry.notes        : '',
     };
   });
 
-  res.json({ start, end, rows, defaults });
+  res.json({ start, end, rows, defaults, period_expenses: periodExp });
 });
 
-// PUT upsert a timesheet entry (admin/manager only)
+// PUT upsert a timesheet entry
+// Admin/Manager: can edit any row
+// Staff: can only confirm/unconfirm their own shifts
 router.put('/entry', (req, res) => {
-  const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { staff_id, date, shift, actual_start, actual_end, notes } = req.body;
+  const targetId = parseInt(staff_id);
+  const isAdminOrManager = ['admin', 'manager'].includes(acting.role);
+  const isOwnShift = targetId === req.actingStaffId;
+
+  if (!isAdminOrManager && !isOwnShift) {
     return res.status(403).json({ error: 'Not authorised' });
   }
-  const { staff_id, date, shift, actual_start, actual_end, expenses, notes } = req.body;
+
   const validShifts = ['morning', 'afternoon', 'closing'];
-  if (!staff_id || !date || !validShifts.includes(shift)) {
+  if (!targetId || !date || !validShifts.includes(shift)) {
     return res.status(400).json({ error: 'staff_id, date, and shift required' });
   }
+
   db.upsertTimesheetEntry({
-    staffId:     staff_id,
+    staffId:     targetId,
     date,
     shift,
     actualStart: actual_start || null,
     actualEnd:   actual_end   || null,
-    expenses:    expenses != null ? expenses : null,
+    expenses:    null, // expenses now handled per-period, not per-shift
     notes:       notes || '',
     updatedBy:   req.actingStaffId,
   });
@@ -75,6 +85,26 @@ router.delete('/entry/:id', (req, res) => {
     return res.status(403).json({ error: 'Not authorised' });
   }
   db.deleteTimesheetEntry(req.params.id);
+  res.json({ ok: true });
+});
+
+// GET period expenses for a specific person
+router.get('/period-expenses', (req, res) => {
+  const { staff_id, period_start } = req.query;
+  if (!staff_id || !period_start) return res.status(400).json({ error: 'staff_id and period_start required' });
+  const amount = db.getPeriodExpenses(parseInt(staff_id), period_start);
+  res.json({ staff_id: parseInt(staff_id), period_start, amount });
+});
+
+// PUT period expenses (admin/manager only)
+router.put('/period-expenses', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting || !['admin', 'manager'].includes(acting.role)) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const { staff_id, period_start, amount } = req.body;
+  if (!staff_id || !period_start) return res.status(400).json({ error: 'staff_id and period_start required' });
+  db.setPeriodExpenses(parseInt(staff_id), period_start, amount);
   res.json({ ok: true });
 });
 
