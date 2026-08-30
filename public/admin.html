@@ -3,139 +3,425 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — JCT Staff Hub</title>
+  <title>Admin · JCT Staff Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --spine-w:    68px;
+      --nav-w:      214px;
+      --total-nav:  calc(var(--spine-w) + var(--nav-w));
+      --navy:         #0c1738;
+      --navy-mid:     #111e40;
+      --navy-hover:   rgba(177,201,251,0.07);
+      --blue:         #2c5c9c;
+      --blue-soft:    rgba(44,92,156,0.10);
+      --powder:       #b1c9fb;
+      --powder-dim:   rgba(177,201,251,0.55);
+      --canvas:       #f0f4f9;
+      --surface:      #ffffff;
+      --surface-2:    #e8eef8;
+      --border:       rgba(12,23,56,0.08);
+      --border-nav:   rgba(177,201,251,0.07);
+      --text:         #0c1738;
+      --text-2:       #4a6080;
+      --text-3:       #8fa0b8;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      --bg:        #f1f5f9;
-      --surface:   #ffffff;
-      --topbar:    rgba(255,255,255,0.97);
-      --border:    rgba(0,0,0,0.07);
-      --card-bg:   #ffffff;
-      --card-border: rgba(0,0,0,0.07);
-      --input-bg:  #f8fafc;
-      --input-border: rgba(0,0,0,0.1);
-      --text:      #0f172a;
-      --text2:     #475569;
-      --text3:     #94a3b8;
-      background: var(--bg); color: var(--text);
-      font-family: 'Inter', sans-serif;
+      padding-left: var(--total-nav);
+      background: var(--canvas);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
     }
-    body.dark {
-      --bg:        #0f1623;
-      --surface:   #1a2540;
-      --topbar:    rgba(15,22,35,0.98);
-      --border:    rgba(255,255,255,0.05);
-      --card-bg:   rgba(26,37,64,0.7);
-      --card-border: rgba(255,255,255,0.06);
-      --input-bg:  rgba(30,41,59,0.8);
-      --input-border: rgba(255,255,255,0.1);
-      --text:      #f1f5f9;
-      --text2:     #94a3b8;
-      --text3:     #475569;
-    }
-    .topbar { background: var(--topbar); border-bottom: 1px solid var(--border); backdrop-filter: blur(20px); }
-    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; }
-    .input-field {
-      width: 100%; background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px;
-      outline: none; transition: border-color 0.2s; font-family: 'Inter', sans-serif;
-    }
-    .input-field:focus { border-color: rgba(99,102,241,0.5); }
-    .input-field::placeholder { color: var(--text3); }
-    .select-field {
-      background: var(--input-bg); border: 1px solid var(--input-border);
-      border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px;
-      outline: none; cursor: pointer; font-family: 'Inter', sans-serif;
-    }
-    .btn { border-radius: 9px; font-size: 14px; font-weight: 600; padding: 9px 18px; cursor: pointer; border: none; transition: all 0.18s; font-family: 'Inter', sans-serif; }
-    .btn-indigo { background: #6366f1; color: white; }
-    .btn-indigo:hover { background: #4f46e5; }
-    .btn-sm { font-size: 12px; padding: 6px 12px; }
-    .btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; }
-    .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: white; }
-    .btn-danger { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
-    .btn-danger:hover { background: rgba(239,68,68,0.25); }
-    .btn-amber { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
-    .btn-amber:hover { background: rgba(245,158,11,0.25); }
-    .role-badge {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-      padding: 3px 8px; border-radius: 100px; text-transform: uppercase;
-    }
-    .role-admin   { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
-    .role-manager { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
-    .role-staff   { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
-    .avatar { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-    .color-swatch { width: 26px; height: 26px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; flex-shrink: 0; }
-    .color-swatch.selected { border-color: white; transform: scale(1.15); }
+
+    /* Spine */
+    .spine { position:fixed; left:0; top:0; width:var(--spine-w); height:100vh; background:var(--navy); display:flex; flex-direction:column; align-items:center; z-index:200; border-right:1px solid var(--border-nav); }
+    .spine-top { display:flex; flex-direction:column; align-items:center; padding:18px 0 0; }
+    .spine-mark { width:40px; height:28px; }
+    .spine-divider { width:30px; height:1px; background:var(--border-nav); margin:14px 0 10px; }
+    .spine-label { writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg); font-family:var(--font-body); font-size:9px; font-weight:600; letter-spacing:0.20em; text-transform:uppercase; color:rgba(177,201,251,0.30); flex:1; }
+    .spine-foot { padding-bottom:18px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .spine-btn { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; cursor:pointer; color:rgba(177,201,251,0.32); transition:all 0.18s; }
+    .spine-btn:hover { color:var(--powder); background:var(--navy-hover); }
+
+    /* Sidenav */
+    .sidenav { position:fixed; left:var(--spine-w); top:0; width:var(--nav-w); height:100vh; background:var(--navy-mid); display:flex; flex-direction:column; z-index:190; border-right:1px solid var(--border-nav); overflow-y:auto; }
+    .sidenav::-webkit-scrollbar { width:0; }
+    .sidenav-brand { padding:20px 18px 16px; border-bottom:1px solid var(--border-nav); flex-shrink:0; }
+    .sidenav-brand-name { font-family:var(--font-display); font-size:1rem; font-weight:600; color:#f0f4ff; line-height:1.2; }
+    .sidenav-brand-tag { font-size:9.5px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:rgba(177,201,251,0.36); margin-top:4px; }
+    .sidenav-body { flex:1; padding:8px 0 4px; }
+    .nav-group-label { font-size:9px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(177,201,251,0.28); padding:14px 18px 5px; }
+    .nav-group-label:first-child { padding-top:10px; }
+    .nav-link { display:flex; align-items:center; gap:9px; width:100%; padding:8px 18px 8px 16px; background:none; border:none; cursor:pointer; border-left:2px solid transparent; font-family:var(--font-body); font-size:13px; font-weight:400; color:rgba(177,201,251,0.55); text-align:left; text-decoration:none; transition:color 0.15s,background 0.15s,border-color 0.15s; }
+    .nav-link:hover { color:rgba(240,244,255,0.88); background:var(--navy-hover); }
+    .nav-link.active { color:var(--powder); border-left-color:var(--powder); background:rgba(177,201,251,0.07); font-weight:500; }
+    .nav-link .soon-dot { margin-left:auto; width:5px; height:5px; border-radius:50%; background:rgba(177,201,251,0.2); flex-shrink:0; }
+    .nav-icon { width:15px; height:15px; flex-shrink:0; }
+    .sidenav-foot { flex-shrink:0; padding:12px 14px 18px; border-top:1px solid var(--border-nav); }
+    .sidenav-user { display:flex; align-items:center; gap:9px; padding:6px 4px 10px; }
+    .sidenav-avatar { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; overflow:hidden; }
+    .sidenav-user-name { font-size:12px; font-weight:500; color:rgba(240,244,255,0.85); line-height:1.2; }
+    .sidenav-user-role { font-size:10px; color:rgba(177,201,251,0.38); text-transform:capitalize; margin-top:1px; }
+    .sidenav-signout { width:100%; padding:7px; background:transparent; border:1px solid rgba(177,201,251,0.12); border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:11px; color:rgba(177,201,251,0.32); transition:color 0.15s,border-color 0.15s; }
+    .sidenav-signout:hover { color:#f87171; border-color:rgba(248,113,113,0.25); }
+
+    /* Topstrip */
+    .topstrip { background:var(--surface); border-bottom:1px solid var(--border); padding:13px 32px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .topstrip-title { font-size:13px; font-weight:500; color:var(--text); }
+    .topstrip-section { font-size:11px; color:var(--text-3); margin-top:2px; }
+
+    /* Main */
+    .main { max-width: 860px; margin: 0 auto; padding: 32px 32px 80px; }
+
+    /* Section visibility */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Surface card */
+    .surface-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:20px; }
+    .surface-card-header { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .surface-card-title { font-size:14px; font-weight:600; color:var(--text); }
+    .surface-card-sub { font-size:11px; color:var(--text-3); margin-top:2px; }
+
+    /* Coming Soon */
+    .coming-soon { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:64px 32px; text-align:center; }
+    .coming-soon-icon { color:rgba(44,92,156,0.18); margin-bottom:20px; }
+    .coming-soon-title { font-family:var(--font-display); font-size:1.6rem; font-weight:600; color:var(--text); margin-bottom:8px; }
+    .coming-soon-desc { font-size:14px; color:var(--text-2); max-width:400px; line-height:1.6; margin-bottom:20px; }
+    .coming-soon-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:100px; background:rgba(44,92,156,0.08); border:1px solid rgba(44,92,156,0.14); font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--blue); }
+
+    /* AI section */
+    .ai-section { padding:40px 32px; }
+    .ai-hero { display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:36px; }
+    .ai-hero-icon { width:56px; height:56px; border-radius:16px; background:rgba(44,92,156,0.08); border:1px solid rgba(44,92,156,0.14); display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+    .ai-hero-title { font-family:var(--font-display); font-size:1.5rem; font-weight:600; color:var(--text); margin-bottom:8px; }
+    .ai-hero-desc { font-size:14px; color:var(--text-2); max-width:460px; line-height:1.6; }
+    .ai-prompts { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:24px 0 32px; }
+    .ai-prompt-pill { padding:7px 14px; border-radius:100px; background:var(--surface-2); border:1px solid var(--border); font-size:12px; color:var(--text-2); font-style:italic; }
+    .ai-open-btn { padding:10px 28px; border-radius:100px; background:var(--navy); border:none; font-family:var(--font-body); font-size:14px; font-weight:600; color:#f0f4ff; cursor:pointer; transition:background 0.18s; }
+    .ai-open-btn:hover { background:var(--blue); }
+
+    /* Staff list reuse (keep existing Tailwind-compatible classes) */
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+    .btn { border-radius:9px; font-size:13px; font-weight:600; padding:7px 14px; cursor:pointer; border:none; transition:all 0.18s; font-family:var(--font-body); }
+    .btn-indigo { background:#6366f1; color:white; }
+    .btn-indigo:hover { background:#4f46e5; }
+    .btn-sm { font-size:12px; padding:5px 11px; }
+    .btn-ghost { background:transparent; border:1px solid rgba(177,201,251,0.15); color:rgba(177,201,251,0.55); }
+    .btn-ghost:hover { border-color:rgba(177,201,251,0.3); color:var(--powder); }
+    .btn-danger { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.18); color:#f87171; }
+    .btn-danger:hover { background:rgba(239,68,68,0.16); }
+    .btn-amber { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.18); color:#fbbf24; }
+    .btn-amber:hover { background:rgba(245,158,11,0.16); }
+    .role-badge { font-size:10px; font-weight:700; letter-spacing:0.06em; padding:2px 8px; border-radius:100px; text-transform:uppercase; }
+    .role-admin   { background:rgba(99,102,241,0.12); color:#818cf8; border:1px solid rgba(99,102,241,0.18); }
+    .role-manager { background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.18); }
+    .role-staff   { background:rgba(100,116,139,0.10); color:var(--text-3); border:1px solid rgba(100,116,139,0.15); }
+    .avatar { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+    .color-swatch { width:26px; height:26px; border-radius:7px; cursor:pointer; border:2px solid transparent; transition:all 0.15s; flex-shrink:0; }
+    .color-swatch.selected { border-color:var(--navy); transform:scale(1.15); }
+    .input-field { width:100%; background:var(--canvas); border:1px solid var(--border); border-radius:10px; padding:9px 13px; color:var(--text); font-size:14px; outline:none; transition:border-color 0.2s; font-family:var(--font-body); }
+    .input-field:focus { border-color:rgba(44,92,156,0.35); }
+    .input-field::placeholder { color:var(--text-3); }
+    .select-field { background:var(--canvas); border:1px solid var(--border); border-radius:10px; padding:9px 13px; color:var(--text); font-size:14px; outline:none; cursor:pointer; font-family:var(--font-body); width:100%; }
+
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .modal { background: var(--surface); border: 1px solid var(--card-border); border-radius: 20px; width: 100%; max-width: 440px; padding: 28px; }
-    .toast { position: fixed; bottom: 24px; right: 24px; z-index: 200; background: var(--surface); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 20px; color: var(--text); font-size: 14px; font-weight: 500; opacity: 0; transform: translateY(8px); transition: all 0.25s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.success { border-color: rgba(16,185,129,0.3); }
-    .toast.error   { border-color: rgba(239,68,68,0.3); color: #f87171; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(12,23,56,0.45); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:440px; padding:28px; box-shadow:0 24px 64px rgba(12,23,56,0.18); }
+    .modal-title { font-family:var(--font-display); font-size:1.1rem; font-weight:600; color:var(--text); margin-bottom:18px; }
+
+    /* Staff row */
+    .staff-row { display:flex; align-items:center; gap:14px; padding:12px 22px; border-bottom:1px solid var(--border); }
+    .staff-row:last-child { border-bottom:none; }
+    .staff-name { font-size:14px; font-weight:500; color:var(--text); }
+    .staff-actions { margin-left:auto; display:flex; gap:7px; flex-shrink:0; }
+
+    /* Danger zone */
+    .danger-zone { border:1px solid rgba(239,68,68,0.12); border-radius:14px; padding:20px 22px; margin-top:24px; }
+    .danger-title { font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#f87171; margin-bottom:4px; }
+    .danger-desc { font-size:12px; color:var(--text-3); margin-bottom:16px; }
+    .danger-row { display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:24px; right:24px; z-index:600; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:11px 18px; color:var(--text); font-size:13px; font-weight:500; opacity:0; transform:translateY(8px); transition:all 0.25s; pointer-events:none; box-shadow:0 8px 24px rgba(12,23,56,0.10); }
+    .toast.show { opacity:1; transform:translateY(0); }
+    .toast.success { border-color:rgba(16,185,129,0.3); }
+    .toast.error   { border-color:rgba(239,68,68,0.3); color:#f87171; }
+
+    /* Color picker row */
+    .color-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+
+    /* Form spacing */
+    .form-group { margin-bottom:16px; }
+    .form-label { font-size:11px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; display:block; margin-bottom:6px; }
+    .modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+    .btn-cancel { padding:7px 18px; border-radius:100px; background:none; border:1px solid var(--border); font-family:var(--font-body); font-size:13px; cursor:pointer; color:var(--text-2); }
+    .btn-cancel:hover { border-color:rgba(44,92,156,0.25); }
+    .btn-confirm { padding:7px 18px; border-radius:100px; background:var(--navy); border:none; font-family:var(--font-body); font-size:13px; color:#f0f4ff; cursor:pointer; font-weight:500; }
+    .btn-confirm:hover { background:var(--blue); }
+
+    @media (max-width:768px) {
+      .spine, .sidenav { display:none; }
+      body { padding-left:0; }
+      .main { padding:20px 16px 64px; }
+      .topstrip { padding:12px 16px; }
+    }
   </style>
 </head>
-<body class="min-h-screen text-white antialiased">
+<body>
 
-  <!-- Top Bar -->
-  <div class="topbar sticky top-0 z-50 flex items-center justify-between px-6 py-3.5">
-    <div class="flex items-center gap-3">
-      <a href="/hub.html" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Hub
-      </a>
-      <div class="h-4 w-px bg-white/10"></div>
-      <span class="text-sm font-semibold" style="color:var(--text)">Admin Panel</span>
+  <!-- Spine -->
+  <div class="spine">
+    <div class="spine-top">
+      <svg class="spine-mark" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="15" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
+        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)" stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
+        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="39" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
+      </svg>
+      <div class="spine-divider"></div>
+      <div class="spine-label">Admin</div>
     </div>
-    <div class="flex items-center gap-2">
-      <div id="me-badge" class="flex items-center gap-2 bg-slate-800/60 rounded-xl px-3 py-1.5 border border-white/5">
-        <div id="me-avatar" class="h-6 w-6 rounded-lg flex items-center justify-center font-semibold text-xs"></div>
-        <span id="me-name" class="text-xs font-medium text-slate-200"></span>
-      </div>
+    <div class="spine-foot">
+      <a href="/hub.html" class="spine-btn" title="Dashboard">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      </a>
     </div>
   </div>
 
-  <main class="max-w-4xl mx-auto px-6 py-8">
-
-    <div class="mb-8">
-      <h1 class="text-xl font-semibold" style="color:var(--text)">Staff Management</h1>
-      <p class="text-sm mt-1" style="color:var(--text2)">Add, edit, or remove staff members. Reset passwords. Clear daily data.</p>
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Admin Panel</div>
     </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Admin</div>
+      <button class="nav-link" data-section="staff" onclick="showSection('staff')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Staff
+      </button>
+      <button class="nav-link" data-section="checklist" onclick="showSection('checklist')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Checklist Manager
+        <span class="soon-dot"></span>
+      </button>
+      <button class="nav-link" data-section="ai" onclick="showSection('ai')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        AI Assistant
+      </button>
 
-    <!-- Staff List -->
-    <div class="card mb-6">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-white/5">
+      <div class="nav-group-label">Reports</div>
+      <button class="nav-link" data-section="timesheets" onclick="showSection('timesheets')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Timesheets
+        <span class="soon-dot"></span>
+      </button>
+      <button class="nav-link" data-section="cash" onclick="showSection('cash')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M17 6V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1"/></svg>
+        Cash Summary
+        <span class="soon-dot"></span>
+      </button>
+      <button class="nav-link" data-section="stats" onclick="showSection('stats')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Staff Stats
+        <span class="soon-dot"></span>
+      </button>
+      <button class="nav-link" data-section="comms-archive" onclick="showSection('comms-archive')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Comms Archive
+        <span class="soon-dot"></span>
+      </button>
+      <button class="nav-link" data-section="audit" onclick="showSection('audit')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Audit Log
+        <span class="soon-dot"></span>
+      </button>
+
+      <div class="nav-group-label">System</div>
+      <button class="nav-link" data-section="settings" onclick="showSection('settings')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        System Settings
+        <span class="soon-dot"></span>
+      </button>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
         <div>
-          <h2 class="text-sm font-semibold text-white">Staff Members</h2>
-          <p class="text-xs text-slate-500 mt-0.5" id="staff-count">Loading...</p>
+          <div class="sidenav-user-name" id="nav-name">—</div>
+          <div class="sidenav-user-role" id="nav-role">—</div>
         </div>
-        <button class="btn btn-indigo btn-sm" onclick="openAddModal()">
-          <span class="flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Topstrip -->
+  <div class="topstrip">
+    <div>
+      <div class="topstrip-title" id="topstrip-title">Admin Panel</div>
+      <div class="topstrip-section" id="topstrip-section">Staff</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── Staff ─────────────────────────────────────────────────────── -->
+    <div class="section active" id="section-staff">
+      <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Staff</h1>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:24px">Add, edit, or remove staff members. Upload photos and reset passwords.</p>
+
+      <div class="surface-card">
+        <div class="surface-card-header">
+          <div>
+            <div class="surface-card-title">Staff Members</div>
+            <div class="surface-card-sub" id="staff-count">Loading…</div>
+          </div>
+          <button class="btn btn-indigo btn-sm" onclick="openAddModal()" style="display:flex;align-items:center;gap:6px">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             Add Staff
-          </span>
-        </button>
+          </button>
+        </div>
+        <div id="staff-list">
+          <div style="padding:32px;text-align:center;font-size:13px;color:var(--text-3)">Loading staff…</div>
+        </div>
       </div>
-      <div id="staff-list" class="divide-y divide-white/5">
-        <div class="px-6 py-8 text-center text-slate-500 text-sm">Loading staff...</div>
+
+      <div class="danger-zone">
+        <div class="danger-title">Data Control</div>
+        <div class="danger-desc">Clear messages for a specific date. Use during testing or daily resets.</div>
+        <div class="danger-row">
+          <div>
+            <label class="form-label">Clear day</label>
+            <input type="date" id="clear-date" class="input-field" style="width:auto" />
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="clearDay()">Clear messages</button>
+        </div>
       </div>
     </div>
 
-    <!-- Danger Zone -->
-    <div class="card border border-red-500/10">
-      <div class="px-6 py-4 border-b border-white/5">
-        <h2 class="text-sm font-semibold text-white">Data Control</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Clear messages for a specific date. Use during testing or daily resets.</p>
-      </div>
-      <div class="px-6 py-5 flex items-end gap-4 flex-wrap">
-        <div>
-          <label class="text-xs font-medium text-slate-400 block mb-1.5">Clear day</label>
-          <input type="date" id="clear-date" class="input-field" style="width: auto;" />
+    <!-- ── Checklist Manager ──────────────────────────────────────────── -->
+    <div class="section" id="section-checklist">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div class="coming-soon-title">Checklist Manager</div>
+          <div class="coming-soon-desc">Add, edit, reorder, and day-filter shift tasks without touching the database.</div>
+          <div class="coming-soon-badge">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>
+            Coming Soon
+          </div>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="clearDay()">Clear messages</button>
+      </div>
+    </div>
+
+    <!-- ── AI Assistant ───────────────────────────────────────────────── -->
+    <div class="section" id="section-ai">
+      <div class="surface-card">
+        <div class="ai-section">
+          <div class="ai-hero">
+            <div class="ai-hero-icon">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" style="color:var(--blue)"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+            </div>
+            <div class="ai-hero-title">JCT Assistant</div>
+            <div class="ai-hero-desc">The AI assistant is available on every page via the button in the bottom-right corner. Ask it to check off shift tasks, draft a comms message, or — as an admin — update the checklist.</div>
+          </div>
+          <div class="ai-prompts">
+            <span class="ai-prompt-pill">"Check off all my morning start tasks"</span>
+            <span class="ai-prompt-pill">"Add a note to comms about the bubble pressure"</span>
+            <span class="ai-prompt-pill">"Disable the snow clearing task on Fridays"</span>
+            <span class="ai-prompt-pill">"Update the washroom checklist text"</span>
+          </div>
+          <div style="text-align:center">
+            <button class="ai-open-btn" onclick="window.aiWidget && window.aiWidget.open ? window.aiWidget.open() : null">Open Assistant</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Timesheets ─────────────────────────────────────────────────── -->
+    <div class="section" id="section-timesheets">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="coming-soon-title">Timesheets</div>
+          <div class="coming-soon-desc">Period-by-period hour summaries per staff member, ready to export.</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Cash Summary ───────────────────────────────────────────────── -->
+    <div class="section" id="section-cash">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M17 6V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1"/></svg>
+          <div class="coming-soon-title">Cash Summary</div>
+          <div class="coming-soon-desc">Daily cash reconciliation across all shifts with discrepancy flags.</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Staff Stats ────────────────────────────────────────────────── -->
+    <div class="section" id="section-stats">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <div class="coming-soon-title">Staff Stats</div>
+          <div class="coming-soon-desc">Completion rates, shift coverage, and attendance trends over time.</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Comms Archive ──────────────────────────────────────────────── -->
+    <div class="section" id="section-comms-archive">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <div class="coming-soon-title">Comms Archive</div>
+          <div class="coming-soon-desc">Full searchable log of all messages, filterable by staff, date, and shift.</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Audit Log ──────────────────────────────────────────────────── -->
+    <div class="section" id="section-audit">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div class="coming-soon-title">Audit Log</div>
+          <div class="coming-soon-desc">Who checked what off, when, and on which date — full accountability trail.</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── System Settings ────────────────────────────────────────────── -->
+    <div class="section" id="section-settings">
+      <div class="surface-card">
+        <div class="coming-soon">
+          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <div class="coming-soon-title">System Settings</div>
+          <div class="coming-soon-desc">Shift times, pay period config, and seasonal toggles (indoor/outdoor).</div>
+          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+        </div>
       </div>
     </div>
 
@@ -144,86 +430,95 @@
   <!-- Add/Edit Staff Modal -->
   <div id="staff-modal" class="modal-overlay hidden" onclick="closeModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
-      <h3 id="modal-title" class="text-base font-semibold text-white mb-5">Add Staff Member</h3>
-
-      <div class="space-y-4">
-        <div>
-          <label class="text-xs font-medium text-slate-400 block mb-1.5">Name</label>
-          <input id="modal-name" type="text" class="input-field" placeholder="e.g. Sarah" autocomplete="off" />
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-slate-400 block mb-2">Colour</label>
-          <div id="color-picker" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-slate-400 block mb-1.5">Role</label>
-          <select id="modal-role" class="select-field w-full">
-            <option value="staff">Staff</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-
-        <div id="password-section">
-          <label class="text-xs font-medium text-slate-400 block mb-1.5">Password <span class="text-slate-600">(leave blank for default: jct2025)</span></label>
-          <input id="modal-password" type="text" class="input-field" placeholder="jct2025" autocomplete="off" />
-        </div>
+      <div class="modal-title" id="modal-title">Add Staff Member</div>
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input id="modal-name" type="text" class="input-field" placeholder="e.g. Sarah" autocomplete="off" />
       </div>
-
-      <div class="flex items-center justify-end gap-3 mt-6">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('staff-modal').classList.add('hidden')">Cancel</button>
-        <button id="modal-submit" class="btn btn-indigo btn-sm" onclick="submitModal()">Add Member</button>
+      <div class="form-group">
+        <label class="form-label">Colour</label>
+        <div id="color-picker" class="color-row"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select id="modal-role" class="select-field">
+          <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div id="password-section" class="form-group">
+        <label class="form-label">Password <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(leave blank for default: jct2025)</span></label>
+        <input id="modal-password" type="text" class="input-field" placeholder="jct2025" autocomplete="off" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('staff-modal').classList.add('hidden')">Cancel</button>
+        <button id="modal-submit" class="btn-confirm" onclick="submitModal()">Add Member</button>
       </div>
     </div>
   </div>
 
   <!-- Reset Password Modal -->
   <div id="pw-modal" class="modal-overlay hidden" onclick="closePwModal(event)">
-    <div class="modal" onclick="event.stopPropagation()" style="max-width: 360px;">
-      <h3 class="text-base font-semibold text-white mb-1">Reset Password</h3>
-      <p class="text-sm text-slate-400 mb-5">Set a new password for <strong id="pw-target-name" class="text-white"></strong>.</p>
-      <input id="pw-new" type="text" class="input-field mb-4" placeholder="New password (min 4 chars)" autocomplete="off" />
-      <div class="flex items-center justify-end gap-3">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pw-modal').classList.add('hidden')">Cancel</button>
-        <button class="btn btn-amber btn-sm" onclick="submitPasswordReset()">Reset Password</button>
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:360px">
+      <div class="modal-title">Reset Password</div>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Set a new password for <strong id="pw-target-name" style="color:var(--text)"></strong>.</p>
+      <input id="pw-new" type="text" class="input-field" style="margin-bottom:4px" placeholder="New password (min 4 chars)" autocomplete="off" />
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('pw-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn-confirm" style="background:#f59e0b" onclick="submitPasswordReset()">Reset Password</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast" class="toast"></div>
 
   <script>
     const COLORS = ['#6366f1','#10b981','#8b5cf6','#f59e0b','#ec4899','#f97316','#14b8a6','#f43f5e','#06b6d4','#a78bfa','#3b82f6','#84cc16'];
+
+    const SECTION_NAMES = {
+      staff: 'Staff', checklist: 'Checklist Manager', ai: 'AI Assistant',
+      timesheets: 'Timesheets', cash: 'Cash Summary', stats: 'Staff Stats',
+      'comms-archive': 'Comms Archive', audit: 'Audit Log', settings: 'System Settings',
+    };
+
     let staffList = [];
     let editingId = null;
     let pwTargetId = null;
     let selectedColor = COLORS[0];
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── Section nav ──────────────────────────────────────────────────────────
 
-    // ── Theme ──────────────────────────────────────────────────────────────────
-    (function() {
-      document.body.classList.toggle('dark', localStorage.getItem('jct-theme') === 'dark');
-    })();
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      const sec = document.getElementById('section-' + id);
+      if (sec) sec.classList.add('active');
+      const btn = document.querySelector(`.nav-link[data-section="${id}"]`);
+      if (btn) btn.classList.add('active');
+      document.getElementById('topstrip-section').textContent = SECTION_NAMES[id] || id;
+      location.hash = id;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
 
     async function init() {
       const res = await fetch('/api/me');
       if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
       const me = await res.json();
-      if (me.role !== 'admin') { window.location.href = '/hub.html'; return; }
+      if (!['admin', 'manager'].includes(me.role)) { window.location.href = '/hub.html'; return; }
 
-      const av = document.getElementById('me-avatar');
-      av.textContent = me.name.slice(0,2).toUpperCase();
-      av.style.background = me.color + '22';
-      av.style.color = me.color;
-      document.getElementById('me-name').textContent = me.name;
+      const av = document.getElementById('nav-avatar');
+      staffAvatar(av, me.id, me.name, me.color);
+      document.getElementById('nav-name').textContent = me.name;
+      document.getElementById('nav-role').textContent = me.role;
 
       buildColorPicker();
       await loadStaff();
       setDefaultDate();
+
+      const hash = (location.hash || '#staff').slice(1);
+      showSection(SECTION_NAMES[hash] ? hash : 'staff');
     }
 
     function setDefaultDate() {
@@ -249,7 +544,7 @@
       });
     }
 
-    // ── Load Staff ────────────────────────────────────────────────────────────
+    // ── Load Staff ───────────────────────────────────────────────────────────
 
     async function loadStaff() {
       const res = await fetch('/api/admin/staff');
@@ -263,7 +558,7 @@
       document.getElementById('staff-count').textContent = `${staffList.length} member${staffList.length !== 1 ? 's' : ''}`;
 
       if (!staffList.length) {
-        list.innerHTML = '<div class="px-6 py-8 text-center text-slate-500 text-sm">No staff members yet.</div>';
+        list.innerHTML = '<div style="padding:32px;text-align:center;font-size:13px;color:var(--text-3)">No staff members yet.</div>';
         return;
       }
 
@@ -273,17 +568,17 @@
       });
 
       list.innerHTML = sorted.map(s => `
-        <div class="flex items-center gap-4 px-6 py-3.5">
-          <div class="avatar" id="av-${s.id}" style="background:${s.color}22; color:${s.color}; overflow:hidden">${s.name.slice(0,2).toUpperCase()}</div>
+        <div class="staff-row">
+          <div class="avatar" id="av-${s.id}" style="background:${s.color}22;color:${s.color};overflow:hidden">${s.name.slice(0,2).toUpperCase()}</div>
           <input type="file" id="photo-input-${s.id}" accept="image/*" style="display:none" onchange="uploadPhoto(${s.id}, '${s.name}', '${s.color}', this)">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-white">${s.name}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="staff-name">${s.name}</span>
               <span class="role-badge role-${s.role}">${s.role}</span>
             </div>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('photo-input-${s.id}').click()" title="Upload a photo for ${s.name}">Photo</button>
+          <div class="staff-actions">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('photo-input-${s.id}').click()">Photo</button>
             <button class="btn btn-ghost btn-sm" onclick="openEditModal(${s.id})">Edit</button>
             <button class="btn btn-amber btn-sm" onclick="openPwModal(${s.id}, '${s.name}')">Password</button>
             <button class="btn btn-danger btn-sm" onclick="deleteStaff(${s.id}, '${s.name}')">Remove</button>
@@ -291,11 +586,10 @@
         </div>
       `).join('');
 
-      // Load photos after render
       sorted.forEach(s => staffAvatar(document.getElementById(`av-${s.id}`), s.id, s.name, s.color));
     }
 
-    // ── Add / Edit Modal ──────────────────────────────────────────────────────
+    // ── Add / Edit Modal ─────────────────────────────────────────────────────
 
     function openAddModal() {
       editingId = null;
@@ -327,9 +621,8 @@
     }
 
     function closeModal(e) {
-      if (e.target === document.getElementById('staff-modal')) {
+      if (e.target === document.getElementById('staff-modal'))
         document.getElementById('staff-modal').classList.add('hidden');
-      }
     }
 
     async function submitModal() {
@@ -337,7 +630,6 @@
       if (!name) { showToast('Name is required', 'error'); return; }
 
       if (editingId) {
-        // Edit
         const res = await fetch(`/api/admin/staff/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -347,7 +639,6 @@
         if (!res.ok) { showToast(data.error || 'Update failed', 'error'); return; }
         showToast(`${name} updated`);
       } else {
-        // Add
         const password = document.getElementById('modal-password').value || 'jct2025';
         const res = await fetch('/api/admin/staff', {
           method: 'POST',
@@ -363,7 +654,7 @@
       await loadStaff();
     }
 
-    // ── Password Reset Modal ──────────────────────────────────────────────────
+    // ── Password Reset ───────────────────────────────────────────────────────
 
     function openPwModal(id, name) {
       pwTargetId = id;
@@ -374,9 +665,8 @@
     }
 
     function closePwModal(e) {
-      if (e.target === document.getElementById('pw-modal')) {
+      if (e.target === document.getElementById('pw-modal'))
         document.getElementById('pw-modal').classList.add('hidden');
-      }
     }
 
     async function submitPasswordReset() {
@@ -393,7 +683,7 @@
       showToast('Password reset');
     }
 
-    // ── Delete Staff ──────────────────────────────────────────────────────────
+    // ── Delete Staff ─────────────────────────────────────────────────────────
 
     async function deleteStaff(id, name) {
       if (!confirm(`Remove ${name} from the staff list? This cannot be undone.`)) return;
@@ -404,7 +694,7 @@
       await loadStaff();
     }
 
-    // ── Photo Upload ──────────────────────────────────────────────────────────
+    // ── Photo Upload ─────────────────────────────────────────────────────────
 
     async function uploadPhoto(id, name, color, input) {
       const file = input.files[0];
@@ -421,7 +711,7 @@
       }
     }
 
-    // ── Clear Day ─────────────────────────────────────────────────────────────
+    // ── Clear Day ────────────────────────────────────────────────────────────
 
     async function clearDay() {
       const date = document.getElementById('clear-date').value;
@@ -433,7 +723,7 @@
       showToast(`${data.deleted} message${data.deleted !== 1 ? 's' : ''} cleared`);
     }
 
-    // ── Toast ─────────────────────────────────────────────────────────────────
+    // ── Toast ────────────────────────────────────────────────────────────────
 
     let toastTimer;
     function showToast(msg, type = 'success') {
@@ -444,7 +734,14 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
     }
 
-    // ── Keyboard shortcuts ────────────────────────────────────────────────────
+    // ── Logout ───────────────────────────────────────────────────────────────
+
+    async function doLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // ── Keyboard shortcuts ───────────────────────────────────────────────────
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
@@ -459,5 +756,6 @@
   </script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
+  <script src="/ai-widget.js"></script>
 </body>
 </html>
