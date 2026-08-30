@@ -1,11 +1,25 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 const db = require('../db');
 const router = express.Router();
 
 // GET all staff (for login picker)
 router.get('/staff', (req, res) => {
   res.json(db.getAllStaff());
+});
+
+// GET staff photo — public so the login page can show headshots before auth
+router.get('/photo/:id', (req, res) => {
+  const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, '..', 'jct-data.json');
+  const PHOTOS_DIR = path.join(path.dirname(DATA_FILE), 'staff-photos');
+  const EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+  for (const ext of EXTS) {
+    const p = path.join(PHOTOS_DIR, `${req.params.id}${ext}`);
+    if (fs.existsSync(p)) return res.sendFile(p);
+  }
+  res.status(404).end();
 });
 
 // POST login

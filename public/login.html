@@ -42,15 +42,16 @@
     }
     .brand { text-align: center; margin-bottom: 32px; }
     .brand-mark {
-      width: 52px; height: 52px; border-radius: 14px;
-      background: var(--navy); margin: 0 auto 14px;
+      width: 72px; height: 72px; border-radius: 18px;
+      background: var(--navy); margin: 0 auto 16px;
       display: flex; align-items: center; justify-content: center;
     }
+    .brand-mark img { width: 56px; height: 56px; object-fit: contain; border-radius: 10px; }
     .brand-name {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.3rem; font-weight: 600; color: var(--text);
+      font-size: 1.45rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em;
     }
-    .brand-sub { font-size: 13px; color: var(--text-3); margin-top: 3px; }
+    .brand-sub { font-size: 13px; color: var(--text-3); margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
 
     /* Staff grid */
     .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -64,10 +65,12 @@
     .staff-btn:hover { border-color: rgba(44,92,156,0.3); background: #eaf0f9; transform: translateY(-1px); }
     .staff-btn.active { border-color: rgba(44,92,156,0.5); background: rgba(44,92,156,0.06); }
     .avatar {
-      width: 32px; height: 32px; border-radius: 8px;
+      width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 12px; flex-shrink: 0; overflow: hidden;
+      font-weight: 700; font-size: 13px; flex-shrink: 0; overflow: hidden;
+      background-size: cover; background-position: center;
     }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
     .staff-name { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.2; }
 
     /* Password inline panel */
@@ -104,8 +107,9 @@
 <body>
   <div class="card">
     <div class="brand">
-      <div class="brand-mark">
-        <svg width="28" height="20" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div class="brand-mark" id="brand-mark">
+        <!-- Replace with: <img src="/logo.png" alt="Joshua Creek Tennis"> once logo file is added -->
+        <svg width="44" height="30" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.5)" stroke-width="1.4"/>
           <text x="15" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.75)" font-weight="500">J</text>
           <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.12)" stroke="rgba(177,201,251,0.65)" stroke-width="1.4"/>
@@ -115,7 +119,7 @@
           <text x="39" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.75)" font-weight="500">C</text>
         </svg>
       </div>
-      <div class="brand-name">Joshua Creek</div>
+      <div class="brand-name">Joshua Creek Tennis</div>
       <div class="brand-sub">Staff Hub</div>
     </div>
 
@@ -145,6 +149,22 @@
       renderStaff();
     }
 
+    function makeAvatar(s) {
+      const av = document.createElement('div');
+      av.className = 'avatar';
+      av.style.background = s.color + '22';
+      av.style.color = s.color;
+      const img = document.createElement('img');
+      img.src = `/api/auth/photo/${s.id}`;
+      img.alt = s.name;
+      img.onerror = () => {
+        img.remove();
+        av.textContent = s.name.slice(0, 2).toUpperCase();
+      };
+      av.appendChild(img);
+      return av;
+    }
+
     function renderStaff() {
       const grid = document.getElementById('staff-grid');
       grid.innerHTML = '';
@@ -152,13 +172,10 @@
         const btn = document.createElement('button');
         btn.className = 'staff-btn';
         btn.dataset.id = s.id;
-        const av = document.createElement('div');
-        av.className = 'avatar';
-        staffAvatar(av, s.id, s.name, s.color);
         const nameEl = document.createElement('span');
         nameEl.className = 'staff-name';
         nameEl.textContent = s.name;
-        btn.appendChild(av);
+        btn.appendChild(makeAvatar(s));
         btn.appendChild(nameEl);
         btn.onclick = () => selectStaff(s, btn);
         grid.appendChild(btn);
@@ -174,8 +191,16 @@
 
     function showPwPanel() {
       const panel = document.getElementById('pw-panel');
-      const av = document.getElementById('pw-avatar');
-      staffAvatar(av, selectedStaff.id, selectedStaff.name, selectedStaff.color);
+      const avWrap = document.getElementById('pw-avatar');
+      avWrap.style.background = selectedStaff.color + '22';
+      avWrap.style.color = selectedStaff.color;
+      avWrap.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = `/api/auth/photo/${selectedStaff.id}`;
+      img.alt = selectedStaff.name;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px';
+      img.onerror = () => { img.remove(); avWrap.textContent = selectedStaff.name.slice(0,2).toUpperCase(); };
+      avWrap.appendChild(img);
       document.getElementById('pw-name').textContent = selectedStaff.name;
       document.getElementById('pw-input').value = '';
       document.getElementById('error-msg').style.display = 'none';
