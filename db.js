@@ -83,7 +83,7 @@ const CHECKLIST_SEED = [
   { id:56, shifts:['closing'], phase:'during',   bold:false, days:null, order:6,  active:true, text:'Check the washroom stock — toilet paper and paper towels' },
   { id:57, shifts:['closing'], phase:'during',   bold:false, days:null, order:7,  active:true, text:'Check and restock water and snacks as needed for member purchase' },
   { id:58, shifts:['closing'], phase:'during',   bold:false, days:null, order:8,  active:true, text:'Replace watercooler jug and empty overflow tray, if necessary' },
-  { id:59, shifts:['closing'], phase:'during',   bold:false, days:null, order:9,  active:true, text:'Check Hand Sanitizer levels and replace as necessary' },
+  { id:59, shifts:['closing'], phase:'during',   bold:false, days:[1,2,3,4,5,6], order:9,  active:true, text:'Check Hand Sanitizer levels and replace as necessary' },
   // CLOSING — End of Shift
   { id:60, shifts:['closing'], phase:'end',      bold:false, days:null, order:1,  active:true, text:'Staple all booking sheets and Member Sign-In sheets in order (first to last shift); place in "booking sheets" tab in filing cabinet' },
   { id:61, shifts:['closing'], phase:'end',      bold:false, days:null, order:2,  active:true, text:'Make sure the cash summary is balanced for the day and all guest fees are accounted for' },
@@ -94,9 +94,18 @@ const CHECKLIST_SEED = [
   { id:66, shifts:['closing'], phase:'end',      bold:false, days:null, order:7,  active:true, text:'Organize ball hoppers neatly' },
   { id:67, shifts:['closing'], phase:'end',      bold:false, days:null, order:8,  active:true, text:'Record your hours on your time sheet' },
   { id:68, shifts:['closing'], phase:'end',      bold:false, days:null, order:9,  active:true, text:'Turn off court lights and clubhouse lights' },
-  { id:69, shifts:['closing'], phase:'end',      bold:false, days:null, order:10, active:true, text:'Input house league scores in the "results" tab of the House League file' },
+  { id:69, shifts:['closing'], phase:'end',      bold:false, days:[1,3], order:10, active:true, text:'Input house league scores in the "results" tab of the House League file' },
   { id:70, shifts:['closing'], phase:'end',      bold:false, days:null, order:11, active:true, text:'Ensure backdoor is locked before leaving' },
   { id:71, shifts:['closing'], phase:'end',      bold:true,  days:null, order:12, active:true, text:'Close the main gates as you leave the facility' },
+  // INDOOR SEASON — Bubble monitoring (added Sep 2026)
+  { id:72, shifts:['morning'],   phase:'start',  bold:false, days:null, order:9,  active:true, text:'Monitor pressure / temperature and input on this sheet' },
+  { id:73, shifts:['morning'],   phase:'during', bold:false, days:null, order:12, active:true, text:'Monitor Bubble system and check Bubble alerts' },
+  { id:74, shifts:['afternoon'], phase:'during', bold:false, days:null, order:13, active:true, text:'Monitor pressure / temperature and input on this sheet' },
+  { id:75, shifts:['afternoon'], phase:'during', bold:false, days:null, order:14, active:true, text:'Monitor Bubble system and check Bubble alerts' },
+  { id:76, shifts:['closing'],   phase:'during', bold:false, days:null, order:10, active:true, text:'Monitor pressure / temperature and input on this sheet' },
+  { id:77, shifts:['closing'],   phase:'during', bold:false, days:null, order:11, active:true, text:'Monitor Bubble system and check Bubble alerts' },
+  // THURSDAY ONLY — washroom checklist review
+  { id:78, shifts:['closing'],   phase:'end',    bold:false, days:[4],  order:13, active:true, text:'Check the washroom checklists, initial appropriate boxes, and ensure all items on the list are addressed' },
 ];
 
 // ─── Load / Save ─────────────────────────────────────────────────────────────
@@ -225,6 +234,27 @@ if (!Array.isArray(_data.checklist_items)) {
   _data.checklist_completions = [];
   save();
   console.log('Checklist tables initialized.');
+}
+
+// Migration: indoor season checklist updates (Sep 2026)
+{
+  let dirty = false;
+  // Apply day filters to existing items that were seeded without them
+  const dayPatches = { 59: [1,2,3,4,5,6], 69: [1,3] };
+  for (const [idStr, days] of Object.entries(dayPatches)) {
+    const item = _data.checklist_items.find(i => i.id === parseInt(idStr));
+    if (item && item.days === null) { item.days = days; dirty = true; }
+  }
+  // Add new bubble-monitoring and Thursday washroom items if missing
+  const newItems = CHECKLIST_SEED.filter(s => s.id >= 72);
+  for (const seed of newItems) {
+    if (!_data.checklist_items.find(i => i.id === seed.id)) {
+      _data.checklist_items.push({ ...seed });
+      _data._seq.checklist_items = Math.max(_data._seq.checklist_items || 0, seed.id);
+      dirty = true;
+    }
+  }
+  if (dirty) { save(); console.log('Indoor checklist migration applied.'); }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
