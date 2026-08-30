@@ -31,6 +31,7 @@ const checklistRoutes  = require('./routes/checklist');
 const scheduleRoutes   = require('./routes/schedule');
 const timesheetRoutes  = require('./routes/timesheet');
 const sse = require('./sse');
+const chatRoutes = require('./routes/chat');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', requireAuth, messageRoutes);
@@ -38,6 +39,7 @@ app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/checklist', requireAuth, checklistRoutes);
 app.use('/api/schedule',   requireAuth, scheduleRoutes);
 app.use('/api/timesheet',  requireAuth, timesheetRoutes);
+app.use('/api/chat',       requireAuth, chatRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {
