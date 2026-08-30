@@ -1,0 +1,67 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const db = require('../db');
+const router = express.Router();
+
+// GET all staff (for login picker)
+router.get('/staff', (req, res) => {
+  res.json(db.getAllStaff());
+});
+
+// POST login
+router.post('/login', (req, res) => {
+  const { staffId, password } = req.body;
+  if (!staffId || !password) return res.status(400).json({ error: 'Missing credentials' });
+
+  const staff = db.getStaffById(staffId);
+  if (!staff) return res.status(401).json({ error: 'Unknown staff member' });
+
+  if (!bcrypt.compareSync(password, staff.password)) {
+    return res.status(401).json({ error: 'Incorrect password' });
+  }
+
+  req.session.staffId = staff.id;
+  delete req.session.viewAsStaffId; // never carry a stale dev-view into a fresh login
+  res.json({ ok: true, name: staff.name, role: staff.role });
+});
+
+// POST view-as — admins only. Temporarily view the hub as another staff member.
+// Body: { staffId } to enter, or { staffId: null } to exit back to yourself.
+router.post('/view-as', (req, res) => {
+  if (!req.session.staffId) return res.status(401).json({ error: 'Not logged in' });
+  const real = db.getStaffById(req.session.staffId);
+  if (!real || real.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+
+  const { staffId } = req.body;
+  if (staffId === null || staffId === undefined || staffId === '') {
+    delete req.session.viewAsStaffId;
+    return res.json({ ok: true, viewing_as: null });
+  }
+  const viewed = db.getStaffById(staffId);
+  if (!viewed) return res.status(404).json({ error: 'Unknown staff member' });
+  if (viewed.id === real.id) {
+    delete req.session.viewAsStaffId;
+    return res.json({ ok: true, viewing_as: null });
+  }
+  req.session.viewAsStaffId = viewed.id;
+  res.json({ ok: true, viewing_as: { id: viewed.id, name: viewed.name } });
+});
+
+// POST logout
+router.post('/logout', (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+// POST change password
+router.post('/change-password', (req, res) => {
+  if (!req.session.staffId) return res.status(401).json({ error: 'Not logged in' });
+  const { currentPassword, newPassword } = req.body;
+  const staff = db.getStaffById(req.session.staffId);
+  if (!bcrypt.compareSync(currentPassword, staff.password)) {
+    return res.status(401).json({ error: 'Current password incorrect' });
+  }
+  db.updatePassword(req.session.staffId, bcrypt.hashSync(newPassword, 10));
+  res.json({ ok: true });
+});
+
+module.exports = router;

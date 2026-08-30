@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shift Checklist · JCT Staff Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --spine-w:    68px;
+      --nav-w:      214px;
+      --total-nav:  calc(var(--spine-w) + var(--nav-w));
+      --navy:         #0c1738;
+      --navy-mid:     #111e40;
+      --navy-hover:   rgba(177,201,251,0.07);
+      --blue:         #2c5c9c;
+      --blue-soft:    rgba(44,92,156,0.10);
+      --powder:       #b1c9fb;
+      --powder-dim:   rgba(177,201,251,0.55);
+      --canvas:       #f0f4f9;
+      --surface:      #ffffff;
+      --surface-2:    #e8eef8;
+      --border:       rgba(12,23,56,0.08);
+      --border-nav:   rgba(177,201,251,0.07);
+      --text:         #0c1738;
+      --text-2:       #4a6080;
+      --text-3:       #8fa0b8;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      padding-left: var(--total-nav);
+      background: var(--canvas);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* Spine */
+    .spine { position:fixed; left:0; top:0; width:var(--spine-w); height:100vh; background:var(--navy); display:flex; flex-direction:column; align-items:center; z-index:200; border-right:1px solid var(--border-nav); }
+    .spine-top { display:flex; flex-direction:column; align-items:center; padding:18px 0 0; gap:0; }
+    .spine-mark { width:40px; height:28px; }
+    .spine-divider { width:30px; height:1px; background:var(--border-nav); margin:14px 0 10px; }
+    .spine-label { writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg); font-family:var(--font-body); font-size:9px; font-weight:600; letter-spacing:0.20em; text-transform:uppercase; color:rgba(177,201,251,0.30); flex:1; }
+    .spine-foot { padding-bottom:18px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .spine-btn { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; cursor:pointer; color:rgba(177,201,251,0.32); transition:all 0.18s; }
+    .spine-btn:hover { color:var(--powder); background:var(--navy-hover); }
+
+    /* Sidenav */
+    .sidenav { position:fixed; left:var(--spine-w); top:0; width:var(--nav-w); height:100vh; background:var(--navy-mid); display:flex; flex-direction:column; z-index:190; border-right:1px solid var(--border-nav); overflow-y:auto; }
+    .sidenav::-webkit-scrollbar { width:0; }
+    .sidenav-brand { padding:20px 18px 16px; border-bottom:1px solid var(--border-nav); flex-shrink:0; }
+    .sidenav-brand-name { font-family:var(--font-display); font-size:1rem; font-weight:600; color:#f0f4ff; line-height:1.2; }
+    .sidenav-brand-tag { font-size:9.5px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:rgba(177,201,251,0.36); margin-top:4px; }
+    .sidenav-body { flex:1; padding:8px 0 4px; }
+    .nav-group-label { font-size:9px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(177,201,251,0.28); padding:14px 18px 5px; }
+    .nav-group-label:first-child { padding-top:10px; }
+    .nav-link { display:flex; align-items:center; gap:9px; width:100%; padding:8px 18px 8px 16px; background:none; border:none; cursor:pointer; border-left:2px solid transparent; font-family:var(--font-body); font-size:13px; font-weight:400; color:rgba(177,201,251,0.55); text-align:left; text-decoration:none; transition:color 0.15s,background 0.15s,border-color 0.15s; }
+    .nav-link:hover { color:rgba(240,244,255,0.88); background:var(--navy-hover); }
+    .nav-link.active { color:var(--powder); border-left-color:var(--powder); background:rgba(177,201,251,0.07); font-weight:500; }
+    .nav-icon { width:15px; height:15px; flex-shrink:0; }
+    .nav-badge { margin-left:auto; font-size:10px; font-weight:600; background:var(--blue); color:white; padding:1px 7px; border-radius:100px; line-height:1.6; }
+    .sidenav-foot { flex-shrink:0; padding:12px 14px 18px; border-top:1px solid var(--border-nav); }
+    .sidenav-user { display:flex; align-items:center; gap:9px; padding:6px 4px 10px; }
+    .sidenav-avatar { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; }
+    .sidenav-user-name { font-size:12px; font-weight:500; color:rgba(240,244,255,0.85); line-height:1.2; }
+    .sidenav-user-role { font-size:10px; color:rgba(177,201,251,0.38); text-transform:capitalize; margin-top:1px; }
+    .sidenav-signout { width:100%; padding:7px; background:transparent; border:1px solid rgba(177,201,251,0.12); border-radius:8px; cursor:pointer; font-family:var(--font-body); font-size:11px; color:rgba(177,201,251,0.32); transition:color 0.15s,border-color 0.15s; }
+    .sidenav-signout:hover { color:#f87171; border-color:rgba(248,113,113,0.25); }
+
+    /* Top strip */
+    .topstrip { background:var(--surface); border-bottom:1px solid var(--border); padding:13px 32px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .ts-clock { font-size:13px; font-weight:500; color:var(--text); line-height:1; }
+    .ts-date  { font-size:11px; color:var(--text-3); margin-top:2px; }
+
+    /* Main */
+    .main { max-width: 860px; margin: 0 auto; padding: 32px 32px 80px; }
+
+    /* Shift tabs */
+    .shift-tabs { display:flex; gap:6px; margin:24px 0 0; }
+    .shift-tab {
+      padding:8px 20px; border-radius:100px; font-size:13px; font-weight:500;
+      background:var(--surface); border:1px solid var(--border);
+      color:var(--text-2); cursor:pointer; transition:all 0.18s;
+    }
+    .shift-tab:hover { border-color:rgba(44,92,156,0.25); color:var(--blue); }
+    .shift-tab.active { background:var(--navy); color:#f0f4ff; border-color:var(--navy); }
+
+    /* Date bar */
+    .date-bar { display:flex; align-items:center; gap:12px; margin:16px 0 24px; }
+    .date-input {
+      font-family:var(--font-body); font-size:13px; color:var(--text);
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; padding:6px 11px; cursor:pointer;
+    }
+    .date-input:focus { outline:none; border-color:rgba(44,92,156,0.35); }
+    .date-today-btn {
+      font-size:11px; font-weight:600; color:var(--blue);
+      background:none; border:none; cursor:pointer; padding:4px 0;
+    }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom:28px; }
+    .progress-meta { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:7px; }
+    .progress-label { font-family:var(--font-display); font-size:0.95rem; font-weight:600; color:var(--text); }
+    .progress-counts { font-size:12px; color:var(--text-3); }
+    .progress-bar-bg { height:6px; background:var(--surface-2); border-radius:100px; overflow:hidden; }
+    .progress-bar-fill { height:100%; background:var(--blue); border-radius:100px; transition:width 0.4s ease; }
+    .progress-bar-fill.done { background:#10b981; }
+
+    /* Phase section */
+    .phase-section { margin-bottom:8px; }
+    .phase-header {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 0 8px;
+      border-bottom:1px solid var(--border);
+      margin-bottom:4px;
+      cursor:pointer; user-select:none;
+    }
+    .phase-header:hover .phase-title { color:var(--blue); }
+    .phase-title { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-3); transition:color 0.15s; }
+    .phase-count { font-size:10px; color:var(--text-3); margin-left:auto; }
+    .phase-chevron { color:var(--text-3); transition:transform 0.2s; }
+    .phase-chevron.open { transform:rotate(90deg); }
+
+    /* Task rows */
+    .task-list { display:flex; flex-direction:column; }
+    .task-row {
+      display:flex; align-items:flex-start; gap:12px;
+      padding:11px 14px 11px 0;
+      border-bottom:1px solid rgba(12,23,56,0.05);
+      transition:background 0.15s;
+      border-radius:10px;
+    }
+    .task-row:hover { background:rgba(44,92,156,0.03); }
+    .task-row.done { opacity:0.6; }
+    .task-row.nr   { opacity:0.5; }
+
+    .task-check-col { padding-top:1px; flex-shrink:0; }
+
+    .task-checkbox {
+      width:20px; height:20px; border-radius:6px;
+      border:2px solid var(--border);
+      background:var(--surface);
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all 0.15s; flex-shrink:0;
+    }
+    .task-checkbox:hover { border-color:var(--blue); background:var(--blue-soft); }
+    .task-checkbox.checked {
+      background:#10b981; border-color:#10b981;
+    }
+    .task-checkbox.not-required {
+      background:rgba(143,160,184,0.15); border-color:rgba(143,160,184,0.3);
+    }
+
+    .task-body { flex:1; min-width:0; }
+    .task-text { font-size:14px; color:var(--text); line-height:1.5; }
+    .task-text.bold { font-weight:600; }
+    .task-text.strikethrough { text-decoration:line-through; }
+    .task-meta { display:flex; align-items:center; gap:7px; margin-top:4px; flex-wrap:wrap; }
+    .task-chip {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:10px; font-weight:600; padding:2px 8px; border-radius:100px;
+    }
+    .task-chip.done-chip { background:#10b98118; color:#059669; }
+    .task-chip.nr-chip   { background:rgba(143,160,184,0.15); color:var(--text-3); }
+    .task-chip-note { font-size:10px; color:var(--text-3); font-style:italic; }
+
+    .task-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; padding-top:1px; }
+    .nr-btn {
+      font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      padding:3px 8px; border-radius:100px;
+      background:rgba(143,160,184,0.12); border:1px solid rgba(143,160,184,0.2);
+      color:var(--text-3); cursor:pointer; transition:all 0.15s;
+    }
+    .nr-btn:hover { background:rgba(143,160,184,0.22); color:var(--text-2); }
+    .reset-btn {
+      font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      padding:3px 8px; border-radius:100px;
+      background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.18);
+      color:#f87171; cursor:pointer; transition:all 0.15s; display:none;
+    }
+    .reset-btn:hover { background:rgba(248,113,113,0.16); }
+
+    /* NR Modal */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(12,23,56,0.45);
+      z-index:500; display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity 0.2s;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal {
+      background:var(--surface); border-radius:20px;
+      padding:28px 28px 24px; width:420px; max-width:calc(100vw - 40px);
+      box-shadow:0 24px 64px rgba(12,23,56,0.18);
+      transform:translateY(10px); transition:transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform:translateY(0); }
+    .modal-title { font-family:var(--font-display); font-size:1.1rem; font-weight:600; color:var(--text); margin-bottom:6px; }
+    .modal-task  { font-size:13px; color:var(--text-2); margin-bottom:18px; line-height:1.5; }
+    .modal-label { font-size:11px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:7px; }
+    .modal-textarea {
+      width:100%; padding:10px 12px; border-radius:10px;
+      border:1px solid var(--border); font-family:var(--font-body); font-size:14px;
+      color:var(--text); background:var(--canvas); resize:none;
+      transition:border-color 0.15s;
+    }
+    .modal-textarea:focus { outline:none; border-color:rgba(44,92,156,0.35); }
+    .modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+    .modal-cancel { padding:8px 18px; border-radius:100px; background:none; border:1px solid var(--border); font-family:var(--font-body); font-size:13px; cursor:pointer; color:var(--text-2); }
+    .modal-cancel:hover { border-color:rgba(44,92,156,0.25); }
+    .modal-confirm { padding:8px 18px; border-radius:100px; background:var(--navy); border:none; font-family:var(--font-body); font-size:13px; color:#f0f4ff; cursor:pointer; font-weight:500; }
+    .modal-confirm:hover { background:var(--blue); }
+
+    /* Comms reminder banner */
+    .handoff-banner {
+      display:flex; align-items:center; gap:12px;
+      margin-top:32px; padding:14px 18px; border-radius:14px;
+      background:rgba(44,92,156,0.06); border:1px solid rgba(44,92,156,0.14);
+    }
+    .handoff-icon { color:var(--blue); flex-shrink:0; }
+    .handoff-text { flex:1; font-size:13px; color:var(--text-2); }
+    .handoff-link { font-size:12px; font-weight:600; color:var(--blue); text-decoration:none; white-space:nowrap; }
+    .handoff-link:hover { text-decoration:underline; }
+
+    /* Empty state */
+    .empty-state { padding:48px 0; text-align:center; }
+    .empty-state p { font-size:14px; color:var(--text-3); }
+
+    @media (max-width:768px) {
+      .spine, .sidenav { display:none; }
+      body { padding-left:0; }
+      .main { padding:20px 16px 64px; }
+      .topstrip { padding:12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Spine -->
+  <div class="spine">
+    <div class="spine-top">
+      <svg class="spine-mark" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="15" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
+        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)" stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
+        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="39" y="22.5" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
+      </svg>
+      <div class="spine-divider"></div>
+      <div class="spine-label">Staff Hub</div>
+    </div>
+    <div class="spine-foot">
+      <a href="/hub.html" class="spine-btn" title="Dashboard">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Daily Ops</div>
+      <a href="/hub.html" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+        Dashboard
+      </a>
+      <a href="/checklist.html" class="nav-link active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Shift Checklist
+      </a>
+      <a href="#" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="17" x2="21" y2="17"/></svg>Courts</a>
+      <a href="#" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Cash Summary</a>
+      <a href="#" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Cleaning</a>
+      <div class="nav-group-label">Team</div>
+      <a href="/schedule.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</a>
+      <a href="/timesheet.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Timesheets</a>
+      <a href="/comms.html" class="nav-link" id="comms-nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Communications
+        <span id="comms-nav-badge" class="nav-badge" style="display:none"></span>
+      </a>
+      <div id="admin-nav-group" style="display:none">
+        <div class="nav-group-label">Admin</div>
+        <a href="/admin.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Admin Panel</a>
+      </div>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div>
+          <div class="sidenav-user-name" id="nav-name">—</div>
+          <div class="sidenav-user-role" id="nav-role">—</div>
+        </div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Top Strip -->
+  <div class="topstrip">
+    <div>
+      <div class="ts-clock" id="clock">—</div>
+      <div class="ts-date"  id="dateline">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:11px;color:var(--text-3)" id="progress-summary"></div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Shift Checklist</h1>
+    <p style="font-size:13px;color:var(--text-2)">Check off tasks as you go. Mark as NR if not required with a reason.</p>
+
+    <!-- Shift Tabs -->
+    <div class="shift-tabs">
+      <button class="shift-tab" data-shift="morning"   onclick="selectShift('morning')">Morning</button>
+      <button class="shift-tab" data-shift="afternoon" onclick="selectShift('afternoon')">Afternoon</button>
+      <button class="shift-tab" data-shift="closing"   onclick="selectShift('closing')">Closing</button>
+    </div>
+
+    <!-- Date Bar -->
+    <div class="date-bar">
+      <input type="date" class="date-input" id="date-picker" onchange="onDateChange()">
+      <button class="date-today-btn" onclick="goToToday()">Today</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="progress-label">Loading…</span>
+        <span class="progress-counts" id="progress-counts"></span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Assigned staff for this shift -->
+    <div id="shift-assignment" style="display:none;margin-bottom:20px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3)">On Shift</span>
+      <div id="shift-assignment-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <a href="/schedule.html" style="margin-left:auto;font-size:11px;color:var(--blue);font-weight:600;text-decoration:none;">Edit schedule →</a>
+    </div>
+
+    <!-- Checklist -->
+    <div id="checklist-body"></div>
+
+    <!-- Handoff reminder -->
+    <div class="handoff-banner">
+      <div class="handoff-icon">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="handoff-text">Wrapping up your shift? Leave a note in the Comms Log for the next shift.</div>
+      <a href="/comms.html" class="handoff-link">Open Comms →</a>
+    </div>
+  </main>
+
+  <!-- NR Modal -->
+  <div class="modal-overlay" id="nr-modal">
+    <div class="modal">
+      <div class="modal-title">Mark as Not Required</div>
+      <div class="modal-task" id="modal-task-text"></div>
+      <div class="modal-label">Reason (optional)</div>
+      <textarea class="modal-textarea" id="nr-note" rows="3" placeholder="e.g. No snow today, already done by previous shift…"></textarea>
+      <div class="modal-footer">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-confirm" onclick="confirmNR()">Mark NR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────
+    let me = null;
+    let currentShift = 'morning';
+    let currentDate  = today();
+    let pendingNR    = null; // { itemId }
+
+    const PHASE_LABELS = { start:'Start of Shift', during:'During Shift', bookings:'Bookings', end:'End of Shift' };
+
+    function today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function defaultShift() {
+      const h = new Date().getHours();
+      return h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+    }
+
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ── Clock ────────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit', hour12:true });
+      document.getElementById('dateline').textContent =
+        now.toLocaleDateString('en-CA', { weekday:'long', month:'long', day:'numeric' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── Shift & Date ─────────────────────────────────────────────────
+    function selectShift(shift) {
+      currentShift = shift;
+      document.querySelectorAll('.shift-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.shift === shift)
+      );
+      load();
+    }
+
+    function onDateChange() {
+      currentDate = document.getElementById('date-picker').value || today();
+      load();
+    }
+
+    function goToToday() {
+      currentDate = today();
+      document.getElementById('date-picker').value = currentDate;
+      load();
+    }
+
+    // ── Load ─────────────────────────────────────────────────────────
+    async function loadAssignment() {
+      try {
+        const res = await fetch(`/api/schedule/shift?date=${currentDate}&shift=${currentShift}`);
+        const assigned = await res.json();
+        const wrap = document.getElementById('shift-assignment');
+        const chips = document.getElementById('shift-assignment-chips');
+        if (assigned.length) {
+          chips.innerHTML = assigned.map(a =>
+            `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:11px;font-weight:600;background:${a.staff_color}18;color:${a.staff_color}">
+              <span style="width:7px;height:7px;border-radius:50%;background:${a.staff_color};flex-shrink:0;display:inline-block"></span>
+              ${esc(a.staff_name)}
+            </span>`
+          ).join('');
+          wrap.style.display = 'flex';
+        } else {
+          wrap.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    async function load() {
+      document.getElementById('checklist-body').innerHTML =
+        '<div class="empty-state"><p>Loading…</p></div>';
+      loadAssignment();
+      try {
+        const res = await fetch(`/api/checklist?shift=${currentShift}&date=${currentDate}`);
+        if (!res.ok) throw new Error();
+        const items = await res.json();
+        render(items);
+        updateProgress(items);
+      } catch (e) {
+        document.getElementById('checklist-body').innerHTML =
+          '<div class="empty-state"><p>Failed to load checklist.</p></div>';
+      }
+    }
+
+    // ── Render ───────────────────────────────────────────────────────
+    function render(items) {
+      if (!items.length) {
+        document.getElementById('checklist-body').innerHTML =
+          '<div class="empty-state"><p>No tasks for this shift.</p></div>';
+        return;
+      }
+
+      // Group by phase
+      const phases = ['start','during','bookings','end'];
+      const grouped = {};
+      phases.forEach(p => grouped[p] = []);
+      items.forEach(i => { if (grouped[i.phase]) grouped[i.phase].push(i); });
+
+      const isAdmin = me && me.role === 'admin';
+      const isToday = currentDate === today();
+
+      let html = '';
+      for (const phase of phases) {
+        const group = grouped[phase];
+        if (!group.length) continue;
+        const done = group.filter(i => i.status !== 'pending').length;
+        html += `
+          <div class="phase-section" id="phase-${phase}">
+            <div class="phase-header" onclick="togglePhase('${phase}')">
+              <svg class="phase-chevron open" id="chev-${phase}" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              <span class="phase-title">${esc(PHASE_LABELS[phase] || phase)}</span>
+              <span class="phase-count">${done}/${group.length}</span>
+            </div>
+            <div class="task-list" id="phase-list-${phase}">
+              ${group.map(item => renderTask(item, isAdmin, isToday)).join('')}
+            </div>
+          </div>`;
+      }
+      document.getElementById('checklist-body').innerHTML = html;
+    }
+
+    function renderTask(item, isAdmin, isToday) {
+      const done = item.status === 'complete';
+      const nr   = item.status === 'not_required';
+      const rowClass = done ? 'done' : nr ? 'nr' : '';
+      const checkClass = done ? 'checked' : nr ? 'not-required' : '';
+      const checkIcon = done
+        ? `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>`
+        : nr
+        ? `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="rgba(143,160,184,0.7)" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>`
+        : '';
+
+      const canAct = isToday && item.status === 'pending';
+
+      let meta = '';
+      if (done && item.completed_by_name) {
+        meta = `<span class="task-chip done-chip">
+          <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+          ${esc(item.completed_by_name)} · ${fmtTime(item.completed_at)}</span>`;
+      } else if (nr) {
+        meta = `<span class="task-chip nr-chip">NR${item.completed_by_name ? ' · ' + esc(item.completed_by_name) : ''}</span>`;
+        if (item.note) meta += `<span class="task-chip-note">${esc(item.note)}</span>`;
+      }
+
+      const checkClick = canAct ? `onclick="checkItem(${item.id})"` : '';
+      const nrBtn = canAct
+        ? `<button class="nr-btn" onclick="openNR(${item.id}, \`${esc(item.text)}\`)">NR</button>`
+        : '';
+      const resetBtn = isAdmin && !canAct
+        ? `<button class="reset-btn" style="display:inline-flex" onclick="resetItem(${item.id})">Reset</button>`
+        : '';
+
+      return `
+        <div class="task-row ${rowClass}" id="task-${item.id}">
+          <div class="task-check-col">
+            <div class="task-checkbox ${checkClass}" ${checkClick}>${checkIcon}</div>
+          </div>
+          <div class="task-body">
+            <div class="task-text ${item.bold ? 'bold' : ''} ${done || nr ? 'strikethrough' : ''}">${esc(item.text)}</div>
+            ${meta ? `<div class="task-meta">${meta}</div>` : ''}
+          </div>
+          <div class="task-actions">${nrBtn}${resetBtn}</div>
+        </div>`;
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString('en-CA', { hour:'numeric', minute:'2-digit', hour12:true });
+    }
+
+    function togglePhase(phase) {
+      const list = document.getElementById(`phase-list-${phase}`);
+      const chev = document.getElementById(`chev-${phase}`);
+      const open = list.style.display !== 'none';
+      list.style.display = open ? 'none' : 'flex';
+      chev.classList.toggle('open', !open);
+    }
+
+    // ── Progress ─────────────────────────────────────────────────────
+    function updateProgress(items) {
+      const total    = items.length;
+      const complete = items.filter(i => i.status === 'complete').length;
+      const nr       = items.filter(i => i.status === 'not_required').length;
+      const counted  = complete + nr; // NR counts toward done
+      const pct      = total > 0 ? Math.round((counted / total) * 100) : 0;
+
+      const shiftLabel = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' }[currentShift];
+      document.getElementById('progress-label').textContent = `${shiftLabel} Shift`;
+
+      const parts = [];
+      if (complete > 0) parts.push(`${complete} done`);
+      if (nr > 0) parts.push(`${nr} NR`);
+      const pending = total - counted;
+      if (pending > 0) parts.push(`${pending} remaining`);
+      document.getElementById('progress-counts').textContent = parts.join(' · ') || `${total} tasks`;
+
+      const fill = document.getElementById('progress-fill');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('done', pct === 100);
+
+      document.getElementById('progress-summary').textContent =
+        pct === 100 ? '✓ Shift complete' : `${counted}/${total} tasks done`;
+    }
+
+    // ── Actions ──────────────────────────────────────────────────────
+    async function checkItem(itemId) {
+      const ok = await postComplete(itemId, 'complete', null);
+      if (ok) load();
+    }
+
+    function openNR(itemId, taskText) {
+      pendingNR = { itemId };
+      document.getElementById('modal-task-text').textContent = taskText;
+      document.getElementById('nr-note').value = '';
+      document.getElementById('nr-modal').classList.add('open');
+      setTimeout(() => document.getElementById('nr-note').focus(), 200);
+    }
+
+    function closeModal() {
+      document.getElementById('nr-modal').classList.remove('open');
+      pendingNR = null;
+    }
+
+    async function confirmNR() {
+      if (!pendingNR) return;
+      const note = document.getElementById('nr-note').value.trim();
+      const ok = await postComplete(pendingNR.itemId, 'not_required', note || null);
+      closeModal();
+      if (ok) load();
+    }
+
+    async function postComplete(itemId, status, note) {
+      try {
+        const res = await fetch('/api/checklist/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: itemId, shift: currentShift, date: currentDate, status, note }),
+        });
+        return res.ok;
+      } catch (e) { return false; }
+    }
+
+    async function resetItem(itemId) {
+      if (!confirm('Reset this task? This removes the completion record (admin only).')) return;
+      try {
+        await fetch('/api/checklist/complete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: itemId, shift: currentShift, date: currentDate }),
+        });
+        load();
+      } catch (e) {}
+    }
+
+    // ── SSE ──────────────────────────────────────────────────────────
+    function connectSSE() {
+      const es = new EventSource('/api/events');
+      es.addEventListener('message', e => {
+        if (e.data === 'checklist-update' || e.data === 'update') load();
+      });
+      es.onerror = () => setTimeout(connectSSE, 5000);
+    }
+
+    // ── Logout ───────────────────────────────────────────────────────
+    async function doLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // ── Close modal on overlay click ─────────────────────────────────
+    document.getElementById('nr-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────
+    async function init() {
+      const res = await fetch('/api/me');
+      if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
+      me = await res.json();
+
+      const av = document.getElementById('nav-avatar');
+      av.textContent = me.name.slice(0,2).toUpperCase();
+      av.style.background = me.color + '28';
+      av.style.color = me.color;
+      document.getElementById('nav-name').textContent = me.name;
+      document.getElementById('nav-role').textContent = me.role;
+      if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
+
+      // Unread comms badge
+      try {
+        const ur = await fetch('/api/messages/unread-count');
+        const { count } = await ur.json();
+        if (count > 0) {
+          const nb = document.getElementById('comms-nav-badge');
+          nb.textContent = count; nb.style.display = 'inline-block';
+        }
+      } catch (e) {}
+
+      // Set date picker
+      currentDate = today();
+      document.getElementById('date-picker').value = currentDate;
+
+      // Auto-select shift: prefer schedule assignment for this user, fall back to time of day
+      currentShift = defaultShift();
+      try {
+        const [mRes, aRes, cRes] = await Promise.all([
+          fetch(`/api/schedule/shift?date=${currentDate}&shift=morning`),
+          fetch(`/api/schedule/shift?date=${currentDate}&shift=afternoon`),
+          fetch(`/api/schedule/shift?date=${currentDate}&shift=closing`),
+        ]);
+        const [morning, afternoon, closing] = await Promise.all([mRes.json(), aRes.json(), cRes.json()]);
+        const allShifts = [
+          { shift: 'morning',   assigned: morning },
+          { shift: 'afternoon', assigned: afternoon },
+          { shift: 'closing',   assigned: closing },
+        ];
+        const myShift = allShifts.find(s => s.assigned.some(a => a.staff_id === me.id));
+        if (myShift) currentShift = myShift.shift;
+      } catch(e) { /* keep time-of-day default */ }
+
+      document.querySelectorAll('.shift-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.shift === currentShift)
+      );
+
+      load();
+      connectSSE();
+    }
+
+    init();
+  </script>
+</body>
+</html>

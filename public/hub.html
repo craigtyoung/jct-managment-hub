@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JCT Staff Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --spine-w:    68px;
+      --nav-w:      214px;
+      --total-nav:  calc(var(--spine-w) + var(--nav-w));
+
+      /* Brand palette */
+      --navy:         #0c1738;
+      --navy-mid:     #111e40;
+      --navy-hover:   rgba(177,201,251,0.07);
+      --blue:         #2c5c9c;
+      --blue-soft:    rgba(44,92,156,0.10);
+      --blue-glow:    rgba(44,92,156,0.18);
+      --powder:       #b1c9fb;
+      --powder-dim:   rgba(177,201,251,0.55);
+      --powder-faint: rgba(177,201,251,0.20);
+
+      /* Surface */
+      --canvas:       #f0f4f9;
+      --surface:      #ffffff;
+      --surface-2:    #e8eef8;
+      --border:       rgba(12,23,56,0.08);
+      --border-nav:   rgba(177,201,251,0.07);
+
+      /* Text */
+      --text:         #0c1738;
+      --text-2:       #4a6080;
+      --text-3:       #8fa0b8;
+
+      /* Fonts */
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      padding-left: var(--total-nav);
+      background: var(--canvas);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ─────────────────────────────────────────────
+       SPINE
+    ───────────────────────────────────────────── */
+    .spine {
+      position: fixed; left: 0; top: 0;
+      width: var(--spine-w); height: 100vh;
+      background: var(--navy);
+      display: flex; flex-direction: column; align-items: center;
+      z-index: 200;
+      border-right: 1px solid var(--border-nav);
+    }
+
+    .spine-top {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 18px 0 0;
+      gap: 0;
+    }
+
+    /* JCT three-circle mark */
+    .spine-mark { width: 40px; height: 28px; }
+
+    .spine-divider {
+      width: 30px; height: 1px;
+      background: var(--border-nav);
+      margin: 14px 0 10px;
+    }
+
+    .spine-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-family: var(--font-body);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: rgba(177,201,251,0.30);
+      flex: 1;
+    }
+
+    .spine-foot {
+      padding-bottom: 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+
+    .spine-btn {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none; cursor: pointer;
+      color: rgba(177,201,251,0.32); transition: all 0.18s;
+    }
+    .spine-btn:hover {
+      color: var(--powder);
+      background: var(--navy-hover);
+    }
+
+    /* ─────────────────────────────────────────────
+       SIDENAV
+    ───────────────────────────────────────────── */
+    .sidenav {
+      position: fixed; left: var(--spine-w); top: 0;
+      width: var(--nav-w); height: 100vh;
+      background: var(--navy-mid);
+      display: flex; flex-direction: column;
+      z-index: 190;
+      border-right: 1px solid var(--border-nav);
+      overflow-y: auto;
+    }
+    .sidenav::-webkit-scrollbar { width: 0; }
+
+    .sidenav-brand {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--border-nav);
+      flex-shrink: 0;
+    }
+    .sidenav-brand-name {
+      font-family: var(--font-display);
+      font-size: 1rem; font-weight: 600;
+      color: #f0f4ff; line-height: 1.2;
+    }
+    .sidenav-brand-tag {
+      font-size: 9.5px; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(177,201,251,0.36);
+      margin-top: 4px;
+    }
+
+    .sidenav-body { flex: 1; padding: 8px 0 4px; }
+
+    .nav-group-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(177,201,251,0.28);
+      padding: 14px 18px 5px;
+    }
+    .nav-group-label:first-child { padding-top: 10px; }
+
+    .nav-link {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%; padding: 8px 18px 8px 16px;
+      background: none; border: none; cursor: pointer;
+      border-left: 2px solid transparent;
+      font-family: var(--font-body);
+      font-size: 13px; font-weight: 400;
+      color: rgba(177,201,251,0.55);
+      text-align: left; text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .nav-link:hover {
+      color: rgba(240,244,255,0.88);
+      background: var(--navy-hover);
+    }
+    .nav-link.active {
+      color: var(--powder);
+      border-left-color: var(--powder);
+      background: rgba(177,201,251,0.07);
+      font-weight: 500;
+    }
+
+    .nav-icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .nav-badge {
+      margin-left: auto;
+      font-size: 10px; font-weight: 600;
+      background: var(--blue); color: white;
+      padding: 1px 7px; border-radius: 100px;
+      line-height: 1.6;
+    }
+
+    .sidenav-foot {
+      flex-shrink: 0;
+      padding: 12px 14px 18px;
+      border-top: 1px solid var(--border-nav);
+    }
+    .sidenav-user {
+      display: flex; align-items: center; gap: 9px;
+      padding: 6px 4px 10px;
+    }
+    .sidenav-avatar {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .sidenav-user-name {
+      font-size: 12px; font-weight: 500;
+      color: rgba(240,244,255,0.85); line-height: 1.2;
+    }
+    .sidenav-user-role {
+      font-size: 10px; color: rgba(177,201,251,0.38);
+      text-transform: capitalize; margin-top: 1px;
+    }
+    .sidenav-signout {
+      width: 100%; padding: 7px;
+      background: transparent;
+      border: 1px solid rgba(177,201,251,0.12);
+      border-radius: 8px; cursor: pointer;
+      font-family: var(--font-body); font-size: 11px;
+      color: rgba(177,201,251,0.32);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .sidenav-signout:hover { color: #f87171; border-color: rgba(248,113,113,0.25); }
+
+    /* ─────────────────────────────────────────────
+       TOP STRIP
+    ───────────────────────────────────────────── */
+    .topstrip {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 13px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .ts-clock {
+      font-size: 13px; font-weight: 500; color: var(--text); line-height: 1;
+    }
+    .ts-date {
+      font-size: 11px; color: var(--text-3); margin-top: 2px;
+    }
+    .ts-status {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ts-right { display: flex; align-items: center; gap: 16px; }
+    .assistant-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 11px 5px 10px; cursor: default;
+      color: var(--text-2); font-family: var(--font-body); font-size: 12px; font-weight: 500;
+    }
+    .assistant-btn svg { width: 15px; height: 15px; color: var(--blue); }
+    .assistant-soon { font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(143,160,184,0.16); color: var(--text-3); padding: 1px 6px; border-radius: 100px; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #10b981;
+      animation: blink 2.5s ease infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    /* ─────────────────────────────────────────────
+       MAIN
+    ───────────────────────────────────────────── */
+    .main {
+      max-width: 960px; margin: 0 auto;
+      padding: 36px 32px 64px;
+    }
+
+    .page-greeting {
+      font-family: var(--font-display);
+      font-size: 2rem; font-weight: 600;
+      color: var(--text); line-height: 1.15;
+      margin-bottom: 4px;
+    }
+    .page-sub { font-size: 13px; color: var(--text-2); }
+
+    /* ─────────────────────────────────────────────
+       STAT CARDS
+    ───────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 24px 0 36px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .stat-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-3); margin-bottom: 7px;
+    }
+    .stat-value {
+      font-size: 1.65rem; font-weight: 600;
+      color: var(--text); line-height: 1;
+    }
+    .stat-value span { font-size: 0.9rem; font-weight: 400; color: var(--text-3); }
+    .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+    .stat-sub.green  { color: #10b981; }
+    .stat-sub.amber  { color: #d97706; }
+    .stat-sub.blue   { color: var(--blue); }
+
+    /* ─────────────────────────────────────────────
+       LATEST NOTES PANEL (view-only → comms log)
+    ───────────────────────────────────────────── */
+    .notes-link { text-decoration: none; color: inherit; display: block; }
+    .notes-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 4px 6px 8px; margin: 0 0 8px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .notes-link:hover .notes-panel { border-color: rgba(44,92,156,0.28); box-shadow: 0 8px 28px rgba(44,92,156,0.07); }
+    .notes-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; }
+    .notes-panel-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .notes-view-all { font-size: 11px; color: var(--blue); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .note-row { display: flex; align-items: flex-start; gap: 11px; padding: 10px 14px; border-radius: 12px; }
+    .note-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+    .note-avatar { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .note-main { flex: 1; min-width: 0; }
+    .note-top { display: flex; align-items: center; gap: 8px; }
+    .note-author { font-size: 13px; font-weight: 600; color: var(--text); }
+    .note-cat { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 100px; }
+    .note-time { font-size: 11px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+    .note-snippet { font-size: 12.5px; color: var(--text-2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notes-empty { padding: 18px 14px; font-size: 13px; color: var(--text-3); text-align: center; }
+
+    /* ─────────────────────────────────────────────
+       SECTION HEADER
+    ───────────────────────────────────────────── */
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text-3); letter-spacing: 0.05em;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px; margin-top: 36px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    /* ─────────────────────────────────────────────
+       TILE GRID
+    ───────────────────────────────────────────── */
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 4px;
+    }
+
+    .tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px 20px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative; overflow: hidden;
+      text-decoration: none; display: block;
+    }
+    .tile:hover { transform: translateY(-2px); }
+
+    .tile-head {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .tile-icon { color: var(--text-3); transition: color 0.2s; }
+    .tile-arrow {
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 0.2s, transform 0.2s;
+      color: var(--text-3);
+    }
+    .tile:hover .tile-arrow { opacity: 1; transform: translateX(0); }
+
+    .tile-name {
+      font-family: var(--font-display);
+      font-size: 1rem; font-weight: 600;
+      color: var(--text); margin-bottom: 5px;
+    }
+    .tile-desc {
+      font-size: 12.5px; color: var(--text-2); line-height: 1.55;
+    }
+    .tile-footer { margin-top: 14px; font-size: 11px; }
+
+    .tile-tag {
+      display: inline-block;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 100px;
+    }
+    .unread-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--blue);
+      position: absolute; top: 14px; right: 14px;
+      animation: blink 2s ease infinite;
+    }
+    .dot-row { display: flex; align-items: center; gap: 10px; }
+    .dot-item { display: flex; align-items: center; gap: 5px; }
+    .dot-item span { font-size: 11px; color: var(--text-3); }
+
+    /* Tile accent colours on hover */
+    .t-blue:hover    { border-color: rgba(44,92,156,0.30);  box-shadow: 0 8px 28px rgba(44,92,156,0.08); }
+    .t-blue:hover .tile-icon { color: var(--blue); }
+
+    .t-green:hover   { border-color: rgba(16,185,129,0.30); box-shadow: 0 8px 28px rgba(16,185,129,0.07); }
+    .t-green:hover .tile-icon { color: #10b981; }
+
+    .t-amber:hover   { border-color: rgba(217,119,6,0.30);  box-shadow: 0 8px 28px rgba(217,119,6,0.07); }
+    .t-amber:hover .tile-icon { color: #d97706; }
+
+    .t-sky:hover     { border-color: rgba(14,165,233,0.30); box-shadow: 0 8px 28px rgba(14,165,233,0.07); }
+    .t-sky:hover .tile-icon { color: #0ea5e9; }
+
+    .t-powder:hover  { border-color: rgba(177,201,251,0.40); box-shadow: 0 8px 28px rgba(177,201,251,0.09); }
+    .t-powder:hover .tile-icon { color: #7aa8f4; }
+
+    .t-navy:hover    { border-color: rgba(12,23,56,0.22);   box-shadow: 0 8px 28px rgba(12,23,56,0.06); }
+    .t-navy:hover .tile-icon { color: var(--navy); }
+
+    .t-violet:hover  { border-color: rgba(139,92,246,0.28); box-shadow: 0 8px 28px rgba(139,92,246,0.07); }
+    .t-violet:hover .tile-icon { color: #8b5cf6; }
+
+    /* Coming-soon / roadmap tiles — captured but not yet built */
+    .tile.soon { opacity: 0.72; cursor: default; border-style: dashed; }
+    .tile.soon:hover { transform: none; box-shadow: none; border-color: var(--border); }
+    .soon-tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; background: rgba(143,160,184,0.16); color: var(--text-3); }
+
+    /* ─────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────── */
+    .page-footer {
+      margin-top: 52px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-brand {
+      font-family: var(--font-display);
+      font-size: 11px; color: var(--text-3);
+    }
+    .footer-links { display: flex; align-items: center; gap: 16px; }
+    .footer-link {
+      font-size: 11px; color: var(--text-3);
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font-body); transition: color 0.15s;
+    }
+    .footer-link:hover { color: var(--text-2); }
+    .footer-link.danger:hover { color: #f87171; }
+
+    /* ─────────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .tile-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .spine, .sidenav { display: none; }
+      body { padding-left: 0; }
+      .main { padding: 20px 16px 48px; }
+      .topstrip { padding: 12px 16px; }
+      .tile-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════
+       SPINE
+  ══════════════════════════════════════════ -->
+  <div class="spine">
+    <div class="spine-top">
+      <!-- JCT three-circle mark recreated as SVG -->
+      <svg class="spine-mark" viewBox="0 0 54 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left circle: J -->
+        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="15" y="22.5" text-anchor="middle"
+          font-family="'Playfair Display', serif"
+          font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
+        <!-- Middle circle: tennis ball fill -->
+        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)"
+          stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
+        <!-- Tennis ball curves -->
+        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5"
+          stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5"
+          stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <!-- Right circle: C -->
+        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="39" y="22.5" text-anchor="middle"
+          font-family="'Playfair Display', serif"
+          font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
+      </svg>
+
+      <div class="spine-divider"></div>
+      <div class="spine-label">Staff Hub</div>
+    </div>
+
+    <div class="spine-foot">
+      <button class="spine-btn" title="Help">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <circle cx="12" cy="17" r=".5" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SIDENAV
+  ══════════════════════════════════════════ -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+
+    <div class="sidenav-body">
+
+      <div class="nav-group-label">Daily Ops</div>
+
+      <a href="/hub.html" class="nav-link active">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.2"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.2"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.2"/>
+        </svg>
+        Dashboard
+      </a>
+
+      <a href="/checklist.html" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Shift Checklist
+      </a>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="12" y1="3" x2="12" y2="21"/>
+          <line x1="3" y1="7" x2="21" y2="7"/>
+          <line x1="3" y1="17" x2="21" y2="17"/>
+        </svg>
+        Courts
+      </a>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="6" width="20" height="13" rx="2"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Cash Summary
+      </a>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Cleaning
+      </a>
+
+      <div class="nav-group-label">Facility</div>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        Maintenance
+      </a>
+
+      <div class="nav-group-label">Programs</div>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+        Academy
+      </a>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Members
+      </a>
+
+      <div class="nav-group-label">Store</div>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        Pro Shop
+      </a>
+
+      <div class="nav-group-label">Team</div>
+
+      <a href="/schedule.html" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Schedule
+      </a>
+
+      <a href="/timesheet.html" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Timesheets
+      </a>
+
+      <a href="/comms.html" class="nav-link" id="comms-nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        Communications
+        <span id="comms-nav-badge" class="nav-badge" style="display:none"></span>
+      </a>
+
+      <a href="#" class="nav-link">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+          <line x1="9" y1="21" x2="15" y2="21"/>
+          <line x1="10" y1="19" x2="14" y2="19"/>
+        </svg>
+        Idea Board
+      </a>
+
+      <div id="admin-nav-group" style="display:none">
+        <div class="nav-group-label">Admin</div>
+        <a href="/admin.html" class="nav-link">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Admin Panel
+        </a>
+      </div>
+
+    </div><!-- /sidenav-body -->
+
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div>
+          <div class="sidenav-user-name" id="nav-name">—</div>
+          <div class="sidenav-user-role" id="nav-role">—</div>
+        </div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       TOP STRIP
+  ══════════════════════════════════════════ -->
+  <div class="topstrip">
+    <div>
+      <div class="ts-clock" id="clock">—</div>
+      <div class="ts-date"  id="dateline">—</div>
+    </div>
+    <div class="ts-right">
+      <button class="assistant-btn" title="Ask the Staff Assistant a question about the hub — coming soon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Assistant
+        <span class="assistant-soon">Soon</span>
+      </button>
+      <div class="ts-status">
+        <div class="status-dot"></div>
+        <span style="font-size:11px;color:var(--text-3)">All systems online</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN
+  ══════════════════════════════════════════ -->
+  <main class="main">
+
+    <h1 class="page-greeting" id="greeting">Good day.</h1>
+    <p class="page-sub" id="subheading">What do you need today?</p>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Courts Open</div>
+        <div class="stat-value">4 <span>/ 6</span></div>
+        <div class="stat-sub green">2 reserved now</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today's Bookings</div>
+        <div class="stat-value">31</div>
+        <div class="stat-sub">↑ 4 from yesterday</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cash — Today</div>
+        <div class="stat-value">$842</div>
+        <div class="stat-sub amber">Shift not closed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Members In</div>
+        <div class="stat-value">18</div>
+        <div class="stat-sub">on site right now</div>
+      </div>
+    </div>
+
+    <!-- ── Latest Notes (view-only → comms) ── -->
+    <div class="section-title" style="margin-top:0">Latest Notes</div>
+    <a href="/comms.html" class="notes-link">
+      <div class="notes-panel">
+        <div class="notes-panel-head">
+          <span class="notes-panel-title">Communications Log</span>
+          <span class="notes-view-all">View all
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+        <div id="notes-list">
+          <div class="notes-empty">Loading…</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- ── Daily Ops ───────────────────────── -->
+    <div class="section-title">Daily Ops</div>
+    <div class="tile-grid">
+
+      <a href="/checklist.html" class="tile t-green" id="checklist-tile">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Shift Checklist</div>
+        <div class="tile-desc">Open and close your shift. Track tasks as you go.</div>
+        <div class="tile-footer" id="checklist-tile-footer" style="color:#10b981">Loading…</div>
+      </a>
+
+      <a href="#" class="tile t-blue">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <line x1="3" y1="7" x2="21" y2="7"/>
+              <line x1="3" y1="17" x2="21" y2="17"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Courts</div>
+        <div class="tile-desc">Book, view, and manage court reservations in real time.</div>
+        <div class="tile-footer">
+          <div class="dot-row">
+            <div class="dot-item"><div style="width:7px;height:7px;border-radius:50%;background:#10b981"></div><span>4 open</span></div>
+            <div class="dot-item"><div style="width:7px;height:7px;border-radius:50%;background:#d97706"></div><span>2 in use</span></div>
+          </div>
+        </div>
+      </a>
+
+      <a href="#" class="tile t-amber">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <rect x="2" y="6" width="20" height="13" rx="2"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="tile-tag" style="background:rgba(217,119,6,0.10);color:#d97706;border:1px solid rgba(217,119,6,0.20)">Open</span>
+            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+        <div class="tile-name">Cash Summary</div>
+        <div class="tile-desc">Log daily cash, close your shift, view sales reports.</div>
+        <div class="tile-footer" style="color:#d97706">Shift close pending</div>
+      </a>
+
+      <a href="#" class="tile t-sky">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Cleaning</div>
+        <div class="tile-desc">Daily and weekly cleaning tasks by area and zone.</div>
+      </a>
+
+    </div>
+
+    <!-- ── Facility ────────────────────────── -->
+    <div class="section-title">Facility</div>
+    <div class="tile-grid">
+
+      <a href="#" class="tile t-amber">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Maintenance</div>
+        <div class="tile-desc">Log issues, track repairs, and manage facility upkeep.</div>
+      </a>
+
+    </div>
+
+    <!-- ── Programs & People ──────────────── -->
+    <div class="section-title">Programs &amp; People</div>
+    <div class="tile-grid">
+
+      <a href="#" class="tile t-blue">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Academy</div>
+        <div class="tile-desc">Program registrations, lesson scheduling, and player progress.</div>
+        <div class="tile-footer" style="color:var(--blue)">Junior Spring session active</div>
+      </a>
+
+      <a href="#" class="tile t-navy">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Members</div>
+        <div class="tile-desc">Look up member profiles, check-in, and manage accounts.</div>
+        <div class="tile-footer" style="color:var(--text-3)">500 active members</div>
+      </a>
+
+    </div>
+
+    <!-- ── Store ──────────────────────────── -->
+    <div class="section-title">Store</div>
+    <div class="tile-grid">
+
+      <a href="#" class="tile t-blue">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Pro Shop</div>
+        <div class="tile-desc">Process sales, track inventory, and manage stringing orders.</div>
+      </a>
+
+    </div>
+
+    <!-- ── Team ──────────────────────────── -->
+    <div class="section-title">Team</div>
+    <div class="tile-grid">
+
+      <a href="/schedule.html" class="tile t-sky">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Schedule</div>
+        <div class="tile-desc">Weekly shift schedule. See who's on and assign staff to each shift.</div>
+        <div class="tile-footer" id="schedule-tile-footer" style="color:var(--text-3)">Loading…</div>
+      </a>
+
+      <a href="/timesheet.html" class="tile t-blue">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Timesheets</div>
+        <div class="tile-desc">Log actual hours per shift. Scheduled vs. actual, with weekly totals per staff member.</div>
+        <div class="tile-footer" id="timesheet-tile-footer" style="color:var(--text-3)">—</div>
+      </a>
+
+      <a href="/comms.html" class="tile t-powder" style="position:relative">
+        <div id="comms-unread-dot" class="unread-dot" style="display:none"></div>
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span id="comms-tile-badge" class="tile-tag"
+              style="background:rgba(177,201,251,0.12);color:var(--blue);border:1px solid rgba(177,201,251,0.28);display:none"></span>
+            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+        <div class="tile-name">Communications</div>
+        <div class="tile-desc">Staff notes, shift handovers, and team announcements.</div>
+      </a>
+
+      <a href="#" class="tile t-violet">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+              <line x1="9" y1="21" x2="15" y2="21"/>
+              <line x1="10" y1="19" x2="14" y2="19"/>
+            </svg>
+          </div>
+          <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="tile-name">Idea Board</div>
+        <div class="tile-desc">Share suggestions and improvements with the whole team.</div>
+      </a>
+
+    </div>
+
+    <!-- ── Coming Soon (roadmap capture) ──── -->
+    <div class="section-title">Coming Soon · Roadmap</div>
+    <div class="tile-grid">
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Staff Training Manual</div>
+        <div class="tile-desc">Onboarding guides, policies, and how-tos — built out like an academy for staff.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Shift Sign-In / Hours</div>
+        <div class="tile-desc">Clock in and out at shift start and end, with automatic hours tracking per staff member.</div>
+      </div>
+
+      <div class="tile soon">
+        <div class="tile-head">
+          <div class="tile-icon">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M8 9h8M8 13h5"/>
+            </svg>
+          </div>
+          <span class="soon-tag">Coming Soon</span>
+        </div>
+        <div class="tile-name">Staff Assistant (AI)</div>
+        <div class="tile-desc">Ask a question about any feature — comm log, sign-in, checklists. A help-scoped chatbot, grounded in how the hub works.</div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="page-footer">
+      <div class="footer-brand">Joshua Creek Tennis · Staff Hub · v2.0</div>
+      <div class="footer-links">
+        <button class="footer-link">Settings</button>
+        <button class="footer-link">Help</button>
+        <button class="footer-link danger" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ── Clock ──────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
+      document.getElementById('dateline').textContent =
+        now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── Greeting ───────────────────────────────────────────────
+    function setGreeting(name) {
+      const h = new Date().getHours();
+      const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('greeting').textContent = `${greet}, ${name}.`;
+      document.getElementById('subheading').textContent =
+        `${new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })} · What do you need?`;
+    }
+
+    // ── Init ───────────────────────────────────────────────────
+    async function init() {
+      const res = await fetch('/api/me');
+      if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
+      const me = await res.json();
+
+      setGreeting(me.name);
+
+      const av = document.getElementById('nav-avatar');
+      av.textContent = me.name.slice(0, 2).toUpperCase();
+      av.style.background = me.color + '28';
+      av.style.color = me.color;
+      document.getElementById('nav-name').textContent = me.name;
+      document.getElementById('nav-role').textContent = me.role;
+
+      if (me.role === 'admin') {
+        document.getElementById('admin-nav-group').style.display = 'block';
+      }
+
+      // Checklist progress tile
+      try {
+        const h = new Date().getHours();
+        const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const shiftLabel = { morning: 'Morning', afternoon: 'Afternoon', closing: 'Closing' }[shift];
+        const today = new Date().toISOString().slice(0, 10);
+        const pr = await fetch(`/api/checklist/progress?shift=${shift}&date=${today}`);
+        const prog = await pr.json();
+        const footer = document.getElementById('checklist-tile-footer');
+        if (footer && prog.total > 0) {
+          const pct = Math.round((prog.complete / prog.total) * 100);
+          footer.textContent = `${shiftLabel} · ${prog.complete}/${prog.total} complete`;
+          footer.style.color = pct === 100 ? '#10b981' : prog.complete > 0 ? '#d97706' : '#8fa0b8';
+        } else if (footer) {
+          footer.textContent = `${shiftLabel} shift`;
+        }
+      } catch (e) { /* non-critical */ }
+
+      // Schedule tile — who's on today
+      try {
+        const h = new Date().getHours();
+        const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const today = new Date().toISOString().slice(0, 10);
+        const sr = await fetch(`/api/schedule/shift?date=${today}&shift=${shift}`);
+        const assigned = await sr.json();
+        const footer = document.getElementById('schedule-tile-footer');
+        if (footer) {
+          const shiftLabel = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' }[shift];
+          footer.textContent = assigned.length
+            ? `${shiftLabel}: ${assigned.map(a => a.staff_name).join(', ')}`
+            : `${shiftLabel} — no one assigned yet`;
+          footer.style.color = assigned.length ? 'var(--blue)' : 'var(--text-3)';
+        }
+      } catch(e) {}
+
+      // Timesheet tile — this week's logged hours count
+      try {
+        const monday = (() => {
+          const d = new Date(); const day = d.getDay();
+          d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+          return d.toISOString().slice(0,10);
+        })();
+        const tr = await fetch(`/api/timesheet/week?start=${monday}`);
+        const { rows } = await tr.json();
+        const footer = document.getElementById('timesheet-tile-footer');
+        if (footer && rows) {
+          const logged = rows.filter(r => r.actual_start && r.actual_end).length;
+          const total  = rows.length;
+          footer.textContent = total
+            ? `${logged}/${total} shifts logged this week`
+            : 'No shifts scheduled this week';
+          footer.style.color = logged > 0 ? 'var(--blue)' : 'var(--text-3)';
+        }
+      } catch(e) {}
+
+      // Unread comms
+      try {
+        const unreadRes = await fetch('/api/messages/unread-count');
+        const { count } = await unreadRes.json();
+        if (count > 0) {
+          const tileBadge = document.getElementById('comms-tile-badge');
+          tileBadge.textContent = `${count} new`;
+          tileBadge.style.display = 'inline-block';
+          document.getElementById('comms-unread-dot').style.display = 'block';
+          const navBadge = document.getElementById('comms-nav-badge');
+          navBadge.textContent = count;
+          navBadge.style.display = 'inline-block';
+        }
+      } catch (e) { /* non-critical */ }
+
+      // Latest notes preview (view-only; whole panel links to the comms log)
+      try {
+        const notesRes = await fetch('/api/messages?limit=10&offset=0');
+        const notes = await notesRes.json();
+        renderNotes(notes, me);
+      } catch (e) {
+        document.getElementById('notes-list').innerHTML = '<div class="notes-empty">Unable to load notes.</div>';
+      }
+    }
+
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function noteWhen(dateStr) {
+      const d = new Date(dateStr), t = new Date();
+      return d.toDateString() === t.toDateString()
+        ? d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true })
+        : d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+    }
+
+    function renderNotes(notes, me) {
+      const wrap = document.getElementById('notes-list');
+      const x = new Date();
+      const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+      // Skip notes scheduled for a future day — they surface in the log on their day, not here.
+      const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr).slice(0, 4);
+      if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
+      const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
+      const catColors = { membership:'#8b5cf6', 'pro-shop':'#d97706', reminders:'#2563eb', academy:'#059669', general:'#64748b' };
+      wrap.innerHTML = visible.map(m => {
+        const cat = m.category || 'general';
+        const unread = !m.is_read_by_me && m.author_id !== me.id;
+        return `<div class="note-row">
+          <div class="note-avatar" style="background:${m.author_color}22;color:${m.author_color}">${esc((m.author_name||'?').slice(0,2).toUpperCase())}</div>
+          <div class="note-main">
+            <div class="note-top">
+              <span class="note-author">${esc(m.author_name)}</span>
+              <span class="note-cat" style="background:${catColors[cat]}18;color:${catColors[cat]}">${catNames[cat]||'General'}</span>
+              ${unread ? '<span style="font-size:9px;font-weight:700;color:#fff;background:var(--blue);padding:1px 6px;border-radius:100px">NEW</span>' : ''}
+              <span class="note-time">${noteWhen(m.created_at)}</span>
+            </div>
+            <div class="note-snippet">${esc(m.content)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function doLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    init();
+  </script>
+</body>
+</html>

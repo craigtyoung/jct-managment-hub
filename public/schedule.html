@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schedule · JCT Staff Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --spine-w:68px; --nav-w:214px; --total-nav:calc(var(--spine-w) + var(--nav-w));
+      --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c; --blue-soft:rgba(44,92,156,0.10); --powder:#b1c9fb;
+      --canvas:#f0f4f9; --surface:#ffffff; --surface-2:#e8eef8;
+      --border:rgba(12,23,56,0.08); --border-nav:rgba(177,201,251,0.07);
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --font-display:'Playfair Display',Georgia,serif; --font-body:'DM Sans',system-ui,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{padding-left:var(--total-nav);background:var(--canvas);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.5;min-height:100vh;}
+
+    /* Spine */
+    .spine{position:fixed;left:0;top:0;width:var(--spine-w);height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;z-index:200;border-right:1px solid var(--border-nav);}
+    .spine-top{display:flex;flex-direction:column;align-items:center;padding:18px 0 0;}
+    .spine-mark{width:40px;height:28px;}
+    .spine-divider{width:30px;height:1px;background:var(--border-nav);margin:14px 0 10px;}
+    .spine-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-family:var(--font-body);font-size:9px;font-weight:600;letter-spacing:0.20em;text-transform:uppercase;color:rgba(177,201,251,0.30);flex:1;}
+    .spine-foot{padding-bottom:18px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+    .spine-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:rgba(177,201,251,0.32);transition:all 0.18s;text-decoration:none;}
+    .spine-btn:hover{color:var(--powder);background:var(--navy-hover);}
+
+    /* Sidenav */
+    .sidenav{position:fixed;left:var(--spine-w);top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
+    .sidenav::-webkit-scrollbar{width:0;}
+    .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);flex-shrink:0;}
+    .sidenav-brand-name{font-family:var(--font-display);font-size:1rem;font-weight:600;color:#f0f4ff;line-height:1.2;}
+    .sidenav-brand-tag{font-size:9.5px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(177,201,251,0.36);margin-top:4px;}
+    .sidenav-body{flex:1;padding:8px 0 4px;}
+    .nav-group-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:14px 18px 5px;}
+    .nav-link{display:flex;align-items:center;gap:9px;width:100%;padding:8px 18px 8px 16px;background:none;border:none;cursor:pointer;border-left:2px solid transparent;font-family:var(--font-body);font-size:13px;font-weight:400;color:rgba(177,201,251,0.55);text-align:left;text-decoration:none;transition:color 0.15s,background 0.15s,border-color 0.15s;}
+    .nav-link:hover{color:rgba(240,244,255,0.88);background:var(--navy-hover);}
+    .nav-link.active{color:var(--powder);border-left-color:var(--powder);background:rgba(177,201,251,0.07);font-weight:500;}
+    .nav-icon{width:15px;height:15px;flex-shrink:0;}
+    .nav-badge{margin-left:auto;font-size:10px;font-weight:600;background:var(--blue);color:white;padding:1px 7px;border-radius:100px;line-height:1.6;}
+    .sidenav-foot{flex-shrink:0;padding:12px 14px 18px;border-top:1px solid var(--border-nav);}
+    .sidenav-user{display:flex;align-items:center;gap:9px;padding:6px 4px 10px;}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .sidenav-user-name{font-size:12px;font-weight:500;color:rgba(240,244,255,0.85);line-height:1.2;}
+    .sidenav-user-role{font-size:10px;color:rgba(177,201,251,0.38);text-transform:capitalize;margin-top:1px;}
+    .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font-body);font-size:11px;color:rgba(177,201,251,0.32);transition:color 0.15s,border-color 0.15s;}
+    .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
+
+    /* Top strip */
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .ts-clock{font-size:13px;font-weight:500;color:var(--text);line-height:1;}
+    .ts-date{font-size:11px;color:var(--text-3);margin-top:2px;}
+
+    /* Main */
+    .main{max-width:1000px;margin:0 auto;padding:32px 32px 80px;}
+
+    /* Week nav */
+    .week-nav{display:flex;align-items:center;gap:12px;margin:24px 0 20px;}
+    .week-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--surface);border:1px solid var(--border);cursor:pointer;color:var(--text-2);transition:all 0.15s;}
+    .week-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+    .week-label{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--text);}
+    .today-btn{padding:5px 14px;border-radius:100px;background:none;border:1px solid var(--border);font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all 0.15s;margin-left:4px;}
+    .today-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+
+    /* Schedule grid */
+    .schedule-grid{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;}
+    .grid-header{display:grid;grid-template-columns:100px repeat(7,1fr);border-bottom:1px solid var(--border);}
+    .grid-header-cell{padding:10px 8px;text-align:center;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+    .grid-header-cell.today-col{color:var(--blue);}
+    .grid-header-cell:first-child{text-align:left;padding-left:18px;}
+
+    .grid-row{display:grid;grid-template-columns:100px repeat(7,1fr);border-bottom:1px solid rgba(12,23,56,0.05);}
+    .grid-row:last-child{border-bottom:none;}
+
+    .shift-label-cell{padding:16px 0 16px 18px;display:flex;align-items:flex-start;}
+    .shift-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
+
+    .shift-cell{padding:8px 6px;border-left:1px solid rgba(12,23,56,0.04);min-height:68px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+    .shift-cell.today-col{background:rgba(44,92,156,0.03);}
+
+    .staff-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 6px 3px 5px;border-radius:100px;font-size:11px;font-weight:600;line-height:1;}
+    .chip-del{background:none;border:none;cursor:pointer;font-size:12px;color:currentColor;opacity:0.45;padding:0 1px 0 2px;line-height:1;display:inline-flex;align-items:center;transition:opacity 0.15s;}
+    .chip-del:hover{opacity:1;}
+    .chip-time{font-size:9px;opacity:0.65;margin-left:2px;font-weight:500;white-space:nowrap;}
+    .chip-clickable{cursor:pointer;}
+    .chip-clickable:hover{filter:brightness(0.92);}
+
+    /* Time popover */
+    .time-popover{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;width:256px;box-shadow:0 8px 32px rgba(12,23,56,0.15);z-index:600;display:none;}
+    .pop-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px;letter-spacing:0.02em;}
+    .pop-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+    .pop-sep{font-size:12px;color:var(--text-3);}
+    .pop-footer{display:flex;gap:6px;justify-content:flex-end;}
+    .pop-reset{padding:4px 10px;border-radius:100px;background:none;border:1px solid var(--border);font-family:var(--font-body);font-size:11px;color:var(--text-3);cursor:pointer;}
+    .pop-reset:hover{border-color:rgba(248,113,113,0.3);color:#f87171;}
+    .pop-save{padding:4px 12px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:11px;color:#f0f4ff;cursor:pointer;font-weight:500;}
+    .pop-save:hover{background:var(--blue);}
+
+    /* Modal time section */
+    .modal-time-section{padding-top:14px;margin-top:14px;border-top:1px solid var(--border);}
+    .modal-time-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .modal-time-display{font-size:13px;color:var(--text-2);}
+    .modal-time-badge{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:1px 6px;border-radius:100px;margin-left:6px;}
+    .modal-time-badge.default{background:rgba(12,23,56,0.06);color:var(--text-3);}
+    .modal-time-badge.custom{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .modal-time-adjust-btn{font-size:11px;font-weight:600;color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--font-body);padding:0;transition:opacity 0.15s;}
+    .modal-time-adjust-btn:hover{opacity:0.7;}
+    .modal-time-fields{display:none;align-items:center;gap:8px;margin-top:8px;}
+    .staff-chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+    .assign-btn{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:none;border:1px dashed rgba(44,92,156,0.2);cursor:pointer;color:rgba(44,92,156,0.4);transition:all 0.15s;margin-top:2px;}
+    .assign-btn:hover{background:var(--blue-soft);border-color:rgba(44,92,156,0.35);color:var(--blue);}
+    .assign-btn svg{width:11px;height:11px;}
+
+    /* Recurring badge */
+    .recur-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;color:var(--blue);opacity:0.7;margin-left:2px;vertical-align:middle;}
+
+    /* Rules panel */
+    .rules-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;margin-top:28px;}
+    .rules-title{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--text);margin-bottom:4px;}
+    .rules-sub{font-size:12px;color:var(--text-3);margin-bottom:18px;}
+    .rule-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(12,23,56,0.05);}
+    .rule-row:last-child{border-bottom:none;}
+    .rule-staff-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:12px;font-weight:600;}
+    .rule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .rule-info{flex:1;font-size:13px;color:var(--text-2);}
+    .rule-range{font-size:11px;color:var(--text-3);margin-top:1px;}
+    .rule-del{padding:4px 10px;border-radius:100px;background:none;border:1px solid rgba(248,113,113,0.2);font-size:11px;color:#f87171;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;}
+    .rule-del:hover{background:rgba(248,113,113,0.08);}
+    .rules-empty{font-size:13px;color:var(--text-3);text-align:center;padding:20px 0;}
+
+    /* Recurrence section in modal */
+    .recur-toggle-row{display:flex;align-items:center;gap:10px;padding-top:16px;margin-top:16px;border-top:1px solid var(--border);cursor:pointer;}
+    .recur-toggle-label{font-size:13px;font-weight:500;color:var(--text);}
+    .recur-fields{margin-top:14px;display:flex;flex-direction:column;gap:12px;}
+    .recur-row{display:flex;gap:10px;}
+    .recur-group{flex:1;display:flex;flex-direction:column;gap:5px;}
+    .modal-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
+    .modal-select,.modal-input-field{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--canvas);}
+    .modal-select:focus,.modal-input-field:focus{outline:none;border-color:rgba(44,92,156,0.35);}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(12,23,56,0.45);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+    .modal-overlay.open{opacity:1;pointer-events:all;}
+    .modal{background:var(--surface);border-radius:20px;padding:24px;width:380px;max-width:calc(100vw - 40px);box-shadow:0 24px 64px rgba(12,23,56,0.18);transform:translateY(10px);transition:transform 0.2s;}
+    .modal-overlay.open .modal{transform:translateY(0);}
+    .modal-title{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--text);margin-bottom:4px;}
+    .modal-sub{font-size:12px;color:var(--text-3);margin-bottom:18px;}
+    .staff-picker{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;}
+    .staff-pick-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:all 0.15s;}
+    .staff-pick-row:hover{background:var(--canvas);}
+    .staff-pick-row.selected{background:rgba(44,92,156,0.06);border-color:rgba(44,92,156,0.18);}
+    .staff-pick-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .staff-pick-name{font-size:13px;font-weight:500;color:var(--text);flex:1;}
+    .staff-pick-role{font-size:10px;color:var(--text-3);text-transform:capitalize;}
+    .staff-pick-check{width:18px;height:18px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+    .staff-pick-row.selected .staff-pick-check{background:var(--blue);border-color:var(--blue);}
+    .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+    .modal-cancel{padding:8px 18px;border-radius:100px;background:none;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;cursor:pointer;color:var(--text-2);}
+    .modal-save{padding:8px 18px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:13px;color:#f0f4ff;cursor:pointer;font-weight:500;}
+    .modal-save:hover{background:var(--blue);}
+
+    @media (max-width:768px){.spine,.sidenav{display:none;}body{padding-left:0;}.main{padding:20px 16px 64px;}.topstrip{padding:12px 16px;}.grid-header,.grid-row{grid-template-columns:80px repeat(7,1fr);}.grid-header-cell,.shift-label-cell{padding-left:10px;}}
+  </style>
+</head>
+<body>
+
+  <!-- Spine -->
+  <div class="spine">
+    <div class="spine-top">
+      <svg class="spine-mark" viewBox="0 0 54 36" fill="none">
+        <circle cx="15" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="15" y="22.5" text-anchor="middle" font-family="'Playfair Display',serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">J</text>
+        <circle cx="27" cy="18" r="13" fill="rgba(177,201,251,0.10)" stroke="rgba(177,201,251,0.55)" stroke-width="1.4"/>
+        <path d="M20.5 12.5 Q27 15.5 27 18 Q27 20.5 20.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <path d="M33.5 12.5 Q27 15.5 27 18 Q27 20.5 33.5 23.5" stroke="rgba(177,201,251,0.55)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+        <circle cx="39" cy="18" r="13" stroke="rgba(177,201,251,0.45)" stroke-width="1.4"/>
+        <text x="39" y="22.5" text-anchor="middle" font-family="'Playfair Display',serif" font-size="11.5" fill="rgba(177,201,251,0.65)" font-weight="500">C</text>
+      </svg>
+      <div class="spine-divider"></div>
+      <div class="spine-label">Staff Hub</div>
+    </div>
+    <div class="spine-foot">
+      <a href="/hub.html" class="spine-btn" title="Dashboard">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Daily Ops</div>
+      <a href="/hub.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Dashboard</a>
+      <a href="/checklist.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Shift Checklist</a>
+      <div class="nav-group-label">Team</div>
+      <a href="/schedule.html" class="nav-link active"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</a>
+      <a href="/timesheet.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Timesheets</a>
+      <a href="/comms.html" class="nav-link" id="comms-nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Communications<span id="comms-nav-badge" class="nav-badge" style="display:none"></span></a>
+      <div id="admin-nav-group" style="display:none">
+        <div class="nav-group-label">Admin</div>
+        <a href="/admin.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Admin Panel</a>
+      </div>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div><div class="sidenav-user-name" id="nav-name">—</div><div class="sidenav-user-role" id="nav-role">—</div></div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Top Strip -->
+  <div class="topstrip">
+    <div><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Shift Schedule</h1>
+    <p style="font-size:13px;color:var(--text-2)" id="admin-hint"></p>
+
+    <!-- Week Nav -->
+    <div class="week-nav">
+      <button class="week-btn" onclick="prevWeek()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="week-label" id="week-label">—</span>
+      <button class="week-btn" onclick="nextWeek()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button class="today-btn" onclick="goToday()">This week</button>
+    </div>
+
+    <!-- Grid -->
+    <div class="schedule-grid" id="schedule-grid">
+      <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
+    </div>
+
+    <!-- Recurring Rules Panel (admin/manager only) -->
+    <div class="rules-panel" id="rules-panel" style="display:none">
+      <div class="rules-title">Recurring Rules</div>
+      <div class="rules-sub">Weekly patterns applied automatically. One-off assignments override rules for specific dates.</div>
+      <div id="rules-list"><div class="rules-empty">No recurring rules set.</div></div>
+    </div>
+  </main>
+
+  <!-- Assignment Modal -->
+  <div class="modal-overlay" id="assign-modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Assign Staff</div>
+      <div class="modal-sub" id="modal-sub"></div>
+      <div class="staff-picker" id="staff-picker"></div>
+
+      <!-- Slot time override -->
+      <div class="modal-time-section">
+        <div class="modal-time-header">
+          <div class="modal-label">Shift time</div>
+          <button class="modal-time-adjust-btn" id="time-adjust-btn" onclick="toggleTimeAdjust()">Adjust</button>
+        </div>
+        <div class="modal-time-display" id="time-display-row">—</div>
+        <div class="modal-time-fields" id="time-adjust-fields">
+          <input type="time" id="override-start" class="modal-input-field" style="flex:1">
+          <span class="pop-sep">–</span>
+          <input type="time" id="override-end" class="modal-input-field" style="flex:1">
+        </div>
+      </div>
+
+      <!-- Recurring section -->
+      <div class="recur-toggle-row" onclick="toggleRecur(event)">
+        <input type="checkbox" id="recur-checkbox" style="width:16px;height:16px;accent-color:var(--blue);flex-shrink:0;" onclick="event.stopPropagation();toggleRecur(event)">
+        <span class="recur-toggle-label">Repeat weekly (recurring rule)</span>
+      </div>
+      <div class="recur-fields" id="recur-fields" style="display:none">
+        <div class="recur-row">
+          <div class="recur-group">
+            <div class="modal-label">Day of week</div>
+            <select id="recur-dow" class="modal-select">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+          <div class="recur-group">
+            <div class="modal-label">Shift</div>
+            <select id="recur-shift" class="modal-select">
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="closing">Closing</option>
+            </select>
+          </div>
+        </div>
+        <div class="recur-row">
+          <div class="recur-group">
+            <div class="modal-label">From</div>
+            <input type="date" id="recur-start" class="modal-input-field">
+          </div>
+          <div class="recur-group">
+            <div class="modal-label">Until (blank = ongoing)</div>
+            <input type="date" id="recur-end" class="modal-input-field">
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);line-height:1.5">
+          Creates a recurring rule for <strong id="recur-preview">each selected staff member</strong>. One-off assignments below still work for exceptions.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-save" onclick="saveAssignment()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time edit popover -->
+  <div class="time-popover" id="time-popover">
+    <div class="pop-title" id="pop-title"></div>
+    <div class="pop-row">
+      <input type="time" id="pop-start" class="modal-input-field" style="flex:1">
+      <span class="pop-sep">–</span>
+      <input type="time" id="pop-end" class="modal-input-field" style="flex:1">
+    </div>
+    <div class="pop-footer">
+      <button class="pop-reset" onclick="clearPopoverOverride()">Use default</button>
+      <button class="pop-save" onclick="savePopoverOverride()">Save</button>
+    </div>
+  </div>
+
+  <script>
+    const SHIFTS = ['morning','afternoon','closing'];
+    const SHIFT_LABELS = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' };
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const DAY_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    let me = null;
+    let allStaff = [];
+    let currentWeekStart = mondayOf(new Date());
+    let weekData = {};
+    let modalCtx = null;
+    let selectedStaffIds = new Set();
+    let canEdit = false;
+    let shiftDefaults = {};
+    let modalTimeAdjusted = false;
+    let popoverCtx = null;
+
+    function fmt12(t) {
+      if (!t) return '—';
+      const [h, m] = t.split(':').map(Number);
+      const ampm = h >= 12 ? 'pm' : 'am';
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+    }
+
+    // ── Clock ──────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});
+      document.getElementById('dateline').textContent = now.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+    }
+    updateClock(); setInterval(updateClock,1000);
+
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+    // ── Date helpers ───────────────────────────────────────────────
+    function mondayOf(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      date.setDate(date.getDate() + diff);
+      return date.toISOString().slice(0,10);
+    }
+    function addDays(dateStr, n) {
+      const d = new Date(dateStr + 'T12:00:00');
+      d.setDate(d.getDate() + n);
+      return d.toISOString().slice(0,10);
+    }
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function fmtWeekLabel(start) {
+      const end = addDays(start, 6);
+      const s = new Date(start + 'T12:00:00'), e = new Date(end + 'T12:00:00');
+      return `${s.toLocaleDateString('en-CA',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'})}`;
+    }
+    function fmtDate(d) {
+      if (!d) return '';
+      const dt = new Date(d + 'T12:00:00');
+      return dt.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+    }
+
+    // ── Week nav ───────────────────────────────────────────────────
+    function prevWeek() { currentWeekStart = addDays(currentWeekStart,-7); load(); }
+    function nextWeek() { currentWeekStart = addDays(currentWeekStart, 7); load(); }
+    function goToday()  { currentWeekStart = mondayOf(new Date()); load(); }
+
+    // ── Load ───────────────────────────────────────────────────────
+    async function load() {
+      document.getElementById('week-label').textContent = fmtWeekLabel(currentWeekStart);
+      try {
+        const res = await fetch(`/api/schedule/week?start=${currentWeekStart}`);
+        const { assignments } = await res.json();
+        weekData = {};
+        for (let i = 0; i < 7; i++) {
+          const d = addDays(currentWeekStart, i);
+          weekData[d] = { morning:[], afternoon:[], closing:[] };
+        }
+        for (const a of assignments) {
+          if (weekData[a.date] && weekData[a.date][a.shift]) {
+            weekData[a.date][a.shift].push(a);
+          }
+        }
+        render();
+      } catch(e) {
+        document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Failed to load schedule.</div>';
+      }
+    }
+
+    // ── Render ─────────────────────────────────────────────────────
+    function render() {
+      const today = todayStr();
+      const days = [];
+      for (let i = 0; i < 7; i++) days.push(addDays(currentWeekStart, i));
+
+      let html = '<div class="grid-header"><div class="grid-header-cell">Shift</div>';
+      for (const d of days) {
+        const dt = new Date(d + 'T12:00:00');
+        const isToday = d === today;
+        html += `<div class="grid-header-cell${isToday?' today-col':''}">
+          <div>${DAY_NAMES[dt.getDay()]}</div>
+          <div style="font-size:13px;font-weight:${isToday?'700':'400'};color:${isToday?'var(--blue)':'var(--text-2)'};margin-top:1px">${dt.getDate()}</div>
+        </div>`;
+      }
+      html += '</div>';
+
+      for (const shift of SHIFTS) {
+        html += '<div class="grid-row">';
+        html += `<div class="shift-label-cell"><span class="shift-label">${SHIFT_LABELS[shift]}</span></div>`;
+        for (const d of days) {
+          const isToday = d === today;
+          const assigned = (weekData[d] && weekData[d][shift]) || [];
+          html += `<div class="shift-cell${isToday?' today-col':''}">`;
+          // Check if slot has a time override (any chip in slot carries it)
+          const slotOverrideStart = assigned[0]?.override_start || null;
+          const slotOverrideEnd   = assigned[0]?.override_end   || null;
+          for (const a of assigned) {
+            const recurIcon = a.is_recurring
+              ? `<span class="recur-badge" title="Recurring rule">↻</span>`
+              : '';
+            const timeTag = slotOverrideStart
+              ? `<span class="chip-time">${fmt12(slotOverrideStart)}</span>`
+              : '';
+            const delBtn = canEdit
+              ? `<button class="chip-del" onclick="removeFromShift(event,'${d}','${shift}',${a.staff_id},${a.is_recurring},${a.rule_id||'null'})" title="Remove">×</button>`
+              : '';
+            const clickAttr = canEdit
+              ? `onclick="openTimeEdit(event,'${d}','${shift}')" title="Edit shift time"`
+              : '';
+            html += `<div class="staff-chip${canEdit?' chip-clickable':''}" style="background:${a.staff_color}18;color:${a.staff_color}" ${clickAttr}>
+              <div class="staff-chip-dot" style="background:${a.staff_color}"></div>
+              ${esc(a.staff_name)}${recurIcon}${timeTag}${delBtn}
+            </div>`;
+          }
+          if (canEdit) {
+            html += `<button class="assign-btn" onclick="openModal('${d}','${shift}')" title="Assign staff">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            </button>`;
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      document.getElementById('schedule-grid').innerHTML = html;
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────
+    function openModal(date, shift) {
+      modalCtx = { date, shift };
+      const dt = new Date(date + 'T12:00:00');
+      document.getElementById('modal-title').textContent = `${SHIFT_LABELS[shift]} · ${DAY_FULL[dt.getDay()]} ${dt.toLocaleDateString('en-CA',{month:'long',day:'numeric'})}`;
+      document.getElementById('modal-sub').textContent = 'Select all staff working this shift.';
+
+      const currentIds = new Set(((weekData[date] || {})[shift] || []).map(a => a.staff_id));
+      selectedStaffIds = new Set(currentIds);
+
+      const picker = document.getElementById('staff-picker');
+      picker.innerHTML = allStaff.map(s => {
+        const sel = currentIds.has(s.id);
+        return `<div class="staff-pick-row${sel?' selected':''}" id="pick-${s.id}" onclick="togglePick(${s.id})">
+          <div class="staff-pick-avatar" style="background:${s.color}22;color:${s.color}">${esc(s.name.slice(0,2).toUpperCase())}</div>
+          <div style="flex:1">
+            <div class="staff-pick-name">${esc(s.name)}</div>
+            <div class="staff-pick-role">${esc(s.role)}</div>
+          </div>
+          <div class="staff-pick-check" id="check-${s.id}">
+            ${sel?`<svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>`:''}
+          </div>
+        </div>`;
+      }).join('');
+
+      // Time override section
+      modalTimeAdjusted = false;
+      document.getElementById('time-adjust-fields').style.display = 'none';
+      document.getElementById('time-adjust-btn').textContent = 'Adjust';
+      const slotOvStart = ((weekData[date] || {})[shift] || [])[0]?.override_start || null;
+      const slotOvEnd   = ((weekData[date] || {})[shift] || [])[0]?.override_end   || null;
+      const def = shiftDefaults[shift] || {};
+      document.getElementById('override-start').value = slotOvStart || def.start || '';
+      document.getElementById('override-end').value   = slotOvEnd   || def.end   || '';
+      refreshTimeDisplay(slotOvStart, slotOvEnd, shift);
+      if (slotOvStart) {
+        // Auto-expand if there's already a custom time
+        modalTimeAdjusted = true;
+        document.getElementById('time-adjust-fields').style.display = 'flex';
+        document.getElementById('time-adjust-btn').textContent = 'Use default';
+      }
+
+      // Reset recur fields — pre-fill day/shift from the slot being opened
+      const cb = document.getElementById('recur-checkbox');
+      cb.checked = false;
+      document.getElementById('recur-fields').style.display = 'none';
+      document.getElementById('recur-dow').value = String(dt.getDay());
+      document.getElementById('recur-shift').value = shift;
+      document.getElementById('recur-start').value = date;
+      document.getElementById('recur-end').value = '';
+
+      document.getElementById('assign-modal').classList.add('open');
+    }
+
+    function togglePick(staffId) {
+      if (selectedStaffIds.has(staffId)) {
+        selectedStaffIds.delete(staffId);
+      } else {
+        selectedStaffIds.add(staffId);
+      }
+      const row = document.getElementById(`pick-${staffId}`);
+      const check = document.getElementById(`check-${staffId}`);
+      const sel = selectedStaffIds.has(staffId);
+      row.classList.toggle('selected', sel);
+      check.innerHTML = sel ? `<svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>` : '';
+    }
+
+    function toggleRecur(event) {
+      const cb = document.getElementById('recur-checkbox');
+      // If clicked directly on the checkbox, browser already toggled it — don't double-flip
+      if (!event || event.target.id !== 'recur-checkbox') {
+        cb.checked = !cb.checked;
+      }
+      document.getElementById('recur-fields').style.display = cb.checked ? 'flex' : 'none';
+    }
+
+    function closeModal() {
+      document.getElementById('assign-modal').classList.remove('open');
+      modalCtx = null;
+    }
+
+    async function saveAssignment() {
+      if (!modalCtx) return;
+      const isRecur = document.getElementById('recur-checkbox').checked;
+
+      if (isRecur) {
+        // Create one rule per selected staff member
+        const dow = parseInt(document.getElementById('recur-dow').value);
+        const rShift = document.getElementById('recur-shift').value;
+        const startDate = document.getElementById('recur-start').value;
+        const endDate = document.getElementById('recur-end').value || null;
+
+        if (!startDate) { alert('Please enter a start date for the recurring rule.'); return; }
+        if (selectedStaffIds.size === 0) { alert('Select at least one staff member.'); return; }
+
+        const promises = [...selectedStaffIds].map(staffId =>
+          fetch('/api/schedule/rules', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ staff_id: staffId, shift: rShift, day_of_week: dow, start_date: startDate, end_date: endDate }),
+          })
+        );
+        try {
+          await Promise.all(promises);
+          closeModal();
+          load();
+          loadRules();
+        } catch(e) { alert('Failed to save recurring rule. Please try again.'); }
+      } else {
+        // One-off assignment + time override
+        const ovStart = document.getElementById('override-start').value;
+        const ovEnd   = document.getElementById('override-end').value;
+        const def = shiftDefaults[modalCtx.shift] || {};
+        const isCustomTime = modalTimeAdjusted && ovStart && ovEnd &&
+                             (ovStart !== def.start || ovEnd !== def.end);
+        try {
+          await Promise.all([
+            fetch('/api/schedule/shift', {
+              method: 'PUT',
+              headers: { 'Content-Type':'application/json' },
+              body: JSON.stringify({ date: modalCtx.date, shift: modalCtx.shift, staff_ids: [...selectedStaffIds] }),
+            }),
+            fetch('/api/schedule/override', {
+              method: 'PUT',
+              headers: { 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                date:  modalCtx.date,
+                shift: modalCtx.shift,
+                start: isCustomTime ? ovStart : null,
+                end:   isCustomTime ? ovEnd   : null,
+              }),
+            }),
+          ]);
+          closeModal();
+          load();
+        } catch(e) { alert('Failed to save. Please try again.'); }
+      }
+    }
+
+    document.getElementById('assign-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ── Time override helpers ──────────────────────────────────────
+    function refreshTimeDisplay(ovStart, ovEnd, shift) {
+      const def = shiftDefaults[shift] || {};
+      const start = ovStart || def.start;
+      const end   = ovEnd   || def.end;
+      const isCustom = !!(ovStart && ovEnd);
+      const badge = isCustom
+        ? `<span class="modal-time-badge custom">custom</span>`
+        : `<span class="modal-time-badge default">default</span>`;
+      document.getElementById('time-display-row').innerHTML =
+        `${fmt12(start)} – ${fmt12(end)}${badge}`;
+    }
+
+    function toggleTimeAdjust() {
+      modalTimeAdjusted = !modalTimeAdjusted;
+      document.getElementById('time-adjust-fields').style.display = modalTimeAdjusted ? 'flex' : 'none';
+      document.getElementById('time-adjust-btn').textContent = modalTimeAdjusted ? 'Use default' : 'Adjust';
+      if (!modalTimeAdjusted) {
+        const def = shiftDefaults[modalCtx?.shift] || {};
+        document.getElementById('override-start').value = def.start || '';
+        document.getElementById('override-end').value   = def.end   || '';
+        refreshTimeDisplay(null, null, modalCtx?.shift);
+      }
+    }
+
+    // ── Chip time-edit popover ─────────────────────────────────────
+    function openTimeEdit(event, date, shift) {
+      event.stopPropagation();
+      popoverCtx = { date, shift };
+      const dt = new Date(date + 'T12:00:00');
+      document.getElementById('pop-title').textContent =
+        `${SHIFT_LABELS[shift]} · ${DAY_FULL[dt.getDay()]} ${dt.getDate()}`;
+      const slot = (weekData[date] || {})[shift] || [];
+      const ov  = slot[0] || {};
+      const def = shiftDefaults[shift] || {};
+      document.getElementById('pop-start').value = ov.override_start || def.start || '';
+      document.getElementById('pop-end').value   = ov.override_end   || def.end   || '';
+      const pop = document.getElementById('time-popover');
+      pop.style.display = 'block';
+      const anchor = event.currentTarget || event.target.closest('.staff-chip') || event.target;
+      const rect = anchor.getBoundingClientRect();
+      pop.style.top  = `${window.scrollY + rect.bottom + 6}px`;
+      pop.style.left = `${Math.min(rect.left, window.innerWidth - 272)}px`;
+    }
+
+    async function savePopoverOverride() {
+      if (!popoverCtx) return;
+      const start = document.getElementById('pop-start').value;
+      const end   = document.getElementById('pop-end').value;
+      const def   = shiftDefaults[popoverCtx.shift] || {};
+      const isCustom = start && end && (start !== def.start || end !== def.end);
+      try {
+        await fetch('/api/schedule/override', {
+          method: 'PUT',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({
+            date:  popoverCtx.date,
+            shift: popoverCtx.shift,
+            start: isCustom ? start : null,
+            end:   isCustom ? end   : null,
+          }),
+        });
+        document.getElementById('time-popover').style.display = 'none';
+        popoverCtx = null;
+        load();
+      } catch(e) { alert('Failed to save.'); }
+    }
+
+    async function clearPopoverOverride() {
+      if (!popoverCtx) return;
+      try {
+        await fetch('/api/schedule/override', {
+          method: 'PUT',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ date: popoverCtx.date, shift: popoverCtx.shift, start: null, end: null }),
+        });
+        document.getElementById('time-popover').style.display = 'none';
+        popoverCtx = null;
+        load();
+      } catch(e) { alert('Failed to clear.'); }
+    }
+
+    // ── Remove from shift ──────────────────────────────────────────
+    async function removeFromShift(event, date, shift, staffId, isRecurring, ruleId) {
+      event.stopPropagation();
+      const staffMember = allStaff.find(s => s.id === staffId);
+      const name = staffMember ? staffMember.name : 'this person';
+      const dayName = DAY_FULL[new Date(date + 'T12:00:00').getDay()];
+
+      if (isRecurring) {
+        if (!confirm(`Remove recurring rule?\n\nThis will remove ${name} from every ${dayName} ${SHIFT_LABELS[shift]} going forward.`)) return;
+        try {
+          await fetch(`/api/schedule/rules/${ruleId}`, { method: 'DELETE' });
+          load(); loadRules();
+        } catch(e) { alert('Failed to remove recurring rule.'); }
+      } else {
+        const current = (weekData[date] && weekData[date][shift]) || [];
+        const updatedIds = current.filter(a => !a.is_recurring && a.staff_id !== staffId).map(a => a.staff_id);
+        try {
+          await fetch('/api/schedule/shift', {
+            method: 'PUT',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ date, shift, staff_ids: updatedIds }),
+          });
+          load();
+        } catch(e) { alert('Failed to remove from shift.'); }
+      }
+    }
+
+    // ── Rules panel ────────────────────────────────────────────────
+    async function loadRules() {
+      try {
+        const res = await fetch('/api/schedule/rules');
+        const rules = await res.json();
+        renderRules(rules);
+      } catch(e) {}
+    }
+
+    function renderRules(rules) {
+      const list = document.getElementById('rules-list');
+      if (!rules.length) {
+        list.innerHTML = '<div class="rules-empty">No recurring rules set. Use the + button on any shift slot and check "Repeat weekly" to create one.</div>';
+        return;
+      }
+      list.innerHTML = rules.map(r => {
+        const range = r.end_date
+          ? `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`
+          : `From ${fmtDate(r.start_date)} · ongoing`;
+        const color = r.staff_color || '#2c5c9c';
+        return `<div class="rule-row">
+          <div class="rule-staff-chip" style="background:${color}18;color:${color}">
+            <div class="rule-dot" style="background:${color}"></div>
+            ${esc(r.staff_name)}
+          </div>
+          <div class="rule-info">
+            Every ${DAY_FULL[r.day_of_week]} · ${SHIFT_LABELS[r.shift] || r.shift}
+            <div class="rule-range">${range}</div>
+          </div>
+          <button class="rule-del" onclick="deleteRule(${r.id})">Remove</button>
+        </div>`;
+      }).join('');
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('Remove this recurring rule? Existing one-off assignments are not affected.')) return;
+      try {
+        await fetch(`/api/schedule/rules/${id}`, { method:'DELETE' });
+        load();
+        loadRules();
+      } catch(e) { alert('Failed to remove rule.'); }
+    }
+
+    // ── Logout ─────────────────────────────────────────────────────
+    async function doLogout() {
+      await fetch('/api/auth/logout', { method:'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // ── Init ───────────────────────────────────────────────────────
+    async function init() {
+      const res = await fetch('/api/me');
+      if (res.status === 401 || res.redirected) { window.location.href = '/login.html'; return; }
+      me = await res.json();
+
+      const av = document.getElementById('nav-avatar');
+      av.textContent = me.name.slice(0,2).toUpperCase();
+      av.style.background = me.color + '28';
+      av.style.color = me.color;
+      document.getElementById('nav-name').textContent = me.name;
+      document.getElementById('nav-role').textContent = me.role;
+      if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
+
+      canEdit = ['admin','manager'].includes(me.role);
+      document.getElementById('admin-hint').textContent = canEdit
+        ? 'Click + on any shift slot to assign staff, or check "Repeat weekly" to set a recurring rule.'
+        : 'View-only. Admins and managers can edit assignments.';
+
+      if (canEdit) document.getElementById('rules-panel').style.display = 'block';
+
+      try {
+        const ur = await fetch('/api/messages/unread-count');
+        const { count } = await ur.json();
+        if (count > 0) { const nb = document.getElementById('comms-nav-badge'); nb.textContent=count; nb.style.display='inline-block'; }
+      } catch(e) {}
+
+      try {
+        const sr = await fetch('/api/schedule/staff');
+        allStaff = await sr.json();
+      } catch(e) {}
+
+      try {
+        const dr = await fetch('/api/timesheet/defaults');
+        shiftDefaults = await dr.json();
+      } catch(e) {}
+
+      load();
+      if (canEdit) loadRules();
+
+      // Close time popover on outside click
+      document.addEventListener('click', e => {
+        const pop = document.getElementById('time-popover');
+        if (pop && pop.style.display !== 'none' && !pop.contains(e.target)) {
+          pop.style.display = 'none';
+          popoverCtx = null;
+        }
+      });
+    }
+
+    init().catch(err => console.error('[schedule] init error:', err));
+  </script>
+</body>
+</html>

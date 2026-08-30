@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Communications — JCT Staff Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+
+    /* ── Light mode (default) ── */
+    body {
+      --bg:        #f1f5f9;
+      --surface:   #ffffff;
+      --surface2:  #f8fafc;
+      --sidebar-bg:#ffffff;
+      --border:    rgba(0,0,0,0.07);
+      --border2:   rgba(0,0,0,0.04);
+      --text:      #0f172a;
+      --text2:     #475569;
+      --text3:     #94a3b8;
+      --topbar:    rgba(255,255,255,0.97);
+      --input-bg:  #f8fafc;
+      --input-border: rgba(0,0,0,0.1);
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Dark mode ── */
+    body.dark {
+      --bg:        #0f1623;
+      --surface:   #1a2540;
+      --surface2:  #111c30;
+      --sidebar-bg:#0d1525;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.04);
+      --text:      #f1f5f9;
+      --text2:     #94a3b8;
+      --text3:     #475569;
+      --topbar:    rgba(13,21,37,0.98);
+      --input-bg:  rgba(255,255,255,0.04);
+      --input-border: rgba(255,255,255,0.09);
+      --card-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    .topbar {
+      background: var(--topbar); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; height: 52px; z-index: 50; position: sticky; top: 0;
+    }
+    .shell { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 224px; flex-shrink: 0; background: var(--sidebar-bg);
+      border-right: 1px solid var(--border); display: flex;
+      flex-direction: column; overflow-y: auto; padding: 18px 12px;
+    }
+    .sidebar-label { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text3); margin: 0 6px 8px; }
+    .sidebar-section { margin-bottom: 26px; }
+    .sidebar-btn {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 9px 10px; border-radius: 9px; border: none; background: transparent;
+      color: var(--text2); font-size: 15px; cursor: pointer; text-align: left;
+      transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .sidebar-btn:hover { background: rgba(99,102,241,0.07); color: var(--text); }
+    .sidebar-btn.active { background: rgba(99,102,241,0.1); color: #6366f1; font-weight: 600; }
+    .shift-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .mini-av { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+    .unread-pill { background: #6366f1; color: white; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 100px; margin-left: auto; }
+
+    /* ── Main ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Compose ── */
+    .compose-wrap { padding: 14px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+    .compose-box { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 12px 16px; transition: border-color 0.2s; }
+    .compose-box:focus-within { border-color: rgba(99,102,241,0.4); }
+    .to-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .to-label-txt { font-size: 11px; font-weight: 600; color: var(--text3); }
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--border); color: var(--text3); background: transparent; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .chip:hover { border-color: rgba(99,102,241,0.4); color: #6366f1; }
+    .chip.selected { color: white; border-color: transparent; background: #6366f1; }
+    .chip.selected.staff-chip { background: var(--chip-color, #6366f1); }
+    .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .compose-input { background: transparent; border: none; outline: none; color: var(--text); font-size: 16px; width: 100%; resize: none; font-family: 'Inter', sans-serif; line-height: 1.6; }
+    .compose-input::placeholder { color: var(--text3); }
+    .compose-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .select-pill { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 6px 12px; color: var(--text2); font-size: 14px; outline: none; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .btn { border-radius: 9px; font-size: 15px; font-weight: 600; padding: 8px 18px; cursor: pointer; border: none; transition: all 0.18s; font-family: 'Inter', sans-serif; }
+    .btn-indigo { background: #6366f1; color: white; }
+    .btn-indigo:hover { background: #4f46e5; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+    .btn-ghost:hover { background: rgba(99,102,241,0.06); color: var(--text); border-color: rgba(99,102,241,0.3); }
+    .btn-sm { font-size: 13px; padding: 6px 13px; }
+    .btn-icon { background: transparent; border: 1px solid var(--border); color: var(--text2); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .btn-icon:hover { background: rgba(99,102,241,0.07); color: #6366f1; border-color: rgba(99,102,241,0.3); }
+    .btn-icon svg { width: 16px; height: 16px; }
+
+    /* ── Feed mode toggle ── */
+    .feed-modebar { display: flex; justify-content: center; padding: 12px 18px 0; background: var(--surface2); flex-shrink: 0; }
+    .seg { display: inline-flex; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+    .seg-btn { border: none; background: transparent; color: var(--text2); font-size: 13px; font-weight: 600; padding: 5px 15px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
+    .seg-btn.active { background: #6366f1; color: #fff; }
+    .seg-badge { background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
+    .seg-btn.active .seg-badge { background: rgba(255,255,255,0.28); }
+
+    /* ── Date nav ── */
+    .date-nav { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 11px 18px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
+    .date-nav-label { font-size: 15px; font-weight: 600; color: var(--text); min-width: 220px; text-align: center; }
+    .date-nav-sub { font-size: 12px; color: var(--text3); font-weight: 400; display: block; }
+
+    /* ── Feed ── */
+    .feed-wrap { flex: 1; overflow-y: auto; padding: 14px 18px; }
+    .feed-empty { text-align: center; padding: 60px 20px; color: var(--text3); font-size: 14px; }
+    .feed-empty .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
+
+    /* ── Shift section ── */
+    .shift-section { margin-bottom: 18px; }
+    .shift-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; user-select: none; }
+    .shift-header-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .shift-header .count-badge { font-size: 12px; color: var(--text3); font-weight: 500; }
+    .shift-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Message card ── */
+    .msg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 7px; overflow: hidden; box-shadow: var(--card-shadow); transition: box-shadow 0.2s; }
+    .msg-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .msg-card.unread { border-left: 3px solid #6366f1; }
+    .msg-card.unread[data-category="membership"] { border-left-color: #8b5cf6; }
+    .msg-card.unread[data-category="pro-shop"]   { border-left-color: #f59e0b; }
+    .msg-card.unread[data-category="reminders"]  { border-left-color: #3b82f6; }
+    .msg-card.unread[data-category="academy"]    { border-left-color: #10b981; }
+    .msg-header { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
+    .msg-header:hover { background: rgba(99,102,241,0.03); }
+    .avatar { border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .msg-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 3px; }
+    .msg-author { font-size: 15px; font-weight: 700; }
+    .cat-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; }
+    .cat-membership { background: rgba(139,92,246,0.12); color: #7c3aed; }
+    .cat-pro-shop   { background: rgba(245,158,11,0.1);  color: #d97706; }
+    .cat-reminders  { background: rgba(59,130,246,0.12); color: #2563eb; }
+    .cat-academy    { background: rgba(16,185,129,0.1);  color: #059669; }
+    .cat-general    { background: rgba(148,163,184,0.12);color: #64748b; }
+    .msg-to { font-size: 12px; color: var(--text3); }
+    .msg-time { font-size: 14px; font-weight: 700; color: var(--text2); margin-left: auto; white-space: nowrap; background: var(--input-bg); border: 1px solid var(--border2); border-radius: 7px; padding: 3px 9px; }
+    .msg-preview { font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
+    .chevron { width: 16px; height: 16px; color: var(--text3); transition: transform 0.2s; flex-shrink: 0; margin-top: 2px; }
+
+    .msg-body { padding: 0 16px 16px 58px; }
+    .msg-content { font-size: 16px; color: var(--text); line-height: 1.65; white-space: pre-wrap; margin-bottom: 14px; }
+
+    /* ── Read receipts ── */
+    .receipts-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .receipt-av { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; position: relative; transition: transform 0.15s; cursor: default; }
+    .receipt-av:hover { transform: scale(1.12); z-index: 2; }
+    .receipt-av.unread-r { opacity: 0.25; }
+    .receipt-check { position: absolute; bottom: -3px; right: -3px; width: 14px; height: 14px; border-radius: 50%; background: #10b981; border: 2px solid var(--surface); display: flex; align-items: center; justify-content: center; }
+    .receipt-check svg { width: 8px; height: 8px; stroke: white; stroke-width: 2.5; }
+    .receipts-label { font-size: 12px; color: var(--text3); font-weight: 500; }
+
+    /* ── Two-column body: note on the left, per-person read/reply rail on the right ── */
+    .msg-body-grid {
+      display: grid;
+      grid-template-columns: var(--note-pct, 56%) 16px minmax(150px, 1fr);
+      grid-template-areas: "team team team" "note gutter detail";
+      column-gap: 0; row-gap: 14px; align-items: start;
+    }
+    @media (max-width: 900px) {
+      .msg-body-grid { grid-template-columns: 1fr; grid-template-areas: "team" "note" "detail"; }
+      .msg-gutter { display: none; }
+    }
+    .msg-col-team   { grid-area: team; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 13px; border-bottom: 1px solid var(--border2); }
+    .msg-col-note   { grid-area: note; min-width: 0; padding-right: 10px; }
+    .msg-col-detail { grid-area: detail; min-width: 0; padding-left: 10px; }
+    /* Draggable divider between the note and the comments */
+    .msg-gutter { grid-area: gutter; position: relative; cursor: col-resize; align-self: stretch; }
+    .msg-gutter::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border2); transform: translateX(-50%); transition: background 0.15s, width 0.15s; }
+    .msg-gutter:hover::before, .msg-gutter.dragging::before { background: #6366f1; width: 3px; }
+    .team-label { margin: 0; flex-shrink: 0; }
+    .rail-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+    .rail-person { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 13px; }
+    .rail-person-info { min-width: 0; flex: 1; }
+    .rail-person-name { font-size: 13px; font-weight: 700; }
+    .rail-person-status { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .rail-comment { font-size: 13px; color: var(--text); line-height: 1.45; background: var(--input-bg); border: 1px solid var(--border2); border-radius: 9px; padding: 6px 10px; margin-top: 6px; white-space: pre-wrap; word-break: break-word; }
+    .rail-comment-time { display: block; font-size: 10px; color: var(--text3); margin-top: 3px; }
+    /* Named chips for who's seen the note — a horizontal line at the top */
+    .rail-avatars { display: flex; flex-wrap: wrap; gap: 8px; }
+    .seen-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border: 1px solid var(--border2); border-radius: 100px; }
+    .seen-chip.unread-r { opacity: 0.4; }
+    .seen-name { font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .seen-check { width: 15px; height: 15px; border-radius: 50%; background: #10b981; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .seen-check svg { width: 9px; height: 9px; stroke: white; stroke-width: 2.5; }
+    .seen-dot { width: 9px; height: 9px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; }
+    /* Comments panel (column 3) — all comments in order, scrollable when long */
+    .detail-panel { background: var(--input-bg); border: 1px solid var(--border2); border-radius: 12px; padding: 6px 14px; min-height: 60px; max-height: 240px; overflow-y: auto; }
+    .detail-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 8px 0; }
+    .detail-comment-item { padding: 9px 0; border-bottom: 1px solid var(--border2); }
+    .detail-comment-item:last-child { border-bottom: none; }
+    .dci-head { display: flex; align-items: baseline; gap: 8px; }
+    .dci-name { font-weight: 700; font-size: 13px; }
+    .dci-time { font-size: 11px; color: var(--text3); }
+    .dci-text { font-size: 14px; color: var(--text); line-height: 1.5; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+    .rail-comments-expand { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .rail-comment-card { background: var(--input-bg); border: 1px solid var(--border2); border-radius: 10px; padding: 8px 11px; }
+    .rcc-name { font-weight: 700; font-size: 12px; }
+    .rcc-line { margin-top: 3px; }
+    .rcc-time { font-size: 10px; color: var(--text3); }
+    .rcc-text { font-size: 13px; color: var(--text); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+
+    /* ── Replies ── */
+    .replies-wrap { border-top: 1px solid var(--border2); padding-top: 12px; margin-bottom: 10px; }
+    .reply-item { display: flex; gap: 10px; margin-bottom: 10px; }
+    .reply-name { font-size: 14px; font-weight: 700; }
+    .reply-time-txt { font-size: 12px; color: var(--text3); }
+    .reply-body { font-size: 14px; color: var(--text2); line-height: 1.55; }
+
+    /* ── Actions ── */
+    .msg-actions { display: flex; gap: 7px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border2); }
+
+    /* ── Reply box ── */
+    .reply-box-wrap { margin-top: 10px; display: flex; gap: 8px; align-items: flex-start; }
+    .reply-input { flex: 1; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 15px; outline: none; resize: none; font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
+    .reply-input:focus { border-color: rgba(99,102,241,0.4); }
+    .reply-input::placeholder { color: var(--text3); }
+
+    /* ── Tooltip ── */
+    [data-tip] { position: relative; }
+    [data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 100; }
+
+    /* ── Mode toggle ── */
+    .mode-toggle { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+    .mode-toggle:hover { color: var(--text); }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 10px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #ef4444; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Me badge */
+    .me-badge { display: flex; align-items: center; gap: 8px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 5px 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="/hub.html" style="color:var(--text3);display:flex;align-items:center;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
+        <svg style="width:18px;height:18px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </a>
+      <svg style="width:18px;height:18px;color:#6366f1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span style="font-size:14px;font-weight:700;color:var(--text)">Communications</span>
+      <span id="unread-pill" style="display:none;background:#6366f1;color:white;font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="mode-toggle" onclick="toggleMode()" id="mode-btn">Dark mode</button>
+      <div id="viewas-wrap" style="display:none;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--text3);font-weight:600">View as</span>
+        <select id="viewas-select" class="select-pill" style="padding:4px 8px;font-size:12px" onchange="setViewAs(this.value)"></select>
+      </div>
+      <div class="me-badge">
+        <div id="me-avatar" class="avatar" style="width:24px;height:24px;font-size:10px"></div>
+        <span id="me-name" style="font-size:12px;font-weight:600;color:var(--text)"></span>
+      </div>
+      <button onclick="doLogout()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:Inter,sans-serif;transition:color 0.15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text3)'">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Dev-view banner (admin "View as" mode) -->
+  <div id="viewas-banner" style="display:none;align-items:center;justify-content:center;gap:12px;background:#f59e0b;color:#241a00;font-size:13px;font-weight:600;padding:7px 16px;flex-shrink:0">
+    <span id="viewas-banner-text"></span>
+    <button onclick="setViewAs('')" style="background:rgba(0,0,0,0.2);color:#241a00;border:none;border-radius:7px;padding:3px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Exit dev view</button>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Shell -->
+  <div class="shell">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Category filter -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Category</div>
+        <button class="sidebar-btn active" data-cat="all" onclick="filterCategory('all',this)">
+          <span class="shift-dot" style="background:#6366f1"></span> All
+          <span id="b-all" class="unread-pill" style="display:none"></span>
+        </button>
+        <button class="sidebar-btn" data-cat="membership" onclick="filterCategory('membership',this)">
+          <span class="shift-dot" style="background:#8b5cf6"></span> Membership
+          <span id="b-membership" class="unread-pill" style="display:none"></span>
+        </button>
+        <button class="sidebar-btn" data-cat="pro-shop" onclick="filterCategory('pro-shop',this)">
+          <span class="shift-dot" style="background:#f59e0b"></span> Pro Shop
+          <span id="b-pro-shop" class="unread-pill" style="display:none"></span>
+        </button>
+        <button class="sidebar-btn" data-cat="reminders" onclick="filterCategory('reminders',this)">
+          <span class="shift-dot" style="background:#3b82f6"></span> Reminders
+          <span id="b-reminders" class="unread-pill" style="display:none"></span>
+        </button>
+        <button class="sidebar-btn" data-cat="academy" onclick="filterCategory('academy',this)">
+          <span class="shift-dot" style="background:#10b981"></span> Academy
+          <span id="b-academy" class="unread-pill" style="display:none"></span>
+        </button>
+        <button class="sidebar-btn" data-cat="general" onclick="filterCategory('general',this)">
+          <span class="shift-dot" style="background:#94a3b8"></span> General
+          <span id="b-general" class="unread-pill" style="display:none"></span>
+        </button>
+      </div>
+      <!-- Staff filter -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Relevant to</div>
+        <button class="sidebar-btn active" data-staff="all" onclick="filterStaff('all',this)">
+          <div class="mini-av" style="background:rgba(99,102,241,0.15);color:#6366f1">All</div> Everyone
+        </button>
+        <div id="staff-sidebar"></div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+
+      <!-- Compose -->
+      <div class="compose-wrap">
+        <div class="compose-box">
+          <div class="to-row">
+            <span class="to-label-txt">To:</span>
+            <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
+            <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+          </div>
+          <textarea id="compose-text" class="compose-input" rows="2" placeholder="Post a note for the team..."></textarea>
+          <div class="compose-footer">
+            <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
+            <select id="compose-category" class="select-pill">
+              <option value="general">General</option>
+              <option value="membership">Membership</option>
+              <option value="pro-shop">Pro Shop</option>
+              <option value="reminders">Reminders</option>
+              <option value="academy">Academy</option>
+            </select>
+            <span style="font-size:11px;color:var(--text3);font-weight:500">Show on:</span>
+            <input type="date" id="compose-showon" class="select-pill" title="Leave blank for today. Pick a future date to leave this note for an upcoming shift — it surfaces on that day.">
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="clearCompose()">Clear</button>
+              <button class="btn btn-indigo" onclick="postMessage()">Post Note</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed mode: All notes (by day) vs Unread (across days) -->
+      <div class="feed-modebar">
+        <div class="seg">
+          <button id="seg-day" class="seg-btn active" onclick="setFeedMode('day')">All notes</button>
+          <button id="seg-unread" class="seg-btn" onclick="setFeedMode('unread')">Unread<span id="seg-unread-badge" class="seg-badge" style="display:none"></span></button>
+        </div>
+      </div>
+
+      <!-- Date navigation -->
+      <div class="date-nav">
+        <button class="btn-icon" onclick="prevDay()" title="Previous day">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div>
+          <span class="date-nav-label" id="date-label">Today</span>
+          <span class="date-nav-sub" id="date-sub"></span>
+        </div>
+        <button class="btn-icon" onclick="nextDay()" id="btn-next-day" title="Next day">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Feed -->
+      <div class="feed-wrap" id="feed-wrap">
+        <div id="feed"></div>
+        <div id="feed-empty" class="feed-empty" style="display:none">
+          <span class="emoji">📋</span>
+          No notes for this day.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  let me = null, allStaff = [], messages = [];
+  let activeCategory = 'all', activeStaff = 'all';
+
+  const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
+  let selectedRecipients = [];
+  let viewDate = new Date(); // the day currently shown
+  viewDate.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let feedMode = 'day'; // 'day' = date-bucketed feed · 'unread' = all my unread across days
+  function localDateStr(d) { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; }
+  const todayStr = localDateStr(new Date());
+  // The day a note belongs to: its scheduled show_on date, else the day it was posted.
+  function effDate(m) { return m.show_on || localDateStr(m.created_at); }
+  // Is this note relevant to me — an everyone-note, or one targeted to include me?
+  function isRelevantToMe(m) { return !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(me.id)); }
+  // A note counts toward MY unread if it's relevant, unread, not mine, and not scheduled for the future.
+  function isMyUnread(m) { return !m.is_read_by_me && m.author_id !== me.id && effDate(m) <= todayStr && isRelevantToMe(m); }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // ── Dark/light mode ────────────────────────────────────────────────────────
+  function applyTheme(dark) {
+    document.body.classList.toggle('dark', dark);
+    const btn = document.getElementById('mode-btn');
+    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+  }
+  function toggleMode() {
+    const dark = !document.body.classList.contains('dark');
+    localStorage.setItem('jct-theme', dark ? 'dark' : 'light');
+    applyTheme(dark);
+  }
+  applyTheme(localStorage.getItem('jct-theme') === 'dark');
+
+  // ── Draggable note/comments divider (shared split, persisted) ────────────────
+  (function () {
+    const saved = localStorage.getItem('jct-note-split');
+    const f = document.getElementById('feed');
+    if (saved && f) f.style.setProperty('--note-pct', saved);
+  })();
+
+  let gutterDrag = null;
+  function startGutterDrag(e) {
+    e.preventDefault();
+    const grid = e.currentTarget.closest('.msg-body-grid');
+    if (!grid) return;
+    gutterDrag = { grid, el: e.currentTarget };
+    e.currentTarget.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onGutterMove);
+    window.addEventListener('mouseup', endGutterDrag);
+  }
+  function onGutterMove(e) {
+    if (!gutterDrag) return;
+    const rect = gutterDrag.grid.getBoundingClientRect();
+    let pct = ((e.clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(32, Math.min(78, pct));
+    document.getElementById('feed').style.setProperty('--note-pct', pct.toFixed(1) + '%');
+  }
+  function endGutterDrag() {
+    if (!gutterDrag) return;
+    gutterDrag.el.classList.remove('dragging');
+    gutterDrag = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', onGutterMove);
+    window.removeEventListener('mouseup', endGutterDrag);
+    const v = document.getElementById('feed').style.getPropertyValue('--note-pct');
+    if (v) localStorage.setItem('jct-note-split', v.trim());
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function initials(name) { return String(name || '?').slice(0,2).toUpperCase(); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function relTime(dateStr) {
+    const d = new Date(dateStr), now = new Date(), diff = Math.floor((now-d)/1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff/60)+'m ago';
+    return d.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});
+  }
+
+  function fmtDate(d) {
+    const t = new Date(); t.setHours(0,0,0,0);
+    const y = new Date(t); y.setDate(t.getDate()-1);
+    if (d.toDateString()===t.toDateString()) return 'Today';
+    if (d.toDateString()===y.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+  }
+
+  function sameDay(dateStr, d) {
+    const msg = new Date(dateStr);
+    return msg.getFullYear()===d.getFullYear() && msg.getMonth()===d.getMonth() && msg.getDate()===d.getDate();
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function init() {
+    const [meRes, staffRes] = await Promise.all([fetch('/api/me'), fetch('/api/messages/staff-list')]);
+    if (!meRes.ok) { window.location.href='/login.html'; return; }
+    me = await meRes.json();
+    allStaff = await staffRes.json();
+
+    const av = document.getElementById('me-avatar');
+    av.textContent = initials(me.name);
+    av.style.background = me.color+'22'; av.style.color = me.color;
+    document.getElementById('me-name').textContent = me.name;
+
+    renderViewAs();
+    buildSidebar();
+    buildRecipientChips();
+    updateDateNav();
+    await loadAll();
+  }
+
+  function buildSidebar() {
+    const wrap = document.getElementById('staff-sidebar');
+    allStaff.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sidebar-btn';
+      btn.dataset.staff = s.id;
+      btn.innerHTML = `<div class="mini-av" style="background:${s.color}22;color:${s.color}">${initials(s.name)}</div><span style="flex:1">${s.name}</span><span id="scount-${s.id}" class="unread-pill" style="display:none"></span>`;
+      btn.onclick = () => filterStaff(s.id, btn);
+      wrap.appendChild(btn);
+    });
+  }
+
+  function updateStaffUnreadCounts() {
+    // Per-person unread counts are oversight data — show only to admins/managers.
+    // (View-as inherits the viewed role, so viewing as a staff member hides them too.)
+    const canSeeCounts = me.role === 'admin' || me.role === 'manager';
+    allStaff.forEach(s => {
+      const el = document.getElementById('scount-' + s.id);
+      if (!el) return;
+      if (!canSeeCounts) { el.style.display = 'none'; return; }
+      const count = messages.filter(m => {
+        if (m.author_id === s.id) return false;
+        if (effDate(m) > todayStr) return false; // scheduled notes don't count until their day
+        const isRecipient = m.recipients === null || (Array.isArray(m.recipients) && m.recipients.includes(s.id));
+        if (!isRecipient) return false;
+        return !(m.reads || []).some(r => r.id === s.id);
+      }).length;
+      el.textContent = count;
+      el.style.display = count > 0 ? 'inline' : 'none';
+    });
+  }
+
+  function buildRecipientChips() {
+    const wrap = document.getElementById('recipient-chips');
+    allStaff.filter(s => s.id !== me.id).forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'chip staff-chip';
+      btn.dataset.id = s.id;
+      btn.style.setProperty('--chip-color', s.color);
+      btn.innerHTML = `<span class="chip-dot" style="background:${s.color}"></span>${s.name}`;
+      btn.onclick = () => toggleRecipient(s.id, btn);
+      wrap.appendChild(btn);
+    });
+  }
+
+  // ── Load all messages (up to 200 for date filtering client-side) ───────────
+  async function loadAll() {
+    const res = await fetch('/api/messages?limit=200&offset=0');
+    if (!res.ok) return;
+    messages = await res.json();
+    renderFeed();
+    updateBadges();
+    updateStaffUnreadCounts();
+  }
+
+  // ── Date nav ───────────────────────────────────────────────────────────────
+  function updateDateNav() {
+    document.getElementById('date-label').textContent = fmtDate(viewDate);
+    document.getElementById('date-sub').textContent = viewDate.toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) === fmtDate(viewDate) ? '' : viewDate.toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    // Forward navigation is always allowed (look ahead to scheduled notes on future days)
+    document.getElementById('btn-next-day').disabled = false;
+    document.getElementById('btn-next-day').style.opacity = '1';
+  }
+
+  function prevDay() {
+    viewDate = new Date(viewDate);
+    viewDate.setDate(viewDate.getDate()-1);
+    updateDateNav(); renderFeed(); updateSidebarDots();
+  }
+
+  function nextDay() {
+    viewDate = new Date(viewDate);
+    viewDate.setDate(viewDate.getDate()+1);
+    updateDateNav(); renderFeed(); updateSidebarDots();
+  }
+
+  // ── Filters ────────────────────────────────────────────────────────────────
+  function filterCategory(cat, btn) {
+    activeCategory = cat;
+    document.querySelectorAll('[data-cat]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderFeed();
+  }
+
+  function filterStaff(id, btn) {
+    activeStaff = id;
+    document.querySelectorAll('[data-staff]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderFeed();
+  }
+
+  function getFiltered() {
+    return messages.filter(m => {
+      if (effDate(m) !== localDateStr(viewDate)) return false;
+      if (activeCategory !== 'all' && (m.category || 'general') !== activeCategory) return false;
+      if (activeStaff !== 'all') {
+        const sid = parseInt(activeStaff);
+        const fromThem  = m.author_id === sid;
+        const toThem    = !m.recipients; // null = sent to everyone, always relevant
+        const mentioned = Array.isArray(m.recipients) && m.recipients.includes(sid);
+        if (!fromThem && !toThem && !mentioned) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function renderFeed() {
+    if (feedMode === 'unread') { renderUnread(); return; }
+    const feed = document.getElementById('feed');
+    const empty = document.getElementById('feed-empty');
+    const filtered = getFiltered(); // newest first (server returns newest-first)
+
+    if (filtered.length === 0) {
+      feed.innerHTML = '';
+      empty.innerHTML = '<span class="emoji">📋</span> No notes for this day.';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Group by category
+    const groups = {};
+    filtered.forEach(m => {
+      const g = m.category || 'general';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(m);
+    });
+
+    const catColors = { membership:'#8b5cf6', 'pro-shop':'#f59e0b', reminders:'#3b82f6', academy:'#10b981', general:'#94a3b8' };
+    const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
+
+    // Order sections by their newest message so the most recent note is always at the very top.
+    const newestInGroup = g => Math.max(...groups[g].map(m => new Date(m.created_at).getTime()));
+    const orderedCats = Object.keys(groups).sort((a, b) => newestInGroup(b) - newestInGroup(a));
+
+    let html = '';
+    orderedCats.forEach(cat => {
+      if (!groups[cat] || groups[cat].length === 0) return;
+      const msgs = groups[cat];
+      const unreadCount = msgs.filter(m => !m.is_read_by_me && m.author_id !== me.id).length;
+      const catKey = cat.replace('-','_');
+      html += `
+        <div class="shift-section" id="section-${catKey}">
+          <div class="shift-header" onclick="toggleSection('${catKey}')">
+            <span class="shift-header-label" style="color:${catColors[cat]}">${catNames[cat]}</span>
+            <span class="count-badge">${msgs.length} note${msgs.length===1?'':'s'}${unreadCount>0?' · '+unreadCount+' unread':''}</span>
+            <div class="shift-line"></div>
+            <svg id="sec-chevron-${catKey}" style="width:13px;height:13px;color:var(--text3);transition:transform 0.2s" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div id="section-body-${catKey}">
+            ${msgs.map(m => renderMsg(m)).join('')}
+          </div>
+        </div>`;
+    });
+
+    feed.innerHTML = html;
+  }
+
+  // ── Unread view — every note I haven't acknowledged, across all days ──────────
+  function dateHeaderLabel(dstr) { return fmtDate(new Date(dstr + 'T00:00:00')); }
+
+  function renderUnread() {
+    const feed = document.getElementById('feed');
+    const empty = document.getElementById('feed-empty');
+
+    let items = messages.filter(isMyUnread);
+    // honour the active category + staff filters
+    if (activeCategory !== 'all') items = items.filter(m => (m.category||'general') === activeCategory);
+    if (activeStaff !== 'all') {
+      const sid = parseInt(activeStaff);
+      items = items.filter(m => m.author_id === sid || !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(sid)));
+    }
+
+    if (items.length === 0) {
+      feed.innerHTML = '';
+      empty.innerHTML = '<span class="emoji">✅</span> You\'re all caught up — no unread notes.';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Group by effective date, newest day first
+    const groups = {};
+    items.forEach(m => { const d = effDate(m); (groups[d] = groups[d] || []).push(m); });
+    const dates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    let html = '';
+    dates.forEach(d => {
+      html += `
+        <div class="shift-section">
+          <div class="shift-header" style="cursor:default">
+            <span class="shift-header-label" style="color:#6366f1">${dateHeaderLabel(d)}</span>
+            <span class="count-badge">${groups[d].length} unread</span>
+            <div class="shift-line"></div>
+          </div>
+          <div>${groups[d].map(m => renderMsg(m)).join('')}</div>
+        </div>`;
+    });
+    feed.innerHTML = html;
+  }
+
+  function setFeedMode(mode) {
+    feedMode = mode;
+    document.getElementById('seg-day').classList.toggle('active', mode === 'day');
+    document.getElementById('seg-unread').classList.toggle('active', mode === 'unread');
+    document.querySelector('.date-nav').style.display = mode === 'unread' ? 'none' : 'flex';
+    renderFeed();
+  }
+
+  function toggleSection(key) {
+    const body = document.getElementById('section-body-'+key);
+    const chev = document.getElementById('sec-chevron-'+key);
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    chev.style.transform = open ? 'rotate(-90deg)' : 'rotate(0)';
+  }
+
+  function renderMsg(msg) {
+    if (!msg || !msg.content) return '';
+    // Defensive: receipt_staff may be absent if server wasn't restarted
+    if (!msg.receipt_staff) msg.receipt_staff = allStaff.map(s => ({ id: s.id, name: s.name, color: s.color }));
+
+    const isMine     = msg.author_id === me.id;
+    const isTargeted = isMine && Array.isArray(msg.recipients) && msg.recipients.length > 0;
+    const unread     = !msg.is_read_by_me && !isMine;
+    const readIds    = new Set((msg.reads||[]).map(r => r.id));
+
+    // Unified per-person rail: everyone relevant to this note, each with their
+    // read status and any comment(s) they've left. Avatar hover shows their comment.
+    const repliesByAuthor = {};
+    (msg.replies||[]).forEach(r => { (repliesByAuthor[r.author_id] = repliesByAuthor[r.author_id] || []).push(r); });
+
+    const people = [...(msg.receipt_staff||[])];
+    const seen = new Set(people.map(p => p.id));
+    (msg.replies||[]).forEach(r => {
+      if (!seen.has(r.author_id)) { seen.add(r.author_id); people.push({ id: r.author_id, name: r.author_name, color: r.author_color }); }
+    });
+
+    const railAvatars = people.map(s => {
+      const hasRead    = readIds.has(s.id);
+      const info       = (msg.reads||[]).find(r => r.id === s.id);
+      const readTime   = info ? new Date(info.read_at).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+      const hasComment = (repliesByAuthor[s.id] || []).length > 0;
+      const statusTxt  = hasRead ? `read ${readTime}` : 'not yet read';
+      return `<div class="seen-chip ${hasRead?'':'unread-r'}" title="${esc(s.name + ' · ' + statusTxt)}">
+        ${hasRead?`<span class="seen-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5"/></svg></span>`:''}
+        <span class="seen-name" style="color:${s.color}">${esc(s.name)}</span>
+        ${hasComment?`<span class="seen-dot" title="left a comment"></span>`:''}
+      </div>`;
+    }).join('');
+
+    const railTitle = isTargeted ? 'Sent to' : 'Seen by';
+
+    // Detail column: all comments left on this note, in the order made (scrollable if long).
+    const detailComments = (msg.replies||[]).length
+      ? (msg.replies||[]).map(r => `
+          <div class="detail-comment-item">
+            <div class="dci-head">
+              <span class="dci-name" style="color:${r.author_color}">${esc(r.author_name)}</span>
+              <span class="dci-time">${new Date(r.created_at).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})}</span>
+            </div>
+            <div class="dci-text">${esc(r.content)}</div>
+          </div>`).join('')
+      : '<div class="detail-empty">No comments yet.</div>';
+
+    const toLabel = msg.recipients
+      ? `<span class="msg-to">→ ${(msg.receipt_staff||[]).map(s=>s.name).join(', ')}</span>`
+      : '';
+
+    // Left border: indigo for unread, author colour for mine, default otherwise
+    const borderStyle = isMine
+      ? `border-left:3px solid ${msg.author_color}`
+      : unread ? `border-left:3px solid #6366f1` : '';
+
+    return `
+      <div class="msg-card" data-category="${msg.category||'general'}" id="msg-${msg.id}" style="${borderStyle}">
+        <div class="msg-header" onclick="toggleMsg(${msg.id})">
+          <div class="avatar" style="width:34px;height:34px;font-size:12px;background:${msg.author_color}18;color:${msg.author_color}">${initials(msg.author_name)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="msg-top">
+              <span class="msg-author" style="color:${msg.author_color}">${isMine ? 'You' : esc(msg.author_name)}</span>
+              <span class="cat-tag cat-${(msg.category||'general').replace('-','_')}">${catNames[msg.category||'general']||msg.category||'General'}</span>
+              ${toLabel}
+              ${(msg.replies||[]).length>0?`<span style="font-size:11px;color:var(--text3)">${msg.replies.length} repl${msg.replies.length===1?'y':'ies'}</span>`:''}
+              ${unread?`<span style="background:#6366f1;color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px">NEW</span>`:''}
+              ${isMine?`<span style="background:${msg.author_color}18;color:${msg.author_color};font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px">SENT</span>`:''}
+              ${(msg.show_on && msg.show_on > todayStr)?`<span class="cat-tag" style="background:rgba(245,158,11,0.16);color:#d97706" title="Scheduled to surface on this day">⏰ ${new Date(msg.show_on+'T00:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</span>`:''}
+            </div>
+            <div id="preview-${msg.id}" class="msg-preview" style="display:none">${esc(msg.content)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="msg-time">${new Date(msg.created_at).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})}</span>
+            <svg id="chev-${msg.id}" class="chevron" style="transform:rotate(180deg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+          </div>
+        </div>
+        <div class="msg-body" id="body-${msg.id}" style="display:block">
+          <div class="msg-body-grid">
+            <div class="msg-col-team">
+              <span class="rail-title team-label">${railTitle}</span>
+              <div class="rail-avatars">${railAvatars || '<span class="rail-person-status">No one yet</span>'}</div>
+            </div>
+            <div class="msg-col-note">
+              <div class="msg-content">${esc(msg.content)}</div>
+              <div class="msg-actions">
+                ${unread ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();markRead(${msg.id})">Mark as read</button>` : ''}
+                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openReplyBox(${msg.id})">Reply</button>
+                ${(me.role === 'admin' || me.role === 'manager') ? `
+                <button onclick="event.stopPropagation();deleteNote(${msg.id})"
+                  style="margin-left:auto;font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;cursor:pointer;font-family:Inter,sans-serif;transition:all 0.15s"
+                  onmouseover="this.style.background='rgba(239,68,68,0.08)'"
+                  onmouseout="this.style.background='transparent'">
+                  Delete
+                </button>` : ''}
+              </div>
+              <div id="reply-box-${msg.id}" style="display:none;margin-top:10px">
+                <div class="reply-box-wrap">
+                  <textarea class="reply-input" rows="2" placeholder="Write a reply..." id="reply-txt-${msg.id}"></textarea>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <button class="btn btn-indigo btn-sm" onclick="postReply(${msg.id})">Send</button>
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reply-box-${msg.id}').style.display='none'">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="msg-gutter" onmousedown="startGutterDrag(event)" title="Drag to resize"></div>
+            <div class="msg-col-detail">
+              <div class="rail-title">Comments</div>
+              <div class="detail-panel" id="detail-${msg.id}">${detailComments}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Message actions ────────────────────────────────────────────────────────
+  function toggleMsg(id) {
+    const body = document.getElementById('body-'+id);
+    const chev = document.getElementById('chev-'+id);
+    const prev = document.getElementById('preview-'+id);
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    chev.style.transform = open ? 'rotate(0)' : 'rotate(180deg)';
+    if (prev) prev.style.display = open ? '' : 'none';
+  }
+
+  // Populate a note's detail panel (column 3) with the hovered/tapped person's read status + comment.
+  function showDetail(msgId, staffId) {
+    const msg = messages.find(m => m.id === msgId); if (!msg) return;
+    const panel = document.getElementById('detail-' + msgId); if (!panel) return;
+    const s = (msg.receipt_staff||[]).find(x => x.id === staffId)
+           || allStaff.find(x => x.id === staffId) || { name:'', color:'var(--text)' };
+    const read = (msg.reads||[]).find(r => r.id === staffId);
+    const replies = (msg.replies||[]).filter(r => r.author_id === staffId);
+    const readTxt = read
+      ? '✓ read ' + new Date(read.read_at).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true})
+      : 'not yet read';
+    panel.innerHTML =
+      `<div class="detail-name" style="color:${s.color}">${esc(s.name)}</div>
+       <div class="detail-status">${readTxt}</div>` +
+      (replies.length
+        ? replies.map(r => `<div class="detail-comment">${esc(r.content)}<span class="detail-time">${relTime(r.created_at)}</span></div>`).join('')
+        : '<div class="detail-comment detail-empty">No comment left.</div>');
+  }
+
+  function openReplyBox(id) {
+    const box = document.getElementById('reply-box-'+id);
+    box.style.display = 'block';
+    const ta = document.getElementById('reply-txt-'+id);
+    if (ta) ta.focus();
+  }
+
+  async function markRead(id) {
+    await fetch(`/api/messages/${id}/read`, {method:'POST'});
+    await loadAll();
+  }
+
+  async function postReply(id) {
+    const ta = document.getElementById('reply-txt-'+id);
+    const content = ta ? ta.value.trim() : '';
+    if (!content) return;
+    await fetch(`/api/messages/${id}/reply`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({content})
+    });
+    await loadAll();
+  }
+
+  async function postMessage() {
+    const content = document.getElementById('compose-text').value.trim();
+    if (!content) { showToast('Please write something first', true); return; }
+    const category = document.getElementById('compose-category').value;
+    const showOn = document.getElementById('compose-showon').value || null;
+    try {
+      const res = await fetch('/api/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn})
+      });
+      if (!res.ok) { showToast('Failed to post — try again', true); return; }
+      clearCompose();
+      if (feedMode === 'unread') setFeedMode('day');
+      if (showOn && showOn > todayStr) {
+        viewDate = new Date(showOn + 'T00:00:00');
+        updateDateNav();
+        await loadAll();
+        showToast('Scheduled for ' + new Date(showOn + 'T00:00:00').toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}));
+      } else {
+        viewDate = new Date(today);
+        updateDateNav();
+        await loadAll();
+        showToast('Note posted');
+      }
+    } catch(e) {
+      showToast('Connection error — is the server running?', true);
+    }
+  }
+
+  function clearCompose() {
+    document.getElementById('compose-text').value = '';
+    document.getElementById('compose-category').value = 'general';
+    document.getElementById('compose-showon').value = '';
+    selectedRecipients = [];
+    document.querySelectorAll('#recipient-chips .chip').forEach(c => {
+      c.classList.remove('selected'); c.style.background = ''; c.style.color = '';
+    });
+    const all = document.getElementById('chip-all');
+    all.classList.add('selected'); all.style.background = '#6366f1'; all.style.color = 'white';
+  }
+
+  // ── Recipient selector ─────────────────────────────────────────────────────
+  function toggleRecipient(id, el) {
+    const allChip = document.getElementById('chip-all');
+    if (id === 'all') {
+      selectedRecipients = [];
+      document.querySelectorAll('#recipient-chips .chip').forEach(c => {
+        c.classList.remove('selected'); c.style.background=''; c.style.color='';
+      });
+      allChip.classList.add('selected'); allChip.style.background='#6366f1'; allChip.style.color='white';
+      return;
+    }
+    allChip.classList.remove('selected'); allChip.style.background=''; allChip.style.color='';
+    const sid = parseInt(id);
+    if (selectedRecipients.includes(sid)) {
+      selectedRecipients = selectedRecipients.filter(x => x !== sid);
+      el.classList.remove('selected'); el.style.background=''; el.style.color='';
+    } else {
+      selectedRecipients.push(sid);
+      const s = allStaff.find(x => x.id === sid);
+      el.classList.add('selected');
+      el.style.background = s ? s.color : '#6366f1';
+      el.style.color = 'white';
+    }
+    if (selectedRecipients.length === 0) {
+      allChip.classList.add('selected'); allChip.style.background='#6366f1'; allChip.style.color='white';
+    }
+  }
+
+  // ── Badges ─────────────────────────────────────────────────────────────────
+  function updateBadges() {
+    const isActive = isMyUnread;
+    ['all','membership','pro-shop','reminders','academy','general'].forEach(cat => {
+      const pool = cat === 'all' ? messages : messages.filter(m => (m.category||'general') === cat);
+      const n = pool.filter(isActive).length;
+      const el = document.getElementById('b-'+cat);
+      if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+    });
+    const total = messages.filter(isActive).length;
+    const pill = document.getElementById('unread-pill');
+    pill.textContent = total + ' unread'; pill.style.display = total > 0 ? 'inline' : 'none';
+    const seg = document.getElementById('seg-unread-badge');
+    if (seg) { seg.textContent = total; seg.style.display = total > 0 ? 'inline' : 'none'; }
+  }
+
+  // ── View-as (admin dev view) ─────────────────────────────────────────────────
+  function renderViewAs() {
+    const wrap   = document.getElementById('viewas-wrap');
+    const banner = document.getElementById('viewas-banner');
+    if (!me.is_admin) { wrap.style.display = 'none'; banner.style.display = 'none'; return; }
+
+    wrap.style.display = 'flex';
+    const sel = document.getElementById('viewas-select');
+    let opts = `<option value="">Yourself (${esc(me.real_name)})</option>`;
+    allStaff.filter(s => s.id !== me.real_id).forEach(s => {
+      opts += `<option value="${s.id}">${esc(s.name)} · ${esc(s.role)}</option>`;
+    });
+    sel.innerHTML = opts;
+    sel.value = me.viewing_as ? String(me.id) : '';
+
+    const badge = document.querySelector('.me-badge');
+    if (me.viewing_as) {
+      banner.style.display = 'flex';
+      document.getElementById('viewas-banner-text').textContent =
+        `👁 Dev view — you're signed in as yourself (${me.real_name}) but seeing the hub as ${me.name}. Posts, replies and read-checks register as ${me.name}, not you.`;
+      if (badge) { badge.style.outline = '2px solid #f59e0b'; badge.style.outlineOffset = '1px'; }
+      document.getElementById('me-name').textContent = `${me.name} · dev view`;
+    } else {
+      banner.style.display = 'none';
+      if (badge) { badge.style.outline = 'none'; }
+    }
+  }
+
+  async function setViewAs(v) {
+    try {
+      const res = await fetch('/api/auth/view-as', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ staffId: v === '' ? null : parseInt(v) })
+      });
+      if (!res.ok) { showToast('Could not switch view', true); return; }
+      location.reload();  // cleanest — re-inits identity, feed, badges and SSE
+    } catch(e) { showToast('Connection error', true); }
+  }
+
+  // ── Admin actions ──────────────────────────────────────────────────────────
+  async function deleteNote(id) {
+    if (!confirm('Delete this note? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
+      if (!res.ok) { showToast('Could not delete note', true); return; }
+      showToast('Note deleted');
+      await loadAll();
+    } catch(e) { showToast('Connection error', true); }
+  }
+
+  async function clearDay() {
+    const label = document.getElementById('date-label').textContent;
+    if (!confirm(`Clear ALL notes for ${label}? This cannot be undone.`)) return;
+    // Format date as YYYY-MM-DD in local time
+    const y = viewDate.getFullYear();
+    const m = String(viewDate.getMonth()+1).padStart(2,'0');
+    const d = String(viewDate.getDate()).padStart(2,'0');
+    try {
+      const res = await fetch(`/api/messages/day/${y}-${m}-${d}`, { method: 'DELETE' });
+      if (!res.ok) { showToast('Could not clear day', true); return; }
+      const data = await res.json();
+      showToast(`Cleared ${data.deleted} note${data.deleted===1?'':'s'}`);
+      await loadAll();
+    } catch(e) { showToast('Connection error', true); }
+  }
+
+  async function doLogout() {
+    await fetch('/api/auth/logout',{method:'POST'});
+    window.location.href = '/login.html';
+  }
+
+  // Ctrl+Enter to post
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key==='Enter') {
+      if (document.activeElement===document.getElementById('compose-text')) { postMessage(); return; }
+      const a = document.activeElement;
+      if (a && a.id && a.id.startsWith('reply-txt-')) postReply(a.id.replace('reply-txt-',''));
+    }
+  });
+
+  // SSE: reload messages instantly whenever any client posts, replies, or deletes
+  const evtSource = new EventSource('/api/events');
+  evtSource.onmessage = () => loadAll();
+  // If the connection drops (e.g. server restart), the browser retries automatically.
+  // Fall back to a slow poll only if SSE stays broken for an extended period.
+  let sseOk = true;
+  evtSource.onerror = () => { sseOk = false; };
+  evtSource.onopen  = () => { sseOk = true; };
+  setInterval(() => { if (!sseOk) loadAll(); }, 30000);
+
+  init();
+</script>
+</body>
+</html>

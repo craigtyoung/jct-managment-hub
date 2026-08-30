@@ -1,0 +1,1816 @@
+{
+  "_seq": {
+    "staff": 16,
+    "messages": 35,
+    "reads": 56,
+    "replies": 13,
+    "checklist_items": 71,
+    "checklist_completions": 7,
+    "shift_assignments": 26,
+    "shift_rules": 22,
+    "timesheet_entries": 1
+  },
+  "staff": [
+    {
+      "id": 1,
+      "name": "Craig",
+      "color": "#6366f1",
+      "role": "admin",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 2,
+      "name": "Jaime",
+      "color": "#10b981",
+      "role": "admin",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 3,
+      "name": "Victor",
+      "color": "#8b5cf6",
+      "role": "manager",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 4,
+      "name": "David",
+      "color": "#f59e0b",
+      "role": "manager",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 5,
+      "name": "Ali",
+      "color": "#ec4899",
+      "role": "staff",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 9,
+      "name": "Lily",
+      "color": "#06b6d4",
+      "role": "staff",
+      "password": "$2a$10$hzTk8O5nKy5b2v9BEe//LO50TlQ6B2NmKEb6VdCm2yAtaF.WF3L.."
+    },
+    {
+      "id": 11,
+      "name": "Dawson",
+      "color": "#8b5cf6",
+      "role": "staff",
+      "password": "$2a$10$cNVYtlKL4TDbWHmZ38jhJOjS02y27Fbp8Quu61PplKu6/asGEoeIS"
+    },
+    {
+      "id": 12,
+      "name": "Cassandra",
+      "color": "#06b6d4",
+      "role": "staff",
+      "password": "$2a$10$Fflc631L308kv7pgIkzgZeWVe7s5a8XXkVPf2E14gD0HrMF88s3ze"
+    },
+    {
+      "id": 13,
+      "name": "Vicky",
+      "color": "#7c3aed",
+      "role": "staff",
+      "password": "$2a$10$Lg0BKmWX9thwbMpuJteSWuHxeR5mLkBfcz6gVx9Eh26figPd/X9Dm"
+    },
+    {
+      "id": 14,
+      "name": "Skyler",
+      "color": "#0ea5e9",
+      "role": "staff",
+      "password": "$2a$10$Lg0BKmWX9thwbMpuJteSWuHxeR5mLkBfcz6gVx9Eh26figPd/X9Dm"
+    },
+    {
+      "id": 15,
+      "name": "Angelina",
+      "color": "#d946ef",
+      "role": "staff",
+      "password": "$2a$10$Lg0BKmWX9thwbMpuJteSWuHxeR5mLkBfcz6gVx9Eh26figPd/X9Dm"
+    },
+    {
+      "id": 16,
+      "name": "Emilia",
+      "color": "#b45309",
+      "role": "staff",
+      "password": "$2a$10$Lg0BKmWX9thwbMpuJteSWuHxeR5mLkBfcz6gVx9Eh26figPd/X9Dm"
+    }
+  ],
+  "messages": [
+    {
+      "id": 26,
+      "staff_id": 1,
+      "content": "hi Jamie this is a note just from me to you and not anyone else",
+      "shift": "general",
+      "recipients": [
+        2
+      ],
+      "created_at": "2026-04-13T17:16:55.133Z"
+    },
+    {
+      "id": 27,
+      "staff_id": 1,
+      "content": "can we make sure we pick up all the garbage from the courts each morning thank you!",
+      "shift": "general",
+      "recipients": [
+        5
+      ],
+      "created_at": "2026-04-13T17:18:51.405Z"
+    },
+    {
+      "id": 28,
+      "staff_id": 1,
+      "content": "we have Jimmy Joe who needs to be assessed for rising stars he's currently in Future stars can you guys give us the OK and then let the admin staff know!",
+      "shift": "general",
+      "recipients": [
+        4,
+        2,
+        3
+      ],
+      "created_at": "2026-04-13T17:32:47.210Z"
+    },
+    {
+      "id": 29,
+      "staff_id": 1,
+      "content": "New note",
+      "shift": "general",
+      "recipients": [
+        2
+      ],
+      "created_at": "2026-04-13T17:54:06.790Z"
+    },
+    {
+      "id": 30,
+      "staff_id": 1,
+      "content": "Hey Team this is a late note on a Saturday night!",
+      "shift": "general",
+      "category": "general",
+      "recipients": null,
+      "created_at": "2026-04-26T02:23:08.203Z"
+    },
+    {
+      "id": 34,
+      "staff_id": 1,
+      "content": "Hi It's Aug 30th today",
+      "shift": "general",
+      "category": "general",
+      "recipients": [
+        2
+      ],
+      "show_on": "2026-08-30",
+      "created_at": "2026-08-29T18:07:25.233Z"
+    }
+  ],
+  "reads": [
+    {
+      "id": 33,
+      "message_id": 26,
+      "staff_id": 1,
+      "read_at": "2026-04-13T17:16:55.133Z"
+    },
+    {
+      "id": 34,
+      "message_id": 26,
+      "staff_id": 2,
+      "read_at": "2026-04-13T17:17:18.886Z"
+    },
+    {
+      "id": 35,
+      "message_id": 27,
+      "staff_id": 1,
+      "read_at": "2026-04-13T17:18:51.405Z"
+    },
+    {
+      "id": 36,
+      "message_id": 28,
+      "staff_id": 1,
+      "read_at": "2026-04-13T17:32:47.210Z"
+    },
+    {
+      "id": 37,
+      "message_id": 28,
+      "staff_id": 2,
+      "read_at": "2026-04-13T17:33:35.461Z"
+    },
+    {
+      "id": 38,
+      "message_id": 29,
+      "staff_id": 1,
+      "read_at": "2026-04-13T17:54:06.790Z"
+    },
+    {
+      "id": 39,
+      "message_id": 30,
+      "staff_id": 1,
+      "read_at": "2026-04-26T02:23:08.203Z"
+    },
+    {
+      "id": 50,
+      "message_id": 34,
+      "staff_id": 1,
+      "read_at": "2026-08-29T18:07:25.233Z"
+    },
+    {
+      "id": 53,
+      "message_id": 30,
+      "staff_id": 2,
+      "read_at": "2026-08-29T18:12:54.905Z"
+    },
+    {
+      "id": 54,
+      "message_id": 29,
+      "staff_id": 2,
+      "read_at": "2026-08-29T18:12:57.280Z"
+    },
+    {
+      "id": 56,
+      "message_id": 30,
+      "staff_id": 15,
+      "read_at": "2026-08-30T14:53:26.427Z"
+    }
+  ],
+  "replies": [
+    {
+      "id": 8,
+      "message_id": 26,
+      "staff_id": 2,
+      "content": "Thanks!",
+      "created_at": "2026-04-13T17:17:27.764Z"
+    },
+    {
+      "id": 9,
+      "message_id": 28,
+      "staff_id": 2,
+      "content": "Thanks",
+      "created_at": "2026-04-13T17:33:54.981Z"
+    }
+  ],
+  "checklist_items": [
+    {
+      "id": 1,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Pick up voicemails from email"
+    },
+    {
+      "id": 2,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Quickly walk around courts and complete a quick inspection of the bubble"
+    },
+    {
+      "id": 3,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Confirm $100 float from previous shift & enter name and date on cash summary"
+    },
+    {
+      "id": 4,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Open all office files for the day (checklist, cash summary, comm log, etc.)"
+    },
+    {
+      "id": 5,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Make sure Member Sign-In sheet has been replaced correctly in binder"
+    },
+    {
+      "id": 6,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Clear snow and salt pathways if required"
+    },
+    {
+      "id": 7,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 7,
+      "active": true,
+      "text": "Disinfect High Touch Surfaces (Door Handles/Revolving Door/Counter Tops etc.)"
+    },
+    {
+      "id": 8,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 8,
+      "active": true,
+      "text": "Throw out trash from previous shift, if required"
+    },
+    {
+      "id": 9,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Clean and organize as required"
+    },
+    {
+      "id": 10,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Empty garbages and recycling bins on court if full"
+    },
+    {
+      "id": 11,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Review the communications log at least back to your last shift"
+    },
+    {
+      "id": 12,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Check if any racquets have been strung, and notify members for pick-up"
+    },
+    {
+      "id": 13,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Check the washroom stock — toilet paper and paper towels"
+    },
+    {
+      "id": 14,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Check and restock water and snacks as needed for member purchase"
+    },
+    {
+      "id": 15,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 7,
+      "active": true,
+      "text": "Cash summary reconciliation"
+    },
+    {
+      "id": 16,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 8,
+      "active": true,
+      "text": "Check email inbox regularly and respond or forward as required"
+    },
+    {
+      "id": 17,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 9,
+      "active": true,
+      "text": "Check voicemail regularly and return calls or forward information as necessary"
+    },
+    {
+      "id": 18,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 10,
+      "active": true,
+      "text": "Replace watercooler jug and empty overflow tray, if necessary"
+    },
+    {
+      "id": 19,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 11,
+      "active": true,
+      "text": "Check Hand Sanitizer levels and replace as necessary"
+    },
+    {
+      "id": 20,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Initial all booking sign-in's and check off corresponding names on GameTime"
+    },
+    {
+      "id": 21,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Correct or complete any missing or illegible entries on the member sign in"
+    },
+    {
+      "id": 22,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Enter the numbers from the member sign in on Gametime print out"
+    },
+    {
+      "id": 23,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Check waitlist (on GameTime) and contact players re cancelled courts"
+    },
+    {
+      "id": 24,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Record any late cancellations (within 24 hours) on the cancellation list"
+    },
+    {
+      "id": 25,
+      "shifts": [
+        "morning",
+        "afternoon",
+        "closing"
+      ],
+      "phase": "bookings",
+      "bold": false,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Ensure Guest names are recorded on bookings (Pay as You Go: names in Notes section)"
+    },
+    {
+      "id": 26,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Print the bookings from your shift and enter the numbers from the member sign in"
+    },
+    {
+      "id": 27,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Make sure the cash is balanced for your shift and all guest fees are accounted for"
+    },
+    {
+      "id": 28,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Pass along any important information to the person on the next shift"
+    },
+    {
+      "id": 29,
+      "shifts": [
+        "morning"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Record the hours on your time sheet"
+    },
+    {
+      "id": 30,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Confirm $100 float & enter name on cash summary on corresponding shift space"
+    },
+    {
+      "id": 31,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Review any important information with the person from the previous shift"
+    },
+    {
+      "id": 32,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Empty garbages and recycling bins if full (Club House and office)"
+    },
+    {
+      "id": 33,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Clear snow and salt pathways as required"
+    },
+    {
+      "id": 34,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Clean and organize as required"
+    },
+    {
+      "id": 35,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Check the washroom stock — toilet paper and paper towels"
+    },
+    {
+      "id": 36,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Check and restock water and snacks as needed for member purchase"
+    },
+    {
+      "id": 37,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Review the communications log at least back to your last shift"
+    },
+    {
+      "id": 38,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Check email inbox regularly and respond or forward as required"
+    },
+    {
+      "id": 39,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 7,
+      "active": true,
+      "text": "Check voicemail regularly and return calls or forward information as necessary"
+    },
+    {
+      "id": 40,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 8,
+      "active": true,
+      "text": "Replace watercooler jug and empty overflow tray, if necessary"
+    },
+    {
+      "id": 41,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 9,
+      "active": true,
+      "text": "Vacuum Mats (including the one in the tunnel)"
+    },
+    {
+      "id": 42,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 10,
+      "active": true,
+      "text": "Disinfect High Touch Surfaces (Door Handles/Revolving Door/Counter Tops etc.)"
+    },
+    {
+      "id": 43,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 11,
+      "active": true,
+      "text": "Be aware of children in the clubhouse during academy time"
+    },
+    {
+      "id": 44,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 12,
+      "active": true,
+      "text": "Display video from court on main TV during academy time"
+    },
+    {
+      "id": 45,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Print the bookings from your shift and enter the numbers from the member sign in"
+    },
+    {
+      "id": 46,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Make sure the cash is balanced for your shift and all guest fees are accounted for"
+    },
+    {
+      "id": 47,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Pass along any important information to the person on the next shift"
+    },
+    {
+      "id": 48,
+      "shifts": [
+        "afternoon"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Record the hours on your time sheet"
+    },
+    {
+      "id": 49,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Confirm $100 float & enter name on cash summary on corresponding shift space"
+    },
+    {
+      "id": 50,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "start",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Review any important information with the person from the previous shift"
+    },
+    {
+      "id": 51,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Clear snow and salt pathways as required"
+    },
+    {
+      "id": 52,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Clean and organize as required"
+    },
+    {
+      "id": 53,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Review the communications log at least back to your last shift"
+    },
+    {
+      "id": 54,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Check email inbox regularly and respond or forward as required"
+    },
+    {
+      "id": 55,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": true,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Check voicemail regularly and return calls or forward information as necessary"
+    },
+    {
+      "id": 56,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Check the washroom stock — toilet paper and paper towels"
+    },
+    {
+      "id": 57,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 7,
+      "active": true,
+      "text": "Check and restock water and snacks as needed for member purchase"
+    },
+    {
+      "id": 58,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 8,
+      "active": true,
+      "text": "Replace watercooler jug and empty overflow tray, if necessary"
+    },
+    {
+      "id": 59,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "during",
+      "bold": false,
+      "days": null,
+      "order": 9,
+      "active": true,
+      "text": "Check Hand Sanitizer levels and replace as necessary"
+    },
+    {
+      "id": 60,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 1,
+      "active": true,
+      "text": "Staple all booking sheets and Member Sign-In sheets in order (first to last shift); place in \"booking sheets\" tab in filing cabinet"
+    },
+    {
+      "id": 61,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 2,
+      "active": true,
+      "text": "Make sure the cash summary is balanced for the day and all guest fees are accounted for"
+    },
+    {
+      "id": 62,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 3,
+      "active": true,
+      "text": "Vacuum the clubhouse including all mats, and empty vacuum dustbag"
+    },
+    {
+      "id": 63,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 4,
+      "active": true,
+      "text": "Disinfect High Touch Surfaces (Door Handles/Revolving Door/Counter Tops etc.)"
+    },
+    {
+      "id": 64,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 5,
+      "active": true,
+      "text": "Empty all garbages (on court, in clubhouse)"
+    },
+    {
+      "id": 65,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 6,
+      "active": true,
+      "text": "Walk around all 6 courts — ensure no balls, cones, or equipment are left; place loose balls into appropriate baskets"
+    },
+    {
+      "id": 66,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 7,
+      "active": true,
+      "text": "Organize ball hoppers neatly"
+    },
+    {
+      "id": 67,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 8,
+      "active": true,
+      "text": "Record your hours on your time sheet"
+    },
+    {
+      "id": 68,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 9,
+      "active": true,
+      "text": "Turn off court lights and clubhouse lights"
+    },
+    {
+      "id": 69,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 10,
+      "active": true,
+      "text": "Input house league scores in the \"results\" tab of the House League file"
+    },
+    {
+      "id": 70,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": false,
+      "days": null,
+      "order": 11,
+      "active": true,
+      "text": "Ensure backdoor is locked before leaving"
+    },
+    {
+      "id": 71,
+      "shifts": [
+        "closing"
+      ],
+      "phase": "end",
+      "bold": true,
+      "days": null,
+      "order": 12,
+      "active": true,
+      "text": "Close the main gates as you leave the facility"
+    }
+  ],
+  "checklist_completions": [
+    {
+      "id": 2,
+      "item_id": 2,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-29T21:01:50.619Z"
+    },
+    {
+      "id": 3,
+      "item_id": 3,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-29T21:01:53.216Z"
+    },
+    {
+      "id": 4,
+      "item_id": 4,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-29T21:01:54.050Z"
+    },
+    {
+      "id": 5,
+      "item_id": 5,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-30T02:10:30.199Z"
+    },
+    {
+      "id": 6,
+      "item_id": 6,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-30T02:10:31.255Z"
+    },
+    {
+      "id": 7,
+      "item_id": 7,
+      "staff_id": 1,
+      "shift": "morning",
+      "date": "2026-08-29",
+      "status": "complete",
+      "note": null,
+      "completed_at": "2026-08-30T02:10:32.253Z"
+    }
+  ],
+  "shift_assignments": [
+    {
+      "id": 11,
+      "staff_id": 9,
+      "date": "2026-09-02",
+      "shift": "morning",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:00.908Z"
+    },
+    {
+      "id": 12,
+      "staff_id": 13,
+      "date": "2026-09-02",
+      "shift": "afternoon",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:05.835Z"
+    },
+    {
+      "id": 13,
+      "staff_id": 12,
+      "date": "2026-09-02",
+      "shift": "closing",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:09.981Z"
+    },
+    {
+      "id": 14,
+      "staff_id": 9,
+      "date": "2026-09-03",
+      "shift": "morning",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:21.018Z"
+    },
+    {
+      "id": 15,
+      "staff_id": 15,
+      "date": "2026-09-03",
+      "shift": "afternoon",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:30.534Z"
+    },
+    {
+      "id": 16,
+      "staff_id": 12,
+      "date": "2026-09-03",
+      "shift": "closing",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:34.491Z"
+    },
+    {
+      "id": 18,
+      "staff_id": 9,
+      "date": "2026-09-04",
+      "shift": "afternoon",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:42:51.813Z"
+    },
+    {
+      "id": 19,
+      "staff_id": 11,
+      "date": "2026-09-04",
+      "shift": "closing",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:00.847Z"
+    },
+    {
+      "id": 20,
+      "staff_id": 13,
+      "date": "2026-09-04",
+      "shift": "morning",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:18.141Z"
+    },
+    {
+      "id": 21,
+      "staff_id": 14,
+      "date": "2026-09-05",
+      "shift": "morning",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:32.171Z"
+    },
+    {
+      "id": 22,
+      "staff_id": 16,
+      "date": "2026-09-05",
+      "shift": "afternoon",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:39.704Z"
+    },
+    {
+      "id": 23,
+      "staff_id": 5,
+      "date": "2026-09-05",
+      "shift": "closing",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:45.496Z"
+    },
+    {
+      "id": 24,
+      "staff_id": 11,
+      "date": "2026-09-06",
+      "shift": "morning",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:43:56.929Z"
+    },
+    {
+      "id": 25,
+      "staff_id": 16,
+      "date": "2026-09-06",
+      "shift": "afternoon",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:44:02.548Z"
+    },
+    {
+      "id": 26,
+      "staff_id": 14,
+      "date": "2026-09-06",
+      "shift": "closing",
+      "created_by": 1,
+      "created_at": "2026-08-30T14:44:07.877Z"
+    }
+  ],
+  "shift_rules": [
+    {
+      "id": 2,
+      "staff_id": 13,
+      "shift": "morning",
+      "day_of_week": 1,
+      "start_date": "2026-08-31",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.583Z"
+    },
+    {
+      "id": 3,
+      "staff_id": 9,
+      "shift": "afternoon",
+      "day_of_week": 1,
+      "start_date": "2026-08-31",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.597Z"
+    },
+    {
+      "id": 4,
+      "staff_id": 16,
+      "shift": "closing",
+      "day_of_week": 1,
+      "start_date": "2026-08-31",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.609Z"
+    },
+    {
+      "id": 5,
+      "staff_id": 9,
+      "shift": "morning",
+      "day_of_week": 2,
+      "start_date": "2026-09-01",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.620Z"
+    },
+    {
+      "id": 6,
+      "staff_id": 15,
+      "shift": "afternoon",
+      "day_of_week": 2,
+      "start_date": "2026-09-01",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.632Z"
+    },
+    {
+      "id": 7,
+      "staff_id": 11,
+      "shift": "closing",
+      "day_of_week": 2,
+      "start_date": "2026-09-01",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.644Z"
+    },
+    {
+      "id": 8,
+      "staff_id": 9,
+      "shift": "morning",
+      "day_of_week": 3,
+      "start_date": "2026-09-02",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.655Z"
+    },
+    {
+      "id": 9,
+      "staff_id": 13,
+      "shift": "afternoon",
+      "day_of_week": 3,
+      "start_date": "2026-09-02",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.666Z"
+    },
+    {
+      "id": 10,
+      "staff_id": 12,
+      "shift": "closing",
+      "day_of_week": 3,
+      "start_date": "2026-09-02",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.678Z"
+    },
+    {
+      "id": 11,
+      "staff_id": 9,
+      "shift": "morning",
+      "day_of_week": 4,
+      "start_date": "2026-09-03",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.689Z"
+    },
+    {
+      "id": 12,
+      "staff_id": 15,
+      "shift": "afternoon",
+      "day_of_week": 4,
+      "start_date": "2026-09-03",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.701Z"
+    },
+    {
+      "id": 13,
+      "staff_id": 12,
+      "shift": "closing",
+      "day_of_week": 4,
+      "start_date": "2026-09-03",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.712Z"
+    },
+    {
+      "id": 14,
+      "staff_id": 13,
+      "shift": "morning",
+      "day_of_week": 5,
+      "start_date": "2026-09-04",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.724Z"
+    },
+    {
+      "id": 15,
+      "staff_id": 9,
+      "shift": "afternoon",
+      "day_of_week": 5,
+      "start_date": "2026-09-04",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.735Z"
+    },
+    {
+      "id": 16,
+      "staff_id": 11,
+      "shift": "closing",
+      "day_of_week": 5,
+      "start_date": "2026-09-04",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.780Z"
+    },
+    {
+      "id": 17,
+      "staff_id": 14,
+      "shift": "morning",
+      "day_of_week": 6,
+      "start_date": "2026-09-05",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.792Z"
+    },
+    {
+      "id": 18,
+      "staff_id": 16,
+      "shift": "afternoon",
+      "day_of_week": 6,
+      "start_date": "2026-09-05",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.803Z"
+    },
+    {
+      "id": 19,
+      "staff_id": 5,
+      "shift": "closing",
+      "day_of_week": 6,
+      "start_date": "2026-09-05",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.815Z"
+    },
+    {
+      "id": 20,
+      "staff_id": 11,
+      "shift": "morning",
+      "day_of_week": 0,
+      "start_date": "2026-09-06",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.826Z"
+    },
+    {
+      "id": 21,
+      "staff_id": 16,
+      "shift": "afternoon",
+      "day_of_week": 0,
+      "start_date": "2026-09-06",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.837Z"
+    },
+    {
+      "id": 22,
+      "staff_id": 14,
+      "shift": "closing",
+      "day_of_week": 0,
+      "start_date": "2026-09-06",
+      "end_date": "2026-12-31",
+      "created_by": 1,
+      "created_at": "2026-08-30T15:18:08.850Z"
+    }
+  ],
+  "shift_defaults": {
+    "morning": {
+      "start": "08:00",
+      "end": "13:00"
+    },
+    "afternoon": {
+      "start": "13:00",
+      "end": "18:00"
+    },
+    "closing": {
+      "start": "18:00",
+      "end": "23:00"
+    }
+  },
+  "timesheet_entries": [
+    {
+      "id": 1,
+      "staff_id": 9,
+      "date": "2026-08-25",
+      "shift": "morning",
+      "actual_start": "08:00",
+      "actual_end": "13:00",
+      "notes": "",
+      "created_by": 1,
+      "updated_by": 1,
+      "updated_at": "2026-08-30T03:09:20.090Z"
+    }
+  ],
+  "shift_time_overrides": {
+    "2026-09-04:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-09-04:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-09-04:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-09-11:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-09-11:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-09-11:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-09-18:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-09-18:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-09-18:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-09-25:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-09-25:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-09-25:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-10-02:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-10-02:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-10-02:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-10-09:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-10-09:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-10-09:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-10-16:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-10-16:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-10-16:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-10-23:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-10-23:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-10-23:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-10-30:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-10-30:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-10-30:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-11-06:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-11-06:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-11-06:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-11-13:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-11-13:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-11-13:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-11-20:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-11-20:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-11-20:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-11-27:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-11-27:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-11-27:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-12-04:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-12-04:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-12-04:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-12-11:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-12-11:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-12-11:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-12-18:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-12-18:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-12-18:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-12-25:morning": {
+      "start": "08:00",
+      "end": "12:00"
+    },
+    "2026-12-25:afternoon": {
+      "start": "12:00",
+      "end": "16:00"
+    },
+    "2026-12-25:closing": {
+      "start": "16:00",
+      "end": "23:00"
+    },
+    "2026-09-03:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-09-10:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-09-17:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-09-24:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-10-01:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-10-08:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-10-15:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-10-22:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-10-29:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-11-05:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-11-12:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-11-19:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-11-26:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-12-03:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-12-10:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-12-17:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-12-24:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    },
+    "2026-12-31:afternoon": {
+      "start": "16:00",
+      "end": "18:00"
+    }
+  }
+}
