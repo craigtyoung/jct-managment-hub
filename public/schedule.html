@@ -503,7 +503,7 @@
       picker.innerHTML = allStaff.map(s => {
         const sel = currentIds.has(s.id);
         return `<div class="staff-pick-row${sel?' selected':''}" id="pick-${s.id}" onclick="togglePick(${s.id})">
-          <div class="staff-pick-avatar" style="background:${s.color}22;color:${s.color}">${esc(s.name.slice(0,2).toUpperCase())}</div>
+          <div class="staff-pick-avatar" data-photo-id="${s.id}" data-photo-name="${esc(s.name)}" data-photo-color="${s.color}" style="background:${s.color}22;color:${s.color};overflow:hidden">${esc(s.name.slice(0,2).toUpperCase())}</div>
           <div style="flex:1">
             <div class="staff-pick-name">${esc(s.name)}</div>
             <div class="staff-pick-role">${esc(s.role)}</div>
@@ -513,6 +513,8 @@
           </div>
         </div>`;
       }).join('');
+      picker.querySelectorAll('[data-photo-id]').forEach(el =>
+        staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
 
       // Time override section
       modalTimeAdjusted = false;
@@ -797,9 +799,7 @@
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');
-      av.textContent = me.name.slice(0,2).toUpperCase();
-      av.style.background = me.color + '28';
-      av.style.color = me.color;
+      staffAvatar(av, me.id, me.name, me.color);
       document.getElementById('nav-name').textContent = me.name;
       document.getElementById('nav-role').textContent = me.role;
       if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
@@ -842,6 +842,7 @@
 
     init().catch(err => console.error('[schedule] init error:', err));
   </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>

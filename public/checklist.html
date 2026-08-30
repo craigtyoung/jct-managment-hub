@@ -671,9 +671,7 @@
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');
-      av.textContent = me.name.slice(0,2).toUpperCase();
-      av.style.background = me.color + '28';
-      av.style.color = me.color;
+      staffAvatar(av, me.id, me.name, me.color);
       document.getElementById('nav-name').textContent = me.name;
       document.getElementById('nav-role').textContent = me.role;
       if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
@@ -720,6 +718,7 @@
 
     init();
   </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>

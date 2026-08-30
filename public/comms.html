@@ -509,8 +509,7 @@
     allStaff = await staffRes.json();
 
     const av = document.getElementById('me-avatar');
-    av.textContent = initials(me.name);
-    av.style.background = me.color+'22'; av.style.color = me.color;
+    staffAvatar(av, me.id, me.name, me.color);
     document.getElementById('me-name').textContent = me.name;
 
     renderViewAs();
@@ -526,9 +525,10 @@
       const btn = document.createElement('button');
       btn.className = 'sidebar-btn';
       btn.dataset.staff = s.id;
-      btn.innerHTML = `<div class="mini-av" style="background:${s.color}22;color:${s.color}">${initials(s.name)}</div><span style="flex:1">${s.name}</span><span id="scount-${s.id}" class="unread-pill" style="display:none"></span>`;
+      btn.innerHTML = `<div class="mini-av" id="sav-${s.id}" style="background:${s.color}22;color:${s.color};overflow:hidden">${initials(s.name)}</div><span style="flex:1">${s.name}</span><span id="scount-${s.id}" class="unread-pill" style="display:none"></span>`;
       btn.onclick = () => filterStaff(s.id, btn);
       wrap.appendChild(btn);
+      staffAvatar(document.getElementById('sav-' + s.id), s.id, s.name, s.color);
     });
   }
 
@@ -677,6 +677,8 @@
     });
 
     feed.innerHTML = html;
+    feed.querySelectorAll('[data-photo-id]').forEach(el =>
+      staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
   }
 
   // ── Unread view — every note I haven't acknowledged, across all days ──────────
@@ -720,6 +722,8 @@
         </div>`;
     });
     feed.innerHTML = html;
+    feed.querySelectorAll('[data-photo-id]').forEach(el =>
+      staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
   }
 
   function setFeedMode(mode) {
@@ -798,7 +802,7 @@
     return `
       <div class="msg-card" data-category="${msg.category||'general'}" id="msg-${msg.id}" style="${borderStyle}">
         <div class="msg-header" onclick="toggleMsg(${msg.id})">
-          <div class="avatar" style="width:34px;height:34px;font-size:12px;background:${msg.author_color}18;color:${msg.author_color}">${initials(msg.author_name)}</div>
+          <div class="avatar" data-photo-id="${msg.author_id}" data-photo-name="${msg.author_name}" data-photo-color="${msg.author_color}" style="width:34px;height:34px;font-size:12px;background:${msg.author_color}18;color:${msg.author_color};overflow:hidden">${initials(msg.author_name)}</div>
           <div style="flex:1;min-width:0">
             <div class="msg-top">
               <span class="msg-author" style="color:${msg.author_color}">${isMine ? 'You' : esc(msg.author_name)}</span>
@@ -1085,6 +1089,7 @@
 
   init();
 </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>

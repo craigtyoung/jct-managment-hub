@@ -1042,9 +1042,7 @@
       setGreeting(me.name);
 
       const av = document.getElementById('nav-avatar');
-      av.textContent = me.name.slice(0, 2).toUpperCase();
-      av.style.background = me.color + '28';
-      av.style.color = me.color;
+      staffAvatar(av, me.id, me.name, me.color);
       document.getElementById('nav-name').textContent = me.name;
       document.getElementById('nav-role').textContent = me.role;
 
@@ -1153,7 +1151,7 @@
         const cat = m.category || 'general';
         const unread = !m.is_read_by_me && m.author_id !== me.id;
         return `<div class="note-row">
-          <div class="note-avatar" style="background:${m.author_color}22;color:${m.author_color}">${esc((m.author_name||'?').slice(0,2).toUpperCase())}</div>
+          <div class="note-avatar" data-photo-id="${m.author_id}" data-photo-name="${esc(m.author_name||'?')}" data-photo-color="${m.author_color}" style="background:${m.author_color}22;color:${m.author_color};overflow:hidden">${esc((m.author_name||'?').slice(0,2).toUpperCase())}</div>
           <div class="note-main">
             <div class="note-top">
               <span class="note-author">${esc(m.author_name)}</span>
@@ -1165,6 +1163,8 @@
           </div>
         </div>`;
       }).join('');
+      wrap.querySelectorAll('[data-photo-id]').forEach(el =>
+        staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
     }
 
     async function doLogout() {
@@ -1174,6 +1174,7 @@
 
     init();
   </script>
+  <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>
 </html>
