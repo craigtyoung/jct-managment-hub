@@ -583,14 +583,14 @@
               <span class="phase-count">${done}/${group.length}</span>
             </div>
             <div class="task-list" id="phase-list-${phase}">
-              ${group.map(item => renderTask(item, isAdmin, isToday)).join('')}
+              ${group.map(item => renderTask(item, isAdmin, isToday, isPast)).join('')}
             </div>
           </div>`;
       }
       document.getElementById('checklist-body').innerHTML = html;
     }
 
-    function renderTask(item, isAdmin, isToday) {
+    function renderTask(item, isAdmin, isToday, isPast) {
       const done = item.status === 'complete';
       const nr   = item.status === 'not_required';
       const rowClass = done ? 'done' : nr ? 'nr' : '';
