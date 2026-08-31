@@ -153,6 +153,7 @@
     .cf-sub-val{font-weight:700;color:var(--text);}
     .cf-sub-item.grand{margin-left:auto;}
     .cf-sub-item.grand .cf-sub-val{font-size:14px;}
+    .unit-hint{font-size:9.5px;font-weight:400;color:var(--text-3);letter-spacing:0;}
 
     /* Section subtotal */
     .section-sub{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;background:rgba(12,23,56,0.02);font-size:12px;}
@@ -346,12 +347,27 @@
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const getEl   = id => document.getElementById(id);
 
+    const UNIT_PRICES = { tennis_balls: 6 };
+
     function getAmt(si, item, idx, field) {
       const sel = field
         ? `[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`
         : `[data-si="${si}"][data-item="${item}"][data-idx="${idx}"]`;
       const el = document.querySelector(sel);
-      return el ? n(el.value) : 0;
+      if (!el) return 0;
+      const unit = parseFloat(el.dataset.unit) || 1;
+      return n(el.value) * unit;
+    }
+
+    function onCfTypeChange(sel, si) {
+      sel.className = 'cf-type-sel ' + sel.value;
+      const amtEl = sel.closest('tr').querySelector('.cf-row-amt');
+      if (amtEl && !amtEl.value) {
+        const defaults = { guest: 25, payg: 25 };
+        if (defaults[sel.value] != null) amtEl.value = defaults[sel.value];
+      }
+      recalcShift(si);
+      onInput();
     }
     function getStr(si, item, idx, field) {
       const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`);
@@ -359,14 +375,17 @@
     }
     const COURTS = ['','1','2','3','4','5','6','in'];
 
+    const CF_DEFAULTS = { guest: 25, payg: 25 };
+
     function addCfRow(si, entry) {
       const tbody = document.getElementById(`s${si}-cf-tbody`);
       if (!tbody) return;
       const type = entry?.type || 'lesson';
       const court = entry?.court || '';
+      const initAmt = entry?.amount != null ? entry.amount : (CF_DEFAULTS[type] ?? '');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><select class="cf-type-sel ${type}" onchange="this.className='cf-type-sel '+this.value;recalcShift(${si});onInput();">
+        <td><select class="cf-type-sel ${type}" onchange="onCfTypeChange(this,${si});">
           <option value="lesson"${type==='lesson'?' selected':''}>Lesson</option>
           <option value="guest"${type==='guest'?' selected':''}>Guest</option>
           <option value="payg"${type==='payg'?' selected':''}>PAYG</option>
@@ -377,7 +396,7 @@
           <option value="in"${court==='in'?' selected':''}>Indoor</option>
         </select></td>
         <td><input type="text" class="cf-note-input" placeholder="9:00am · Name" value="${(entry?.detail||'').replace(/"/g,'&quot;')}" oninput="onInput();"></td>
-        <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${entry?.amount!=null?entry.amount:''}" oninput="recalcShift(${si});onInput();"></td>
+        <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
         <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
       tbody.appendChild(tr);
     }
@@ -399,7 +418,9 @@
       const label = SHIFT_LABELS[si];
       const a = (item, idx, field) => {
         const dfAttr = field ? `data-field="${field}"` : '';
-        return `<input type="number" class="amt-input" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">`;
+        const unit = UNIT_PRICES[item];
+        const unitAttr = unit ? `data-unit="${unit}"` : '';
+        return `<input type="number" class="amt-input" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} ${unitAttr} min="0" step="${unit?1:0.01}" placeholder="${unit?'qty':'—'}" oninput="recalcShift(${si});onInput();">`;
       };
       const d = (item, idx, field) =>
         `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
@@ -422,7 +443,7 @@
             <span class="section-total-val" id="s${si}-ps-total">$0.00</span>
           </div>
           <div class="cat-row">
-            <span class="cat-label">Tennis Balls</span>
+            <span class="cat-label">Tennis Balls<br><span class="unit-hint">$6 / unit</span></span>
             <div class="cat-inputs">${amts5('tennis_balls')}</div>
             <span class="cat-row-total" id="s${si}-tb-total">$0.00</span>
           </div>
@@ -689,7 +710,7 @@
         label: SHIFT_LABELS[si],
         staff_name: getEl(`s${si}-staff`)?.value.trim() || '',
         pro_shop: {
-          tennis_balls:  [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="tennis_balls"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          tennis_balls:  [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="tennis_balls"][data-idx="${i}"]`); const u=parseFloat(el?.dataset.unit)||1; return el?.value!==''&&el?.value!=null?(parseFloat(el.value)||0)*u:null; }),
           stringing:     [0,1,2,3,4].map(i => ({ amount: getAmt(si,'stringing',i,'amount') || null, member: getStr(si,'stringing',i,'member') })),
           accessories:   [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="accessories"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
           racquet_sales: [0,1,2,3,4].map(i => ({ amount: getAmt(si,'racquet_sales',i,'amount') || null, member: getStr(si,'racquet_sales',i,'member') })),
@@ -732,7 +753,13 @@
       if (staffEl) staffEl.value = shift.staff_name || '';
 
       const ps = shift.pro_shop || {};
-      const setArr = (item, arr) => (arr || []).forEach((v, i) => setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"]:not([data-field])`, v));
+      const setArr = (item, arr) => (arr || []).forEach((v, i) => {
+        const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"]:not([data-field])`);
+        if (!el) return;
+        const unit = parseFloat(el.dataset.unit) || 1;
+        if (v != null && v !== '') el.value = unit > 1 ? +(v / unit).toFixed(4) : v;
+        else el.value = '';
+      });
 
       setArr('tennis_balls', ps.tennis_balls);
       setArr('accessories', ps.accessories);
