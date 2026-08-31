@@ -178,31 +178,38 @@
       return av;
     }
 
+    const MGMT_ORDER = ['David', 'Victor', 'Jaime', 'Craig'];
+    function makeStaffBtn(s) {
+      const btn = document.createElement('button');
+      btn.className = 'staff-btn';
+      btn.dataset.id = s.id;
+      const nameEl = document.createElement('span');
+      nameEl.className = 'staff-name';
+      nameEl.textContent = s.name;
+      btn.appendChild(makeAvatar(s));
+      btn.appendChild(nameEl);
+      btn.onclick = () => selectStaff(s, btn);
+      return btn;
+    }
     function renderStaff() {
-      const mgmt   = document.getElementById('staff-grid-mgmt');
-      const office = document.getElementById('staff-grid-office');
-      const pros   = document.getElementById('staff-grid-pros');
-      mgmt.innerHTML = '';
-      office.innerHTML = '';
-      pros.innerHTML = '';
+      const mgmtGrid   = document.getElementById('staff-grid-mgmt');
+      const officeGrid = document.getElementById('staff-grid-office');
+      const prosGrid   = document.getElementById('staff-grid-pros');
+      mgmtGrid.innerHTML = officeGrid.innerHTML = prosGrid.innerHTML = '';
+      const mgmt = [], office = [], pros = [];
       staffList.forEach(s => {
-        const btn = document.createElement('button');
-        btn.className = 'staff-btn';
-        btn.dataset.id = s.id;
-        const nameEl = document.createElement('span');
-        nameEl.className = 'staff-name';
-        nameEl.textContent = s.name;
-        btn.appendChild(makeAvatar(s));
-        btn.appendChild(nameEl);
-        btn.onclick = () => selectStaff(s, btn);
-        const group = s.role === 'pro' ? pros
-                    : (s.role === 'admin' || s.role === 'manager') ? mgmt
-                    : office;
-        group.appendChild(btn);
+        if (s.role === 'pro') pros.push(s);
+        else if (s.role === 'admin' || s.role === 'manager') mgmt.push(s);
+        else office.push(s);
       });
-      document.getElementById('mgmt-section').style.display   = mgmt.children.length   ? '' : 'none';
-      document.getElementById('office-section').style.display = office.children.length ? '' : 'none';
-      document.getElementById('pros-section').style.display   = pros.children.length   ? '' : 'none';
+      const ord = n => { const i = MGMT_ORDER.indexOf(n); return i === -1 ? 99 : i; };
+      mgmt.sort((a, b) => ord(a.name) - ord(b.name));
+      mgmt.forEach(s   => mgmtGrid.appendChild(makeStaffBtn(s)));
+      office.forEach(s => officeGrid.appendChild(makeStaffBtn(s)));
+      pros.forEach(s   => prosGrid.appendChild(makeStaffBtn(s)));
+      document.getElementById('mgmt-section').style.display   = mgmt.length   ? '' : 'none';
+      document.getElementById('office-section').style.display = office.length ? '' : 'none';
+      document.getElementById('pros-section').style.display   = pros.length   ? '' : 'none';
     }
 
     function selectStaff(s, btn) {
