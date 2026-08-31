@@ -255,6 +255,13 @@ if (!Array.isArray(_data.cash_summaries)) {
   save();
 }
 
+// Migration: shift coverage requests
+if (!Array.isArray(_data.coverage_requests)) {
+  _data._seq.coverage_requests = 0;
+  _data.coverage_requests = [];
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -884,9 +891,73 @@ function getCashSummaryRange(startDate, endDate) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// ─── Shift coverage ────────────────────────────────────────────────────────────
+
+function getCoverageRequests() {
+  const nowMs = Date.now();
+  const keepMs = 3 * 24 * 60 * 60 * 1000; // resolved requests linger 3 days
+  return (_data.coverage_requests || [])
+    .filter(r => r.status === 'open' || (r.status === 'covered' && (nowMs - new Date(r.covered_at || r.created_at).getTime()) < keepMs))
+    .map(r => {
+      const req = getStaffById(r.staff_id) || {};
+      const cov = r.covered_by ? getStaffById(r.covered_by) : null;
+      return {
+        ...r,
+        requester_name:  req.name,
+        requester_color: req.color,
+        coverer_name:  cov ? cov.name  : null,
+        coverer_color: cov ? cov.color : null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
+      return (a.date + a.shift).localeCompare(b.date + b.shift);
+    });
+}
+
+function createCoverageRequest({ staffId, date, shift, reason }) {
+  const id = nextId('coverage_requests');
+  _data.coverage_requests.push({
+    id,
+    staff_id:   parseInt(staffId),
+    date,
+    shift,
+    reason:     reason ? String(reason).slice(0, 300) : '',
+    status:     'open',
+    covered_by: null,
+    covered_at: null,
+    created_at: now(),
+  });
+  save();
+  return id;
+}
+
+function coverCoverageRequest(id, staffId) {
+  const r = _data.coverage_requests.find(x => x.id === parseInt(id));
+  if (!r || r.status !== 'open') return false;
+  r.status = 'covered';
+  r.covered_by = parseInt(staffId);
+  r.covered_at = now();
+  save();
+  return true;
+}
+
+function cancelCoverageRequest(id, staffId, isAdmin) {
+  const r = _data.coverage_requests.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  if (r.staff_id !== parseInt(staffId) && !isAdmin) return false;
+  r.status = 'cancelled';
+  save();
+  return true;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
+  getCoverageRequests,
+  createCoverageRequest,
+  coverCoverageRequest,
+  cancelCoverageRequest,
   getAllStaff,
   getStaffById,
   getEffectiveStaffId,
