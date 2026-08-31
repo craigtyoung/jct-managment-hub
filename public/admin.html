@@ -367,12 +367,20 @@
 
     <!-- ── Cash Summary ───────────────────────────────────────────────── -->
     <div class="section" id="section-cash">
-      <div class="surface-card">
-        <div class="coming-soon">
-          <svg class="coming-soon-icon" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M17 6V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1"/></svg>
-          <div class="coming-soon-title">Cash Summary</div>
-          <div class="coming-soon-desc">Daily cash reconciliation across all shifts with discrepancy flags.</div>
-          <div class="coming-soon-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Coming Soon</div>
+      <div class="surface-card" style="padding:24px 28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;color:var(--text)">Cash Summary</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:2px">Daily shift totals and reconciliation overview</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="date" id="cash-date-picker" style="padding:6px 10px;border:1px solid rgba(12,23,56,0.12);border-radius:8px;font-size:13px;font-family:var(--font-body);color:var(--text);">
+            <button id="cash-export-btn" onclick="cashExport()" style="padding:6px 14px;border-radius:100px;background:var(--navy);border:none;font-size:12px;font-family:var(--font-body);color:#f0f4ff;cursor:pointer;font-weight:500;">Export CSV</button>
+            <a id="cash-entry-link" href="/cash-summary.html" target="_blank" style="padding:6px 14px;border-radius:100px;background:rgba(44,92,156,0.08);border:1px solid rgba(44,92,156,0.18);font-size:12px;color:var(--blue);text-decoration:none;font-weight:500;">Open Entry Page ↗</a>
+          </div>
+        </div>
+        <div id="cash-summary-body">
+          <div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">Loading…</div>
         </div>
       </div>
     </div>
@@ -498,7 +506,151 @@
       if (btn) btn.classList.add('active');
       document.getElementById('topstrip-section').textContent = SECTION_NAMES[id] || id;
       location.hash = id;
+      if (id === 'cash') loadCashSummary();
     }
+
+    // ── Cash Summary Admin View ───────────────────────────────────────────────
+
+    const CASH_DENOM = [
+      {key:'100',val:100},{key:'50',val:50},{key:'20',val:20},{key:'10',val:10},
+      {key:'5',val:5},{key:'2',val:2},{key:'1',val:1},{key:'025',val:0.25},{key:'010',val:0.10},{key:'005',val:0.05},
+    ];
+    const fmt2 = v => '$' + (parseFloat(v) || 0).toFixed(2);
+    const sumArr = arr => (arr || []).reduce((a, v) => a + (v != null ? parseFloat(v) : 0), 0);
+    const sumObj = (arr, k) => (arr || []).reduce((a, o) => a + (o?.[k] != null ? parseFloat(o[k]) : 0), 0);
+
+    function cashShiftTotal(s) {
+      if (!s) return 0;
+      const ps = s.pro_shop || {};
+      const cf = s.court_fees || {};
+      const ds = s.drinks_snacks || {};
+      const psT = sumArr(ps.tennis_balls) + sumObj(ps.stringing,'amount') + sumArr(ps.accessories) + sumObj(ps.racquet_sales,'amount') + sumArr(ps.grips);
+      const cfT = ['private_lessons','guests_1','guests_2','payg_1','payg_2'].reduce((a, k) => a + (cf[k]?.amount || 0), 0);
+      const dsT = sumArr(ds.drinks) + sumArr(ds.snacks);
+      return psT + cfT + dsT;
+    }
+    function cashTillTotal(s) {
+      if (!s?.till) return 0;
+      const cash  = CASH_DENOM.reduce((a, d) => a + (s.till.cash?.[d.key] || 0) * d.val, 0);
+      const slips = sumArr(s.till.slips);
+      return cash + slips;
+    }
+
+    async function loadCashSummary() {
+      const dp = document.getElementById('cash-date-picker');
+      if (!dp.value) {
+        const today = new Date().toISOString().slice(0,10);
+        dp.value = today;
+      }
+      const date = dp.value;
+      document.getElementById('cash-entry-link').href = `/cash-summary.html?date=${date}`;
+      document.getElementById('cash-export-btn').onclick = () => { window.location.href = `/api/cash-summary/export?date=${date}`; };
+      const body = document.getElementById('cash-summary-body');
+      body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3);font-size:13px;">Loading…</div>';
+      try {
+        const res = await fetch(`/api/cash-summary?date=${date}`);
+        if (!res.ok) throw new Error(res.status);
+        const s = await res.json();
+        const shifts = s.shifts || [];
+
+        const LABELS = ['Morning','Afternoon','Closing','Extended'];
+        const rows = shifts.map((sh, i) => {
+          const total = cashShiftTotal(sh);
+          const till  = cashTillTotal(sh);
+          const diff  = till - total;
+          const hasTill = till > 0;
+          const balanced = Math.abs(diff) < 0.005;
+          const discColor = !hasTill ? '#8fa0b8' : balanced ? '#16a34a' : Math.abs(diff) < 2 ? '#d97706' : '#dc2626';
+          const discText  = !hasTill ? '—' : balanced ? '✓ Balanced' : `${diff > 0 ? '+' : ''}${fmt2(diff)}`;
+          return `
+            <td style="padding:12px 14px;vertical-align:top;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-3);margin-bottom:4px;">${LABELS[i]}</div>
+              <div style="font-size:10px;color:var(--text-3);">${sh.staff_name || '—'}</div>
+              <div style="font-size:1.05rem;font-weight:700;color:var(--text);margin:6px 0 2px;">${fmt2(total)}</div>
+              <div style="font-size:11px;font-weight:600;color:${discColor};">${discText}</div>
+            </td>`;
+        });
+
+        const psTotal  = shifts.reduce((a, sh) => {
+          const ps = sh.pro_shop || {};
+          return a + sumArr(ps.tennis_balls) + sumObj(ps.stringing,'amount') + sumArr(ps.accessories) + sumObj(ps.racquet_sales,'amount') + sumArr(ps.grips);
+        }, 0);
+        const cfTotal  = shifts.reduce((a, sh) => {
+          const cf = sh.court_fees || {};
+          return a + ['private_lessons','guests_1','guests_2','payg_1','payg_2'].reduce((b, k) => b + (cf[k]?.amount || 0), 0);
+        }, 0);
+        const dsTotal  = shifts.reduce((a, sh) => {
+          const ds = sh.drinks_snacks || {};
+          return a + sumArr(ds.drinks) + sumArr(ds.snacks);
+        }, 0);
+        const grandTotal = psTotal + cfTotal + dsTotal;
+
+        body.innerHTML = `
+          <table style="width:100%;border-collapse:collapse;border:1px solid rgba(12,23,56,0.08);border-radius:10px;overflow:hidden;">
+            <thead>
+              <tr style="background:rgba(12,23,56,0.03);">
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">Shift</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">Pro Shop</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">Court Fees</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">D&amp;S</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">Shift Total</th>
+                <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);">Till</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${shifts.map((sh, i) => {
+                const ps = sh.pro_shop || {};
+                const cf = sh.court_fees || {};
+                const ds = sh.drinks_snacks || {};
+                const psT = sumArr(ps.tennis_balls) + sumObj(ps.stringing,'amount') + sumArr(ps.accessories) + sumObj(ps.racquet_sales,'amount') + sumArr(ps.grips);
+                const cfT = ['private_lessons','guests_1','guests_2','payg_1','payg_2'].reduce((a, k) => a + (cf[k]?.amount || 0), 0);
+                const dsT = sumArr(ds.drinks) + sumArr(ds.snacks);
+                const shT = psT + cfT + dsT;
+                const till = cashTillTotal(sh);
+                const diff = till - shT;
+                const hasTill = till > 0;
+                const balanced = Math.abs(diff) < 0.005;
+                const discColor = !hasTill ? '#8fa0b8' : balanced ? '#16a34a' : Math.abs(diff) < 2 ? '#d97706' : '#dc2626';
+                return `<tr style="border-top:1px solid rgba(12,23,56,0.06);">
+                  <td style="padding:10px 14px;font-size:12px;font-weight:600;color:var(--text);">${LABELS[i]}<br><span style="font-weight:400;color:var(--text-3);font-size:11px;">${sh.staff_name || '—'}</span></td>
+                  <td style="padding:10px 14px;font-size:13px;color:var(--text);">${fmt2(psT)}</td>
+                  <td style="padding:10px 14px;font-size:13px;color:var(--text);">${fmt2(cfT)}</td>
+                  <td style="padding:10px 14px;font-size:13px;color:var(--text);">${fmt2(dsT)}</td>
+                  <td style="padding:10px 14px;font-size:13px;font-weight:700;color:var(--text);">${fmt2(shT)}</td>
+                  <td style="padding:10px 14px;font-size:12px;font-weight:600;color:${discColor};">${!hasTill ? '—' : balanced ? '✓ ' + fmt2(till) : fmt2(till) + ' (' + (diff > 0 ? '+' : '') + fmt2(diff) + ')'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="background:var(--navy);color:#f0f4ff;">
+                <td style="padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Daily Total</td>
+                <td style="padding:10px 14px;font-size:13px;font-weight:600;">${fmt2(psTotal)}</td>
+                <td style="padding:10px 14px;font-size:13px;font-weight:600;">${fmt2(cfTotal)}</td>
+                <td style="padding:10px 14px;font-size:13px;font-weight:600;">${fmt2(dsTotal)}</td>
+                <td style="padding:10px 14px;font-size:1rem;font-weight:700;color:#fbbf24;">${fmt2(grandTotal)}</td>
+                <td></td>
+              </tr>
+              <tr style="border-top:1px solid rgba(12,23,56,0.08);">
+                <td colspan="6" style="padding:10px 14px;font-size:12px;color:var(--text-2);">
+                  Opening Float: <strong>${fmt2(s.opening_float ?? 100)}</strong>
+                  &nbsp;·&nbsp;
+                  Closing Float: <strong>${s.closing_float != null ? fmt2(s.closing_float) : '—'}</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>`;
+      } catch (e) {
+        body.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-3);font-size:13px;">Failed to load — ${e.message}</div>`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const dp = document.getElementById('cash-date-picker');
+      if (dp) {
+        dp.value = new Date().toISOString().slice(0,10);
+        dp.addEventListener('change', loadCashSummary);
+      }
+    });
 
     // ── Init ─────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cash Summary · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --spine-w:68px; --nav-w:214px; --total-nav:calc(var(--spine-w) + var(--nav-w));
+      --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c; --powder:#b1c9fb;
+      --canvas:#f0f4f9; --surface:#ffffff;
+      --border:rgba(12,23,56,0.08); --border-nav:rgba(177,201,251,0.07);
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --ps-color:#0c1738; --cf-color:#1e40af; --ds-color:#166534;
+      --font-display:'Playfair Display',Georgia,serif;
+      --font-body:'DM Sans',system-ui,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{padding-left:var(--total-nav);background:var(--canvas);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.5;min-height:100vh;}
+
+    /* ── Spine ── */
+    .spine{position:fixed;left:0;top:0;width:var(--spine-w);height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;z-index:200;border-right:1px solid var(--border-nav);}
+    .spine-top{display:flex;flex-direction:column;align-items:center;padding:16px 0 0;}
+    .spine-mark{width:44px;height:44px;object-fit:contain;filter:brightness(0) invert(1) opacity(0.55);}
+    .spine-divider{width:30px;height:1px;background:var(--border-nav);margin:14px 0 10px;}
+    .spine-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-size:9px;font-weight:600;letter-spacing:0.20em;text-transform:uppercase;color:rgba(177,201,251,0.30);flex:1;}
+    .spine-foot{padding-bottom:18px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+    .spine-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:rgba(177,201,251,0.32);transition:all 0.18s;text-decoration:none;}
+    .spine-btn:hover{color:var(--powder);background:var(--navy-hover);}
+
+    /* ── Sidenav ── */
+    .sidenav{position:fixed;left:var(--spine-w);top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
+    .sidenav::-webkit-scrollbar{width:0;}
+    .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);flex-shrink:0;}
+    .sidenav-brand-name{font-family:var(--font-display);font-size:1rem;font-weight:600;color:#f0f4ff;line-height:1.2;}
+    .sidenav-brand-tag{font-size:9.5px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(177,201,251,0.36);margin-top:4px;}
+    .sidenav-body{flex:1;padding:8px 0 4px;}
+    .nav-group-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:14px 18px 5px;}
+    .nav-link{display:flex;align-items:center;gap:9px;width:100%;padding:8px 18px 8px 16px;background:none;border:none;cursor:pointer;border-left:2px solid transparent;font-size:13px;font-weight:400;color:rgba(177,201,251,0.55);text-align:left;text-decoration:none;transition:color 0.15s,background 0.15s,border-color 0.15s;}
+    .nav-link:hover{color:rgba(240,244,255,0.88);background:var(--navy-hover);}
+    .nav-link.active{color:var(--powder);border-left-color:var(--powder);background:rgba(177,201,251,0.07);font-weight:500;}
+    .nav-icon{width:15px;height:15px;flex-shrink:0;}
+    .nav-badge{margin-left:auto;font-size:10px;font-weight:600;background:var(--blue);color:white;padding:1px 7px;border-radius:100px;line-height:1.6;}
+    .sidenav-foot{flex-shrink:0;padding:12px 14px 18px;border-top:1px solid var(--border-nav);}
+    .sidenav-user{display:flex;align-items:center;gap:9px;padding:6px 4px 10px;}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .sidenav-user-name{font-size:12px;font-weight:500;color:rgba(240,244,255,0.85);line-height:1.2;}
+    .sidenav-user-role{font-size:10px;color:rgba(177,201,251,0.38);text-transform:capitalize;margin-top:1px;}
+    .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font-body);font-size:11px;color:rgba(177,201,251,0.32);transition:color 0.15s,border-color 0.15s;}
+    .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
+
+    /* ── Topstrip ── */
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .ts-clock{font-size:13px;font-weight:500;color:var(--text);}
+    .ts-date{font-size:11px;color:var(--text-3);margin-top:1px;}
+    .ts-right{display:flex;align-items:center;gap:10px;}
+    .save-status{font-size:11px;font-weight:500;color:var(--text-3);}
+    .save-status.saving{color:var(--amber);}
+    .save-status.saved{color:var(--green);}
+    .export-btn{padding:6px 14px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:12px;color:#f0f4ff;cursor:pointer;font-weight:500;transition:background 0.15s;}
+    .export-btn:hover{background:var(--blue);}
+
+    /* ── Main ── */
+    .main{padding:28px 28px 80px;max-width:960px;margin:0 auto;}
+    h1{font-family:var(--font-display);font-size:1.75rem;font-weight:600;color:var(--text);margin-bottom:4px;}
+    .page-sub{font-size:13px;color:var(--text-2);margin-bottom:24px;}
+
+    /* ── Date Nav ── */
+    .date-nav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+    .date-btn{width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:all 0.15s;}
+    .date-btn:hover{border-color:rgba(44,92,156,0.3);color:var(--blue);}
+    .date-label{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--text);}
+    input[type="date"]#date-picker{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--surface);cursor:pointer;}
+    .today-btn{padding:5px 12px;border-radius:100px;background:none;border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all 0.15s;}
+    .today-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+
+    /* ── Float Bar ── */
+    .float-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 20px;display:flex;align-items:center;gap:28px;margin-bottom:20px;}
+    .float-item{display:flex;align-items:center;gap:10px;}
+    .float-label{font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;}
+    .float-input{width:90px;padding:5px 9px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;}
+    .float-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
+
+    /* ── Shift Tabs ── */
+    .shift-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;}
+    .shift-tab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--text-2);transition:all 0.18s;text-align:center;}
+    .shift-tab:hover{background:rgba(44,92,156,0.06);color:var(--blue);}
+    .shift-tab.active{background:var(--navy);color:#f0f4ff;}
+    .shift-tab .tab-total{display:block;font-size:10px;font-weight:600;margin-top:2px;opacity:0.7;}
+    .shift-tab.active .tab-total{opacity:1;}
+
+    /* ── Shift Panel ── */
+    .shift-panel{display:none;}
+    .shift-panel.active{display:block;}
+
+    /* ── Section Card ── */
+    .cs-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+    .cs-header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
+    .cs-header.ps{background:var(--navy);color:#b1c9fb;}
+    .cs-header.cf{background:#1e3a5f;color:#93c5fd;}
+    .cs-header.ds{background:#14532d;color:#86efac;}
+    .cs-header.till{background:#292524;color:#d6d3d1;}
+    .section-total-val{font-size:13px;font-weight:600;letter-spacing:0;}
+
+    /* ── Staff row ── */
+    .staff-row{display:flex;align-items:center;gap:12px;padding:12px 18px 10px;border-bottom:1px solid var(--border);}
+    .staff-row label{font-size:12px;font-weight:600;color:var(--text-2);flex-shrink:0;}
+    .staff-input{flex:1;max-width:260px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);}
+    .staff-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
+
+    /* ── Category Rows ── */
+    .cat-row{display:grid;grid-template-columns:130px 1fr 64px;align-items:start;padding:7px 18px;border-bottom:1px solid rgba(12,23,56,0.04);}
+    .cat-row:last-child{border-bottom:none;}
+    .cat-label{font-size:12px;font-weight:600;color:var(--text);padding-top:7px;}
+    .cat-inputs{display:flex;gap:4px;flex-wrap:wrap;}
+    .amt-wrap{display:flex;flex-direction:column;gap:2px;}
+    .amt-input{width:68px;padding:5px 7px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;background:var(--canvas);}
+    .amt-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
+    .detail-input{width:68px;padding:3px 6px;border:1px solid rgba(12,23,56,0.06);border-radius:5px;font-size:10px;color:var(--text-2);background:transparent;}
+    .detail-input:focus{outline:none;border-color:rgba(44,92,156,0.25);}
+    .cat-row-total{font-size:12px;font-weight:600;color:var(--text);text-align:right;padding-top:7px;min-width:60px;}
+
+    /* Court fee rows — single amount + detail */
+    .cf-row{display:grid;grid-template-columns:130px 1fr 64px;align-items:center;padding:7px 18px;border-bottom:1px solid rgba(12,23,56,0.04);}
+    .cf-row:last-child{border-bottom:none;}
+    .cf-inputs{display:flex;align-items:center;gap:8px;}
+    .cf-amt{width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;background:var(--canvas);}
+    .cf-amt:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
+    .cf-detail{flex:1;max-width:220px;padding:5px 8px;border:1px solid rgba(12,23,56,0.06);border-radius:7px;font-size:12px;color:var(--text-2);background:transparent;}
+    .cf-detail:focus{outline:none;border-color:rgba(44,92,156,0.25);background:var(--surface);}
+
+    /* Section subtotal */
+    .section-sub{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;background:rgba(12,23,56,0.02);font-size:12px;}
+    .section-sub-label{font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-size:11px;}
+    .section-sub-val{font-weight:700;color:var(--text);font-size:14px;}
+
+    /* Shift total */
+    .shift-total-row{background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;margin-bottom:14px;}
+    .shift-total-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(177,201,251,0.7);}
+    .shift-total-val{font-size:1.1rem;font-weight:700;color:#ffffff;}
+
+    /* Discrepancy */
+    .discrepancy-row{display:flex;align-items:center;gap:8px;padding:6px 20px;margin-bottom:14px;border-radius:8px;font-size:12px;}
+    .discrepancy-row.balanced{background:rgba(22,163,74,0.08);color:var(--green);}
+    .discrepancy-row.warn{background:rgba(217,119,6,0.1);color:var(--amber);}
+    .discrepancy-row.error{background:rgba(220,38,38,0.08);color:var(--red);}
+
+    /* Till Count */
+    .till-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 18px;}
+    .till-col-head{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
+    .till-denom-row{display:grid;grid-template-columns:52px 54px 68px;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(12,23,56,0.04);}
+    .till-denom-row:last-child{border-bottom:none;}
+    .till-denom-label{font-size:12px;font-weight:600;color:var(--text);}
+    .till-units-input{width:54px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);text-align:right;font-family:var(--font-body);background:var(--canvas);}
+    .till-units-input:focus{outline:none;border-color:rgba(44,92,156,0.4);background:var(--surface);}
+    .till-denom-amt{font-size:12px;font-weight:600;color:var(--text-2);text-align:right;}
+    .till-sub{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--border);font-size:12px;}
+    .till-sub-label{font-weight:600;color:var(--text-2);}
+    .till-sub-val{font-weight:700;color:var(--text);}
+    .slips-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+    .slip-row{display:flex;align-items:center;gap:6px;}
+    .slip-label{font-size:11px;color:var(--text-3);min-width:38px;}
+    .slip-input{width:80px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);text-align:right;font-family:var(--font-body);background:var(--canvas);}
+    .slip-input:focus{outline:none;border-color:rgba(44,92,156,0.4);background:var(--surface);}
+    .till-total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:rgba(12,23,56,0.04);font-size:12px;}
+    .till-total-label{font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-size:11px;}
+    .till-total-val{font-size:14px;font-weight:700;color:var(--text);}
+
+    /* Daily Totals bar */
+    .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:12px 28px;display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:16px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
+    .daily-cell{display:flex;flex-direction:column;gap:2px;}
+    .daily-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(177,201,251,0.45);}
+    .daily-val{font-size:1rem;font-weight:700;color:#ffffff;}
+    .daily-cell.main .daily-val{font-size:1.15rem;color:#fbbf24;}
+
+    @media(max-width:768px){
+      .spine,.sidenav{display:none;}
+      body{padding-left:0;}
+      .daily-bar{left:0;}
+      .cat-row{grid-template-columns:100px 1fr 56px;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Spine -->
+  <div class="spine">
+    <div class="spine-top">
+      <img src="/jct-logo.png" class="spine-mark" alt="JCT"/>
+      <div class="spine-divider"></div>
+      <div class="spine-label">Staff Hub</div>
+    </div>
+    <div class="spine-foot">
+      <a href="/hub.html" class="spine-btn" title="Dashboard">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Daily Ops</div>
+      <a href="/hub.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Dashboard</a>
+      <a href="/checklist.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Shift Checklist</a>
+      <a href="/cash-summary.html" class="nav-link active"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M17 6V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1"/></svg>Cash Summary</a>
+      <div class="nav-group-label">Team</div>
+      <a href="/schedule.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</a>
+      <a href="/timesheet.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Timesheets</a>
+      <a href="/comms.html" class="nav-link" id="comms-nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Communications<span id="comms-nav-badge" class="nav-badge" style="display:none"></span></a>
+      <div id="admin-nav-group" style="display:none">
+        <div class="nav-group-label">Admin</div>
+        <a href="/admin.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Admin Panel</a>
+      </div>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div><div class="sidenav-user-name" id="nav-name">—</div><div class="sidenav-user-role" id="nav-role">—</div></div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Topstrip -->
+  <div class="topstrip">
+    <div><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
+    <div class="ts-right">
+      <span class="save-status" id="save-status">—</span>
+      <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <h1>Cash Summary</h1>
+    <p class="page-sub" id="page-sub">Daily cash reconciliation</p>
+
+    <!-- Date Nav -->
+    <div class="date-nav">
+      <button class="date-btn" onclick="shiftDate(-1)" title="Previous day">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <input type="date" id="date-picker" onchange="changeDate(this.value)">
+      <button class="date-btn" onclick="shiftDate(1)" title="Next day">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button class="today-btn" onclick="goToday()">Today</button>
+    </div>
+
+    <!-- Float Bar -->
+    <div class="float-bar">
+      <div class="float-item">
+        <span class="float-label">Opening Float</span>
+        <input type="number" class="float-input" id="opening-float" value="100" min="0" step="0.01" oninput="onInput()">
+      </div>
+      <div class="float-item">
+        <span class="float-label">Closing Float</span>
+        <input type="number" class="float-input" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
+      </div>
+    </div>
+
+    <!-- Shift Tabs -->
+    <div class="shift-tabs" id="shift-tabs"></div>
+
+    <!-- Shift Panels (generated by JS) -->
+    <div id="shift-0" class="shift-panel"></div>
+    <div id="shift-1" class="shift-panel"></div>
+    <div id="shift-2" class="shift-panel"></div>
+    <div id="shift-3" class="shift-panel"></div>
+  </main>
+
+  <!-- Daily Totals Bar -->
+  <div class="daily-bar">
+    <div class="daily-cell">
+      <span class="daily-label">Pro Shop</span>
+      <span class="daily-val" id="daily-ps">$0.00</span>
+    </div>
+    <div class="daily-cell">
+      <span class="daily-label">Guest Income</span>
+      <span class="daily-val" id="daily-cf">$0.00</span>
+    </div>
+    <div class="daily-cell">
+      <span class="daily-label">Drinks &amp; Snacks</span>
+      <span class="daily-val" id="daily-ds">$0.00</span>
+    </div>
+    <div class="daily-cell main">
+      <span class="daily-label">Total Daily Sales</span>
+      <span class="daily-val" id="daily-total">$0.00</span>
+    </div>
+  </div>
+
+  <script>
+    const SHIFT_LABELS = ['Morning', 'Afternoon', 'Closing', 'Extended'];
+    const DENOM = [
+      { key:'100', val:100,  label:'$100'  },
+      { key:'50',  val:50,   label:'$50'   },
+      { key:'20',  val:20,   label:'$20'   },
+      { key:'10',  val:10,   label:'$10'   },
+      { key:'5',   val:5,    label:'$5'    },
+      { key:'2',   val:2,    label:'$2'    },
+      { key:'1',   val:1,    label:'$1'    },
+      { key:'025', val:0.25, label:'$0.25' },
+      { key:'010', val:0.10, label:'$0.10' },
+      { key:'005', val:0.05, label:'$0.05' },
+    ];
+
+    let me = null;
+    let currentDate = '';
+    let saveTimer   = null;
+    let activeShift = 0;
+
+    // ── Utilities ──────────────────────────────────────────────────────────────
+
+    const fmt  = v => '$' + (v || 0).toFixed(2);
+    const n    = v => v != null && v !== '' ? parseFloat(v) || 0 : 0;
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const getEl   = id => document.getElementById(id);
+
+    function getAmt(si, item, idx, field) {
+      const sel = field
+        ? `[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`
+        : `[data-si="${si}"][data-item="${item}"][data-idx="${idx}"]`;
+      const el = document.querySelector(sel);
+      return el ? n(el.value) : 0;
+    }
+    function getStr(si, item, idx, field) {
+      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`);
+      return el ? el.value.trim() : '';
+    }
+    function getCfAmt(si, item) {
+      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-field="amount"]`);
+      return el ? n(el.value) : 0;
+    }
+    function getCfDetail(si, item) {
+      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-field="detail"]`);
+      return el ? el.value.trim() : '';
+    }
+
+    // ── Form Generation ────────────────────────────────────────────────────────
+
+    function buildShiftPanel(si) {
+      const label = SHIFT_LABELS[si];
+      const a = (item, idx, field) => {
+        const dfAttr = field ? `data-field="${field}"` : '';
+        return `<input type="number" class="amt-input" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">`;
+      };
+      const d = (item, idx, field) =>
+        `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
+      const cf = (item) =>
+        `<input type="number" class="cf-amt" data-si="${si}" data-item="${item}" data-field="amount" min="0" step="0.01" placeholder="$0.00" oninput="recalcShift(${si});onInput();">`;
+      const cfd = (item) =>
+        `<input type="text" class="cf-detail" data-si="${si}" data-item="${item}" data-field="detail" placeholder="Time / Court" oninput="onInput();">`;
+      const amts5 = (item) => [0,1,2,3,4].map(i => a(item, i)).join('');
+      const amtsWithMember = (item) => [0,1,2,3,4].map(i =>
+        `<div class="amt-wrap">${a(item,i,'amount')}${d(item,i,'member')}</div>`
+      ).join('');
+
+      return `
+        <!-- Staff Name -->
+        <div class="cs-card">
+          <div class="staff-row">
+            <label>Staff Name</label>
+            <input type="text" class="staff-input" id="s${si}-staff" placeholder="Enter name" oninput="onInput()">
+          </div>
+
+          <!-- PRO SHOP -->
+          <div class="cs-header ps">
+            <span>Pro Shop</span>
+            <span class="section-total-val" id="s${si}-ps-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Tennis Balls</span>
+            <div class="cat-inputs">${amts5('tennis_balls')}</div>
+            <span class="cat-row-total" id="s${si}-tb-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Stringing</span>
+            <div class="cat-inputs">${amtsWithMember('stringing')}</div>
+            <span class="cat-row-total" id="s${si}-str-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Accessories</span>
+            <div class="cat-inputs">${amts5('accessories')}</div>
+            <span class="cat-row-total" id="s${si}-acc-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Racquet Sales</span>
+            <div class="cat-inputs">${amtsWithMember('racquet_sales')}</div>
+            <span class="cat-row-total" id="s${si}-rs-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Grips</span>
+            <div class="cat-inputs">${amts5('grips')}</div>
+            <span class="cat-row-total" id="s${si}-grips-total">$0.00</span>
+          </div>
+          <div class="section-sub">
+            <span class="section-sub-label">Shift Total — Pro Shop</span>
+            <span class="section-sub-val" id="s${si}-ps-sub">$0.00</span>
+          </div>
+
+          <!-- COURT FEES -->
+          <div class="cs-header cf">
+            <span>Court Fees</span>
+            <span class="section-total-val" id="s${si}-cf-total">$0.00</span>
+          </div>
+          <div class="cf-row">
+            <span class="cat-label">Private Lessons</span>
+            <div class="cf-inputs">${cf('private_lessons')}${cfd('private_lessons')}</div>
+            <span class="cat-row-total" id="s${si}-pl-total">$0.00</span>
+          </div>
+          <div class="cf-row">
+            <span class="cat-label">Guests (1)</span>
+            <div class="cf-inputs">${cf('guests_1')}${cfd('guests_1')}</div>
+            <span class="cat-row-total" id="s${si}-g1-total">$0.00</span>
+          </div>
+          <div class="cf-row">
+            <span class="cat-label">Guests (2)</span>
+            <div class="cf-inputs">${cf('guests_2')}${cfd('guests_2')}</div>
+            <span class="cat-row-total" id="s${si}-g2-total">$0.00</span>
+          </div>
+          <div class="cf-row">
+            <span class="cat-label">PAYG (1)</span>
+            <div class="cf-inputs">${cf('payg_1')}${cfd('payg_1')}</div>
+            <span class="cat-row-total" id="s${si}-p1-total">$0.00</span>
+          </div>
+          <div class="cf-row">
+            <span class="cat-label">PAYG (2)</span>
+            <div class="cf-inputs">${cf('payg_2')}${cfd('payg_2')}</div>
+            <span class="cat-row-total" id="s${si}-p2-total">$0.00</span>
+          </div>
+          <div class="section-sub">
+            <span class="section-sub-label">Shift Total — Court Fees</span>
+            <span class="section-sub-val" id="s${si}-cf-sub">$0.00</span>
+          </div>
+
+          <!-- DRINKS & SNACKS -->
+          <div class="cs-header ds">
+            <span>Drinks &amp; Snacks</span>
+            <span class="section-total-val" id="s${si}-ds-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Drinks</span>
+            <div class="cat-inputs">${amts5('drinks')}</div>
+            <span class="cat-row-total" id="s${si}-drinks-total">$0.00</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-label">Snacks</span>
+            <div class="cat-inputs">${amts5('snacks')}</div>
+            <span class="cat-row-total" id="s${si}-snacks-total">$0.00</span>
+          </div>
+          <div class="section-sub">
+            <span class="section-sub-label">Shift Total — Drinks &amp; Snacks</span>
+            <span class="section-sub-val" id="s${si}-ds-sub">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Shift Total -->
+        <div class="shift-total-row">
+          <span class="shift-total-label">${label} Shift Total</span>
+          <span class="shift-total-val" id="s${si}-shift-total">$0.00</span>
+        </div>
+
+        <!-- Discrepancy -->
+        <div class="discrepancy-row balanced" id="s${si}-discrepancy">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="s${si}-disc-text">Enter till count to verify balance</span>
+        </div>
+
+        <!-- TILL COUNT -->
+        <div class="cs-card">
+          <div class="cs-header till">
+            <span>Till Count</span>
+            <span class="section-total-val" id="s${si}-till-total">$0.00</span>
+          </div>
+          <div class="till-grid">
+            <div>
+              <div class="till-col-head">Cash — Denominations</div>
+              ${DENOM.map(d => `
+                <div class="till-denom-row">
+                  <span class="till-denom-label">${d.label}</span>
+                  <input type="number" class="till-units-input" id="s${si}-till-${d.key}" min="0" step="1" placeholder="0" oninput="recalcShift(${si});onInput();">
+                  <span class="till-denom-amt" id="s${si}-till-${d.key}-amt">$0.00</span>
+                </div>`).join('')}
+              <div class="till-sub">
+                <span class="till-sub-label">Cash Sub-Total</span>
+                <span class="till-sub-val" id="s${si}-cash-sub">$0.00</span>
+              </div>
+            </div>
+            <div>
+              <div class="till-col-head">Card Slips</div>
+              <div class="slips-grid">
+                ${[0,1,2,3,4,5,6,7,8,9].map(i =>
+                  `<div class="slip-row">
+                    <span class="slip-label">Slip ${i+1}</span>
+                    <input type="number" class="slip-input" id="s${si}-slip-${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
+                  </div>`
+                ).join('')}
+              </div>
+              <div class="till-sub">
+                <span class="till-sub-label">Slips Sub-Total</span>
+                <span class="till-sub-val" id="s${si}-slips-sub">$0.00</span>
+              </div>
+            </div>
+          </div>
+          <div class="till-total-row">
+            <span class="till-total-label">Till Total</span>
+            <span class="till-total-val" id="s${si}-till-grand">$0.00</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Build Tab Bar ──────────────────────────────────────────────────────────
+
+    function buildTabs() {
+      const tabs = document.getElementById('shift-tabs');
+      tabs.innerHTML = SHIFT_LABELS.map((label, si) =>
+        `<button class="shift-tab${si === 0 ? ' active' : ''}" id="tab-${si}" onclick="showShift(${si})">
+          ${label}
+          <span class="tab-total" id="tab-total-${si}">$0.00</span>
+        </button>`
+      ).join('');
+    }
+
+    function showShift(si) {
+      activeShift = si;
+      document.querySelectorAll('.shift-panel').forEach((el, i) => {
+        el.classList.toggle('active', i === si);
+      });
+      document.querySelectorAll('.shift-tab').forEach((el, i) => {
+        el.classList.toggle('active', i === si);
+      });
+    }
+
+    // ── Recalculation ──────────────────────────────────────────────────────────
+
+    function recalcShift(si) {
+      const sumAmts5 = (item) => [0,1,2,3,4].reduce((acc, i) => acc + getAmt(si,item,i), 0);
+      const sumObjs5 = (item) => [0,1,2,3,4].reduce((acc, i) => acc + getAmt(si,item,i,'amount'), 0);
+
+      const tb   = sumAmts5('tennis_balls');
+      const str  = sumObjs5('stringing');
+      const acc  = sumAmts5('accessories');
+      const rs   = sumObjs5('racquet_sales');
+      const grps = sumAmts5('grips');
+      const psT  = tb + str + acc + rs + grps;
+
+      setText(`s${si}-tb-total`,    fmt(tb));
+      setText(`s${si}-str-total`,   fmt(str));
+      setText(`s${si}-acc-total`,   fmt(acc));
+      setText(`s${si}-rs-total`,    fmt(rs));
+      setText(`s${si}-grips-total`, fmt(grps));
+      setText(`s${si}-ps-total`,    fmt(psT));
+      setText(`s${si}-ps-sub`,      fmt(psT));
+
+      const pl  = getCfAmt(si,'private_lessons');
+      const g1  = getCfAmt(si,'guests_1');
+      const g2  = getCfAmt(si,'guests_2');
+      const p1  = getCfAmt(si,'payg_1');
+      const p2  = getCfAmt(si,'payg_2');
+      const cfT = pl + g1 + g2 + p1 + p2;
+
+      setText(`s${si}-pl-total`, fmt(pl));
+      setText(`s${si}-g1-total`, fmt(g1));
+      setText(`s${si}-g2-total`, fmt(g2));
+      setText(`s${si}-p1-total`, fmt(p1));
+      setText(`s${si}-p2-total`, fmt(p2));
+      setText(`s${si}-cf-total`, fmt(cfT));
+      setText(`s${si}-cf-sub`,   fmt(cfT));
+
+      const drinks = sumAmts5('drinks');
+      const snacks = sumAmts5('snacks');
+      const dsT    = drinks + snacks;
+
+      setText(`s${si}-drinks-total`, fmt(drinks));
+      setText(`s${si}-snacks-total`, fmt(snacks));
+      setText(`s${si}-ds-total`,     fmt(dsT));
+      setText(`s${si}-ds-sub`,       fmt(dsT));
+
+      const shiftT = psT + cfT + dsT;
+      setText(`s${si}-shift-total`, fmt(shiftT));
+      setText(`tab-total-${si}`,    fmt(shiftT));
+
+      // Till
+      let cashSub = 0;
+      DENOM.forEach(d => {
+        const units = parseInt(getEl(`s${si}-till-${d.key}`)?.value || '0') || 0;
+        const amt   = units * d.val;
+        cashSub += amt;
+        setText(`s${si}-till-${d.key}-amt`, fmt(amt));
+      });
+      let slipSub = 0;
+      [0,1,2,3,4,5,6,7,8,9].forEach(i => {
+        slipSub += n(getEl(`s${si}-slip-${i}`)?.value);
+      });
+      const tillT = cashSub + slipSub;
+
+      setText(`s${si}-cash-sub`,   fmt(cashSub));
+      setText(`s${si}-slips-sub`,  fmt(slipSub));
+      setText(`s${si}-till-grand`, fmt(tillT));
+      setText(`s${si}-till-total`, fmt(tillT));
+
+      // Discrepancy
+      const discRow  = getEl(`s${si}-discrepancy`);
+      const discText = getEl(`s${si}-disc-text`);
+      if (discRow && discText) {
+        const hasTill = cashSub > 0 || slipSub > 0;
+        if (!hasTill) {
+          discRow.className  = 'discrepancy-row balanced';
+          discText.textContent = 'Enter till count to verify balance';
+        } else {
+          const diff = tillT - shiftT;
+          if (Math.abs(diff) < 0.005) {
+            discRow.className  = 'discrepancy-row balanced';
+            discText.textContent = 'Till balanced';
+          } else if (Math.abs(diff) < 2) {
+            discRow.className  = 'discrepancy-row warn';
+            discText.textContent = `Till ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))} vs shift total`;
+          } else {
+            discRow.className  = 'discrepancy-row error';
+            discText.textContent = `Till ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))} — check entries`;
+          }
+        }
+      }
+
+      recalcDaily();
+    }
+
+    function recalcDaily() {
+      let ps = 0, cf = 0, ds = 0;
+      for (let si = 0; si < 4; si++) {
+        ps += parseFloat(getEl(`s${si}-ps-sub`)?.textContent?.replace('$','') || '0') || 0;
+        cf += parseFloat(getEl(`s${si}-cf-sub`)?.textContent?.replace('$','') || '0') || 0;
+        ds += parseFloat(getEl(`s${si}-ds-sub`)?.textContent?.replace('$','') || '0') || 0;
+      }
+      setText('daily-ps',    fmt(ps));
+      setText('daily-cf',    fmt(cf));
+      setText('daily-ds',    fmt(ds));
+      setText('daily-total', fmt(ps + cf + ds));
+    }
+
+    // ── Data Collection ────────────────────────────────────────────────────────
+
+    function collectShift(si) {
+      return {
+        index: si,
+        label: SHIFT_LABELS[si],
+        staff_name: getEl(`s${si}-staff`)?.value.trim() || '',
+        pro_shop: {
+          tennis_balls:  [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="tennis_balls"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          stringing:     [0,1,2,3,4].map(i => ({ amount: getAmt(si,'stringing',i,'amount') || null, member: getStr(si,'stringing',i,'member') })),
+          accessories:   [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="accessories"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          racquet_sales: [0,1,2,3,4].map(i => ({ amount: getAmt(si,'racquet_sales',i,'amount') || null, member: getStr(si,'racquet_sales',i,'member') })),
+          grips:         [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="grips"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+        },
+        court_fees: {
+          private_lessons: { amount: getCfAmt(si,'private_lessons') || null, detail: getCfDetail(si,'private_lessons') },
+          guests_1:        { amount: getCfAmt(si,'guests_1') || null,        detail: getCfDetail(si,'guests_1') },
+          guests_2:        { amount: getCfAmt(si,'guests_2') || null,        detail: getCfDetail(si,'guests_2') },
+          payg_1:          { amount: getCfAmt(si,'payg_1') || null,          detail: getCfDetail(si,'payg_1') },
+          payg_2:          { amount: getCfAmt(si,'payg_2') || null,          detail: getCfDetail(si,'payg_2') },
+        },
+        drinks_snacks: {
+          drinks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="drinks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          snacks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="snacks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+        },
+        till: {
+          cash:  Object.fromEntries(DENOM.map(d => [d.key, parseInt(getEl(`s${si}-till-${d.key}`)?.value || '0') || 0])),
+          slips: [0,1,2,3,4,5,6,7,8,9].map(i => { const el = getEl(`s${si}-slip-${i}`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+        },
+      };
+    }
+
+    function collectAll() {
+      return {
+        date:          currentDate,
+        opening_float: n(getEl('opening-float')?.value),
+        closing_float: getEl('closing-float')?.value !== '' ? n(getEl('closing-float')?.value) : null,
+        shifts:        [0,1,2,3].map(si => collectShift(si)),
+      };
+    }
+
+    // ── Render from data ───────────────────────────────────────────────────────
+
+    function setInput(sel, val) {
+      const el = document.querySelector(sel);
+      if (!el) return;
+      if (val != null && val !== '') el.value = val;
+      else el.value = '';
+    }
+
+    function renderShift(si, shift) {
+      if (!shift) return;
+
+      const staffEl = getEl(`s${si}-staff`);
+      if (staffEl) staffEl.value = shift.staff_name || '';
+
+      const ps = shift.pro_shop || {};
+      const setArr = (item, arr) => (arr || []).forEach((v, i) => setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"]:not([data-field])`, v));
+
+      setArr('tennis_balls', ps.tennis_balls);
+      setArr('accessories', ps.accessories);
+      setArr('grips', ps.grips);
+      (ps.stringing || []).forEach((v, i) => {
+        setInput(`[data-si="${si}"][data-item="stringing"][data-idx="${i}"][data-field="amount"]`, v?.amount);
+        setInput(`[data-si="${si}"][data-item="stringing"][data-idx="${i}"][data-field="member"]`, v?.member);
+      });
+      (ps.racquet_sales || []).forEach((v, i) => {
+        setInput(`[data-si="${si}"][data-item="racquet_sales"][data-idx="${i}"][data-field="amount"]`, v?.amount);
+        setInput(`[data-si="${si}"][data-item="racquet_sales"][data-idx="${i}"][data-field="member"]`, v?.member);
+      });
+
+      const cf = shift.court_fees || {};
+      ['private_lessons','guests_1','guests_2','payg_1','payg_2'].forEach(item => {
+        setInput(`[data-si="${si}"][data-item="${item}"][data-field="amount"]`, cf[item]?.amount);
+        setInput(`[data-si="${si}"][data-item="${item}"][data-field="detail"]`, cf[item]?.detail);
+      });
+
+      const ds = shift.drinks_snacks || {};
+      setArr('drinks', ds.drinks);
+      setArr('snacks', ds.snacks);
+
+      const till = shift.till || {};
+      DENOM.forEach(d => {
+        const el = getEl(`s${si}-till-${d.key}`);
+        if (el) el.value = till.cash?.[d.key] || '';
+      });
+      (till.slips || []).forEach((v, i) => {
+        const el = getEl(`s${si}-slip-${i}`);
+        if (el && v != null) el.value = v;
+      });
+
+      recalcShift(si);
+    }
+
+    // ── Save ───────────────────────────────────────────────────────────────────
+
+    function onInput() {
+      setSaveStatus('saving', 'Saving…');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(doSave, 1500);
+    }
+
+    async function doSave() {
+      const payload = collectAll();
+      try {
+        const res = await fetch('/api/cash-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 401) { window.location.href = '/login.html'; return; }
+        if (!res.ok) throw new Error(`Save failed ${res.status}`);
+        setSaveStatus('saved', 'Saved');
+      } catch (e) {
+        setSaveStatus('', `Save error — ${e.message}`);
+      }
+    }
+
+    function setSaveStatus(cls, text) {
+      const el = getEl('save-status');
+      if (!el) return;
+      el.className = 'save-status' + (cls ? ` ${cls}` : '');
+      el.textContent = text;
+    }
+
+    // ── Date Handling ──────────────────────────────────────────────────────────
+
+    function changeDate(d) {
+      currentDate = d;
+      history.replaceState({}, '', `?date=${d}`);
+      load();
+    }
+
+    function shiftDate(delta) {
+      const d = new Date(currentDate + 'T12:00:00');
+      d.setDate(d.getDate() + delta);
+      changeDate(d.toISOString().slice(0, 10));
+    }
+
+    function goToday() {
+      changeDate(new Date().toISOString().slice(0, 10));
+    }
+
+    // ── Load ───────────────────────────────────────────────────────────────────
+
+    async function load() {
+      getEl('date-picker').value = currentDate;
+
+      const DAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const d = new Date(currentDate + 'T12:00:00');
+      getEl('page-sub').textContent = `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+
+      setSaveStatus('', 'Loading…');
+      try {
+        const res = await fetch(`/api/cash-summary?date=${currentDate}`);
+        if (res.status === 401) { window.location.href = '/login.html'; return; }
+        const summary = await res.json();
+
+        getEl('opening-float').value = summary.opening_float ?? 100;
+        getEl('closing-float').value = summary.closing_float != null ? summary.closing_float : '';
+
+        for (let si = 0; si < 4; si++) {
+          renderShift(si, summary.shifts?.[si]);
+        }
+        setSaveStatus('saved', 'Loaded');
+      } catch (e) {
+        setSaveStatus('', 'Load error');
+      }
+    }
+
+    // ── Export ─────────────────────────────────────────────────────────────────
+
+    function exportCSV() {
+      window.location.href = `/api/cash-summary/export?date=${currentDate}`;
+    }
+
+    // ── Auth / Nav ──────────────────────────────────────────────────────────────
+
+    function updateClock() {
+      const now = new Date();
+      const days  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const h = now.getHours(), m = now.getMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const hh = h % 12 || 12;
+      getEl('clock').textContent = `${hh}:${String(m).padStart(2,'0')} ${ampm}`;
+      getEl('dateline').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+    }
+
+    async function doLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────────────
+
+    async function init() {
+      const meRes = await fetch('/api/me');
+      if (meRes.status === 401) { window.location.href = '/login.html'; return; }
+      me = await meRes.json();
+
+      // Nav avatar
+      const av = getEl('nav-avatar');
+      if (av) {
+        av.textContent = me.name.charAt(0).toUpperCase();
+        av.style.background = me.color || '#2c5c9c';
+        av.style.color = '#fff';
+      }
+      if (getEl('nav-name')) getEl('nav-name').textContent = me.name;
+      if (getEl('nav-role')) getEl('nav-role').textContent = me.role;
+      if (me.is_admin && getEl('admin-nav-group')) getEl('admin-nav-group').style.display = '';
+
+      // Build panels
+      buildTabs();
+      for (let si = 0; si < 4; si++) {
+        getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
+      }
+      showShift(0);
+
+      // Date
+      const params = new URLSearchParams(location.search);
+      currentDate = params.get('date') || new Date().toISOString().slice(0, 10);
+
+      updateClock();
+      setInterval(updateClock, 30000);
+
+      await load();
+    }
+
+    init();
+  </script>
+</body>
+</html>

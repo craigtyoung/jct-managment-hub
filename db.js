@@ -226,6 +226,13 @@ if (!_data.period_expenses) {
   save();
 }
 
+// Migration: cash summaries
+if (!Array.isArray(_data.cash_summaries)) {
+  _data._seq.cash_summaries = 0;
+  _data.cash_summaries = [];
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -783,6 +790,80 @@ function getPeriodExpensesForRange(periodStart) {
   return result;
 }
 
+// ─── Cash Summary ─────────────────────────────────────────────────────────────
+
+const CASH_SHIFT_LABELS = ['Morning', 'Afternoon', 'Closing', 'Extended'];
+const CASH_DENOM_KEYS   = ['100','50','20','10','5','2','1','025','010','005'];
+
+function _blankCashShift(index) {
+  return {
+    index,
+    label: CASH_SHIFT_LABELS[index] || `Shift ${index + 1}`,
+    staff_name: '',
+    pro_shop: {
+      tennis_balls: [null,null,null,null,null],
+      stringing:    Array.from({length:5}, () => ({ amount: null, member: '' })),
+      accessories:  [null,null,null,null,null],
+      racquet_sales:Array.from({length:5}, () => ({ amount: null, member: '' })),
+      grips:        [null,null,null,null,null],
+    },
+    court_fees: {
+      private_lessons: { amount: null, detail: '' },
+      guests_1:        { amount: null, detail: '' },
+      guests_2:        { amount: null, detail: '' },
+      payg_1:          { amount: null, detail: '' },
+      payg_2:          { amount: null, detail: '' },
+    },
+    drinks_snacks: {
+      drinks: [null,null,null,null,null],
+      snacks: [null,null,null,null,null],
+    },
+    till: {
+      cash:  Object.fromEntries(CASH_DENOM_KEYS.map(k => [k, 0])),
+      slips: Array(10).fill(null),
+    },
+  };
+}
+
+function getCashSummary(date) {
+  if (!Array.isArray(_data.cash_summaries)) return null;
+  return _data.cash_summaries.find(s => s.date === date) || null;
+}
+
+function upsertCashSummary({ date, openingFloat, closingFloat, shifts, updatedBy }) {
+  if (!Array.isArray(_data.cash_summaries)) {
+    _data._seq.cash_summaries = 0;
+    _data.cash_summaries = [];
+  }
+  const existing = _data.cash_summaries.find(s => s.date === date);
+  if (existing) {
+    if (openingFloat !== undefined && openingFloat !== null) existing.opening_float = parseFloat(openingFloat);
+    if (closingFloat !== undefined) existing.closing_float = closingFloat !== null ? parseFloat(closingFloat) : null;
+    if (shifts !== undefined) existing.shifts = shifts;
+    existing.updated_by = updatedBy;
+    existing.updated_at = now();
+  } else {
+    _data.cash_summaries.push({
+      id: nextId('cash_summaries'),
+      date,
+      opening_float:  openingFloat !== undefined ? parseFloat(openingFloat) : 100,
+      closing_float:  closingFloat !== undefined && closingFloat !== null ? parseFloat(closingFloat) : null,
+      shifts:         shifts || CASH_SHIFT_LABELS.map((_, i) => _blankCashShift(i)),
+      updated_by:     updatedBy,
+      updated_at:     now(),
+    });
+  }
+  save();
+  return _data.cash_summaries.find(s => s.date === date);
+}
+
+function getCashSummaryRange(startDate, endDate) {
+  if (!Array.isArray(_data.cash_summaries)) return [];
+  return _data.cash_summaries
+    .filter(s => s.date >= startDate && s.date <= endDate)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -826,4 +907,7 @@ module.exports = {
   getPeriodExpenses,
   setPeriodExpenses,
   getPeriodExpensesForRange,
+  getCashSummary,
+  upsertCashSummary,
+  getCashSummaryRange,
 };
