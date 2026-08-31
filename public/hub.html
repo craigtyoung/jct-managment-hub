@@ -331,6 +331,22 @@
       background: rgba(143,160,184,0.14); color: var(--text-3);
       padding: 2px 7px; border-radius: 100px;
     }
+    /* Live stat cards */
+    .stat-card.live {
+      opacity: 1;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .stat-card.live .stat-value { color: var(--text); }
+    .stat-card.live .stat-sub   { color: var(--text-2); }
+    .stat-live-dot {
+      position: absolute; top: 12px; right: 12px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #10b981; animation: blink 2.5s ease infinite;
+    }
+    .stat-value.accent-green { color: #10b981; }
+    .stat-value.accent-amber { color: #d97706; }
+    .stat-value.accent-blue  { color: var(--blue); }
 
     /* ─────────────────────────────────────────────
        LATEST NOTES PANEL (view-only → comms log)
@@ -734,29 +750,29 @@
 
     <!-- ── Placeholder Stats ─────────────────── -->
     <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-soon-badge">Coming Soon</span>
-        <div class="stat-label">Courts Open</div>
-        <div class="stat-value">— <span>/ 6</span></div>
-        <div class="stat-sub">Live court data</div>
+      <div class="stat-card live">
+        <span class="stat-live-dot"></span>
+        <div class="stat-label">On Shift Now</div>
+        <div class="stat-value" id="sc-shift-val">—</div>
+        <div class="stat-sub" id="sc-shift-sub">Loading…</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-soon-badge">Coming Soon</span>
-        <div class="stat-label">Today's Bookings</div>
-        <div class="stat-value">—</div>
-        <div class="stat-sub">Booking integration</div>
+      <div class="stat-card live">
+        <span class="stat-live-dot"></span>
+        <div class="stat-label">Checklist Today</div>
+        <div class="stat-value" id="sc-checklist-val">—</div>
+        <div class="stat-sub" id="sc-checklist-sub">Loading…</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-soon-badge">Coming Soon</span>
-        <div class="stat-label">Cash — Today</div>
-        <div class="stat-value">—</div>
-        <div class="stat-sub">Cash module</div>
+      <div class="stat-card live">
+        <span class="stat-live-dot"></span>
+        <div class="stat-label">Team Notes</div>
+        <div class="stat-value" id="sc-notes-val">—</div>
+        <div class="stat-sub" id="sc-notes-sub">Loading…</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-soon-badge">Coming Soon</span>
-        <div class="stat-label">Members In</div>
-        <div class="stat-value">—</div>
-        <div class="stat-sub">Check-in integration</div>
+      <div class="stat-card live">
+        <span class="stat-live-dot"></span>
+        <div class="stat-label">Oakville</div>
+        <div class="stat-value" id="sc-weather-val">—</div>
+        <div class="stat-sub" id="sc-weather-sub">Loading…</div>
       </div>
     </div>
 
@@ -1049,7 +1065,7 @@
         document.getElementById('admin-nav-group').style.display = 'block';
       }
 
-      // Checklist progress tile
+      // Checklist progress tile + stat card
       try {
         const h = new Date().getHours();
         const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
@@ -1057,30 +1073,51 @@
         const today = new Date().toISOString().slice(0, 10);
         const pr = await fetch(`/api/checklist/progress?shift=${shift}&date=${today}`);
         const prog = await pr.json();
+        const pct = prog.total > 0 ? Math.round((prog.complete / prog.total) * 100) : 0;
         const footer = document.getElementById('checklist-tile-footer');
         if (footer && prog.total > 0) {
-          const pct = Math.round((prog.complete / prog.total) * 100);
           footer.textContent = `${shiftLabel} · ${prog.complete}/${prog.total} complete`;
           footer.style.color = pct === 100 ? '#10b981' : prog.complete > 0 ? '#d97706' : '#8fa0b8';
         } else if (footer) {
           footer.textContent = `${shiftLabel} shift`;
         }
+        const scv = document.getElementById('sc-checklist-val');
+        const scs = document.getElementById('sc-checklist-sub');
+        if (scv) {
+          if (prog.total > 0) {
+            scv.textContent = `${prog.complete}/${prog.total}`;
+            scv.className = 'stat-value ' + (pct === 100 ? 'accent-green' : prog.complete > 0 ? 'accent-amber' : '');
+            scs.textContent = `${shiftLabel} · ${pct}% done`;
+          } else {
+            scv.textContent = '0/0';
+            scs.textContent = `${shiftLabel} · no tasks set`;
+          }
+        }
       } catch (e) { /* non-critical */ }
 
-      // Schedule tile — who's on today
+      // Schedule tile + On Shift Now stat card — who's on today
       try {
         const h = new Date().getHours();
         const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const shiftLabel = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' }[shift];
         const today = new Date().toISOString().slice(0, 10);
         const sr = await fetch(`/api/schedule/shift?date=${today}&shift=${shift}`);
         const assigned = await sr.json();
         const footer = document.getElementById('schedule-tile-footer');
         if (footer) {
-          const shiftLabel = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' }[shift];
           footer.textContent = assigned.length
             ? `${shiftLabel}: ${assigned.map(a => a.staff_name).join(', ')}`
             : `${shiftLabel} — no one assigned yet`;
           footer.style.color = assigned.length ? 'var(--blue)' : 'var(--text-3)';
+        }
+        const scv = document.getElementById('sc-shift-val');
+        const scs = document.getElementById('sc-shift-sub');
+        if (scv) {
+          scv.textContent = assigned.length;
+          scv.className = 'stat-value ' + (assigned.length ? 'accent-blue' : '');
+          scs.textContent = assigned.length
+            ? `${shiftLabel} · ${assigned.map(a => (a.staff_name || '').split(' ')[0]).join(', ')}`
+            : `${shiftLabel} · none assigned`;
         }
       } catch(e) {}
 
@@ -1104,10 +1141,17 @@
         }
       } catch(e) {}
 
-      // Unread comms
+      // Unread comms + Team Notes stat card
       try {
         const unreadRes = await fetch('/api/messages/unread-count');
         const { count } = await unreadRes.json();
+        const scv = document.getElementById('sc-notes-val');
+        const scs = document.getElementById('sc-notes-sub');
+        if (scv) {
+          scv.textContent = count;
+          scv.className = 'stat-value ' + (count > 0 ? 'accent-blue' : 'accent-green');
+          scs.textContent = count > 0 ? (count === 1 ? 'unread note' : 'unread notes') : 'all caught up';
+        }
         if (count > 0) {
           const tileBadge = document.getElementById('comms-tile-badge');
           tileBadge.textContent = `${count} new`;
@@ -1118,6 +1162,20 @@
           navBadge.style.display = 'inline-block';
         }
       } catch (e) { /* non-critical */ }
+
+      // Oakville weather stat card (Open-Meteo — free, no key)
+      try {
+        const wr = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.45&longitude=-79.68&current=temperature_2m,weather_code&timezone=America/Toronto');
+        const w = await wr.json();
+        const t = Math.round(w.current.temperature_2m);
+        const desc = weatherDesc(w.current.weather_code);
+        const scv = document.getElementById('sc-weather-val');
+        const scs = document.getElementById('sc-weather-sub');
+        if (scv) { scv.innerHTML = `${desc.icon} ${t}<span>°C</span>`; scs.textContent = desc.label; }
+      } catch (e) {
+        const scv = document.getElementById('sc-weather-val');
+        if (scv) { scv.textContent = '—'; document.getElementById('sc-weather-sub').textContent = 'Unavailable'; }
+      }
 
       // Latest notes preview
       try {
@@ -1130,6 +1188,24 @@
     }
 
     function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // WMO weather code → label + icon
+    function weatherDesc(code) {
+      const m = {
+        0:['Clear','☀️'], 1:['Mainly clear','🌤️'], 2:['Partly cloudy','⛅'], 3:['Overcast','☁️'],
+        45:['Fog','🌫️'], 48:['Fog','🌫️'],
+        51:['Light drizzle','🌦️'], 53:['Drizzle','🌦️'], 55:['Drizzle','🌦️'],
+        56:['Freezing drizzle','🌧️'], 57:['Freezing drizzle','🌧️'],
+        61:['Light rain','🌧️'], 63:['Rain','🌧️'], 65:['Heavy rain','🌧️'],
+        66:['Freezing rain','🌧️'], 67:['Freezing rain','🌧️'],
+        71:['Light snow','🌨️'], 73:['Snow','🌨️'], 75:['Heavy snow','❄️'], 77:['Snow grains','🌨️'],
+        80:['Showers','🌦️'], 81:['Showers','🌧️'], 82:['Heavy showers','⛈️'],
+        85:['Snow showers','🌨️'], 86:['Snow showers','❄️'],
+        95:['Thunderstorm','⛈️'], 96:['Thunderstorm','⛈️'], 99:['Thunderstorm','⛈️']
+      };
+      const e = m[code] || ['—','🌡️'];
+      return { label: e[0], icon: e[1] };
+    }
 
     function noteWhen(dateStr) {
       const d = new Date(dateStr), t = new Date();
