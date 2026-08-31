@@ -49,6 +49,14 @@
     .brand-sub { font-size: 13px; color: var(--text-3); margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
 
     /* Staff grid */
+    .group-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-3);
+      margin: 0 0 10px 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .group-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .staff-section + .staff-section { margin-top: 22px; }
     .staff-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .staff-btn {
       display: flex; align-items: center; gap: 8px;
@@ -110,7 +118,14 @@
       <div class="brand-name">Staff Hub</div>
     </div>
 
-    <div id="staff-grid" class="staff-grid"></div>
+    <div id="office-section" class="staff-section">
+      <div class="group-label">Office Team</div>
+      <div id="staff-grid-office" class="staff-grid"></div>
+    </div>
+    <div id="pros-section" class="staff-section" style="display:none">
+      <div class="group-label">Teaching Pros</div>
+      <div id="staff-grid-pros" class="staff-grid"></div>
+    </div>
 
     <div id="pw-panel" class="pw-panel" style="display:none">
       <div class="pw-who">
@@ -153,8 +168,10 @@
     }
 
     function renderStaff() {
-      const grid = document.getElementById('staff-grid');
-      grid.innerHTML = '';
+      const office = document.getElementById('staff-grid-office');
+      const pros   = document.getElementById('staff-grid-pros');
+      office.innerHTML = '';
+      pros.innerHTML = '';
       staffList.forEach(s => {
         const btn = document.createElement('button');
         btn.className = 'staff-btn';
@@ -165,8 +182,9 @@
         btn.appendChild(makeAvatar(s));
         btn.appendChild(nameEl);
         btn.onclick = () => selectStaff(s, btn);
-        grid.appendChild(btn);
+        (s.role === 'pro' ? pros : office).appendChild(btn);
       });
+      document.getElementById('pros-section').style.display = pros.children.length ? '' : 'none';
     }
 
     function selectStaff(s, btn) {

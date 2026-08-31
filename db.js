@@ -181,6 +181,28 @@ if (!_data) {
   if (added) { save(); console.log('Season 2026 staff added (password: jct2026).'); }
 }
 
+// Migration: add teaching pros (role 'pro') — Aug 2026
+{
+  const PRO_STAFF = [
+    { name: 'Megan',   color: '#0ea5e9' },
+    { name: 'Mike',    color: '#16a34a' },
+    { name: 'Martin',  color: '#ca8a04' },
+    { name: 'Katya',   color: '#db2777' },
+    { name: 'Matthew', color: '#7c3aed' },
+    { name: 'Daniel',  color: '#dc2626' },
+  ];
+  const pwPro = bcrypt.hashSync('jct2026', 10);
+  let addedPro = false;
+  for (const s of PRO_STAFF) {
+    if (!_data.staff.some(x => x.name.toLowerCase() === s.name.toLowerCase())) {
+      _data._seq.staff = (_data._seq.staff || 0) + 1;
+      _data.staff.push({ id: _data._seq.staff, name: s.name, color: s.color, role: 'pro', password: pwPro });
+      addedPro = true;
+    }
+  }
+  if (addedPro) { save(); console.log('Teaching pros added (role: pro, password: jct2026).'); }
+}
+
 // Migration: add shift_assignments table if missing
 if (!Array.isArray(_data.shift_assignments)) {
   _data._seq.shift_assignments = 0;

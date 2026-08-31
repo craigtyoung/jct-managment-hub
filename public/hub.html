@@ -532,6 +532,59 @@
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* ─────────────────────────────────────────────
+       PRO MODE — teaching pros (court-green theme)
+    ───────────────────────────────────────────── */
+    body.pro-mode {
+      --blue:         #2f9e5f;
+      --blue-soft:    rgba(47,158,95,0.10);
+      --blue-glow:    rgba(47,158,95,0.18);
+      --powder:       #a7e0bd;
+      --powder-dim:   rgba(167,224,189,0.55);
+      --powder-faint: rgba(167,224,189,0.20);
+      --navy:         #0f2c1e;
+      --navy-mid:     #123726;
+      --navy-hover:   rgba(167,224,189,0.07);
+      --border-nav:   rgba(167,224,189,0.08);
+    }
+    body.pro-mode .stat-value.accent-blue { color: #2f9e5f; }
+    body.pro-mode .status-dot { background: #2f9e5f; }
+
+    /* Mode visibility */
+    body.pro-mode .admin-only    { display: none !important; }
+    body:not(.pro-mode) .pro-only { display: none !important; }
+
+    /* Mode toggle (segmented control) */
+    .mode-toggle {
+      display: inline-flex; align-items: center;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 3px;
+    }
+    .mode-toggle button {
+      border: none; background: none; cursor: pointer;
+      font-family: var(--font-body); font-size: 11.5px; font-weight: 600;
+      color: var(--text-3); padding: 4px 13px; border-radius: 100px;
+      transition: all 0.18s;
+    }
+    .mode-toggle button.on {
+      background: var(--surface); color: var(--text);
+      box-shadow: 0 1px 3px rgba(12,23,56,0.10);
+    }
+    body.pro-mode .mode-toggle button.on { color: #2f9e5f; }
+
+    .pro-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      background: rgba(47,158,95,0.14); color: #2f9e5f;
+      padding: 3px 9px; border-radius: 100px;
+    }
+    .brand-pro-pill {
+      display: inline-block; margin-top: 6px;
+      font-size: 8.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      background: rgba(167,224,189,0.16); color: #a7e0bd;
+      padding: 2px 8px; border-radius: 100px;
+    }
   </style>
 </head>
 <body>
@@ -564,6 +617,7 @@
     <div class="sidenav-brand">
       <div class="sidenav-brand-name">Joshua Creek</div>
       <div class="sidenav-brand-tag">Staff Hub</div>
+      <span class="brand-pro-pill pro-only">🎾 Pro Mode</span>
     </div>
 
     <div class="sidenav-body">
@@ -580,7 +634,7 @@
         Dashboard
       </a>
 
-      <a href="/checklist.html" class="nav-link">
+      <a href="/checklist.html" class="nav-link admin-only">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M9 11l3 3L22 4"/>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -599,7 +653,7 @@
         Courts
       </a>
 
-      <a href="/cash-summary.html" class="nav-link">
+      <a href="/cash-summary.html" class="nav-link admin-only">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <rect x="2" y="6" width="20" height="13" rx="2"/>
           <circle cx="12" cy="12" r="3"/>
@@ -667,7 +721,7 @@
         Schedule
       </a>
 
-      <a href="/timesheet.html" class="nav-link">
+      <a href="/timesheet.html" class="nav-link admin-only">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
@@ -692,7 +746,7 @@
         Idea Board
       </a>
 
-      <div id="admin-nav-group" style="display:none">
+      <div id="admin-nav-group" class="admin-only" style="display:none">
         <div class="nav-group-label">Admin</div>
         <a href="/admin.html" class="nav-link">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -726,6 +780,11 @@
       <div class="ts-date"  id="dateline">—</div>
     </div>
     <div class="ts-right">
+      <div id="mode-toggle" class="mode-toggle" style="display:none">
+        <button id="mode-office" onclick="setMode('admin')">Office</button>
+        <button id="mode-pro" onclick="setMode('pro')">Pro</button>
+      </div>
+      <span id="mode-locked-pill" class="pro-pill" style="display:none">🎾 Pro Mode</span>
       <div class="ts-status">
         <div class="status-dot"></div>
         <span style="font-size:11px;color:var(--text-3)">All systems online</span>
@@ -748,7 +807,12 @@
       </div>
     </div>
 
-    <!-- ── Placeholder Stats ─────────────────── -->
+    <!-- ══════════════════════════════════════════
+         ADMIN / OFFICE VIEW
+    ══════════════════════════════════════════ -->
+    <div id="admin-view" class="admin-only">
+
+    <!-- ── Live Stats ────────────────────────── -->
     <div class="stats-grid">
       <div class="stat-card live">
         <span class="stat-live-dot"></span>
@@ -1015,6 +1079,101 @@
 
     </div>
 
+    </div><!-- /#admin-view -->
+
+    <!-- ══════════════════════════════════════════
+         PRO VIEW — teaching pros
+    ══════════════════════════════════════════ -->
+    <div id="pro-view" class="pro-only">
+
+      <div class="section-title" style="margin-top:0">
+        <div class="section-live-dot"></div>
+        Your Teaching Hub
+        <span class="pro-pill" style="margin-left:auto">In Development</span>
+      </div>
+      <div class="tile-grid">
+
+        <a href="/schedule.html" class="tile t-green">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          <div class="tile-name">My Schedule</div>
+          <div class="tile-desc">Your lessons, clinics, and court assignments.</div>
+        </a>
+
+        <a href="/comms.html" class="tile t-green" style="position:relative">
+          <div id="pro-comms-dot" class="unread-dot" style="display:none"></div>
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          <div class="tile-name">Communications</div>
+          <div class="tile-desc">Team notes, announcements, and shift info.</div>
+        </a>
+
+      </div>
+
+      <div class="section-title" style="color:var(--text-3)">Coming for Pros</div>
+      <div class="tile-grid">
+
+        <div class="tile soon">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+            </div>
+            <span class="soon-tag">Coming Soon</span>
+          </div>
+          <div class="tile-name">My Lessons &amp; Attendance</div>
+          <div class="tile-desc">Take attendance on court and flag missing students straight to the office.</div>
+        </div>
+
+        <div class="tile soon">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+                <line x1="9" y1="21" x2="15" y2="21"/>
+                <line x1="10" y1="19" x2="14" y2="19"/>
+              </svg>
+            </div>
+            <span class="soon-tag">Coming Soon</span>
+          </div>
+          <div class="tile-name">Pro Idea Board</div>
+          <div class="tile-desc">Share coaching ideas and requests with the pro team.</div>
+        </div>
+
+        <div class="tile soon">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <span class="soon-tag">Coming Soon</span>
+          </div>
+          <div class="tile-name">Pro Manual</div>
+          <div class="tile-desc">Coaching guidelines, academy structure, and resources.</div>
+        </div>
+
+      </div>
+    </div><!-- /#pro-view -->
+
     <!-- Footer -->
     <div class="page-footer">
       <div class="footer-brand">Joshua Creek Tennis · Staff Hub · v2.0</div>
@@ -1048,6 +1207,21 @@
         `${new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })} · What do you need?`;
     }
 
+    // ── Mode (Office / Pro) ────────────────────────────────────
+    function setMode(mode) {
+      const pro = mode === 'pro';
+      document.body.classList.toggle('pro-mode', pro);
+      const o = document.getElementById('mode-office');
+      const p = document.getElementById('mode-pro');
+      if (o && p) { o.classList.toggle('on', !pro); p.classList.toggle('on', pro); }
+      if (window.__canToggle) localStorage.setItem('jct-hub-mode', mode);
+      const sub = document.getElementById('subheading');
+      if (sub) {
+        const dstr = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+        sub.textContent = pro ? `${dstr} · Pro Mode` : `${dstr} · What do you need?`;
+      }
+    }
+
     // ── Init ───────────────────────────────────────────────────
     async function init() {
       const res = await fetch('/api/me');
@@ -1064,6 +1238,18 @@
       if (me.role === 'admin') {
         document.getElementById('admin-nav-group').style.display = 'block';
       }
+
+      // Mode: pros locked to Pro; admins/managers get the Office⇄Pro toggle; others Office-only
+      const canToggle = me.role === 'admin' || me.role === 'manager';
+      const isPro = me.role === 'pro';
+      window.__canToggle = canToggle;
+      let startMode;
+      if (isPro) startMode = 'pro';
+      else if (!canToggle) startMode = 'admin';
+      else startMode = localStorage.getItem('jct-hub-mode') || 'admin';
+      if (canToggle) document.getElementById('mode-toggle').style.display = 'inline-flex';
+      else if (isPro) document.getElementById('mode-locked-pill').style.display = 'inline-flex';
+      setMode(startMode);
 
       // Checklist progress tile + stat card
       try {
@@ -1157,6 +1343,8 @@
           tileBadge.textContent = `${count} new`;
           tileBadge.style.display = 'inline-block';
           document.getElementById('comms-unread-dot').style.display = 'block';
+          const proDot = document.getElementById('pro-comms-dot');
+          if (proDot) proDot.style.display = 'block';
           const navBadge = document.getElementById('comms-nav-badge');
           navBadge.textContent = count;
           navBadge.style.display = 'inline-block';
