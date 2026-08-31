@@ -249,6 +249,50 @@
       <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
     </div>
 
+    <!-- Shift Coverage -->
+    <style>
+      .cov-wrap{margin:30px 0 8px;}
+      .cov-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+      .cov-title{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:0.95rem;font-weight:600;color:var(--text);}
+      .cov-live{width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;}
+      .cov-req-btn{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+      .cov-req-btn:hover{background:var(--navy);}
+      .cov-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;}
+      .cov-form input,.cov-form select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--canvas);outline:none;}
+      .cov-form #cov-reason{flex:1;min-width:160px;}
+      .cov-submit{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;}
+      .cov-list{display:flex;flex-direction:column;gap:8px;}
+      .cov-empty{font-size:13px;color:var(--text-3);padding:16px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:12px;}
+      .cov-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+      .cov-card.covered{opacity:.7;}
+      .cov-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;overflow:hidden;}
+      .cov-main{flex:1;min-width:0;}
+      .cov-when{font-size:13px;font-weight:600;color:var(--text);}
+      .cov-reason{font-size:12px;color:var(--text-2);margin-top:2px;}
+      .cov-btn{border:none;border-radius:8px;padding:7px 12px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
+      .cov-cover{background:#10b981;color:#fff;}
+      .cov-cancel{background:transparent;border:1px solid var(--border);color:var(--text-3);}
+      .cov-covered{color:#10b981;font-weight:600;font-size:12px;flex-shrink:0;}
+    </style>
+    <div class="cov-wrap">
+      <div class="cov-bar">
+        <div class="cov-title"><span class="cov-live"></span> Shift Coverage</div>
+        <button class="cov-req-btn" onclick="toggleCovForm()">+ Request coverage</button>
+      </div>
+      <form id="cov-form" class="cov-form" style="display:none" onsubmit="submitCoverage(event)">
+        <input type="date" id="cov-date" required>
+        <select id="cov-shift" required>
+          <option value="">Shift…</option>
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="closing">Closing</option>
+        </select>
+        <input type="text" id="cov-reason" placeholder="Reason (optional)" maxlength="300">
+        <button type="submit" class="cov-submit">Post request</button>
+      </form>
+      <div id="cov-list" class="cov-list"></div>
+    </div>
+
     <!-- Recurring Rules Panel (admin/manager only) -->
     <div class="rules-panel" id="rules-panel" style="display:none">
       <div class="rules-title">Recurring Rules</div>
@@ -794,6 +838,43 @@
     }
 
     // ── Init ───────────────────────────────────────────────────────
+    // ── Shift coverage ─────────────────────────────────────────
+    const COV_SHIFT = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' };
+    function covDateLabel(d){ return new Date(d+'T12:00:00').toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}); }
+    async function loadCoverage(){ try{ const r=await fetch('/api/coverage'); if(!r.ok)return; renderCoverage(await r.json()); }catch(e){} }
+    function renderCoverage(list){
+      const wrap=document.getElementById('cov-list'); if(!wrap)return;
+      if(!list.length){ wrap.innerHTML='<div class="cov-empty">No coverage requests right now.</div>'; return; }
+      wrap.innerHTML=list.map(r=>{
+        const mine=me&&r.staff_id===me.id;
+        const action=r.status==='covered'
+          ? `<span class="cov-covered">✓ ${esc(r.coverer_name||'Covered')}</span>`
+          : (mine ? `<button class="cov-btn cov-cancel" onclick="cancelCoverage(${r.id})">Cancel</button>`
+                  : `<button class="cov-btn cov-cover" onclick="coverShift(${r.id})">I can cover</button>`);
+        return `<div class="cov-card${r.status==='covered'?' covered':''}">
+          <div class="cov-av" data-av="${r.staff_id}" data-name="${esc(r.requester_name||'?')}" data-color="${r.requester_color||'#666'}"></div>
+          <div class="cov-main">
+            <div class="cov-when">${esc(r.requester_name||'Someone')} · ${covDateLabel(r.date)} ${COV_SHIFT[r.shift]||r.shift}</div>
+            ${r.reason?`<div class="cov-reason">${esc(r.reason)}</div>`:''}
+          </div>
+          ${action}
+        </div>`;
+      }).join('');
+      wrap.querySelectorAll('[data-av]').forEach(el=>staffAvatar(el,el.dataset.av,el.dataset.name,el.dataset.color));
+    }
+    function toggleCovForm(){ const f=document.getElementById('cov-form'); f.style.display=f.style.display==='none'?'flex':'none'; }
+    async function submitCoverage(e){
+      e.preventDefault();
+      const date=document.getElementById('cov-date').value, shift=document.getElementById('cov-shift').value, reason=document.getElementById('cov-reason').value.trim();
+      if(!date||!shift)return;
+      await fetch('/api/coverage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,shift,reason})});
+      document.getElementById('cov-reason').value=''; document.getElementById('cov-shift').value=''; toggleCovForm();
+      await loadCoverage();
+      alert('Coverage request posted. Give the team a heads-up on WhatsApp so someone picks it up.');
+    }
+    async function coverShift(id){ const r=await fetch(`/api/coverage/${id}/cover`,{method:'POST'}); await loadCoverage(); if(r.ok) alert("You're covering this shift. Let the team know on WhatsApp so it's confirmed."); }
+    async function cancelCoverage(id){ await fetch(`/api/coverage/${id}/cancel`,{method:'POST'}); await loadCoverage(); }
+
     async function init() {
       const res = await fetch('/api/me');
       if (res.status === 401) { window.location.href = '/login.html'; return; }
@@ -830,6 +911,11 @@
 
       load();
       if (canEdit) loadRules();
+
+      // Shift coverage
+      const covDate = document.getElementById('cov-date');
+      if (covDate) covDate.value = new Date().toISOString().slice(0, 10);
+      loadCoverage();
 
       // Close time popover on outside click
       document.addEventListener('click', e => {
