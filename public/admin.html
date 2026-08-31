@@ -525,7 +525,7 @@
       const cf = s.court_fees || {};
       const ds = s.drinks_snacks || {};
       const psT = sumArr(ps.tennis_balls) + sumObj(ps.stringing,'amount') + sumArr(ps.accessories) + sumObj(ps.racquet_sales,'amount') + sumArr(ps.grips);
-      const cfT = ['private_lessons','guests_1','guests_2','payg_1','payg_2'].reduce((a, k) => a + (cf[k]?.amount || 0), 0);
+      const cfT = ['private_lessons','guests','payg'].reduce((a, k) => a + (cf[k] || []).reduce((b, o) => b + (o?.amount || 0), 0), 0);
       const dsT = sumArr(ds.drinks) + sumArr(ds.snacks);
       return psT + cfT + dsT;
     }
@@ -603,7 +603,7 @@
                 const cf = sh.court_fees || {};
                 const ds = sh.drinks_snacks || {};
                 const psT = sumArr(ps.tennis_balls) + sumObj(ps.stringing,'amount') + sumArr(ps.accessories) + sumObj(ps.racquet_sales,'amount') + sumArr(ps.grips);
-                const cfT = ['private_lessons','guests_1','guests_2','payg_1','payg_2'].reduce((a, k) => a + (cf[k]?.amount || 0), 0);
+                const cfT = ['private_lessons','guests','payg'].reduce((a, k) => a + (cf[k] || []).reduce((b, o) => b + (o?.amount || 0), 0), 0);
                 const dsT = sumArr(ds.drinks) + sumArr(ds.snacks);
                 const shT = psT + cfT + dsT;
                 const till = cashTillTotal(sh);

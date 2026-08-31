@@ -29,11 +29,9 @@ function blankShift(index) {
       grips:         [null,null,null,null,null],
     },
     court_fees: {
-      private_lessons: { amount: null, detail: '' },
-      guests_1:        { amount: null, detail: '' },
-      guests_2:        { amount: null, detail: '' },
-      payg_1:          { amount: null, detail: '' },
-      payg_2:          { amount: null, detail: '' },
+      private_lessons: Array.from({length:5}, () => ({ amount: null, detail: '' })),
+      guests:          Array.from({length:5}, () => ({ amount: null, detail: '' })),
+      payg:            Array.from({length:5}, () => ({ amount: null, detail: '' })),
     },
     drinks_snacks: {
       drinks: [null,null,null,null,null],
@@ -128,19 +126,28 @@ router.get('/export', (req, res) => {
 
   // Court Fees
   row(['COURT FEES']);
-  const pl  = shifts.map(s => s.court_fees?.private_lessons?.amount ?? 0);
-  const g1  = shifts.map(s => s.court_fees?.guests_1?.amount ?? 0);
-  const g2  = shifts.map(s => s.court_fees?.guests_2?.amount ?? 0);
-  const py1 = shifts.map(s => s.court_fees?.payg_1?.amount ?? 0);
-  const py2 = shifts.map(s => s.court_fees?.payg_2?.amount ?? 0);
-  const cf  = shifts.map((_, i) => Number(pl[i]) + Number(g1[i]) + Number(g2[i]) + Number(py1[i]) + Number(py2[i]));
+  const sumCf = (key) => shifts.map(s => (s.court_fees?.[key] || []).reduce((a, o) => a + Number(o?.amount || 0), 0));
+  const plArr = sumCf('private_lessons');
+  const gArr  = sumCf('guests');
+  const pyArr = sumCf('payg');
+  const cf    = shifts.map((_, i) => plArr[i] + gArr[i] + pyArr[i]);
 
-  row(['Private Lesson Fees', ...pl.map(fmt),  fmt(pl.reduce((a,b)=>a+Number(b),0))]);
-  row(['Guests (1)',           ...g1.map(fmt),  fmt(g1.reduce((a,b)=>a+Number(b),0))]);
-  row(['Guests (2)',           ...g2.map(fmt),  fmt(g2.reduce((a,b)=>a+Number(b),0))]);
-  row(['PAYG (1)',             ...py1.map(fmt), fmt(py1.reduce((a,b)=>a+Number(b),0))]);
-  row(['PAYG (2)',             ...py2.map(fmt), fmt(py2.reduce((a,b)=>a+Number(b),0))]);
-  row(['Court Fees Total',     ...cf.map(fmt),  fmt(cf.reduce((a,b)=>a+b,0))]);
+  for (let i = 0; i < 5; i++) {
+    const amounts = shifts.map(s => Number(s.court_fees?.private_lessons?.[i]?.amount || 0));
+    row([`Lesson ${i+1}`, ...amounts.map(fmt), fmt(amounts.reduce((a,b)=>a+b,0))]);
+  }
+  row(['Private Lessons Total', ...plArr.map(fmt), fmt(plArr.reduce((a,b)=>a+b,0))]);
+  for (let i = 0; i < 5; i++) {
+    const amounts = shifts.map(s => Number(s.court_fees?.guests?.[i]?.amount || 0));
+    row([`Guest ${i+1}`, ...amounts.map(fmt), fmt(amounts.reduce((a,b)=>a+b,0))]);
+  }
+  row(['Guests Total', ...gArr.map(fmt), fmt(gArr.reduce((a,b)=>a+b,0))]);
+  for (let i = 0; i < 5; i++) {
+    const amounts = shifts.map(s => Number(s.court_fees?.payg?.[i]?.amount || 0));
+    row([`PAYG ${i+1}`, ...amounts.map(fmt), fmt(amounts.reduce((a,b)=>a+b,0))]);
+  }
+  row(['PAYG Total',        ...pyArr.map(fmt), fmt(pyArr.reduce((a,b)=>a+b,0))]);
+  row(['Court Fees Total',  ...cf.map(fmt),    fmt(cf.reduce((a,b)=>a+b,0))]);
   row([]);
 
   // Drinks & Snacks

@@ -808,11 +808,9 @@ function _blankCashShift(index) {
       grips:        [null,null,null,null,null],
     },
     court_fees: {
-      private_lessons: { amount: null, detail: '' },
-      guests_1:        { amount: null, detail: '' },
-      guests_2:        { amount: null, detail: '' },
-      payg_1:          { amount: null, detail: '' },
-      payg_2:          { amount: null, detail: '' },
+      private_lessons: Array.from({length:5}, () => ({ amount: null, detail: '' })),
+      guests:          Array.from({length:5}, () => ({ amount: null, detail: '' })),
+      payg:            Array.from({length:5}, () => ({ amount: null, detail: '' })),
     },
     drinks_snacks: {
       drinks: [null,null,null,null,null],

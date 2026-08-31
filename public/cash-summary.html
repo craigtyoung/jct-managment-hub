@@ -135,6 +135,9 @@
     .cf-detail{flex:1;max-width:220px;padding:5px 8px;border:1px solid rgba(12,23,56,0.06);border-radius:7px;font-size:12px;color:var(--text-2);background:transparent;}
     .cf-detail:focus{outline:none;border-color:rgba(44,92,156,0.25);background:var(--surface);}
 
+    /* Court fee group subtotal */
+    .cf-group-sub{display:flex;justify-content:space-between;align-items:center;padding:5px 18px;background:rgba(30,58,95,0.05);font-size:11px;font-weight:600;color:var(--text-2);border-top:1px solid rgba(12,23,56,0.06);}
+
     /* Section subtotal */
     .section-sub{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;background:rgba(12,23,56,0.02);font-size:12px;}
     .section-sub-label{font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-size:11px;}
@@ -173,11 +176,11 @@
     .till-total-val{font-size:14px;font-weight:700;color:var(--text);}
 
     /* Daily Totals bar */
-    .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:12px 28px;display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:16px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
-    .daily-cell{display:flex;flex-direction:column;gap:2px;}
-    .daily-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(177,201,251,0.45);}
-    .daily-val{font-size:1rem;font-weight:700;color:#ffffff;}
-    .daily-cell.main .daily-val{font-size:1.15rem;color:#fbbf24;}
+    .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:7px 24px;display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:12px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
+    .daily-cell{display:flex;flex-direction:column;gap:1px;}
+    .daily-label{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(177,201,251,0.45);}
+    .daily-val{font-size:0.88rem;font-weight:700;color:#ffffff;}
+    .daily-cell.main .daily-val{font-size:0.95rem;color:#fbbf24;}
 
     @media(max-width:768px){
       .spine,.sidenav{display:none;}
@@ -338,12 +341,12 @@
       const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`);
       return el ? el.value.trim() : '';
     }
-    function getCfAmt(si, item) {
-      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-field="amount"]`);
+    function getCfAmt(si, item, idx) {
+      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="amount"]`);
       return el ? n(el.value) : 0;
     }
-    function getCfDetail(si, item) {
-      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-field="detail"]`);
+    function getCfDetail(si, item, idx) {
+      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="detail"]`);
       return el ? el.value.trim() : '';
     }
 
@@ -357,10 +360,16 @@
       };
       const d = (item, idx, field) =>
         `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
-      const cf = (item) =>
-        `<input type="number" class="cf-amt" data-si="${si}" data-item="${item}" data-field="amount" min="0" step="0.01" placeholder="$0.00" oninput="recalcShift(${si});onInput();">`;
-      const cfd = (item) =>
-        `<input type="text" class="cf-detail" data-si="${si}" data-item="${item}" data-field="detail" placeholder="Time / Court" oninput="onInput();">`;
+      const CF_N = 5;
+      const cfRows = (item, label) => Array.from({length: CF_N}, (_, i) => `
+          <div class="cf-row">
+            <span class="cat-label">${label} ${i+1}</span>
+            <div class="cf-inputs">
+              <input type="number" class="cf-amt" data-si="${si}" data-item="${item}" data-idx="${i}" data-field="amount" min="0" step="0.01" placeholder="$0.00" oninput="recalcShift(${si});onInput();">
+              <input type="text" class="cf-detail" data-si="${si}" data-item="${item}" data-idx="${i}" data-field="detail" placeholder="Time / Court" oninput="onInput();">
+            </div>
+            <span class="cat-row-total" id="s${si}-${item}-${i}-total">$0.00</span>
+          </div>`).join('');
       const amts5 = (item) => [0,1,2,3,4].map(i => a(item, i)).join('');
       const amtsWithMember = (item) => [0,1,2,3,4].map(i =>
         `<div class="amt-wrap">${a(item,i,'amount')}${d(item,i,'member')}</div>`
@@ -414,30 +423,20 @@
             <span>Court Fees</span>
             <span class="section-total-val" id="s${si}-cf-total">$0.00</span>
           </div>
-          <div class="cf-row">
-            <span class="cat-label">Private Lessons</span>
-            <div class="cf-inputs">${cf('private_lessons')}${cfd('private_lessons')}</div>
-            <span class="cat-row-total" id="s${si}-pl-total">$0.00</span>
+          ${cfRows('private_lessons', 'Lesson')}
+          <div class="cf-group-sub">
+            <span>Private Lessons Sub-total</span>
+            <span id="s${si}-pl-total">$0.00</span>
           </div>
-          <div class="cf-row">
-            <span class="cat-label">Guests (1)</span>
-            <div class="cf-inputs">${cf('guests_1')}${cfd('guests_1')}</div>
-            <span class="cat-row-total" id="s${si}-g1-total">$0.00</span>
+          ${cfRows('guests', 'Guest')}
+          <div class="cf-group-sub">
+            <span>Guests Sub-total</span>
+            <span id="s${si}-g-total">$0.00</span>
           </div>
-          <div class="cf-row">
-            <span class="cat-label">Guests (2)</span>
-            <div class="cf-inputs">${cf('guests_2')}${cfd('guests_2')}</div>
-            <span class="cat-row-total" id="s${si}-g2-total">$0.00</span>
-          </div>
-          <div class="cf-row">
-            <span class="cat-label">PAYG (1)</span>
-            <div class="cf-inputs">${cf('payg_1')}${cfd('payg_1')}</div>
-            <span class="cat-row-total" id="s${si}-p1-total">$0.00</span>
-          </div>
-          <div class="cf-row">
-            <span class="cat-label">PAYG (2)</span>
-            <div class="cf-inputs">${cf('payg_2')}${cfd('payg_2')}</div>
-            <span class="cat-row-total" id="s${si}-p2-total">$0.00</span>
+          ${cfRows('payg', 'PAYG')}
+          <div class="cf-group-sub">
+            <span>PAYG Sub-total</span>
+            <span id="s${si}-py-total">$0.00</span>
           </div>
           <div class="section-sub">
             <span class="section-sub-label">Shift Total — Court Fees</span>
@@ -564,18 +563,22 @@
       setText(`s${si}-ps-total`,    fmt(psT));
       setText(`s${si}-ps-sub`,      fmt(psT));
 
-      const pl  = getCfAmt(si,'private_lessons');
-      const g1  = getCfAmt(si,'guests_1');
-      const g2  = getCfAmt(si,'guests_2');
-      const p1  = getCfAmt(si,'payg_1');
-      const p2  = getCfAmt(si,'payg_2');
-      const cfT = pl + g1 + g2 + p1 + p2;
+      const CF_N = 5;
+      let pl = 0, g = 0, py = 0;
+      for (let i = 0; i < CF_N; i++) {
+        const pli = getCfAmt(si,'private_lessons',i);
+        const gi  = getCfAmt(si,'guests',i);
+        const pyi = getCfAmt(si,'payg',i);
+        setText(`s${si}-private_lessons-${i}-total`, fmt(pli));
+        setText(`s${si}-guests-${i}-total`,          fmt(gi));
+        setText(`s${si}-payg-${i}-total`,            fmt(pyi));
+        pl += pli; g += gi; py += pyi;
+      }
+      const cfT = pl + g + py;
 
       setText(`s${si}-pl-total`, fmt(pl));
-      setText(`s${si}-g1-total`, fmt(g1));
-      setText(`s${si}-g2-total`, fmt(g2));
-      setText(`s${si}-p1-total`, fmt(p1));
-      setText(`s${si}-p2-total`, fmt(p2));
+      setText(`s${si}-g-total`,  fmt(g));
+      setText(`s${si}-py-total`, fmt(py));
       setText(`s${si}-cf-total`, fmt(cfT));
       setText(`s${si}-cf-sub`,   fmt(cfT));
 
@@ -665,11 +668,9 @@
           grips:         [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="grips"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
         },
         court_fees: {
-          private_lessons: { amount: getCfAmt(si,'private_lessons') || null, detail: getCfDetail(si,'private_lessons') },
-          guests_1:        { amount: getCfAmt(si,'guests_1') || null,        detail: getCfDetail(si,'guests_1') },
-          guests_2:        { amount: getCfAmt(si,'guests_2') || null,        detail: getCfDetail(si,'guests_2') },
-          payg_1:          { amount: getCfAmt(si,'payg_1') || null,          detail: getCfDetail(si,'payg_1') },
-          payg_2:          { amount: getCfAmt(si,'payg_2') || null,          detail: getCfDetail(si,'payg_2') },
+          private_lessons: [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'private_lessons',i) || null, detail: getCfDetail(si,'private_lessons',i) })),
+          guests:          [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'guests',i) || null,          detail: getCfDetail(si,'guests',i) })),
+          payg:            [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'payg',i) || null,            detail: getCfDetail(si,'payg',i) })),
         },
         drinks_snacks: {
           drinks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="drinks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
@@ -722,9 +723,11 @@
       });
 
       const cf = shift.court_fees || {};
-      ['private_lessons','guests_1','guests_2','payg_1','payg_2'].forEach(item => {
-        setInput(`[data-si="${si}"][data-item="${item}"][data-field="amount"]`, cf[item]?.amount);
-        setInput(`[data-si="${si}"][data-item="${item}"][data-field="detail"]`, cf[item]?.detail);
+      ['private_lessons','guests','payg'].forEach(item => {
+        (cf[item] || []).forEach((v, i) => {
+          setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"][data-field="amount"]`, v?.amount);
+          setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"][data-field="detail"]`, v?.detail);
+        });
       });
 
       const ds = shift.drinks_snacks || {};
