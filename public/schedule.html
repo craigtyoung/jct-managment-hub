@@ -868,9 +868,9 @@
 
       const av = document.getElementById('nav-avatar');
       staffAvatar(av, me.id, me.name, me.color);
-      document.getElementById('nav-name').textContent = me.name;
-      document.getElementById('nav-role').textContent = me.role;
-      if (me.role === 'admin') document.getElementById('admin-nav-group').style.display = 'block';
+      const _nn=document.getElementById('nav-name'); if(_nn)_nn.textContent=me.name;
+      const _nr=document.getElementById('nav-role'); if(_nr)_nr.textContent=me.role;
+      const _ang=document.getElementById('admin-nav-group'); if(me.role==='admin'&&_ang)_ang.style.display='block';
 
       canEdit = ['admin','manager'].includes(me.role);
       document.getElementById('admin-hint').textContent = canEdit
