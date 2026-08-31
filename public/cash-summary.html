@@ -73,6 +73,9 @@
 
     /* ── Date Nav ── */
     .date-nav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+    .date-guard{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-6px 0 18px;padding:10px 14px;border-radius:10px;background:#fef3c7;border:1px solid #fbbf24;color:#7c5e10;font-size:13px;font-weight:500;}
+    .date-guard-btn{background:#0c1738;color:#fff;border:none;border-radius:8px;padding:6px 13px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+    .date-guard-btn:hover{background:#2c5c9c;}
     .date-btn{width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:all 0.15s;}
     .date-btn:hover{border-color:rgba(44,92,156,0.3);color:var(--blue);}
     .date-label{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--text);}
@@ -280,6 +283,12 @@
       <button class="today-btn" onclick="goToday()">Today</button>
     </div>
 
+    <!-- Wrong-day edit guard -->
+    <div id="date-guard" class="date-guard" style="display:none">
+      <span id="date-guard-text" style="flex:1"></span>
+      <button type="button" id="date-guard-btn" class="date-guard-btn" onclick="unlockEditing()">Edit this date</button>
+    </div>
+
     <!-- Float Bar -->
     <div class="float-bar">
       <div class="float-item">
@@ -339,6 +348,7 @@
 
     let me = null;
     let currentDate = '';
+    let editUnlocked = false; // wrong-day guard: non-today sheets start locked
     let saveTimer   = null;
     let activeShift = 0;
 
@@ -399,6 +409,7 @@
       const time  = entry?.time  || '';
       // backward compat: old 'detail' field (combined "time · name") goes to name
       const name  = entry?.name  || (entry?.detail && !entry.time ? entry.detail : '');
+      const note  = entry?.note  || '';
       const initAmt = entry?.amount != null ? entry.amount : (CF_DEFAULTS[type] ?? '');
       const timeOpts = TIME_SLOTS.map(t => `<option value="${t}"${t===time?' selected':''}>` + t + `</option>`).join('');
       const tr = document.createElement('tr');
@@ -415,6 +426,7 @@
         </select></td>
         <td><select class="cf-time-sel"><option value="">Time</option>${timeOpts}</select></td>
         <td><input type="text" class="cf-name-input" placeholder="Name" value="${name.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
+        <td><input type="text" class="cf-note-input" placeholder="Note" value="${note.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
         <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
         <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
       tbody.appendChild(tr);
@@ -428,6 +440,7 @@
         court:  tr.querySelector('.cf-court-sel')?.value || '',
         time:   tr.querySelector('.cf-time-sel')?.value  || '',
         name:   tr.querySelector('.cf-name-input')?.value.trim() || '',
+        note:   tr.querySelector('.cf-note-input')?.value.trim() || '',
         amount: (v => v !== '' ? parseFloat(v) || null : null)(tr.querySelector('.cf-row-amt')?.value ?? ''),
       }));
     }
@@ -500,10 +513,10 @@
           <div class="cf-table-wrap">
             <table class="cf-table">
               <colgroup>
-                <col class="col-type"><col class="col-court"><col class="col-time"><col class="col-name"><col class="col-amt"><col class="col-del">
+                <col class="col-type"><col class="col-court"><col class="col-time"><col class="col-name"><col class="col-note"><col class="col-amt"><col class="col-del">
               </colgroup>
               <thead><tr>
-                <th>Type</th><th>Court</th><th>Time</th><th>Name</th>
+                <th>Type</th><th>Court</th><th>Time</th><th>Name</th><th>Note</th>
                 <th style="text-align:right;padding-right:8px">Amount</th><th></th>
               </tr></thead>
               <tbody id="s${si}-cf-tbody"></tbody>
@@ -859,8 +872,33 @@
 
     function changeDate(d) {
       currentDate = d;
+      editUnlocked = false; // re-lock whenever the date changes
       history.replaceState({}, '', `?date=${d}`);
       load();
+    }
+
+    // ── Wrong-day edit guard ───────────────────────────────────────────────────
+    function applyDateGuard() {
+      const today = new Date().toISOString().slice(0, 10);
+      const isToday = currentDate === today;
+      const locked = !isToday && !editUnlocked;
+      document.querySelectorAll('.shift-panel input, .shift-panel select, .shift-panel button, #opening-float, #closing-float')
+        .forEach(el => { el.disabled = locked; });
+      const banner = getEl('date-guard');
+      if (!banner) return;
+      if (isToday) { banner.style.display = 'none'; return; }
+      banner.style.display = 'flex';
+      const d = new Date(currentDate + 'T12:00:00');
+      const label = d.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+      getEl('date-guard-text').innerHTML = locked
+        ? `⚠ You're on <strong>${label}</strong>, not today. Editing is locked so information doesn't get entered on the wrong day.`
+        : `✎ Editing <strong>${label}</strong> — this is not today's sheet. Take care.`;
+      getEl('date-guard-btn').style.display = locked ? '' : 'none';
+    }
+
+    function unlockEditing() {
+      editUnlocked = true;
+      applyDateGuard();
     }
 
     function shiftDate(delta) {
@@ -895,6 +933,7 @@
         for (let si = 0; si < 4; si++) {
           renderShift(si, summary.shifts?.[si]);
         }
+        applyDateGuard();
         setSaveStatus('saved', 'Loaded');
       } catch (e) {
         setSaveStatus('', 'Load error');
