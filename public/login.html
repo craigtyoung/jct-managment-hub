@@ -125,7 +125,11 @@
       <div class="brand-name">Staff Hub</div>
     </div>
 
-    <div id="office-section" class="staff-section">
+    <div id="mgmt-section" class="staff-section" style="display:none">
+      <div class="group-label">Management</div>
+      <div id="staff-grid-mgmt" class="staff-grid"></div>
+    </div>
+    <div id="office-section" class="staff-section" style="display:none">
       <div class="group-label">Office Team</div>
       <div id="staff-grid-office" class="staff-grid"></div>
     </div>
@@ -175,8 +179,10 @@
     }
 
     function renderStaff() {
+      const mgmt   = document.getElementById('staff-grid-mgmt');
       const office = document.getElementById('staff-grid-office');
       const pros   = document.getElementById('staff-grid-pros');
+      mgmt.innerHTML = '';
       office.innerHTML = '';
       pros.innerHTML = '';
       staffList.forEach(s => {
@@ -189,9 +195,14 @@
         btn.appendChild(makeAvatar(s));
         btn.appendChild(nameEl);
         btn.onclick = () => selectStaff(s, btn);
-        (s.role === 'pro' ? pros : office).appendChild(btn);
+        const group = s.role === 'pro' ? pros
+                    : (s.role === 'admin' || s.role === 'manager') ? mgmt
+                    : office;
+        group.appendChild(btn);
       });
-      document.getElementById('pros-section').style.display = pros.children.length ? '' : 'none';
+      document.getElementById('mgmt-section').style.display   = mgmt.children.length   ? '' : 'none';
+      document.getElementById('office-section').style.display = office.children.length ? '' : 'none';
+      document.getElementById('pros-section').style.display   = pros.children.length   ? '' : 'none';
     }
 
     function selectStaff(s, btn) {
