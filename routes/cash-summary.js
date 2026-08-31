@@ -145,11 +145,11 @@ router.get('/export', (req, res) => {
   row(['Court Fees Total',...cf.map(fmt),    fmt(cf.reduce((a,b)=>a+b,0))]);
   row([]);
   row(['— Court Fee Detail —']);
-  row(['Shift','Type','Court','Time / Note','Amount']);
+  row(['Shift','Type','Court','Time','Name','Amount']);
   shifts.forEach(s => {
     const entries = s.court_fees?.entries || [];
     entries.filter(e => e.amount).forEach(e => {
-      row([s.label || '', e.type || '', e.court || '', e.detail || '', fmt(Number(e.amount||0))]);
+      row([s.label || '', e.type || '', e.court || '', e.time || '', e.name || e.detail || '', fmt(Number(e.amount||0))]);
     });
   });
   row([]);
