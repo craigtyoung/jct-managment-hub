@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin · JCT Staff Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,7 +30,7 @@
       --text-2:       #4a6080;
       --text-3:       #8fa0b8;
       --font-display: 'Playfair Display', Georgia, serif;
-      --font-body:    'DM Sans', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -113,8 +114,8 @@
     /* Staff list reuse (keep existing Tailwind-compatible classes) */
     .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
     .btn { border-radius:9px; font-size:13px; font-weight:600; padding:7px 14px; cursor:pointer; border:none; transition:all 0.18s; font-family:var(--font-body); }
-    .btn-indigo { background:#6366f1; color:white; }
-    .btn-indigo:hover { background:#4f46e5; }
+    .btn-indigo { background:#2c5c9c; color:white; }
+    .btn-indigo:hover { background:#0c1738; }
     .btn-sm { font-size:12px; padding:5px 11px; }
     .btn-ghost { background:transparent; border:1px solid rgba(177,201,251,0.15); color:rgba(177,201,251,0.55); }
     .btn-ghost:hover { border-color:rgba(177,201,251,0.3); color:var(--powder); }
@@ -123,7 +124,7 @@
     .btn-amber { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.18); color:#fbbf24; }
     .btn-amber:hover { background:rgba(245,158,11,0.16); }
     .role-badge { font-size:10px; font-weight:700; letter-spacing:0.06em; padding:2px 8px; border-radius:100px; text-transform:uppercase; }
-    .role-admin   { background:rgba(99,102,241,0.12); color:#818cf8; border:1px solid rgba(99,102,241,0.18); }
+    .role-admin   { background:rgba(44,92,156,0.12); color:#818cf8; border:1px solid rgba(44,92,156,0.18); }
     .role-manager { background:rgba(245,158,11,0.12); color:#fbbf24; border:1px solid rgba(245,158,11,0.18); }
     .role-staff   { background:rgba(100,116,139,0.10); color:var(--text-3); border:1px solid rgba(100,116,139,0.15); }
     .avatar { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
@@ -483,7 +484,7 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const COLORS = ['#6366f1','#10b981','#8b5cf6','#f59e0b','#ec4899','#f97316','#14b8a6','#f43f5e','#06b6d4','#a78bfa','#3b82f6','#84cc16'];
+    const COLORS = ['#2c5c9c','#10b981','#8b5cf6','#f59e0b','#ec4899','#f97316','#14b8a6','#f43f5e','#06b6d4','#a78bfa','#3b82f6','#84cc16'];
 
     const SECTION_NAMES = {
       staff: 'Staff', checklist: 'Checklist Manager', ai: 'AI Assistant',
