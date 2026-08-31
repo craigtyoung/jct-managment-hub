@@ -160,11 +160,14 @@
   btn.id = 'jct-chat-btn';
   btn.title = 'Staff Assistant';
   btn.innerHTML = `
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#fff"/>
+      <path d="M19 16L19.8 19L23 20L19.8 21L19 24L18.2 21L15 20L18.2 19L19 16Z" fill="#fff" opacity="0.75"/>
+      <path d="M5 3L5.6 5.5L8 6L5.6 6.5L5 9L4.4 6.5L2 6L4.4 5.5L5 3Z" fill="#fff" opacity="0.6"/>
     </svg>
     <div id="jct-chat-badge"></div>
   `;
+  btn.title = 'Ask the Staff Assistant';
   document.body.appendChild(btn);
 
   // Panel

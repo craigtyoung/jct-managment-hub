@@ -87,6 +87,7 @@
     .chip:hover { border-color: rgba(99,102,241,0.4); color: #6366f1; }
     .chip.selected { color: white; border-color: transparent; background: #6366f1; }
     .chip.selected.staff-chip { background: var(--chip-color, #6366f1); }
+    .chip.group-chip { border-style: dashed; font-weight: 600; }
     .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
     .compose-input { background: transparent; border: none; outline: none; color: var(--text); font-size: 16px; width: 100%; resize: none; font-family: 'Inter', sans-serif; line-height: 1.6; }
     .compose-input::placeholder { color: var(--text3); }
@@ -349,9 +350,11 @@
       <!-- Compose -->
       <div class="compose-wrap">
         <div class="compose-box">
-          <div class="to-row">
+          <div class="to-row" style="flex-wrap:wrap;gap:5px;align-items:center">
             <span class="to-label-txt">To:</span>
             <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
+            <button class="chip group-chip" data-group="management" onclick="toggleGroup('management',this)">Management</button>
+            <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
             <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
           </div>
           <textarea id="compose-text" class="compose-input" rows="2" placeholder="Post a note for the team..."></textarea>
@@ -984,39 +987,52 @@
     document.getElementById('compose-showon').value = '';
     document.getElementById('showon-hint').style.display = 'inline';
     selectedRecipients = [];
-    document.querySelectorAll('#recipient-chips .chip').forEach(c => {
-      c.classList.remove('selected'); c.style.background = ''; c.style.color = '';
-    });
-    const all = document.getElementById('chip-all');
-    all.classList.add('selected'); all.style.background = '#6366f1'; all.style.color = 'white';
+    applyRecipientStyles();
   }
 
   // ── Recipient selector ─────────────────────────────────────────────────────
-  function toggleRecipient(id, el) {
-    const allChip = document.getElementById('chip-all');
-    if (id === 'all') {
-      selectedRecipients = [];
-      document.querySelectorAll('#recipient-chips .chip').forEach(c => {
-        c.classList.remove('selected'); c.style.background=''; c.style.color='';
-      });
-      allChip.classList.add('selected'); allChip.style.background='#6366f1'; allChip.style.color='white';
-      return;
-    }
-    allChip.classList.remove('selected'); allChip.style.background=''; allChip.style.color='';
-    const sid = parseInt(id);
-    if (selectedRecipients.includes(sid)) {
-      selectedRecipients = selectedRecipients.filter(x => x !== sid);
-      el.classList.remove('selected'); el.style.background=''; el.style.color='';
-    } else {
-      selectedRecipients.push(sid);
+  function setChip(el, on, color) {
+    if (!el) return;
+    if (on) { el.classList.add('selected'); el.style.background = color; el.style.color = 'white'; }
+    else    { el.classList.remove('selected'); el.style.background = ''; el.style.color = ''; }
+  }
+
+  // Staff ids for a group. 'management' = admins + managers; 'office' = front-desk staff.
+  function groupIds(kind) {
+    return allStaff
+      .filter(s => kind === 'management' ? (s.role === 'admin' || s.role === 'manager') : s.role === 'staff')
+      .map(s => s.id)
+      .filter(id => id !== me.id);
+  }
+
+  function applyRecipientStyles() {
+    setChip(document.getElementById('chip-all'), selectedRecipients.length === 0, '#6366f1');
+    document.querySelectorAll('#recipient-chips .chip').forEach(c => {
+      const sid = parseInt(c.dataset.id);
       const s = allStaff.find(x => x.id === sid);
-      el.classList.add('selected');
-      el.style.background = s ? s.color : '#6366f1';
-      el.style.color = 'white';
-    }
-    if (selectedRecipients.length === 0) {
-      allChip.classList.add('selected'); allChip.style.background='#6366f1'; allChip.style.color='white';
-    }
+      setChip(c, selectedRecipients.includes(sid), s ? s.color : '#6366f1');
+    });
+    document.querySelectorAll('.group-chip').forEach(g => {
+      const ids = groupIds(g.dataset.group);
+      const on = ids.length > 0 && ids.length === selectedRecipients.length && ids.every(i => selectedRecipients.includes(i));
+      setChip(g, on, '#6366f1');
+    });
+  }
+
+  function toggleRecipient(id, el) {
+    if (id === 'all') { selectedRecipients = []; applyRecipientStyles(); return; }
+    const sid = parseInt(id);
+    if (selectedRecipients.includes(sid)) selectedRecipients = selectedRecipients.filter(x => x !== sid);
+    else selectedRecipients.push(sid);
+    applyRecipientStyles();
+  }
+
+  // Group shortcut: select the whole group; click again to clear back to Everyone.
+  function toggleGroup(kind) {
+    const ids = groupIds(kind);
+    const isSame = ids.length > 0 && ids.length === selectedRecipients.length && ids.every(i => selectedRecipients.includes(i));
+    selectedRecipients = isSame ? [] : ids.slice();
+    applyRecipientStyles();
   }
 
   // ── Badges ─────────────────────────────────────────────────────────────────
@@ -1221,6 +1237,5 @@
 </script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
-  <script src="/ai-widget.js"></script>
 </body>
 </html>
