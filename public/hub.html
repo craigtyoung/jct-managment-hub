@@ -17,7 +17,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      --spine-w:    68px;
+      --spine-w:    0px;
       --nav-w:      214px;
       --total-nav:  calc(var(--spine-w) + var(--nav-w));
 
@@ -65,12 +65,7 @@
        SPINE
     ───────────────────────────────────────────── */
     .spine {
-      position: fixed; left: 0; top: 0;
-      width: var(--spine-w); height: 100vh;
-      background: var(--navy);
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 200;
-      border-right: 1px solid var(--border-nav);
+      display: none; /* removed — the nav column already carries the brand */
     }
 
     .spine-top {
