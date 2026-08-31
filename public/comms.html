@@ -88,6 +88,7 @@
     .chip.selected { color: white; border-color: transparent; background: #6366f1; }
     .chip.selected.staff-chip { background: var(--chip-color, #6366f1); }
     .chip.group-chip { border-style: dashed; font-weight: 600; }
+    .chip:not(.selected):hover { border-color: rgba(99,102,241,0.5); color: var(--text); background: rgba(99,102,241,0.06); }
     .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
     .compose-input { background: transparent; border: none; outline: none; color: var(--text); font-size: 16px; width: 100%; resize: none; font-family: 'Inter', sans-serif; line-height: 1.6; }
     .compose-input::placeholder { color: var(--text3); }
@@ -357,6 +358,7 @@
             <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
             <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
           </div>
+          <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
           <textarea id="compose-text" class="compose-input" rows="2" placeholder="Post a note for the team..."></textarea>
           <div class="compose-footer">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
