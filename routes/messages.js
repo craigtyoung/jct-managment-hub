@@ -24,9 +24,10 @@ router.get('/unread-count', (req, res) => {
   res.json({ count });
 });
 
-// GET all staff (for read receipt display)
+// GET comms audience (for read receipts + recipient picker).
+// Comms is office + management only for now — teaching pros are excluded.
 router.get('/staff-list', (req, res) => {
-  res.json(db.getAllStaff());
+  res.json(db.getAllStaff().filter(s => s.role !== 'pro'));
 });
 
 // POST new message

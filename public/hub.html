@@ -609,6 +609,33 @@
       background: rgba(167,224,189,0.16); color: #a7e0bd;
       padding: 2px 8px; border-radius: 100px;
     }
+
+    /* ── AI ask-bar ── */
+    .ask-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 12px 10px 16px;
+      margin-bottom: 28px;
+      box-shadow: 0 1px 3px rgba(12,23,56,0.04);
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .ask-bar:focus-within { border-color: rgba(44,92,156,0.35); box-shadow: 0 4px 18px rgba(44,92,156,0.08); }
+    body.pro-mode .ask-bar:focus-within { border-color: rgba(47,158,95,0.40); box-shadow: 0 4px 18px rgba(47,158,95,0.10); }
+    .ask-ico { width: 18px; height: 18px; color: var(--blue); flex-shrink: 0; }
+    #ask-input {
+      flex: 1; border: none; outline: none; background: none;
+      font-family: var(--font-body); font-size: 14px; color: var(--text);
+    }
+    #ask-input::placeholder { color: var(--text-3); }
+    .ask-send {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px; border: none;
+      background: var(--blue); color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .ask-send:hover { background: var(--navy); }
+    .ask-send svg { width: 16px; height: 16px; }
+    /* Dashboard uses the ask-bar as its AI entry; the floating launcher lives on the inner pages */
+    #jct-chat-btn { display: none !important; }
   </style>
 </head>
 <body>
@@ -831,6 +858,18 @@
       </div>
       <div class="hero-avatar" id="hero-avatar"></div>
     </div>
+
+    <!-- ── AI Ask Bar ─────────────────────────── -->
+    <form class="ask-bar" onsubmit="askHub(event)">
+      <svg class="ask-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+        <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/>
+        <path d="M18 14.5l.65 1.6L20.3 16.8l-1.65.7L18 19.2l-.65-1.7L15.7 16.8l1.65-.7z"/>
+      </svg>
+      <input id="ask-input" type="text" autocomplete="off" placeholder="Ask the hub — who's on today, latest notes, anything…" />
+      <button type="submit" class="ask-send" aria-label="Ask">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </form>
 
     <!-- ══════════════════════════════════════════
          ADMIN / OFFICE VIEW
@@ -1232,7 +1271,17 @@
       const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
       document.getElementById('greeting').textContent = `${greet}, ${name}.`;
       document.getElementById('subheading').textContent =
-        `${new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })} · What do you need?`;
+        new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    // AI ask-bar → drives the single assistant widget
+    function askHub(e) {
+      e.preventDefault();
+      const inp = document.getElementById('ask-input');
+      const q = inp.value.trim();
+      if (!q) return;
+      inp.value = '';
+      if (window.jctChat) window.jctChat.ask(q);
     }
 
     // ── Mode (Office / Pro) ────────────────────────────────────
@@ -1246,7 +1295,7 @@
       const sub = document.getElementById('subheading');
       if (sub) {
         const dstr = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
-        sub.textContent = pro ? `${dstr} · Pro Mode` : `${dstr} · What do you need?`;
+        sub.textContent = pro ? `${dstr} · Pro Mode` : dstr;
       }
     }
 
@@ -1470,7 +1519,6 @@
   </script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
-  <script src="/ai-widget.js"></script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script>
 </body>
 </html>

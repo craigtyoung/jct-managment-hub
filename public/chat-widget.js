@@ -324,4 +324,15 @@
       inputEl.focus();
     }
   }
+
+  // Public API — lets the dashboard ask-bar drive this single assistant.
+  window.jctChat = {
+    open() { isOpen = true; panel.classList.add('open'); inputEl.focus(); scrollBottom(); },
+    ask(text) {
+      isOpen = true;
+      panel.classList.add('open');
+      scrollBottom();
+      if (text && String(text).trim()) sendMessage(String(text));
+    }
+  };
 })();

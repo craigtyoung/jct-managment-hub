@@ -378,10 +378,10 @@ function getMessages({ limit = 30, offset = 0, staffId }) {
     const is_read_by_me = _data.reads.some(r => r.message_id === msg.id && r.staff_id === parseInt(staffId));
 
     // Determine which staff to show read receipts for
-    const recipients = msg.recipients || null; // null = everyone
+    const recipients = msg.recipients || null; // null = everyone (office + management, not pros)
     const receiptStaff = recipients
       ? allStaff.filter(s => recipients.includes(s.id))
-      : allStaff;
+      : allStaff.filter(s => s.role !== 'pro');
 
     return {
       id: msg.id,
@@ -443,12 +443,16 @@ function markRead(messageId, staffId) {
 
 function getUnreadCount(staffId) {
   const sid = parseInt(staffId);
+  const viewer = _data.staff.find(s => s.id === sid);
+  const viewerIsPro = viewer && viewer.role === 'pro';
   const t = new Date();
   const todayStr = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   return _data.messages.filter(msg => {
     if (msg.staff_id === sid) return false;                 // own messages don't count
     if (msg.show_on && msg.show_on > todayStr) return false; // scheduled for a future day
-    const isRecipient = !msg.recipients || (Array.isArray(msg.recipients) && msg.recipients.includes(sid));
+    const isRecipient = msg.recipients
+      ? (Array.isArray(msg.recipients) && msg.recipients.includes(sid))
+      : !viewerIsPro;                                        // implicit "everyone" = office + management, not pros
     if (!isRecipient) return false;                          // not relevant to this person
     return !_data.reads.some(r => r.message_id === msg.id && r.staff_id === sid);
   }).length;

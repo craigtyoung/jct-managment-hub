@@ -101,6 +101,12 @@
     .btn-sm { font-size: 13px; padding: 6px 13px; }
     .btn-icon { background: transparent; border: 1px solid var(--border); color: var(--text2); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
     .btn-icon:hover { background: rgba(99,102,241,0.07); color: #6366f1; border-color: rgba(99,102,241,0.3); }
+    /* Quick-nav (Home / Checklist / Comms) */
+    .qnav { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 9px; text-decoration: none; color: var(--text2); font-size: 13px; font-weight: 600; border: 1px solid transparent; transition: all 0.15s; cursor: pointer; }
+    .qnav svg { width: 16px; height: 16px; }
+    .qnav:hover { background: rgba(99,102,241,0.08); color: var(--text); }
+    .qnav.qnav-active { background: rgba(99,102,241,0.12); color: #6366f1; }
+    @media (max-width: 640px) { .qnav span { display: none; } .qnav { padding: 6px 8px; } }
     .btn-icon svg { width: 16px; height: 16px; }
 
     /* ── Feed mode toggle ── */
@@ -256,15 +262,20 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:12px">
-      <a href="/hub.html" style="color:var(--text3);display:flex;align-items:center;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
-        <svg style="width:18px;height:18px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    <div style="display:flex;align-items:center;gap:6px">
+      <a href="/hub.html" class="qnav" title="Home">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
       </a>
-      <svg style="width:18px;height:18px;color:#6366f1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-      <span style="font-size:14px;font-weight:700;color:var(--text)">Communications</span>
-      <span id="unread-pill" style="display:none;background:#6366f1;color:white;font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px"></span>
+      <a href="/checklist.html" class="qnav" title="Shift Checklist">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Checklist</span>
+      </a>
+      <span class="qnav qnav-active" title="Communications">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Comms</span>
+      </span>
+      <span id="unread-pill" style="display:none;background:#6366f1;color:white;font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px;margin-left:2px"></span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="mode-toggle" onclick="toggleMode()" id="mode-btn">Dark mode</button>
