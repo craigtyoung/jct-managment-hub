@@ -126,17 +126,33 @@
     .detail-input:focus{outline:none;border-color:rgba(44,92,156,0.25);}
     .cat-row-total{font-size:12px;font-weight:600;color:var(--text);text-align:right;padding-top:7px;min-width:60px;}
 
-    /* Court fee rows — single amount + detail */
-    .cf-row{display:grid;grid-template-columns:130px 1fr 64px;align-items:center;padding:7px 18px;border-bottom:1px solid rgba(12,23,56,0.04);}
-    .cf-row:last-child{border-bottom:none;}
-    .cf-inputs{display:flex;align-items:center;gap:8px;}
-    .cf-amt{width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;background:var(--canvas);}
-    .cf-amt:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
-    .cf-detail{flex:1;max-width:220px;padding:5px 8px;border:1px solid rgba(12,23,56,0.06);border-radius:7px;font-size:12px;color:var(--text-2);background:transparent;}
-    .cf-detail:focus{outline:none;border-color:rgba(44,92,156,0.25);background:var(--surface);}
-
-    /* Court fee group subtotal */
-    .cf-group-sub{display:flex;justify-content:space-between;align-items:center;padding:5px 18px;background:rgba(30,58,95,0.05);font-size:11px;font-weight:600;color:var(--text-2);border-top:1px solid rgba(12,23,56,0.06);}
+    /* Court fees — ledger table */
+    .cf-table-wrap{padding-bottom:0;}
+    .cf-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    .cf-table th{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);padding:8px 8px 6px;text-align:left;border-bottom:1px solid var(--border);}
+    .cf-table th:last-child{width:28px;}
+    .cf-table td{padding:4px 5px;border-bottom:1px solid rgba(12,23,56,0.035);vertical-align:middle;}
+    .cf-table tbody tr:last-child td{border-bottom:none;}
+    .cf-table col.col-type{width:96px;} .cf-table col.col-court{width:72px;} .cf-table col.col-note{} .cf-table col.col-amt{width:82px;} .cf-table col.col-del{width:28px;}
+    .cf-type-sel{width:100%;padding:5px 5px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--text);background:var(--canvas);cursor:pointer;appearance:none;-webkit-appearance:none;text-align:center;}
+    .cf-type-sel.lesson{background:rgba(30,58,95,0.07);color:#1e3a5f;border-color:rgba(30,58,95,0.18);}
+    .cf-type-sel.guest{background:rgba(22,163,74,0.07);color:#14532d;border-color:rgba(22,163,74,0.22);}
+    .cf-type-sel.payg{background:rgba(217,119,6,0.07);color:#78350f;border-color:rgba(217,119,6,0.22);}
+    .cf-court-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text);background:var(--canvas);cursor:pointer;}
+    .cf-note-input{width:100%;padding:5px 8px;border:1px solid rgba(12,23,56,0.08);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:transparent;}
+    .cf-note-input:focus{outline:none;border-color:rgba(44,92,156,0.25);background:var(--surface);}
+    .cf-row-amt{width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;background:var(--canvas);}
+    .cf-row-amt:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
+    .cf-del{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:15px;padding:2px 5px;border-radius:4px;line-height:1;transition:color 0.15s;display:block;width:100%;text-align:center;}
+    .cf-del:hover{color:var(--red);}
+    .cf-add-row{display:block;margin:8px 18px;padding:6px 14px;border:1px dashed rgba(44,92,156,0.25);border-radius:8px;background:transparent;font-family:var(--font-body);font-size:12px;color:var(--blue);cursor:pointer;transition:all 0.15s;}
+    .cf-add-row:hover{background:rgba(44,92,156,0.05);border-color:rgba(44,92,156,0.4);}
+    .cf-subtotals{display:flex;align-items:center;gap:20px;padding:8px 18px;background:rgba(30,58,95,0.04);border-top:1px solid rgba(12,23,56,0.06);font-size:12px;}
+    .cf-sub-item{display:flex;gap:6px;align-items:center;}
+    .cf-sub-label{font-weight:600;color:var(--text-2);}
+    .cf-sub-val{font-weight:700;color:var(--text);}
+    .cf-sub-item.grand{margin-left:auto;}
+    .cf-sub-item.grand .cf-sub-val{font-size:14px;}
 
     /* Section subtotal */
     .section-sub{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;background:rgba(12,23,56,0.02);font-size:12px;}
@@ -341,13 +357,40 @@
       const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`);
       return el ? el.value.trim() : '';
     }
-    function getCfAmt(si, item, idx) {
-      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="amount"]`);
-      return el ? n(el.value) : 0;
+    const COURTS = ['','1','2','3','4','5','6','in'];
+
+    function addCfRow(si, entry) {
+      const tbody = document.getElementById(`s${si}-cf-tbody`);
+      if (!tbody) return;
+      const type = entry?.type || 'lesson';
+      const court = entry?.court || '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><select class="cf-type-sel ${type}" onchange="this.className='cf-type-sel '+this.value;recalcShift(${si});onInput();">
+          <option value="lesson"${type==='lesson'?' selected':''}>Lesson</option>
+          <option value="guest"${type==='guest'?' selected':''}>Guest</option>
+          <option value="payg"${type==='payg'?' selected':''}>PAYG</option>
+        </select></td>
+        <td><select class="cf-court-sel">
+          <option value="">—</option>
+          ${[1,2,3,4,5,6].map(c=>`<option value="${c}"${court==c?' selected':''}>Ct ${c}</option>`).join('')}
+          <option value="in"${court==='in'?' selected':''}>Indoor</option>
+        </select></td>
+        <td><input type="text" class="cf-note-input" placeholder="9:00am · Name" value="${(entry?.detail||'').replace(/"/g,'&quot;')}" oninput="onInput();"></td>
+        <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${entry?.amount!=null?entry.amount:''}" oninput="recalcShift(${si});onInput();"></td>
+        <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
+      tbody.appendChild(tr);
     }
-    function getCfDetail(si, item, idx) {
-      const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="detail"]`);
-      return el ? el.value.trim() : '';
+
+    function getCfEntries(si) {
+      const tbody = document.getElementById(`s${si}-cf-tbody`);
+      if (!tbody) return [];
+      return Array.from(tbody.querySelectorAll('tr')).map(tr => ({
+        type:   tr.querySelector('.cf-type-sel')?.value  || 'lesson',
+        court:  tr.querySelector('.cf-court-sel')?.value || '',
+        detail: tr.querySelector('.cf-note-input')?.value.trim() || '',
+        amount: (v => v !== '' ? parseFloat(v) || null : null)(tr.querySelector('.cf-row-amt')?.value ?? ''),
+      }));
     }
 
     // ── Form Generation ────────────────────────────────────────────────────────
@@ -360,16 +403,6 @@
       };
       const d = (item, idx, field) =>
         `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
-      const CF_N = 5;
-      const cfRows = (item, label) => Array.from({length: CF_N}, (_, i) => `
-          <div class="cf-row">
-            <span class="cat-label">${label} ${i+1}</span>
-            <div class="cf-inputs">
-              <input type="number" class="cf-amt" data-si="${si}" data-item="${item}" data-idx="${i}" data-field="amount" min="0" step="0.01" placeholder="$0.00" oninput="recalcShift(${si});onInput();">
-              <input type="text" class="cf-detail" data-si="${si}" data-item="${item}" data-idx="${i}" data-field="detail" placeholder="Time / Court" oninput="onInput();">
-            </div>
-            <span class="cat-row-total" id="s${si}-${item}-${i}-total">$0.00</span>
-          </div>`).join('');
       const amts5 = (item) => [0,1,2,3,4].map(i => a(item, i)).join('');
       const amtsWithMember = (item) => [0,1,2,3,4].map(i =>
         `<div class="amt-wrap">${a(item,i,'amount')}${d(item,i,'member')}</div>`
@@ -423,24 +456,24 @@
             <span>Court Fees</span>
             <span class="section-total-val" id="s${si}-cf-total">$0.00</span>
           </div>
-          ${cfRows('private_lessons', 'Lesson')}
-          <div class="cf-group-sub">
-            <span>Private Lessons Sub-total</span>
-            <span id="s${si}-pl-total">$0.00</span>
-          </div>
-          ${cfRows('guests', 'Guest')}
-          <div class="cf-group-sub">
-            <span>Guests Sub-total</span>
-            <span id="s${si}-g-total">$0.00</span>
-          </div>
-          ${cfRows('payg', 'PAYG')}
-          <div class="cf-group-sub">
-            <span>PAYG Sub-total</span>
-            <span id="s${si}-py-total">$0.00</span>
-          </div>
-          <div class="section-sub">
-            <span class="section-sub-label">Shift Total — Court Fees</span>
-            <span class="section-sub-val" id="s${si}-cf-sub">$0.00</span>
+          <div class="cf-table-wrap">
+            <table class="cf-table">
+              <colgroup>
+                <col class="col-type"><col class="col-court"><col class="col-note"><col class="col-amt"><col class="col-del">
+              </colgroup>
+              <thead><tr>
+                <th>Type</th><th>Court</th><th>Time / Note</th>
+                <th style="text-align:right;padding-right:8px">Amount</th><th></th>
+              </tr></thead>
+              <tbody id="s${si}-cf-tbody"></tbody>
+            </table>
+            <button type="button" class="cf-add-row" onclick="addCfRow(${si})">+ Add Row</button>
+            <div class="cf-subtotals">
+              <div class="cf-sub-item"><span class="cf-sub-label">Lessons</span><span class="cf-sub-val" id="s${si}-pl-total">$0.00</span></div>
+              <div class="cf-sub-item"><span class="cf-sub-label">Guests</span><span class="cf-sub-val" id="s${si}-g-total">$0.00</span></div>
+              <div class="cf-sub-item"><span class="cf-sub-label">PAYG</span><span class="cf-sub-val" id="s${si}-py-total">$0.00</span></div>
+              <div class="cf-sub-item grand"><span class="cf-sub-label">Court Fees</span><span class="cf-sub-val" id="s${si}-cf-sub">$0.00</span></div>
+            </div>
           </div>
 
           <!-- DRINKS & SNACKS -->
@@ -563,19 +596,14 @@
       setText(`s${si}-ps-total`,    fmt(psT));
       setText(`s${si}-ps-sub`,      fmt(psT));
 
-      const CF_N = 5;
       let pl = 0, g = 0, py = 0;
-      for (let i = 0; i < CF_N; i++) {
-        const pli = getCfAmt(si,'private_lessons',i);
-        const gi  = getCfAmt(si,'guests',i);
-        const pyi = getCfAmt(si,'payg',i);
-        setText(`s${si}-private_lessons-${i}-total`, fmt(pli));
-        setText(`s${si}-guests-${i}-total`,          fmt(gi));
-        setText(`s${si}-payg-${i}-total`,            fmt(pyi));
-        pl += pli; g += gi; py += pyi;
-      }
+      getCfEntries(si).forEach(e => {
+        const amt = e.amount || 0;
+        if (e.type === 'lesson') pl += amt;
+        else if (e.type === 'guest') g += amt;
+        else py += amt;
+      });
       const cfT = pl + g + py;
-
       setText(`s${si}-pl-total`, fmt(pl));
       setText(`s${si}-g-total`,  fmt(g));
       setText(`s${si}-py-total`, fmt(py));
@@ -667,11 +695,7 @@
           racquet_sales: [0,1,2,3,4].map(i => ({ amount: getAmt(si,'racquet_sales',i,'amount') || null, member: getStr(si,'racquet_sales',i,'member') })),
           grips:         [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="grips"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
         },
-        court_fees: {
-          private_lessons: [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'private_lessons',i) || null, detail: getCfDetail(si,'private_lessons',i) })),
-          guests:          [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'guests',i) || null,          detail: getCfDetail(si,'guests',i) })),
-          payg:            [0,1,2,3,4].map(i => ({ amount: getCfAmt(si,'payg',i) || null,            detail: getCfDetail(si,'payg',i) })),
-        },
+        court_fees: { entries: getCfEntries(si) },
         drinks_snacks: {
           drinks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="drinks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
           snacks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="snacks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
@@ -723,12 +747,18 @@
       });
 
       const cf = shift.court_fees || {};
-      ['private_lessons','guests','payg'].forEach(item => {
-        (cf[item] || []).forEach((v, i) => {
-          setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"][data-field="amount"]`, v?.amount);
-          setInput(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"][data-field="detail"]`, v?.detail);
-        });
-      });
+      const tbody = document.getElementById(`s${si}-cf-tbody`);
+      if (tbody) tbody.innerHTML = '';
+      let cfSrc = cf.entries;
+      if (!cfSrc) {
+        // migrate old format
+        const ol = (k, t) => (cf[k] || []).filter(e => e?.amount).map(e => ({...e, type:t}));
+        cfSrc = [...ol('private_lessons','lesson'), ...ol('guests','guest'), ...ol('payg','payg')];
+      }
+      if (cfSrc.length) { cfSrc.forEach(e => addCfRow(si, e)); }
+      else {
+        addCfRow(si, {type:'lesson'}); addCfRow(si, {type:'guest'}); addCfRow(si, {type:'payg'});
+      }
 
       const ds = shift.drinks_snacks || {};
       setArr('drinks', ds.drinks);

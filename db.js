@@ -807,11 +807,7 @@ function _blankCashShift(index) {
       racquet_sales:Array.from({length:5}, () => ({ amount: null, member: '' })),
       grips:        [null,null,null,null,null],
     },
-    court_fees: {
-      private_lessons: Array.from({length:5}, () => ({ amount: null, detail: '' })),
-      guests:          Array.from({length:5}, () => ({ amount: null, detail: '' })),
-      payg:            Array.from({length:5}, () => ({ amount: null, detail: '' })),
-    },
+    court_fees: { entries: [] },
     drinks_snacks: {
       drinks: [null,null,null,null,null],
       snacks: [null,null,null,null,null],
