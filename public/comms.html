@@ -533,16 +533,18 @@
     const [meRes, staffRes] = await Promise.all([fetch('/api/me'), fetch('/api/messages/staff-list')]);
     if (!meRes.ok) { window.location.href='/login.html'; return; }
     me = await meRes.json();
-    allStaff = await staffRes.json();
+    try { allStaff = await staffRes.json(); } catch (e) { allStaff = []; }
+    if (!Array.isArray(allStaff)) allStaff = [];
 
     const av = document.getElementById('me-avatar');
-    staffAvatar(av, me.id, me.name, me.color);
+    try { staffAvatar(av, me.id, me.name, me.color); } catch (e) {}
     document.getElementById('me-name').textContent = me.name;
 
-    renderViewAs();
-    buildSidebar();
-    buildRecipientChips();
-    updateDateNav();
+    // Each step guarded so one failure can't stop the recipient picker or avatars loading
+    try { renderViewAs(); }        catch (e) { console.error('renderViewAs', e); }
+    try { buildSidebar(); }        catch (e) { console.error('buildSidebar', e); }
+    try { buildRecipientChips(); } catch (e) { console.error('buildRecipientChips', e); }
+    try { updateDateNav(); }       catch (e) { console.error('updateDateNav', e); }
     await loadAll();
   }
 
