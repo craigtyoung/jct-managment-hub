@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Schedule · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -413,7 +414,25 @@
       const day = date.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       date.setDate(date.getDate() + diff);
-      return date.toISOString().slice(0,10);
+      // Local Y-M-D — toISOString() is UTC and slips to the wrong day in the evening.
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    }
+    // Cold-start resilient JSON fetch: Railway wake-ups can return a transient
+    // 502/HTML that makes res.json() throw. Retry with backoff instead of dying.
+    async function fetchJSONRetry(url, opts = {}, tries = 4) {
+      let lastErr;
+      for (let i = 0; i < tries; i++) {
+        try {
+          const res = await fetch(url, opts);
+          if (res.status === 401) return { __unauth: true };
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return await res.json();
+        } catch (e) {
+          lastErr = e;
+          if (i < tries - 1) await new Promise(r => setTimeout(r, 600 * (i + 1)));
+        }
+      }
+      throw lastErr;
     }
     function addDays(dateStr, n) {
       const d = new Date(dateStr + 'T12:00:00');
@@ -443,9 +462,9 @@
     // ── Load ───────────────────────────────────────────────────────
     async function load() {
       document.getElementById('week-label').textContent = fmtWeekLabel(currentWeekStart);
+      document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>';
       try {
-        const res = await fetch(`/api/schedule/week?start=${currentWeekStart}`);
-        const { assignments } = await res.json();
+        const { assignments } = await fetchJSONRetry(`/api/schedule/week?start=${currentWeekStart}`);
         weekData = {};
         for (let i = 0; i < 7; i++) {
           const d = addDays(currentWeekStart, i);
@@ -458,7 +477,7 @@
         }
         render();
       } catch(e) {
-        document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Failed to load schedule.</div>';
+        document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Couldn\'t load the schedule — the server may be waking up.<br><button onclick="load()" style="margin-top:12px;padding:7px 16px;border:1px solid rgba(44,92,156,0.35);background:rgba(44,92,156,0.08);color:var(--blue);border-radius:8px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer">Retry</button></div>';
       }
     }
 
@@ -862,9 +881,9 @@
     async function cancelCoverage(id){ await fetch(`/api/coverage/${id}/cancel`,{method:'POST'}); await loadCoverage(); }
 
     async function init() {
-      const res = await fetch('/api/me');
-      if (res.status === 401) { window.location.href = '/login.html'; return; }
-      me = await res.json();
+      const me0 = await fetchJSONRetry('/api/me');
+      if (me0 && me0.__unauth) { window.location.href = '/login.html'; return; }
+      me = me0;
 
       const av = document.getElementById('nav-avatar');
       staffAvatar(av, me.id, me.name, me.color);
@@ -913,7 +932,11 @@
       });
     }
 
-    init().catch(err => console.error('[schedule] init error:', err));
+    init().catch(err => {
+      console.error('[schedule] init error:', err);
+      const grid = document.getElementById('schedule-grid');
+      if (grid) grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Couldn\'t reach the server — it may be waking up.<br><button onclick="location.reload()" style="margin-top:12px;padding:7px 16px;border:1px solid rgba(44,92,156,0.35);background:rgba(44,92,156,0.08);color:var(--blue);border-radius:8px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer">Reload</button></div>';
+    });
   </script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
