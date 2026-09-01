@@ -879,22 +879,10 @@
     //  NAV ROLE ADJUSTMENT
     // ══════════════════════════════════════════════════════════
     function adjustNav(){
-      if(isContractor){
-        // Trimmed nav: Hub (this page) · Schedule · Comms. No checklist, no More, no sheet.
-        const home = document.getElementById('mnav-home');
-        home.setAttribute('href','/contractor.html');
-        home.classList.add('active');
-        home.setAttribute('aria-current','page');
-        document.getElementById('mnav-home-label').textContent = 'Hub';
-        document.getElementById('mnav-checklist').style.display = 'none';
-        document.getElementById('mnav-more').style.display = 'none';
-        const sheet = document.getElementById('mnav-more-backdrop');
-        if(sheet) sheet.parentNode.removeChild(sheet);
-      } else {
-        // Management: full standard nav + Contractor link in More sheet, marked active here.
-        document.getElementById('mnav-more').classList.add('active');
-        // Contractor sheet link is already active in markup; nothing else to change.
-      }
+      // Muzz is a normal team member — everyone (contractor + management) gets the
+      // full standard nav. This page lives under "More", so mark that active; the
+      // "Contractor Hub" sheet link is already marked active in the markup.
+      document.getElementById('mnav-more').classList.add('active');
     }
 
     // ══════════════════════════════════════════════════════════

@@ -1011,7 +1011,6 @@
       const meRes = await fetch('/api/me');
       if (meRes.status === 401) { window.location.href = '/login.html'; return; }
       me = await meRes.json();
-      if (me.role === 'contractor') { window.location.href = '/contractor.html'; return; }
 
       // Nav avatar
       const av = getEl('nav-avatar');
