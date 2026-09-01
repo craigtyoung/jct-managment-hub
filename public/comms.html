@@ -269,7 +269,17 @@
       .sidebar { display: none !important; }
       .qnav { display: none !important; }
       .topbar { padding: 0 14px; }
-      .main { width: 100%; min-width: 0; }
+      .main { width: 100%; min-width: 0; overflow: visible; }
+
+      /* Let the whole page scroll on mobile so notes below the composer are reachable
+         (desktop keeps the fixed app-shell with an internally-scrolling feed). */
+      html, body { height: auto; min-height: 100%; }
+      .shell { overflow: visible; }
+      .feed-wrap { overflow: visible; }
+
+      /* Keep the assistant button clear of the bottom nav / "More" item */
+      #jct-chat-btn { bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
+      #jct-chat-panel { bottom: calc(142px + env(safe-area-inset-bottom, 0px)) !important; }
 
       /* 3. Tighten padding so the feed + cards fit at 375px */
       .compose-wrap { padding: 12px 12px; }
