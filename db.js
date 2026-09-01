@@ -340,6 +340,15 @@ if (!_data.period_receipts) {
   save();
 }
 
+// Migration: rename the 'reminders' comms category to 'maintenance' (Sep 2026)
+{
+  let changed = false;
+  for (const m of (_data.messages || [])) {
+    if (m.category === 'reminders') { m.category = 'maintenance'; changed = true; }
+  }
+  if (changed) { save(); console.log('Comms category reminders → maintenance migrated.'); }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nextId(table) {
@@ -459,7 +468,7 @@ function getMessages({ limit = 30, offset = 0, staffId }) {
 
 function createMessage({ staffId, content, shift, category, recipients, show_on }) {
   const id = nextId('messages');
-  const validCategories = ['membership', 'pro-shop', 'reminders', 'academy', 'general'];
+  const validCategories = ['membership', 'pro-shop', 'maintenance', 'academy', 'general'];
   // show_on: 'YYYY-MM-DD' to surface the note on a future day, else null (shows on the day it was posted)
   const validShowOn = (typeof show_on === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(show_on)) ? show_on : null;
   // recipients: null = everyone, array of staff IDs = targeted

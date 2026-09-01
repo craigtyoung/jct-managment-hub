@@ -143,7 +143,7 @@
     .msg-card.unread { border-left: 3px solid #2c5c9c; }
     .msg-card.unread[data-category="membership"] { border-left-color: #8b5cf6; }
     .msg-card.unread[data-category="pro-shop"]   { border-left-color: #f59e0b; }
-    .msg-card.unread[data-category="reminders"]  { border-left-color: #3b82f6; }
+    .msg-card.unread[data-category="maintenance"]  { border-left-color: #0d9488; }
     .msg-card.unread[data-category="academy"]    { border-left-color: #10b981; }
     .msg-header { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
     .msg-header:hover { background: rgba(44,92,156,0.03); }
@@ -153,7 +153,7 @@
     .cat-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; }
     .cat-membership { background: rgba(139,92,246,0.12); color: #7c3aed; }
     .cat-pro-shop   { background: rgba(245,158,11,0.1);  color: #d97706; }
-    .cat-reminders  { background: rgba(59,130,246,0.12); color: #2563eb; }
+    .cat-maintenance { background: rgba(13,148,136,0.12); color: #0f766e; }
     .cat-academy    { background: rgba(16,185,129,0.1);  color: #059669; }
     .cat-general    { background: rgba(148,163,184,0.12);color: #64748b; }
     .msg-to { font-size: 12px; color: var(--text3); }
@@ -412,9 +412,9 @@
           <span class="shift-dot" style="background:#f59e0b"></span> Pro Shop
           <span id="b-pro-shop" class="unread-pill" style="display:none"></span>
         </button>
-        <button class="sidebar-btn" data-cat="reminders" onclick="filterCategory('reminders',this)">
-          <span class="shift-dot" style="background:#3b82f6"></span> Reminders
-          <span id="b-reminders" class="unread-pill" style="display:none"></span>
+        <button class="sidebar-btn" data-cat="maintenance" onclick="filterCategory('maintenance',this)">
+          <span class="shift-dot" style="background:#0d9488"></span> Maintenance
+          <span id="b-maintenance" class="unread-pill" style="display:none"></span>
         </button>
         <button class="sidebar-btn" data-cat="academy" onclick="filterCategory('academy',this)">
           <span class="shift-dot" style="background:#10b981"></span> Academy
@@ -456,7 +456,7 @@
               <option value="general">General</option>
               <option value="membership">Membership</option>
               <option value="pro-shop">Pro Shop</option>
-              <option value="reminders">Reminders</option>
+              <option value="maintenance">Maintenance</option>
               <option value="academy">Academy</option>
             </select>
             <span style="font-size:11px;color:var(--text3);font-weight:500">Schedule for:</span>
@@ -573,7 +573,7 @@
   let me = null, allStaff = [], messages = [];
   let activeCategory = 'all', activeStaff = 'all';
 
-  const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
+  const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
   let selectedRecipients = [];
   let viewDate = new Date(); // the day currently shown
   viewDate.setHours(0,0,0,0);
@@ -691,6 +691,20 @@
     try { buildSidebar(); }        catch (e) { console.error('buildSidebar', e); }
     try { buildRecipientChips(); } catch (e) { console.error('buildRecipientChips', e); }
     try { updateDateNav(); }       catch (e) { console.error('updateDateNav', e); }
+
+    // Muzz (contractor) is on the full log — no secrets — but his relevant channel is
+    // Maintenance. Simplify his sidebar to All + Maintenance and default him to Maintenance.
+    if (me.role === 'contractor') {
+      document.querySelectorAll('.sidebar-btn[data-cat]').forEach(b => {
+        if (b.dataset.cat !== 'all' && b.dataset.cat !== 'maintenance') b.style.display = 'none';
+      });
+      const allBtn = document.querySelector('.sidebar-btn[data-cat="all"]');
+      const maintBtn = document.querySelector('.sidebar-btn[data-cat="maintenance"]');
+      if (allBtn) allBtn.classList.remove('active');
+      if (maintBtn) maintBtn.classList.add('active');
+      activeCategory = 'maintenance';
+    }
+
     await loadAll();
   }
 
@@ -839,8 +853,8 @@
       groups[g].push(m);
     });
 
-    const catColors = { membership:'#8b5cf6', 'pro-shop':'#f59e0b', reminders:'#3b82f6', academy:'#10b981', general:'#94a3b8' };
-    const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
+    const catColors = { membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' };
+    const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
 
     // Order sections by their newest message so the most recent note is always at the very top.
     const newestInGroup = g => Math.max(...groups[g].map(m => new Date(m.created_at).getTime()));
@@ -1188,7 +1202,7 @@
   // ── Badges ─────────────────────────────────────────────────────────────────
   function updateBadges() {
     const isActive = isMyUnread;
-    ['all','membership','pro-shop','reminders','academy','general'].forEach(cat => {
+    ['all','membership','pro-shop','maintenance','academy','general'].forEach(cat => {
       const pool = cat === 'all' ? messages : messages.filter(m => (m.category||'general') === cat);
       const n = pool.filter(isActive).length;
       const el = document.getElementById('b-'+cat);

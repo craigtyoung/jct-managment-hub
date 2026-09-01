@@ -205,8 +205,9 @@
       const mgmt = [], office = [], pros = [], contractors = [];
       staffList.forEach(s => {
         if (s.role === 'pro') pros.push(s);
+        else if (s.role === 'contractor') contractors.push(s);
         else if (s.role === 'admin' || s.role === 'manager') mgmt.push(s);
-        else office.push(s); // contractor (Muzz) signs in as regular staff
+        else office.push(s);
       });
       const ord = n => { const i = MGMT_ORDER.indexOf(n); return i === -1 ? 99 : i; };
       mgmt.sort((a, b) => ord(a.name) - ord(b.name));
