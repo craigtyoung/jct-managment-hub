@@ -692,17 +692,13 @@
     try { buildRecipientChips(); } catch (e) { console.error('buildRecipientChips', e); }
     try { updateDateNav(); }       catch (e) { console.error('updateDateNav', e); }
 
-    // Muzz (contractor) is on the full log — no secrets — but his relevant channel is
-    // Maintenance. Simplify his sidebar to All + Maintenance and default him to Maintenance.
+    // Muzz (contractor) is on the full log — no secrets. Simplify his sidebar to
+    // All + Maintenance, but keep him defaulted to All so he always sees everything
+    // (including his own posts). Maintenance messages are highlighted in teal.
     if (me.role === 'contractor') {
       document.querySelectorAll('.sidebar-btn[data-cat]').forEach(b => {
         if (b.dataset.cat !== 'all' && b.dataset.cat !== 'maintenance') b.style.display = 'none';
       });
-      const allBtn = document.querySelector('.sidebar-btn[data-cat="all"]');
-      const maintBtn = document.querySelector('.sidebar-btn[data-cat="maintenance"]');
-      if (allBtn) allBtn.classList.remove('active');
-      if (maintBtn) maintBtn.classList.add('active');
-      activeCategory = 'maintenance';
     }
 
     await loadAll();
