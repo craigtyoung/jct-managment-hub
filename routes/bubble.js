@@ -15,12 +15,12 @@ router.get('/', (req, res) => {
 
 // POST a new reading
 router.post('/', (req, res) => {
-  const { temperature, pressure, note } = req.body;
+  const { temperature, pressure, note, wind, recTier, recMin } = req.body;
   const empty = v => v == null || v === '';
   if (empty(temperature) && empty(pressure) && !note) {
     return res.status(400).json({ error: 'Enter a temperature, pressure, or note' });
   }
-  const id = db.createBubbleReading({ staffId: req.actingStaffId, temperature, pressure, note });
+  const id = db.createBubbleReading({ staffId: req.actingStaffId, temperature, pressure, note, wind, recTier, recMin });
   sse.broadcast('update');
   res.json({ ok: true, id });
 });

@@ -934,6 +934,7 @@
     <div class="bub-wrap">
       <div class="bub-head">
         <div class="bub-title"><span class="contacts-dot" style="background:#10b981"></span> Bubble Monitoring</div>
+        <span id="bub-rec" style="font-size:12px;color:var(--text-3);flex:1;text-align:center;min-width:120px"></span>
         <a href="/bubble.html" class="bub-link">Log a reading →</a>
       </div>
       <div id="bub-list" class="bub-list"></div>
@@ -1405,6 +1406,20 @@
         renderBubble(await r.json());
       } catch (e) {}
     }
+    // Live wind → recommended pressure (from the club guide), shown in the section header
+    const BUB_GUIDE = [[10,'0.7–1.0',0.7],[20,'1.0',1.0],[35,'1.2',1.2],[50,'1.4',1.4],[60,'1.6',1.6],[Infinity,'1.70',1.70]];
+    async function loadBubbleRec() {
+      try {
+        const wr = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.45&longitude=-79.68&current=weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=America/Toronto');
+        const w = (await wr.json()).current;
+        const wind = Math.round(w.wind_speed_10m);
+        const snow = [71,73,75,77,85,86].includes(w.weather_code);
+        const g = BUB_GUIDE.find(x => wind <= x[0]) || BUB_GUIDE[BUB_GUIDE.length-1];
+        let rec = g[1]; if (snow && g[2] < 1.5) rec = '1.5+';
+        const el = document.getElementById('bub-rec');
+        if (el) el.innerHTML = `🌬 ${wind} km/h · set pressure <strong style="color:var(--text)">${rec}</strong>${snow ? ' · ❄ snow' : ''}`;
+      } catch (e) {}
+    }
     function renderBubble(rows) {
       const wrap = document.getElementById('bub-list');
       if (!wrap) return;
@@ -1471,6 +1486,7 @@
 
       renderContacts();
       loadBubble();
+      loadBubbleRec();
 
       // Checklist progress tile + stat card
       try {

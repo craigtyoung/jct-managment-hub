@@ -30,9 +30,32 @@
 
     .main{max-width:1000px;margin:0 auto;padding:28px 28px 80px;}
     h1{font-family:var(--font-display);font-size:1.75rem;font-weight:600;margin-bottom:4px;}
-    .sub{font-size:13px;color:var(--text-2);margin-bottom:24px;}
+    .sub{font-size:13px;color:var(--text-2);margin-bottom:22px;}
 
-    .log-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:26px;}
+    /* Live conditions banner */
+    .live{border-radius:16px;padding:18px 22px;margin-bottom:14px;color:#fff;display:flex;align-items:center;gap:22px;flex-wrap:wrap;background:var(--navy);transition:background .3s;}
+    .live-main{flex:1;min-width:220px;}
+    .live-cond{font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;}
+    .live-rec{font-family:var(--font-display);font-size:1.7rem;font-weight:700;line-height:1.1;margin-top:2px;}
+    .live-rec small{font-size:0.9rem;font-weight:500;opacity:0.9;}
+    .live-wind{text-align:right;}
+    .live-wind .v{font-size:1.5rem;font-weight:700;line-height:1;}
+    .live-wind .l{font-size:11px;opacity:0.8;text-transform:uppercase;letter-spacing:0.05em;margin-top:3px;}
+    .live-snow{width:100%;font-size:12.5px;font-weight:600;background:rgba(255,255,255,0.16);border-radius:8px;padding:7px 11px;margin-top:4px;}
+
+    /* Check status */
+    .status{display:flex;align-items:center;gap:10px;border-radius:12px;padding:11px 16px;margin-bottom:24px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);}
+    .status .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .status.ok{color:#0f7a43;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);}
+    .status.ok .dot{background:#10b981;}
+    .status.due{color:#b45309;border-color:rgba(217,119,6,0.35);background:rgba(217,119,6,0.07);}
+    .status.due .dot{background:#d97706;animation:pulse 1.6s infinite;}
+    .status.over{color:#b91c1c;border-color:rgba(220,38,38,0.35);background:rgba(220,38,38,0.06);}
+    .status.over .dot{background:#dc2626;animation:pulse 1.2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
+    /* Log form */
+    .log-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:28px;}
     .log-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
     .field{display:flex;flex-direction:column;gap:5px;}
     .field label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
@@ -42,17 +65,36 @@
     .field.note{flex:1;min-width:180px;}
     .log-btn{background:var(--navy);color:#fff;border:none;border-radius:9px;padding:10px 20px;font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;}
     .log-btn:hover{background:var(--blue);}
+    .log-hint{font-size:12px;color:var(--text-3);margin-top:10px;}
+
+    /* Guidelines */
+    .guide{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:26px;overflow:hidden;}
+    .guide-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none;}
+    .guide-title{font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);display:flex;align-items:center;gap:8px;}
+    .guide-body{padding:0 18px 16px;display:none;}
+    .guide.open .guide-body{display:block;}
+    .guide-chev{transition:transform .2s;color:var(--text-3);}
+    .guide.open .guide-chev{transform:rotate(180deg);}
+    table.gt{width:100%;border-collapse:collapse;font-size:13px;}
+    table.gt th{text-align:left;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);padding:6px 8px;border-bottom:1px solid var(--border);}
+    table.gt td{padding:8px;border-bottom:1px solid rgba(12,23,56,0.05);}
+    table.gt td:last-child{font-weight:700;color:var(--blue);}
+    .gt-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+    .guide-warn{margin-top:12px;font-size:12.5px;color:#b91c1c;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:8px;padding:9px 12px;}
 
     .feed-title{font-family:var(--font-display);font-size:0.95rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:9px;}
     .feed-dot{width:6px;height:6px;border-radius:50%;background:#10b981;}
     .reading{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;}
+    .reading.flagged{border-color:rgba(220,38,38,0.35);background:rgba(220,38,38,0.04);}
     .r-av{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
     .r-metrics{display:flex;gap:22px;}
     .r-metric{display:flex;flex-direction:column;}
     .r-metric .v{font-size:1.15rem;font-weight:700;color:var(--text);line-height:1;}
     .r-metric .l{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-top:3px;}
     .r-main{flex:1;min-width:0;}
-    .r-who{font-size:13px;font-weight:600;color:var(--text);}
+    .r-who{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .r-flag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#fff;background:#dc2626;padding:1px 7px;border-radius:100px;}
+    .r-ctx{font-size:11.5px;color:var(--text-3);margin-top:2px;}
     .r-note{font-size:12px;color:var(--text-2);margin-top:2px;}
     .r-time{font-size:11px;color:var(--text-3);white-space:nowrap;}
     .feed-empty{padding:24px;text-align:center;color:var(--text-3);background:var(--surface);border:1px dashed var(--border);border-radius:12px;}
@@ -74,25 +116,49 @@
 
   <main class="main">
     <h1>Bubble Monitoring</h1>
-    <p class="sub">Log the bubble's pressure and temperature through your shift. Each entry records who logged it and when.</p>
+    <p class="sub">Live recommendation from the club's pressure guide, based on current wind. Log a reading at the start and middle of every shift — more often in wind or snow.</p>
 
+    <!-- Live conditions -->
+    <div class="live" id="live" style="background:#0c1738">
+      <div class="live-main">
+        <div class="live-cond" id="live-cond">Checking conditions…</div>
+        <div class="live-rec" id="live-rec">—</div>
+      </div>
+      <div class="live-wind">
+        <div class="v" id="live-wind">—</div>
+        <div class="l">Wind now</div>
+      </div>
+      <div class="live-snow" id="live-snow" style="display:none"></div>
+    </div>
+
+    <!-- Check status -->
+    <div class="status ok" id="status"><span class="dot"></span><span id="status-text">Loading…</span></div>
+
+    <!-- Log a reading -->
     <form class="log-card" onsubmit="submitReading(event)">
       <div class="log-row">
-        <div class="field temp">
-          <label>Temperature</label>
-          <input type="number" step="0.1" id="temp" placeholder="e.g. 18.5 °C">
-        </div>
-        <div class="field press">
-          <label>Pressure</label>
-          <input type="number" step="0.01" id="press" placeholder="e.g. 2.4">
-        </div>
-        <div class="field note">
-          <label>Note (optional)</label>
-          <input type="text" id="note" maxlength="300" placeholder="Anything worth flagging — alerts, adjustments…">
-        </div>
+        <div class="field temp"><label>Temperature</label><input type="number" step="0.1" id="temp" placeholder="°C"></div>
+        <div class="field press"><label>Pressure</label><input type="number" step="0.01" id="press" placeholder="e.g. 1.2"></div>
+        <div class="field note"><label>Note (optional)</label><input type="text" id="note" maxlength="300" placeholder="Alerts, adjustments, anything worth flagging…"></div>
         <button type="submit" class="log-btn">Log Reading</button>
       </div>
+      <div class="log-hint" id="log-hint"></div>
     </form>
+
+    <!-- Guidelines -->
+    <div class="guide" id="guide">
+      <div class="guide-head" onclick="document.getElementById('guide').classList.toggle('open')">
+        <div class="guide-title"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Bubble Pressure Guide</div>
+        <svg class="guide-chev" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body">
+        <table class="gt">
+          <thead><tr><th>Conditions</th><th>Wind Speed</th><th style="text-align:right">Pressure</th></tr></thead>
+          <tbody id="guide-rows"></tbody>
+        </table>
+        <div class="guide-warn">⚠ Significant snow on the bubble — do <strong>not</strong> lower pressure below 1.5.</div>
+      </div>
+    </div>
 
     <div class="feed-title"><span class="feed-dot"></span> Recent Readings</div>
     <div id="feed"><div class="feed-empty">Loading…</div></div>
@@ -100,7 +166,21 @@
 
   <script src="/staff-avatar.js"></script>
   <script>
+    // ── Club pressure guide (from the shift-checklist guide) ──
+    const GUIDE = [
+      { max: 10,       tier: 'Completely Calm',   label: '0.7–1.0', min: 0.7,  color: '#10b981' },
+      { max: 20,       tier: 'Light Breeze',      label: '1.0',     min: 1.0,  color: '#65a30d' },
+      { max: 35,       tier: 'Moderate to Strong',label: '1.2',     min: 1.2,  color: '#d97706' },
+      { max: 50,       tier: 'Very Strong',       label: '1.4',     min: 1.4,  color: '#ea580c' },
+      { max: 60,       tier: 'Extreme Conditions',label: '1.6',     min: 1.6,  color: '#dc2626' },
+      { max: Infinity, tier: 'Super Extreme',     label: '1.70',    min: 1.70, color: '#7c3aed' },
+    ];
+    const SNOW_CODES = [71,73,75,77,85,86];
+    function tierForWind(kmh){ return GUIDE.find(g => kmh <= g.max) || GUIDE[GUIDE.length-1]; }
+
     let me = null;
+    let COND = { wind: null, snow: false, tier: null, recMin: null, recLabel: null, color: '#0c1738', ready: false };
+
     function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
     function updateClock(){
       const now=new Date();
@@ -113,41 +193,119 @@
         ? d.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})
         : d.toLocaleDateString('en-CA',{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true});
     }
+
+    function renderGuide(){
+      document.getElementById('guide-rows').innerHTML = GUIDE.map(g =>
+        `<tr><td><span class="gt-dot" style="background:${g.color}"></span>${g.tier}</td><td>${g.max===Infinity?'>60 km/h':(g.max-10)+'–'+g.max+' km/h'}</td><td style="text-align:right">${g.label}</td></tr>`
+      ).join('');
+    }
+
+    async function loadConditions(){
+      try{
+        const wr = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.45&longitude=-79.68&current=temperature_2m,weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=America/Toronto');
+        const w = (await wr.json()).current;
+        const wind = Math.round(w.wind_speed_10m);
+        const snow = SNOW_CODES.includes(w.weather_code);
+        const t = tierForWind(wind);
+        let recMin = t.min, recLabel = t.label;
+        if (snow && recMin < 1.5) { recMin = 1.5; recLabel = '1.5+ (snow load)'; }
+        COND = { wind, snow, tier: t.tier, recMin, recLabel, color: t.color, ready: true };
+      }catch(e){ COND.ready = false; }
+      renderLive();
+      renderStatus();
+    }
+
+    function renderLive(){
+      const live = document.getElementById('live');
+      if (!COND.ready){ document.getElementById('live-cond').textContent='Weather unavailable — use the guide below'; document.getElementById('live-rec').textContent='—'; document.getElementById('live-wind').textContent='—'; return; }
+      live.style.background = COND.color;
+      document.getElementById('live-cond').textContent = COND.tier;
+      document.getElementById('live-rec').innerHTML = `Set pressure to <strong>${COND.recLabel}</strong>`;
+      document.getElementById('live-wind').textContent = COND.wind + ' km/h';
+      const snowEl = document.getElementById('live-snow');
+      if (COND.snow){ snowEl.style.display='block'; snowEl.innerHTML='❄ Snow detected — do not lower pressure below 1.5.'; }
+      else snowEl.style.display='none';
+    }
+
+    // Cadence: every hour in wind (20+ km/h) or snow, otherwise every 3 hours.
+    function intervalMin(){ return (COND.ready && (COND.wind >= 20 || COND.snow)) ? 60 : 180; }
+
+    let LAST_READING = null;
+    function renderStatus(){
+      const el = document.getElementById('status'), txt = document.getElementById('status-text');
+      const iv = intervalMin();
+      const cadence = iv === 60 ? 'hourly' : 'every 3 hours';
+      if (!LAST_READING){ el.className='status due'; txt.textContent = `No reading logged today — please log one. Checks due ${cadence} right now.`; return; }
+      const last = new Date(LAST_READING.created_at);
+      const nextMs = last.getTime() + iv*60000;
+      const now = Date.now();
+      const lastTxt = fmtWhen(LAST_READING.created_at);
+      if (now < nextMs){
+        const mins = Math.round((nextMs-now)/60000);
+        el.className='status ok';
+        txt.textContent = `Last check ${lastTxt} by ${LAST_READING.staff_name||'staff'}. Next due in ${mins} min (${cadence}).`;
+      } else {
+        const over = Math.round((now-nextMs)/60000);
+        el.className = over > 60 ? 'status over' : 'status due';
+        txt.textContent = `Check overdue by ${over>90?Math.round(over/60)+' hr':over+' min'} — last was ${lastTxt}. Log one now (${cadence}).`;
+      }
+    }
+
     async function loadFeed(){
       try{
         const res=await fetch('/api/bubble?limit=50');
         if(!res.ok) return;
         const rows=await res.json();
+        LAST_READING = rows[0] || null;
+        renderStatus();
         const wrap=document.getElementById('feed');
         if(!rows.length){ wrap.innerHTML='<div class="feed-empty">No readings logged yet.</div>'; return; }
-        wrap.innerHTML=rows.map(r=>`
-          <div class="reading">
+        wrap.innerHTML=rows.map(r=>{
+          const flagged = r.pressure!=null && r.rec_min!=null && r.pressure < r.rec_min;
+          const ctx = (r.wind!=null || r.rec_tier)
+            ? `<div class="r-ctx">${r.wind!=null?('Wind '+r.wind+' km/h'):''}${r.rec_tier?(' · '+esc(r.rec_tier)):''}${r.rec_min!=null?(' · rec ≥ '+r.rec_min):''}</div>` : '';
+          return `<div class="reading${flagged?' flagged':''}">
             <div class="r-av" data-av="${r.staff_id}" data-name="${esc(r.staff_name||'?')}" data-color="${r.staff_color||'#666'}"></div>
             <div class="r-metrics">
               <div class="r-metric"><span class="v">${r.temperature!=null?esc(r.temperature):'—'}</span><span class="l">Temp</span></div>
               <div class="r-metric"><span class="v">${r.pressure!=null?esc(r.pressure):'—'}</span><span class="l">Pressure</span></div>
             </div>
             <div class="r-main">
-              <div class="r-who">${esc(r.staff_name||'Someone')}</div>
+              <div class="r-who">${esc(r.staff_name||'Someone')}${flagged?'<span class="r-flag">Low ⚠</span>':''}</div>
+              ${ctx}
               ${r.note?`<div class="r-note">${esc(r.note)}</div>`:''}
             </div>
             <div class="r-time">${fmtWhen(r.created_at)}</div>
-          </div>`).join('');
+          </div>`;
+        }).join('');
         wrap.querySelectorAll('[data-av]').forEach(el=>staffAvatar(el,el.dataset.av,el.dataset.name,el.dataset.color));
       }catch(e){}
     }
+
     async function submitReading(e){
       e.preventDefault();
       const temperature=document.getElementById('temp').value;
       const pressure=document.getElementById('press').value;
       const note=document.getElementById('note').value.trim();
       if(!temperature && !pressure && !note) return;
-      await fetch('/api/bubble',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temperature,pressure,note})});
-      document.getElementById('temp').value='';
-      document.getElementById('press').value='';
-      document.getElementById('note').value='';
+      const body = { temperature, pressure, note };
+      if (COND.ready){ body.wind = COND.wind; body.recTier = COND.tier; body.recMin = COND.recMin; }
+      await fetch('/api/bubble',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      // live low-pressure warning
+      const hint = document.getElementById('log-hint');
+      const p = parseFloat(pressure);
+      if (COND.ready && !isNaN(p) && p < COND.recMin){
+        hint.style.color = '#b91c1c';
+        hint.textContent = `⚠ ${p} is below the recommended ${COND.recLabel} for current conditions (${COND.tier}). Raise the pressure and re-check.`;
+      } else {
+        hint.style.color = '#0f7a43';
+        hint.textContent = 'Logged. Thanks for keeping the bubble safe.';
+        setTimeout(()=>{ hint.textContent=''; }, 4000);
+      }
+      document.getElementById('temp').value=''; document.getElementById('press').value=''; document.getElementById('note').value='';
       loadFeed();
     }
+
     async function doLogout(){ await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login.html'; }
     async function init(){
       const res=await fetch('/api/me');
@@ -155,7 +313,10 @@
       me=await res.json();
       const av=document.getElementById('nav-avatar'); if(av) staffAvatar(av,me.id,me.name,me.color);
       updateClock(); setInterval(updateClock,30000);
+      renderGuide();
+      loadConditions();
       loadFeed();
+      setInterval(renderStatus, 60000);
     }
     init();
   </script>

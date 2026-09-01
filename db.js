@@ -971,7 +971,7 @@ function getBubbleReadings(limit = 50) {
     });
 }
 
-function createBubbleReading({ staffId, temperature, pressure, note }) {
+function createBubbleReading({ staffId, temperature, pressure, note, wind, recTier, recMin }) {
   const id = nextId('bubble_readings');
   const num = v => (v !== '' && v != null && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
   _data.bubble_readings.push({
@@ -980,6 +980,9 @@ function createBubbleReading({ staffId, temperature, pressure, note }) {
     temperature: num(temperature),
     pressure:    num(pressure),
     note:        note ? String(note).slice(0, 300) : '',
+    wind:        num(wind),                                       // km/h at time of reading
+    rec_tier:    recTier ? String(recTier).slice(0, 40) : null,  // condition tier
+    rec_min:     num(recMin),                                     // recommended min pressure then
     created_at:  now(),
   });
   save();
