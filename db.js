@@ -262,6 +262,13 @@ if (!Array.isArray(_data.coverage_requests)) {
   save();
 }
 
+// Migration: bubble (temperature / pressure) readings
+if (!Array.isArray(_data.bubble_readings)) {
+  _data._seq.bubble_readings = 0;
+  _data.bubble_readings = [];
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -951,9 +958,39 @@ function cancelCoverageRequest(id, staffId, isAdmin) {
   return true;
 }
 
+// ─── Bubble (temperature / pressure) readings ──────────────────────────────────
+
+function getBubbleReadings(limit = 50) {
+  return (_data.bubble_readings || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, limit)
+    .map(r => {
+      const s = getStaffById(r.staff_id) || {};
+      return { ...r, staff_name: s.name, staff_color: s.color };
+    });
+}
+
+function createBubbleReading({ staffId, temperature, pressure, note }) {
+  const id = nextId('bubble_readings');
+  const num = v => (v !== '' && v != null && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
+  _data.bubble_readings.push({
+    id,
+    staff_id:    parseInt(staffId),
+    temperature: num(temperature),
+    pressure:    num(pressure),
+    note:        note ? String(note).slice(0, 300) : '',
+    created_at:  now(),
+  });
+  save();
+  return id;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
+  getBubbleReadings,
+  createBubbleReading,
   getCoverageRequests,
   createCoverageRequest,
   coverCoverageRequest,

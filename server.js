@@ -36,6 +36,7 @@ const photoRoutes = require('./routes/photo');
 const aiRoutes          = require('./routes/ai');
 const cashSummaryRoutes = require('./routes/cash-summary');
 const coverageRoutes    = require('./routes/coverage');
+const bubbleRoutes      = require('./routes/bubble');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', requireAuth, messageRoutes);
@@ -48,6 +49,7 @@ app.use('/api/staff',     requireAuth, photoRoutes);
 app.use('/api/ai',           requireAuth, aiRoutes);
 app.use('/api/cash-summary', requireAuth, cashSummaryRoutes);
 app.use('/api/coverage',     requireAuth, coverageRoutes);
+app.use('/api/bubble',       requireAuth, bubbleRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {
