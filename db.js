@@ -349,6 +349,18 @@ if (!_data.period_receipts) {
   if (changed) { save(); console.log('Comms category reminders → maintenance migrated.'); }
 }
 
+// Migration: Idea Board (ideas + threaded comments)
+if (!Array.isArray(_data.ideas)) {
+  _data._seq.ideas = 0;
+  _data.ideas = [];
+  save();
+}
+if (!Array.isArray(_data.idea_comments)) {
+  _data._seq.idea_comments = 0;
+  _data.idea_comments = [];
+  save();
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nextId(table) {
@@ -417,7 +429,23 @@ function removeStaff(staffId) {
 
 function getMessages({ limit = 30, offset = 0, staffId }) {
   const allStaff = _data.staff;
-  const sorted = [..._data.messages].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const vid = parseInt(staffId);
+  const viewer = allStaff.find(s => s.id === vid);
+  const viewerIsMgmt = viewer && (viewer.role === 'admin' || viewer.role === 'manager');
+  const viewerIsPro  = viewer && viewer.role === 'pro';
+
+  // Privacy: management sees the whole log (oversight). Everyone else only sees a note
+  // if they authored it, it targets them specifically, or it's an everyone-note
+  // (recipients === null → office + management, not pros). Targeted notes never reach
+  // a non-recipient's browser. (Admins in "view as" mode inherit the viewed person's id,
+  // so this correctly simulates that person's view.)
+  const visible = viewerIsMgmt ? _data.messages : _data.messages.filter(m =>
+    m.staff_id === vid ||
+    (Array.isArray(m.recipients) && m.recipients.includes(vid)) ||
+    (!m.recipients && !viewerIsPro)
+  );
+
+  const sorted = [...visible].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const paged = sorted.slice(offset, offset + limit);
 
   return paged.map(msg => {
@@ -1225,9 +1253,106 @@ function getPeriodReceiptsForRange(periodStart) {
   return result;
 }
 
+// ─── Idea Board (ideas, votes, status, threaded comments; member suggestions) ────
+
+const IDEA_CATEGORIES = ['facility','courts','member-experience','programs','pro-shop','events','tech','other'];
+const IDEA_STATUSES   = ['new','considering','planned','done','declined'];
+
+function _ideaOut(idea, viewerId) {
+  const author = getStaffById(idea.author_id) || {};
+  const comment_count = (_data.idea_comments || []).filter(c => c.idea_id === idea.id).length;
+  return {
+    ...idea,
+    author_name: author.name, author_color: author.color, author_badge: author.badge || null,
+    votes_count: (idea.votes || []).length,
+    voted_by_me: viewerId != null && (idea.votes || []).includes(parseInt(viewerId)),
+    comment_count,
+    has_image: !!idea.image,
+  };
+}
+
+function getIdeas(viewerId) {
+  return (_data.ideas || []).slice().sort((a, b) => b.id - a.id).map(i => _ideaOut(i, viewerId));
+}
+function getIdea(id) { return (_data.ideas || []).find(x => x.id === parseInt(id)) || null; }
+function getIdeaOut(id, viewerId) { const i = getIdea(id); return i ? _ideaOut(i, viewerId) : null; }
+
+function addIdea({ authorId, title, body, category, link, linkTitle, source, memberName }) {
+  const id = nextId('ideas');
+  const idea = {
+    id, author_id: parseInt(authorId),
+    title: String(title || '').slice(0, 200),
+    body:  String(body  || '').slice(0, 3000),
+    category: IDEA_CATEGORIES.includes(category) ? category : 'other',
+    link:       link ? String(link).slice(0, 600) : null,
+    link_title: linkTitle ? String(linkTitle).slice(0, 200) : null,
+    image: null,
+    status: 'new',
+    source: source === 'member' ? 'member' : 'staff',
+    member_name: (source === 'member' && memberName) ? String(memberName).slice(0, 120) : null,
+    votes: [],
+    created_at: now(),
+  };
+  _data.ideas.push(idea); save();
+  return _ideaOut(idea, authorId);
+}
+function setIdeaImage(id, filename) { const i = getIdea(id); if (!i) return false; i.image = filename; save(); return true; }
+function toggleIdeaVote(id, staffId) {
+  const i = getIdea(id); if (!i) return null;
+  i.votes = i.votes || [];
+  const sid = parseInt(staffId), idx = i.votes.indexOf(sid);
+  const voted = idx < 0;
+  if (voted) i.votes.push(sid); else i.votes.splice(idx, 1);
+  save();
+  return { voted, count: i.votes.length };
+}
+function setIdeaStatus(id, status) {
+  const i = getIdea(id); if (!i || !IDEA_STATUSES.includes(status)) return false;
+  i.status = status; save(); return true;
+}
+function deleteIdea(id, staffId, isManagement) {
+  const i = getIdea(id); if (!i) return false;
+  if (i.author_id !== parseInt(staffId) && !isManagement) return false;
+  _data.ideas = (_data.ideas || []).filter(x => x.id !== parseInt(id));
+  _data.idea_comments = (_data.idea_comments || []).filter(c => c.idea_id !== parseInt(id));
+  save(); return true;
+}
+
+function getIdeaComments(ideaId) {
+  return (_data.idea_comments || [])
+    .filter(c => c.idea_id === parseInt(ideaId))
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map(c => { const s = getStaffById(c.author_id) || {}; return { ...c, author_name: s.name, author_color: s.color }; });
+}
+function addIdeaComment({ ideaId, authorId, content }) {
+  const id = nextId('idea_comments');
+  const c = { id, idea_id: parseInt(ideaId), author_id: parseInt(authorId), content: String(content || '').slice(0, 1200), created_at: now() };
+  _data.idea_comments.push(c); save();
+  const s = getStaffById(authorId) || {};
+  return { ...c, author_name: s.name, author_color: s.color };
+}
+function deleteIdeaComment(id, staffId, isManagement) {
+  const c = (_data.idea_comments || []).find(x => x.id === parseInt(id));
+  if (!c) return false;
+  if (c.author_id !== parseInt(staffId) && !isManagement) return false;
+  _data.idea_comments = _data.idea_comments.filter(x => x.id !== parseInt(id));
+  save(); return true;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
+  getIdeas,
+  getIdea,
+  getIdeaOut,
+  addIdea,
+  setIdeaImage,
+  toggleIdeaVote,
+  setIdeaStatus,
+  deleteIdea,
+  getIdeaComments,
+  addIdeaComment,
+  deleteIdeaComment,
   getContractorWork,
   addContractorWork,
   decideContractorWork,
