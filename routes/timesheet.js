@@ -1,6 +1,30 @@
 const express = require('express');
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
 const db = require('../db');
 const router = express.Router();
+
+const DATA_FILE    = process.env.DATA_FILE || path.join(__dirname, '..', 'jct-data.json');
+const RECEIPTS_DIR = path.join(path.dirname(DATA_FILE), 'receipts');
+const RCPT_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf'];
+function findPeriodReceipt(base) {
+  for (const ext of RCPT_EXTS) { const p = path.join(RECEIPTS_DIR, `${base}${ext}`); if (fs.existsSync(p)) return p; }
+  return null;
+}
+const rcptStorage = multer.diskStorage({
+  destination: (req, file, cb) => { if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true }); cb(null, RECEIPTS_DIR); },
+  filename: (req, file, cb) => {
+    const base = `period-${req.params.staffId}-${req.params.periodStart}`;
+    RCPT_EXTS.forEach(ext => { try { fs.unlinkSync(path.join(RECEIPTS_DIR, `${base}${ext}`)); } catch (e) {} });
+    cb(null, `${base}${path.extname(file.originalname).toLowerCase() || '.jpg'}`);
+  },
+});
+const rcptUpload = multer({
+  storage: rcptStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'),
+});
 
 router.use((req, res, next) => {
   req.actingStaffId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
@@ -41,7 +65,7 @@ router.get('/week', (req, res) => {
     };
   });
 
-  res.json({ start, end, rows, defaults, period_expenses: periodExp });
+  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start) });
 });
 
 // PUT upsert a timesheet entry
@@ -106,6 +130,30 @@ router.put('/period-expenses', (req, res) => {
   if (!staff_id || !period_start) return res.status(400).json({ error: 'staff_id and period_start required' });
   db.setPeriodExpenses(parseInt(staff_id), period_start, amount);
   res.json({ ok: true });
+});
+
+// Receipt photo for a staff member's period expenses — upload (self or management)
+router.post('/period-expenses/:staffId/:periodStart/receipt', (req, res, next) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  const targetId = parseInt(req.params.staffId);
+  const isManagement = acting && ['admin', 'manager'].includes(acting.role);
+  if (!acting || (targetId !== req.actingStaffId && !isManagement)) return res.status(403).json({ error: 'Not authorised' });
+  next();
+}, rcptUpload.single('receipt'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  db.setPeriodReceipt(parseInt(req.params.staffId), req.params.periodStart, req.file.filename);
+  res.json({ ok: true, receipt: req.file.filename });
+});
+
+// Serve a staff member's period-expense receipt (self or management)
+router.get('/period-expenses/:staffId/:periodStart/receipt', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  const targetId = parseInt(req.params.staffId);
+  const isManagement = acting && ['admin', 'manager'].includes(acting.role);
+  if (!acting || (targetId !== req.actingStaffId && !isManagement)) return res.status(403).end();
+  const p = findPeriodReceipt(`period-${req.params.staffId}-${req.params.periodStart}`);
+  if (p) return res.sendFile(p);
+  res.status(404).end();
 });
 
 // GET shift time defaults

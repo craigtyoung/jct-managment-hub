@@ -300,6 +300,46 @@ if (!Array.isArray(_data.checklist_items)) {
   if (dirty) { save(); console.log('Indoor checklist migration applied.'); }
 }
 
+// Migration: maintenance contractor (Muzz) — Sep 2026
+{
+  const pwC = bcrypt.hashSync('jct2026', 10);
+  if (!_data.staff.some(x => x.name.toLowerCase() === 'muzz')) {
+    _data._seq.staff = (_data._seq.staff || 0) + 1;
+    _data.staff.push({ id: _data._seq.staff, name: 'Muzz', color: '#0d9488', role: 'contractor', badge: 'M', password: pwC });
+    save();
+    console.log('Contractor Muzz added (role: contractor, password: jct2026).');
+  }
+}
+
+// Migration: contractor tables (independent-contractor work log, expenses, project pitches)
+if (!Array.isArray(_data.contractor_work)) {
+  _data._seq.contractor_work = 0;
+  _data.contractor_work = [];
+  save();
+}
+if (!Array.isArray(_data.contractor_expenses)) {
+  _data._seq.contractor_expenses = 0;
+  _data.contractor_expenses = [];
+  save();
+}
+if (!Array.isArray(_data.contractor_projects)) {
+  _data._seq.contractor_projects = 0;
+  _data.contractor_projects = [];
+  save();
+}
+// Hours the contractor logs for their OWN subcontractors (JCT pays them directly)
+if (!Array.isArray(_data.contractor_sub_work)) {
+  _data._seq.contractor_sub_work = 0;
+  _data.contractor_sub_work = [];
+  save();
+}
+
+// Migration: receipt photos attached to staff period-expenses
+if (!_data.period_receipts) {
+  _data.period_receipts = {};
+  save();
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nextId(table) {
@@ -312,7 +352,7 @@ function now() { return new Date().toISOString(); }
 // ─── Staff ───────────────────────────────────────────────────────────────────
 
 function getAllStaff() {
-  return _data.staff.map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role }))
+  return _data.staff.map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role, badge: s.badge || null }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -989,9 +1029,218 @@ function createBubbleReading({ staffId, temperature, pressure, note, wind, recTi
   return id;
 }
 
+// ─── Contractor: work log, expenses, project pitches (+ management approvals) ───
+
+const _num = v => (v !== '' && v != null && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
+
+function _withStaffMeta(e) {
+  const s = getStaffById(e.staff_id) || {};
+  const approver = e.approved_by ? getStaffById(e.approved_by) : (e.decided_by ? getStaffById(e.decided_by) : null);
+  return {
+    ...e,
+    staff_name: s.name, staff_color: s.color, staff_badge: s.badge || null,
+    decider_name: approver ? approver.name : null,
+  };
+}
+
+// Work log ---------------------------------------------------------------------
+function getContractorWork(staffId) {
+  let rows = (_data.contractor_work || []).slice();
+  if (staffId != null) rows = rows.filter(e => e.staff_id === parseInt(staffId));
+  return rows.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id).map(_withStaffMeta);
+}
+function addContractorWork({ staffId, date, description, hours, amount }) {
+  const id = nextId('contractor_work');
+  const row = {
+    id, staff_id: parseInt(staffId), date,
+    description: String(description || '').slice(0, 800),
+    hours: _num(hours), amount: _num(amount),
+    status: 'pending', approved_by: null, approved_at: null, created_at: now(),
+  };
+  _data.contractor_work.push(row); save();
+  return _withStaffMeta(row);
+}
+function decideContractorWork(id, deciderId, decision) {
+  const r = _data.contractor_work.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  r.status = decision === 'approved' ? 'approved' : 'rejected';
+  r.approved_by = parseInt(deciderId); r.approved_at = now();
+  save(); return true;
+}
+function deleteContractorWork(id, staffId) {
+  const r = _data.contractor_work.find(x => x.id === parseInt(id));
+  if (!r || r.staff_id !== parseInt(staffId) || r.status === 'approved') return false;
+  _data.contractor_work = _data.contractor_work.filter(x => x.id !== parseInt(id));
+  save(); return true;
+}
+
+// Expenses ---------------------------------------------------------------------
+function getContractorExpenses(staffId) {
+  let rows = (_data.contractor_expenses || []).slice();
+  if (staffId != null) rows = rows.filter(e => e.staff_id === parseInt(staffId));
+  return rows.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id).map(_withStaffMeta);
+}
+function addContractorExpense({ staffId, date, vendor, amount, category }) {
+  const id = nextId('contractor_expenses');
+  const row = {
+    id, staff_id: parseInt(staffId), date,
+    vendor: String(vendor || '').slice(0, 200),
+    category: String(category || '').slice(0, 60),
+    amount: _num(amount), receipt: null,
+    status: 'pending', approved_by: null, approved_at: null, created_at: now(),
+  };
+  _data.contractor_expenses.push(row); save();
+  return _withStaffMeta(row);
+}
+function setContractorExpenseReceipt(id, filename) {
+  const r = _data.contractor_expenses.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  r.receipt = filename; save(); return true;
+}
+function getContractorExpense(id) {
+  return (_data.contractor_expenses || []).find(x => x.id === parseInt(id)) || null;
+}
+function decideContractorExpense(id, deciderId, decision) {
+  const r = _data.contractor_expenses.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  r.status = decision === 'approved' ? 'approved' : 'rejected';
+  r.approved_by = parseInt(deciderId); r.approved_at = now();
+  save(); return true;
+}
+function deleteContractorExpense(id, staffId) {
+  const r = _data.contractor_expenses.find(x => x.id === parseInt(id));
+  if (!r || r.staff_id !== parseInt(staffId) || r.status === 'approved') return false;
+  _data.contractor_expenses = _data.contractor_expenses.filter(x => x.id !== parseInt(id));
+  save(); return true;
+}
+
+// Project pitches --------------------------------------------------------------
+function getContractorProjects(staffId) {
+  let rows = (_data.contractor_projects || []).slice();
+  if (staffId != null) rows = rows.filter(e => e.staff_id === parseInt(staffId));
+  return rows.sort((a, b) => b.id - a.id).map(_withStaffMeta);
+}
+function addContractorProject({ staffId, title, description, estimate }) {
+  const id = nextId('contractor_projects');
+  const row = {
+    id, staff_id: parseInt(staffId),
+    title: String(title || '').slice(0, 200),
+    description: String(description || '').slice(0, 2000),
+    estimate: _num(estimate),
+    status: 'proposed', decided_by: null, decided_at: null, decision_note: null,
+    created_at: now(),
+  };
+  _data.contractor_projects.push(row); save();
+  return _withStaffMeta(row);
+}
+function decideContractorProject(id, deciderId, decision, note) {
+  const r = _data.contractor_projects.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  r.status = decision === 'approved' ? 'approved' : 'declined';
+  r.decided_by = parseInt(deciderId); r.decided_at = now();
+  r.decision_note = note ? String(note).slice(0, 500) : null;
+  save(); return true;
+}
+function deleteContractorProject(id, staffId) {
+  const r = _data.contractor_projects.find(x => x.id === parseInt(id));
+  if (!r || r.staff_id !== parseInt(staffId) || r.status !== 'proposed') return false;
+  _data.contractor_projects = _data.contractor_projects.filter(x => x.id !== parseInt(id));
+  save(); return true;
+}
+
+// Subcontractor hours — the contractor logs work done by their own subcontractors,
+// whom JCT pays directly. Same pending → management-approved flow.
+function getContractorSubWork(staffId) {
+  let rows = (_data.contractor_sub_work || []).slice();
+  if (staffId != null) rows = rows.filter(e => e.staff_id === parseInt(staffId));
+  return rows.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id).map(_withStaffMeta);
+}
+function addContractorSubWork({ staffId, workerName, date, description, hours, amount }) {
+  const id = nextId('contractor_sub_work');
+  const row = {
+    id, staff_id: parseInt(staffId),
+    worker_name: String(workerName || '').slice(0, 120),
+    date, description: String(description || '').slice(0, 800),
+    hours: _num(hours), amount: _num(amount),
+    status: 'pending', approved_by: null, approved_at: null, created_at: now(),
+  };
+  _data.contractor_sub_work.push(row); save();
+  return _withStaffMeta(row);
+}
+function decideContractorSubWork(id, deciderId, decision) {
+  const r = _data.contractor_sub_work.find(x => x.id === parseInt(id));
+  if (!r) return false;
+  r.status = decision === 'approved' ? 'approved' : 'rejected';
+  r.approved_by = parseInt(deciderId); r.approved_at = now();
+  save(); return true;
+}
+function deleteContractorSubWork(id, staffId) {
+  const r = _data.contractor_sub_work.find(x => x.id === parseInt(id));
+  if (!r || r.staff_id !== parseInt(staffId) || r.status === 'approved') return false;
+  _data.contractor_sub_work = _data.contractor_sub_work.filter(x => x.id !== parseInt(id));
+  save(); return true;
+}
+
+function getContractorSummary(staffId) {
+  const sid = parseInt(staffId);
+  const work = (_data.contractor_work || []).filter(e => e.staff_id === sid);
+  const exp  = (_data.contractor_expenses || []).filter(e => e.staff_id === sid);
+  const sub  = (_data.contractor_sub_work || []).filter(e => e.staff_id === sid);
+  const sum = (arr, f) => arr.reduce((t, x) => t + (f(x) || 0), 0);
+  return {
+    work_pending:         work.filter(w => w.status === 'pending').length,
+    work_approved_hours:  sum(work.filter(w => w.status === 'approved'), w => w.hours),
+    work_approved_amount: sum(work.filter(w => w.status === 'approved'), w => w.amount),
+    exp_pending:          exp.filter(e => e.status === 'pending').length,
+    exp_approved_amount:  sum(exp.filter(e => e.status === 'approved'), e => e.amount),
+    sub_pending:          sub.filter(w => w.status === 'pending').length,
+    sub_approved_hours:   sum(sub.filter(w => w.status === 'approved'), w => w.hours),
+    sub_approved_amount:  sum(sub.filter(w => w.status === 'approved'), w => w.amount),
+  };
+}
+
+// Staff period-expense receipts -------------------------------------------------
+function getPeriodReceipt(staffId, periodStart) {
+  return _data.period_receipts[`${staffId}:${periodStart}`] || null;
+}
+function setPeriodReceipt(staffId, periodStart, filename) {
+  _data.period_receipts[`${staffId}:${periodStart}`] = filename;
+  save();
+}
+function getPeriodReceiptsForRange(periodStart) {
+  const result = {};
+  for (const [key, val] of Object.entries(_data.period_receipts || {})) {
+    const [sid, ps] = key.split(':');
+    if (ps === periodStart) result[parseInt(sid)] = val;
+  }
+  return result;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
+  getContractorWork,
+  addContractorWork,
+  decideContractorWork,
+  deleteContractorWork,
+  getContractorExpenses,
+  getContractorExpense,
+  addContractorExpense,
+  setContractorExpenseReceipt,
+  decideContractorExpense,
+  deleteContractorExpense,
+  getContractorProjects,
+  addContractorProject,
+  decideContractorProject,
+  deleteContractorProject,
+  getContractorSubWork,
+  addContractorSubWork,
+  decideContractorSubWork,
+  deleteContractorSubWork,
+  getContractorSummary,
+  getPeriodReceipt,
+  setPeriodReceipt,
+  getPeriodReceiptsForRange,
   getBubbleReadings,
   createBubbleReading,
   getCoverageRequests,

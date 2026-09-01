@@ -3,3 +3,5 @@ jct-data.json
 sessions/
 .env
 *.log
+staff-photos/
+receipts/

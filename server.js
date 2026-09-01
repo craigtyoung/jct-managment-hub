@@ -37,6 +37,7 @@ const aiRoutes          = require('./routes/ai');
 const cashSummaryRoutes = require('./routes/cash-summary');
 const coverageRoutes    = require('./routes/coverage');
 const bubbleRoutes      = require('./routes/bubble');
+const contractorRoutes  = require('./routes/contractor');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', requireAuth, messageRoutes);
@@ -45,11 +46,19 @@ app.use('/api/checklist', requireAuth, checklistRoutes);
 app.use('/api/schedule',   requireAuth, scheduleRoutes);
 app.use('/api/timesheet',  requireAuth, timesheetRoutes);
 app.use('/api/chat',       requireAuth, chatRoutes);
+// Lightweight badge map { staffId: 'M' } so avatars can overlay a role badge everywhere
+app.get('/api/staff/badges', requireAuth, (req, res) => {
+  const db = require('./db');
+  const map = {};
+  for (const s of db.getAllStaff()) { if (s.badge) map[s.id] = s.badge; }
+  res.json(map);
+});
 app.use('/api/staff',     requireAuth, photoRoutes);
 app.use('/api/ai',           requireAuth, aiRoutes);
 app.use('/api/cash-summary', requireAuth, cashSummaryRoutes);
 app.use('/api/coverage',     requireAuth, coverageRoutes);
 app.use('/api/bubble',       requireAuth, bubbleRoutes);
+app.use('/api/contractor',   requireAuth, contractorRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {
@@ -79,8 +88,9 @@ app.get('/api/me', requireAuth, (req, res) => {
   const effId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
   const eff = db.getStaffById(effId) || real;
   res.json({
-    id: eff.id, name: eff.name, color: eff.color, role: eff.role,
+    id: eff.id, name: eff.name, color: eff.color, role: eff.role, badge: eff.badge || null,
     is_admin: real.role === 'admin',
+    is_management: real.role === 'admin' || real.role === 'manager',
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
     viewing_as: eff.id !== real.id,
   });

@@ -137,6 +137,10 @@
       <div class="group-label">Teaching Pros</div>
       <div id="staff-grid-pros" class="staff-grid"></div>
     </div>
+    <div id="contractor-section" class="staff-section" style="display:none">
+      <div class="group-label">Maintenance</div>
+      <div id="staff-grid-contractor" class="staff-grid"></div>
+    </div>
 
     <div id="pw-panel" class="pw-panel">
       <div class="pw-who">
@@ -196,9 +200,12 @@
       const officeGrid = document.getElementById('staff-grid-office');
       const prosGrid   = document.getElementById('staff-grid-pros');
       mgmtGrid.innerHTML = officeGrid.innerHTML = prosGrid.innerHTML = '';
-      const mgmt = [], office = [], pros = [];
+      const contractorGrid = document.getElementById('staff-grid-contractor');
+      contractorGrid.innerHTML = '';
+      const mgmt = [], office = [], pros = [], contractors = [];
       staffList.forEach(s => {
         if (s.role === 'pro') pros.push(s);
+        else if (s.role === 'contractor') contractors.push(s);
         else if (s.role === 'admin' || s.role === 'manager') mgmt.push(s);
         else office.push(s);
       });
@@ -207,9 +214,11 @@
       mgmt.forEach(s   => mgmtGrid.appendChild(makeStaffBtn(s)));
       office.forEach(s => officeGrid.appendChild(makeStaffBtn(s)));
       pros.forEach(s   => prosGrid.appendChild(makeStaffBtn(s)));
+      contractors.forEach(s => contractorGrid.appendChild(makeStaffBtn(s)));
       document.getElementById('mgmt-section').style.display   = mgmt.length   ? '' : 'none';
       document.getElementById('office-section').style.display = office.length ? '' : 'none';
       document.getElementById('pros-section').style.display   = pros.length   ? '' : 'none';
+      document.getElementById('contractor-section').style.display = contractors.length ? '' : 'none';
     }
 
     function selectStaff(s, btn) {
@@ -287,7 +296,7 @@
           document.getElementById('pw-input').select();
           return;
         }
-        window.location.href = '/hub.html';
+        window.location.href = (selectedStaff && selectedStaff.role === 'contractor') ? '/contractor.html' : '/hub.html';
       } catch (e) {
         errEl.textContent = 'Connection error — try again';
         errEl.style.display = 'block';

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Contractor Hub · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      background:#f7f9fc;color:#0c1738;
+      font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;min-height:100vh;
+    }
+    .font-display{font-family:'Playfair Display',Georgia,serif;}
+
+    /* ── Top strip ── */
+    .topstrip{
+      background:#ffffff;border-bottom:1px solid rgba(12,23,56,0.08);
+      padding:13px 32px;display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px;
+    }
+    .ts-brand{display:flex;align-items:center;gap:11px;min-width:0;}
+    .ts-brand-mark{
+      width:34px;height:34px;border-radius:9px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(44,92,156,0.10);color:#2c5c9c;
+    }
+    .ts-brand-mark svg{width:18px;height:18px;}
+    .ts-title{font-family:'Playfair Display',Georgia,serif;font-size:1.05rem;font-weight:600;color:#0c1738;line-height:1.15;}
+    .ts-sub{font-size:11px;color:#8fa0b8;margin-top:1px;}
+    .ts-right{display:flex;align-items:center;gap:10px;}
+    .ts-user{display:flex;align-items:center;gap:8px;padding-left:8px;border-left:1px solid rgba(12,23,56,0.08);}
+    .ts-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .ts-signout{
+      padding:6px 11px;background:transparent;border:1px solid rgba(12,23,56,0.08);
+      border-radius:8px;color:#8fa0b8;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;
+      transition:color .15s,border-color .15s;
+    }
+    .ts-signout:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);}
+
+    /* ── Main ── */
+    .main{max-width:820px;margin:0 auto;padding:28px 32px 96px;}
+    .page-h1{font-family:'Playfair Display',Georgia,serif;font-size:1.8rem;font-weight:600;color:#0c1738;margin-bottom:4px;}
+    .page-hint{font-size:13px;color:#4a6080;margin-bottom:22px;}
+
+    /* ── Reviewer note ── */
+    .review-note{
+      display:flex;align-items:flex-start;gap:10px;
+      background:rgba(44,92,156,0.05);border:1px solid rgba(44,92,156,0.14);
+      border-radius:12px;padding:12px 14px;margin-bottom:22px;font-size:12.5px;color:#4a6080;
+    }
+    .review-note svg{width:16px;height:16px;color:#2c5c9c;flex-shrink:0;margin-top:1px;}
+
+    /* ── Summary strip ── */
+    .summary-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:26px;}
+    .sum-card{background:#ffffff;border:1px solid rgba(12,23,56,0.08);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;}
+    .sum-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#8fa0b8;margin-bottom:7px;}
+    .sum-value{font-size:1.35rem;font-weight:600;color:#0c1738;line-height:1;}
+    .sum-value.green{color:#16a34a;}
+    .sum-value.amber{color:#d97706;}
+    .sum-value.blue{color:#2c5c9c;}
+    .sum-value.pending-hot{color:#d97706;}
+
+    /* ── Tabs ── */
+    .tabbar{display:flex;gap:4px;background:#eef2f8;border:1px solid rgba(12,23,56,0.08);border-radius:100px;padding:4px;margin-bottom:24px;width:fit-content;max-width:100%;}
+    .tab-btn{
+      border:none;background:none;cursor:pointer;font-family:'Inter',sans-serif;
+      font-size:13px;font-weight:600;color:#4a6080;padding:7px 18px;border-radius:100px;transition:all .18s;
+      white-space:nowrap;display:flex;align-items:center;gap:7px;
+    }
+    .tab-btn:hover{color:#0c1738;}
+    .tab-btn.on{background:#ffffff;color:#2c5c9c;box-shadow:0 1px 3px rgba(12,23,56,0.10);}
+    .tab-count{font-size:10px;font-weight:700;background:#d97706;color:#fff;border-radius:100px;padding:1px 7px;line-height:1.5;}
+    .tab-panel{display:none;}
+    .tab-panel.on{display:block;}
+
+    /* ── Cards / forms ── */
+    .card{background:#ffffff;border:1px solid rgba(12,23,56,0.08);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+    .form-card{background:#ffffff;border:1px solid rgba(12,23,56,0.08);border-radius:16px;padding:18px 20px;margin-bottom:20px;}
+    .form-title{font-family:'Playfair Display',Georgia,serif;font-size:1rem;font-weight:600;color:#0c1738;margin-bottom:14px;}
+    .form-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+    .field{display:flex;flex-direction:column;gap:5px;}
+    .field.grow{flex:1 1 180px;min-width:150px;}
+    .field-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8fa0b8;}
+    .inp{
+      padding:8px 10px;border-radius:9px;border:1px solid rgba(12,23,56,0.08);
+      font-family:'Inter',sans-serif;font-size:14px;color:#0c1738;background:#ffffff;transition:border-color .15s;
+    }
+    .inp:focus{outline:none;border-color:rgba(44,92,156,0.40);}
+    textarea.inp{resize:vertical;min-height:60px;width:100%;}
+    .btn-primary{
+      padding:9px 18px;border-radius:100px;background:#0c1738;border:none;
+      font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#f0f4ff;cursor:pointer;transition:background .15s;
+    }
+    .btn-primary:hover{background:#2c5c9c;}
+    .btn-primary:disabled{opacity:0.5;cursor:default;}
+
+    /* ── List rows ── */
+    .list-head{padding:14px 18px 10px;font-family:'Playfair Display',Georgia,serif;font-size:0.95rem;font-weight:600;color:#0c1738;border-bottom:1px solid rgba(12,23,56,0.06);}
+    .row{
+      display:flex;align-items:flex-start;gap:12px;
+      padding:13px 18px;border-bottom:1px solid rgba(12,23,56,0.05);transition:background .12s;
+    }
+    .row:last-child{border-bottom:none;}
+    .row:hover{background:rgba(240,244,249,0.5);}
+    .row-av{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;overflow:hidden;}
+    .row-main{flex:1;min-width:0;}
+    .row-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+    .row-date{font-size:12px;color:#4a6080;font-weight:500;}
+    .row-who{font-size:12.5px;font-weight:600;color:#0c1738;}
+    .row-desc{font-size:13.5px;color:#0c1738;margin-top:3px;word-break:break-word;}
+    .row-meta{font-size:12px;color:#8fa0b8;margin-top:4px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+    .row-meta strong{color:#4a6080;font-weight:600;}
+    .row-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+
+    .pill{display:inline-block;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+    .pill.pending{background:rgba(217,119,6,0.12);color:#b45309;}
+    .pill.approved{background:rgba(22,163,74,0.12);color:#16a34a;}
+    .pill.rejected{background:rgba(220,38,38,0.10);color:#dc2626;}
+    .pill.proposed{background:rgba(44,92,156,0.10);color:#2c5c9c;}
+    .pill.declined{background:rgba(143,160,184,0.16);color:#4a6080;}
+
+    .amt{font-size:14px;font-weight:600;color:#0c1738;}
+    .del-btn{
+      width:22px;height:22px;border-radius:6px;border:none;background:none;cursor:pointer;
+      color:#8fa0b8;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s;
+    }
+    .del-btn:hover{background:rgba(220,38,38,0.10);color:#dc2626;}
+
+    .decision-btns{display:flex;gap:7px;}
+    .dbtn{
+      padding:6px 13px;border-radius:100px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s;
+    }
+    .dbtn.approve{background:rgba(22,163,74,0.10);color:#16a34a;border-color:rgba(22,163,74,0.25);}
+    .dbtn.approve:hover{background:#16a34a;color:#fff;}
+    .dbtn.reject{background:rgba(220,38,38,0.08);color:#dc2626;border-color:rgba(220,38,38,0.22);}
+    .dbtn.reject:hover{background:#dc2626;color:#fff;}
+
+    .receipt-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(12,23,56,0.08);cursor:pointer;display:block;}
+    .receipt-link{font-size:12px;color:#2c5c9c;font-weight:600;text-decoration:none;}
+    .receipt-link:hover{text-decoration:underline;}
+    .add-receipt-btn{
+      padding:5px 11px;border-radius:8px;border:1px dashed rgba(12,23,56,0.20);background:#fff;
+      font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;color:#4a6080;cursor:pointer;transition:all .15s;
+    }
+    .add-receipt-btn:hover{border-color:#2c5c9c;color:#2c5c9c;}
+    .decision-note{font-size:12px;color:#4a6080;margin-top:5px;font-style:italic;background:rgba(240,244,249,0.7);border-radius:8px;padding:6px 9px;}
+
+    .empty{padding:44px 20px;text-align:center;color:#8fa0b8;font-size:13px;}
+    .mgmt-alert{
+      display:flex;align-items:center;gap:10px;background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.22);
+      border-radius:12px;padding:11px 15px;margin-bottom:20px;font-size:13px;font-weight:600;color:#b45309;
+    }
+    .mgmt-alert svg{width:17px;height:17px;flex-shrink:0;}
+
+    @media(max-width:640px){
+      .summary-strip{grid-template-columns:repeat(2,1fr);}
+    }
+    @media(max-width:820px){
+      .main{padding:20px 14px 96px;}
+      .topstrip{padding:12px 14px;}
+      .row-right{align-items:flex-start;}
+    }
+
+    /* ── Mobile bottom nav + More sheet (hidden on desktop) ── */
+    .mnav { display: none; }
+    .mnav-sheet-backdrop { display: none; }
+    @media (max-width: 820px) {
+      .mnav {
+        display: flex;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
+        background: #ffffff;
+        border-top: 1px solid rgba(12,23,56,0.08);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -2px 12px rgba(12,23,56,0.06);
+      }
+      .mnav-item {
+        flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+        background: none; border: none; cursor: pointer; text-decoration: none;
+        color: #8fa0b8; font-family: 'Inter', sans-serif; font-size: 10px;
+        font-weight: 600; padding: 4px 2px; transition: color 0.15s;
+      }
+      .mnav-item svg { width: 21px; height: 21px; }
+      .mnav-item.active { color: #2c5c9c; }
+      .mnav-item:active { color: #0c1738; }
+      .mnav-sheet-backdrop {
+        display: block; position: fixed; inset: 0; z-index: 310;
+        background: rgba(12,23,56,0.4);
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      }
+      .mnav-sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+      .mnav-sheet {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 320;
+        background: #ffffff; border-radius: 18px 18px 0 0;
+        padding: 8px 14px calc(20px + env(safe-area-inset-bottom, 0px));
+        transform: translateY(100%); transition: transform 0.25s ease;
+        box-shadow: 0 -8px 30px rgba(12,23,56,0.18);
+      }
+      .mnav-sheet-backdrop.open .mnav-sheet { transform: translateY(0); }
+      .mnav-grip { width: 38px; height: 4px; border-radius: 100px; background: rgba(12,23,56,0.08); margin: 4px auto 12px; }
+      .mnav-sheet-title { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #8fa0b8; margin: 0 4px 6px; }
+      .mnav-sheet-link {
+        display: flex; align-items: center; gap: 13px;
+        padding: 13px 8px; border-radius: 10px; text-decoration: none;
+        color: #0c1738; font-size: 15px; font-weight: 500;
+        border-bottom: 1px solid rgba(12,23,56,0.08);
+      }
+      .mnav-sheet-link:last-child { border-bottom: none; }
+      .mnav-sheet-link svg { width: 19px; height: 19px; color: #4a6080; flex-shrink: 0; }
+      .mnav-sheet-link:active { background: rgba(44,92,156,0.07); }
+      .mnav-sheet-link.active { color: #2c5c9c; background: rgba(44,92,156,0.08); }
+      /* Lift the floating chat FAB above the bottom nav */
+      #jct-chat-btn { bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+      #jct-chat-panel { bottom: calc(142px + env(safe-area-inset-bottom, 0px)) !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Strip -->
+  <div class="topstrip">
+    <div class="ts-brand">
+      <div class="ts-brand-mark">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      </div>
+      <div>
+        <div class="ts-title">Contractor Hub</div>
+        <div class="ts-sub" id="ts-sub">Joshua Creek Tennis</div>
+      </div>
+    </div>
+    <div class="ts-right">
+      <div class="ts-user">
+        <div class="ts-avatar" id="nav-avatar"></div>
+        <button class="ts-signout" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <h1 class="page-h1" id="page-h1">Contractor Hub</h1>
+    <p class="page-hint" id="page-hint"></p>
+
+    <!-- Management awaiting-approval alert -->
+    <div class="mgmt-alert" id="mgmt-alert" style="display:none">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="mgmt-alert-text"></span>
+    </div>
+
+    <!-- Contractor reviewer note -->
+    <div class="review-note" id="review-note" style="display:none">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+      <span>Management (Craig, Jaime, Victor, David) reviews and approves your work and expenses before payment. Submit as you go — you can delete anything still pending.</span>
+    </div>
+
+    <!-- Summary strip -->
+    <div class="summary-strip" id="summary-strip">
+      <div class="sum-card"><div class="sum-label">Approved Hours</div><div class="sum-value green" id="sum-hours">—</div></div>
+      <div class="sum-card"><div class="sum-label">Approved Work</div><div class="sum-value" id="sum-work">—</div></div>
+      <div class="sum-card"><div class="sum-label">Approved Expenses</div><div class="sum-value amber" id="sum-exp">—</div></div>
+      <div class="sum-card"><div class="sum-label">Sub Approved Hrs</div><div class="sum-value blue" id="sum-sub-hours">—</div></div>
+      <div class="sum-card"><div class="sum-label">Sub Approved $</div><div class="sum-value blue" id="sum-sub-amount">—</div></div>
+      <div class="sum-card"><div class="sum-label">Pending Review</div><div class="sum-value pending-hot" id="sum-pending">—</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabbar">
+      <button class="tab-btn on" id="tab-work" onclick="switchTab('work')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Work Log <span class="tab-count" id="cnt-work" style="display:none"></span>
+      </button>
+      <button class="tab-btn" id="tab-subwork" onclick="switchTab('subwork')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Subcontractors <span class="tab-count" id="cnt-subwork" style="display:none"></span>
+      </button>
+      <button class="tab-btn" id="tab-expenses" onclick="switchTab('expenses')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" width="15" height="15"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+        Expenses <span class="tab-count" id="cnt-expenses" style="display:none"></span>
+      </button>
+      <button class="tab-btn" id="tab-projects" onclick="switchTab('projects')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" width="15" height="15"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+        Projects <span class="tab-count" id="cnt-projects" style="display:none"></span>
+      </button>
+    </div>
+
+    <!-- Work Log panel -->
+    <section class="tab-panel on" id="panel-work">
+      <div class="form-card" id="work-form-card" style="display:none">
+        <div class="form-title">Log work</div>
+        <div class="form-grid">
+          <div class="field"><label class="field-label">Date</label><input type="date" class="inp" id="w-date"></div>
+          <div class="field grow"><label class="field-label">Description</label><input type="text" class="inp" id="w-desc" placeholder="What you did"></div>
+          <div class="field"><label class="field-label">Hours</label><input type="number" class="inp" id="w-hours" min="0" step="0.25" placeholder="0" style="width:90px"></div>
+          <div class="field"><label class="field-label">Amount $</label><input type="number" class="inp" id="w-amount" min="0" step="0.01" placeholder="0.00" style="width:110px"></div>
+          <button class="btn-primary" id="w-submit" onclick="addWork()">Add entry</button>
+        </div>
+      </div>
+      <div id="work-list"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- Subcontractors panel -->
+    <section class="tab-panel" id="panel-subwork">
+      <div class="form-card" id="sub-form-card" style="display:none">
+        <div class="form-title">Log subcontractor work</div>
+        <div class="form-grid">
+          <div class="field grow"><label class="field-label">Worker</label><input type="text" class="inp" id="s-worker" placeholder="Subcontractor name"></div>
+          <div class="field"><label class="field-label">Date</label><input type="date" class="inp" id="s-date"></div>
+          <div class="field grow"><label class="field-label">Description</label><input type="text" class="inp" id="s-desc" placeholder="What they did"></div>
+          <div class="field"><label class="field-label">Hours</label><input type="number" class="inp" id="s-hours" min="0" step="0.25" placeholder="0" style="width:90px"></div>
+          <div class="field"><label class="field-label">Amount $</label><input type="number" class="inp" id="s-amount" min="0" step="0.01" placeholder="0.00" style="width:110px"></div>
+          <button class="btn-primary" id="s-submit" onclick="addSubwork()">Add entry</button>
+        </div>
+      </div>
+      <div id="sub-list"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- Expenses panel -->
+    <section class="tab-panel" id="panel-expenses">
+      <div class="form-card" id="exp-form-card" style="display:none">
+        <div class="form-title">Add expense</div>
+        <div class="form-grid">
+          <div class="field"><label class="field-label">Date</label><input type="date" class="inp" id="e-date"></div>
+          <div class="field grow"><label class="field-label">Vendor</label><input type="text" class="inp" id="e-vendor" placeholder="Where purchased"></div>
+          <div class="field"><label class="field-label">Category</label><input type="text" class="inp" id="e-cat" placeholder="e.g. Supplies" style="width:150px"></div>
+          <div class="field"><label class="field-label">Amount $</label><input type="number" class="inp" id="e-amount" min="0" step="0.01" placeholder="0.00" style="width:110px"></div>
+          <button class="btn-primary" id="e-submit" onclick="addExpense()">Add expense</button>
+        </div>
+      </div>
+      <div id="exp-list"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- Projects panel -->
+    <section class="tab-panel" id="panel-projects">
+      <div class="form-card" id="proj-form-card" style="display:none">
+        <div class="form-title">Pitch a project</div>
+        <div class="form-grid" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="field grow"><label class="field-label">Title</label><input type="text" class="inp" id="p-title" placeholder="Project name"></div>
+            <div class="field"><label class="field-label">Estimate $</label><input type="number" class="inp" id="p-estimate" min="0" step="0.01" placeholder="0.00" style="width:130px"></div>
+          </div>
+          <div class="field"><label class="field-label">Description</label><textarea class="inp" id="p-desc" placeholder="What the work involves and why"></textarea></div>
+          <button class="btn-primary" id="p-submit" onclick="addProject()" style="align-self:flex-start">Submit pitch</button>
+        </div>
+      </div>
+      <div id="proj-list"><div class="empty">Loading…</div></div>
+    </section>
+  </main>
+
+  <!-- Hidden receipt file input -->
+  <input type="file" id="receipt-file-input" accept="image/*,application/pdf" style="display:none">
+
+  <!-- ══════════ MOBILE BOTTOM NAV (max-width:820px) ══════════ -->
+  <nav class="mnav" aria-label="Primary">
+    <a href="/hub.html" class="mnav-item" id="mnav-home">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      <span id="mnav-home-label">Home</span>
+    </a>
+    <a href="/checklist.html" class="mnav-item" id="mnav-checklist">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Checklist
+    </a>
+    <a href="/comms.html" class="mnav-item" id="mnav-comms">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Comms
+    </a>
+    <a href="/schedule.html" class="mnav-item" id="mnav-schedule">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Schedule
+    </a>
+    <button type="button" class="mnav-item" id="mnav-more" onclick="mnavOpenMore()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
+      More
+    </button>
+  </nav>
+
+  <!-- More destinations bottom-sheet -->
+  <div class="mnav-sheet-backdrop" id="mnav-more-backdrop" onclick="if(event.target===this)mnavCloseMore()">
+    <div class="mnav-sheet" role="dialog" aria-label="More destinations">
+      <div class="mnav-grip"></div>
+      <div class="mnav-sheet-title">More</div>
+      <a href="/cash-summary.html" class="mnav-sheet-link">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+        Cash Summary
+      </a>
+      <a href="/timesheet.html" class="mnav-sheet-link">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Timesheets
+      </a>
+      <a href="/contractor.html" class="mnav-sheet-link active" id="mnav-sheet-contractor" aria-current="page">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Contractor Hub
+      </a>
+      <a href="/bubble.html" class="mnav-sheet-link">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+        Bubble Monitoring
+      </a>
+      <a href="/admin.html" class="mnav-sheet-link">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Admin Panel
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function mnavOpenMore(){ document.getElementById('mnav-more-backdrop').classList.add('open'); }
+    function mnavCloseMore(){ document.getElementById('mnav-more-backdrop').classList.remove('open'); }
+  </script>
+
+  <script>
+    const API = '/api/contractor';
+    let me = null;
+    let isMgmt = false;      // management view (approve/reject)
+    let isContractor = false; // contractor view (submit own)
+
+    // ── Helpers ──────────────────────────────────────────────
+    function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function money(n){ const v = Number(n); return '$' + (isFinite(v) ? v : 0).toFixed(2); }
+    function fmtDate(d){
+      if(!d) return '';
+      const dt = new Date(String(d).slice(0,10) + 'T12:00:00');
+      if(isNaN(dt)) return esc(d);
+      return dt.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+    }
+    function todayStr(){
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function num(v){ if(v === '' || v == null) return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
+
+    // Fetch wrapper — redirects to login on 401
+    async function api(path, opts){
+      const res = await fetch(API + path, Object.assign({ credentials:'same-origin' }, opts || {}));
+      if(res.status === 401){ window.location.href = '/login.html'; throw new Error('unauthorized'); }
+      return res;
+    }
+    async function apiJSON(path, opts){
+      const res = await api(path, opts);
+      const txt = await res.text();
+      let data = null; try { data = txt ? JSON.parse(txt) : null; } catch(e){}
+      if(!res.ok){ throw new Error((data && data.error) || ('HTTP ' + res.status)); }
+      return data;
+    }
+
+    // ── Tabs ─────────────────────────────────────────────────
+    function switchTab(name){
+      ['work','subwork','expenses','projects'].forEach(t => {
+        document.getElementById('tab-'+t).classList.toggle('on', t === name);
+        document.getElementById('panel-'+t).classList.toggle('on', t === name);
+      });
+    }
+
+    // ── Logout ───────────────────────────────────────────────
+    async function doLogout(){ try { await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'}); } catch(e){} window.location.href='/login.html'; }
+
+    // ── Status pill helper ───────────────────────────────────
+    function statusPill(status){ const s = String(status||'').toLowerCase(); return `<span class="pill ${esc(s)}">${esc(s)}</span>`; }
+
+    // ── Avatar for a row (management only) ───────────────────
+    function rowAvatar(id, staff_id, name, color){
+      const el = document.getElementById(id);
+      if(el && window.staffAvatar) staffAvatar(el, staff_id, name, color);
+    }
+
+    // Sort: pending/proposed first, then newest
+    function sortPendingFirst(rows, pendingStatus){
+      return rows.slice().sort((a,b) => {
+        const ap = (a.status === pendingStatus) ? 0 : 1;
+        const bp = (b.status === pendingStatus) ? 0 : 1;
+        if(ap !== bp) return ap - bp;
+        return String(b.created_at||b.date||'').localeCompare(String(a.created_at||a.date||''));
+      });
+    }
+    function sortNewest(rows){
+      return rows.slice().sort((a,b) => String(b.created_at||b.date||'').localeCompare(String(a.created_at||a.date||'')));
+    }
+
+    function setCount(tab, n){
+      const el = document.getElementById('cnt-'+tab);
+      if(!el) return;
+      if(n > 0){ el.textContent = n; el.style.display='inline-block'; }
+      else { el.style.display='none'; }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  WORK LOG
+    // ══════════════════════════════════════════════════════════
+    async function loadWork(){
+      try {
+        let rows = await apiJSON('/work') || [];
+        const pendingN = rows.filter(r => r.status === 'pending').length;
+        setCount('work', isMgmt ? pendingN : 0);
+        rows = isMgmt ? sortPendingFirst(rows, 'pending') : sortNewest(rows);
+        renderWork(rows);
+      } catch(e){
+        document.getElementById('work-list').innerHTML = `<div class="card"><div class="empty">Could not load work log.</div></div>`;
+      }
+    }
+    function renderWork(rows){
+      if(!rows.length){
+        document.getElementById('work-list').innerHTML = `<div class="card"><div class="empty">No work entries yet.</div></div>`;
+        return;
+      }
+      const avatarJobs = [];
+      const body = rows.map(r => {
+        const avId = `wav-${r.id}`;
+        const canDelete = isContractor && r.status === 'pending';
+        if(isMgmt) avatarJobs.push([avId, r.staff_id, r.staff_name, r.staff_color]);
+        const metaBits = [];
+        if(r.hours != null && r.hours !== '') metaBits.push(`<span><strong>${esc(r.hours)}</strong> hrs</span>`);
+        if(r.amount != null && r.amount !== '') metaBits.push(`<span class="amt">${money(r.amount)}</span>`);
+        if(r.status === 'approved' && r.decider_name) metaBits.push(`<span>Approved by ${esc(r.decider_name)}</span>`);
+        if(r.status === 'rejected' && r.decider_name) metaBits.push(`<span>Rejected by ${esc(r.decider_name)}</span>`);
+        return `
+          <div class="row">
+            ${isMgmt ? `<div class="row-av" id="${avId}"></div>` : ''}
+            <div class="row-main">
+              <div class="row-top">
+                <span class="row-date">${fmtDate(r.date)}</span>
+                ${isMgmt && r.staff_name ? `<span class="row-who">${esc(r.staff_name)}</span>` : ''}
+              </div>
+              <div class="row-desc">${esc(r.description) || '<span style="color:#8fa0b8">No description</span>'}</div>
+              <div class="row-meta">${metaBits.join('')}</div>
+            </div>
+            <div class="row-right">
+              ${statusPill(r.status)}
+              ${isMgmt && r.status === 'pending' ? `
+                <div class="decision-btns">
+                  <button class="dbtn approve" onclick="decideWork(${r.id},'approved')">Approve</button>
+                  <button class="dbtn reject" onclick="decideWork(${r.id},'rejected')">Reject</button>
+                </div>` : ''}
+              ${canDelete ? `<button class="del-btn" title="Delete" onclick="deleteWork(${r.id})">&times;</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('work-list').innerHTML = `<div class="card"><div class="list-head">${isMgmt ? 'All work entries' : 'Your work log'}</div>${body}</div>`;
+      avatarJobs.forEach(j => rowAvatar(j[0], j[1], j[2], j[3]));
+    }
+    async function addWork(){
+      const date = document.getElementById('w-date').value;
+      const description = document.getElementById('w-desc').value.trim();
+      const hours = num(document.getElementById('w-hours').value);
+      const amount = num(document.getElementById('w-amount').value);
+      if(!date || !description){ alert('Enter a date and description.'); return; }
+      if(hours == null && amount == null){ alert('Enter hours, an amount, or both.'); return; }
+      const btn = document.getElementById('w-submit'); btn.disabled = true;
+      try {
+        await apiJSON('/work', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ date, description, hours, amount }) });
+        document.getElementById('w-desc').value=''; document.getElementById('w-hours').value=''; document.getElementById('w-amount').value='';
+        await loadWork(); await loadSummary();
+      } catch(e){ alert('Could not add entry: ' + e.message); }
+      finally { btn.disabled = false; }
+    }
+    async function decideWork(id, decision){
+      try { await apiJSON(`/work/${id}/decision`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision }) });
+        await loadWork(); await loadSummary();
+      } catch(e){ alert('Could not save decision: ' + e.message); }
+    }
+    async function deleteWork(id){
+      if(!confirm('Delete this pending entry?')) return;
+      try { await api(`/work/${id}`, { method:'DELETE' }); await loadWork(); await loadSummary(); }
+      catch(e){ alert('Could not delete: ' + e.message); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  SUBCONTRACTORS (subwork) — mirrors Work Log with a Worker field
+    // ══════════════════════════════════════════════════════════
+    async function loadSubwork(){
+      try {
+        let rows = await apiJSON('/subwork') || [];
+        const pendingN = rows.filter(r => r.status === 'pending').length;
+        setCount('subwork', isMgmt ? pendingN : 0);
+        rows = isMgmt ? sortPendingFirst(rows, 'pending') : sortNewest(rows);
+        renderSubwork(rows);
+      } catch(e){
+        document.getElementById('sub-list').innerHTML = `<div class="card"><div class="empty">Could not load subcontractor log.</div></div>`;
+      }
+    }
+    function renderSubwork(rows){
+      if(!rows.length){
+        document.getElementById('sub-list').innerHTML = `<div class="card"><div class="empty">No subcontractor entries yet.</div></div>`;
+        return;
+      }
+      const avatarJobs = [];
+      const body = rows.map(r => {
+        const avId = `sav-${r.id}`;
+        const canDelete = isContractor && r.status === 'pending';
+        if(isMgmt) avatarJobs.push([avId, r.staff_id, r.staff_name, r.staff_color]);
+        const metaBits = [];
+        if(r.hours != null && r.hours !== '') metaBits.push(`<span><strong>${esc(r.hours)}</strong> hrs</span>`);
+        if(r.amount != null && r.amount !== '') metaBits.push(`<span class="amt">${money(r.amount)}</span>`);
+        if(r.status === 'approved' && r.decider_name) metaBits.push(`<span>Approved by ${esc(r.decider_name)}</span>`);
+        if(r.status === 'rejected' && r.decider_name) metaBits.push(`<span>Rejected by ${esc(r.decider_name)}</span>`);
+        return `
+          <div class="row">
+            ${isMgmt ? `<div class="row-av" id="${avId}"></div>` : ''}
+            <div class="row-main">
+              <div class="row-top">
+                <span class="row-who">${esc(r.worker_name) || 'Worker'}</span>
+                <span class="row-date">${fmtDate(r.date)}</span>
+                ${isMgmt && r.staff_name ? `<span style="font-size:12px;color:#8fa0b8">· via ${esc(r.staff_name)}</span>` : ''}
+              </div>
+              <div class="row-desc">${esc(r.description) || '<span style="color:#8fa0b8">No description</span>'}</div>
+              <div class="row-meta">${metaBits.join('')}</div>
+            </div>
+            <div class="row-right">
+              ${statusPill(r.status)}
+              ${isMgmt && r.status === 'pending' ? `
+                <div class="decision-btns">
+                  <button class="dbtn approve" onclick="decideSubwork(${r.id},'approved')">Approve</button>
+                  <button class="dbtn reject" onclick="decideSubwork(${r.id},'rejected')">Reject</button>
+                </div>` : ''}
+              ${canDelete ? `<button class="del-btn" title="Delete" onclick="deleteSubwork(${r.id})">&times;</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('sub-list').innerHTML = `<div class="card"><div class="list-head">${isMgmt ? 'All subcontractor entries' : 'Your subcontractor log'}</div>${body}</div>`;
+      avatarJobs.forEach(j => rowAvatar(j[0], j[1], j[2], j[3]));
+    }
+    async function addSubwork(){
+      const workerName = document.getElementById('s-worker').value.trim();
+      const date = document.getElementById('s-date').value;
+      const description = document.getElementById('s-desc').value.trim();
+      const hours = num(document.getElementById('s-hours').value);
+      const amount = num(document.getElementById('s-amount').value);
+      if(!workerName || !date){ alert('Enter a worker name and date.'); return; }
+      if(hours == null && amount == null){ alert('Enter hours, an amount, or both.'); return; }
+      const btn = document.getElementById('s-submit'); btn.disabled = true;
+      try {
+        await apiJSON('/subwork', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ workerName, date, description, hours, amount }) });
+        document.getElementById('s-worker').value=''; document.getElementById('s-desc').value=''; document.getElementById('s-hours').value=''; document.getElementById('s-amount').value='';
+        await loadSubwork(); await loadSummary();
+      } catch(e){ alert('Could not add entry: ' + e.message); }
+      finally { btn.disabled = false; }
+    }
+    async function decideSubwork(id, decision){
+      try { await apiJSON(`/subwork/${id}/decision`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision }) });
+        await loadSubwork(); await loadSummary();
+      } catch(e){ alert('Could not save decision: ' + e.message); }
+    }
+    async function deleteSubwork(id){
+      if(!confirm('Delete this pending entry?')) return;
+      try { await api(`/subwork/${id}`, { method:'DELETE' }); await loadSubwork(); await loadSummary(); }
+      catch(e){ alert('Could not delete: ' + e.message); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  EXPENSES
+    // ══════════════════════════════════════════════════════════
+    async function loadExpenses(){
+      try {
+        let rows = await apiJSON('/expenses') || [];
+        const pendingN = rows.filter(r => r.status === 'pending').length;
+        setCount('expenses', isMgmt ? pendingN : 0);
+        rows = isMgmt ? sortPendingFirst(rows, 'pending') : sortNewest(rows);
+        renderExpenses(rows);
+      } catch(e){
+        document.getElementById('exp-list').innerHTML = `<div class="card"><div class="empty">Could not load expenses.</div></div>`;
+      }
+    }
+    function isPdf(name){ return /\.pdf$/i.test(String(name||'')); }
+    function renderExpenses(rows){
+      if(!rows.length){
+        document.getElementById('exp-list').innerHTML = `<div class="card"><div class="empty">No expenses yet.</div></div>`;
+        return;
+      }
+      const avatarJobs = [];
+      const body = rows.map(r => {
+        const avId = `eav-${r.id}`;
+        const canDelete = isContractor && r.status === 'pending';
+        const canAddReceipt = isContractor || isMgmt;
+        if(isMgmt) avatarJobs.push([avId, r.staff_id, r.staff_name, r.staff_color]);
+        const receiptUrl = `${API}/expenses/${r.id}/receipt`;
+        let receiptHtml = '';
+        if(r.receipt){
+          receiptHtml = isPdf(r.receipt)
+            ? `<a class="receipt-link" href="${receiptUrl}" target="_blank" rel="noopener">View receipt</a>`
+            : `<img class="receipt-thumb" src="${receiptUrl}" alt="Receipt" onclick="window.open('${receiptUrl}','_blank')">`;
+        } else if(canAddReceipt){
+          receiptHtml = `<button class="add-receipt-btn" onclick="pickReceipt(${r.id})">Add receipt</button>`;
+        }
+        const metaBits = [];
+        if(r.category) metaBits.push(`<span>${esc(r.category)}</span>`);
+        metaBits.push(`<span class="amt">${money(r.amount)}</span>`);
+        if(r.decider_name && r.status !== 'pending') metaBits.push(`<span>${r.status === 'approved' ? 'Approved' : 'Rejected'} by ${esc(r.decider_name)}</span>`);
+        return `
+          <div class="row">
+            ${isMgmt ? `<div class="row-av" id="${avId}"></div>` : ''}
+            <div class="row-main">
+              <div class="row-top">
+                <span class="row-date">${fmtDate(r.date)}</span>
+                <span class="row-who">${esc(r.vendor) || 'Expense'}</span>
+                ${isMgmt && r.staff_name ? `<span style="font-size:12px;color:#8fa0b8">· ${esc(r.staff_name)}</span>` : ''}
+              </div>
+              <div class="row-meta" style="margin-top:6px">${metaBits.join('')}</div>
+              <div style="margin-top:8px">${receiptHtml}</div>
+            </div>
+            <div class="row-right">
+              ${statusPill(r.status)}
+              ${isMgmt && r.status === 'pending' ? `
+                <div class="decision-btns">
+                  <button class="dbtn approve" onclick="decideExpense(${r.id},'approved')">Approve</button>
+                  <button class="dbtn reject" onclick="decideExpense(${r.id},'rejected')">Reject</button>
+                </div>` : ''}
+              ${canDelete ? `<button class="del-btn" title="Delete" onclick="deleteExpense(${r.id})">&times;</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('exp-list').innerHTML = `<div class="card"><div class="list-head">${isMgmt ? 'All expenses' : 'Your expenses'}</div>${body}</div>`;
+      avatarJobs.forEach(j => rowAvatar(j[0], j[1], j[2], j[3]));
+    }
+    async function addExpense(){
+      const date = document.getElementById('e-date').value;
+      const vendor = document.getElementById('e-vendor').value.trim();
+      const category = document.getElementById('e-cat').value.trim();
+      const amount = num(document.getElementById('e-amount').value);
+      if(!date || !vendor){ alert('Enter a date and vendor.'); return; }
+      if(amount == null){ alert('Enter an amount.'); return; }
+      const btn = document.getElementById('e-submit'); btn.disabled = true;
+      try {
+        await apiJSON('/expenses', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ date, vendor, amount, category }) });
+        document.getElementById('e-vendor').value=''; document.getElementById('e-cat').value=''; document.getElementById('e-amount').value='';
+        await loadExpenses(); await loadSummary();
+      } catch(e){ alert('Could not add expense: ' + e.message); }
+      finally { btn.disabled = false; }
+    }
+    // Receipt upload
+    let _receiptTargetId = null;
+    function pickReceipt(id){
+      _receiptTargetId = id;
+      const inp = document.getElementById('receipt-file-input');
+      inp.value = '';
+      inp.click();
+    }
+    document.getElementById('receipt-file-input').addEventListener('change', async function(){
+      const file = this.files && this.files[0];
+      if(!file || _receiptTargetId == null) return;
+      const id = _receiptTargetId;
+      const fd = new FormData();
+      fd.append('receipt', file);
+      try {
+        const res = await api(`/expenses/${id}/receipt`, { method:'POST', body: fd });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        await loadExpenses();
+      } catch(e){ alert('Could not upload receipt: ' + e.message); }
+      _receiptTargetId = null;
+    });
+    async function decideExpense(id, decision){
+      try { await apiJSON(`/expenses/${id}/decision`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision }) });
+        await loadExpenses(); await loadSummary();
+      } catch(e){ alert('Could not save decision: ' + e.message); }
+    }
+    async function deleteExpense(id){
+      if(!confirm('Delete this pending expense?')) return;
+      try { await api(`/expenses/${id}`, { method:'DELETE' }); await loadExpenses(); await loadSummary(); }
+      catch(e){ alert('Could not delete: ' + e.message); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  PROJECTS
+    // ══════════════════════════════════════════════════════════
+    async function loadProjects(){
+      try {
+        let rows = await apiJSON('/projects') || [];
+        const pendingN = rows.filter(r => r.status === 'proposed').length;
+        setCount('projects', isMgmt ? pendingN : 0);
+        rows = isMgmt ? sortPendingFirst(rows, 'proposed') : sortNewest(rows);
+        renderProjects(rows);
+      } catch(e){
+        document.getElementById('proj-list').innerHTML = `<div class="card"><div class="empty">Could not load projects.</div></div>`;
+      }
+    }
+    function renderProjects(rows){
+      if(!rows.length){
+        document.getElementById('proj-list').innerHTML = `<div class="card"><div class="empty">No project pitches yet.</div></div>`;
+        return;
+      }
+      const avatarJobs = [];
+      const body = rows.map(r => {
+        const avId = `pav-${r.id}`;
+        const canDelete = isContractor && r.status === 'proposed';
+        if(isMgmt) avatarJobs.push([avId, r.staff_id, r.staff_name, r.staff_color]);
+        const metaBits = [];
+        if(r.estimate != null && r.estimate !== '') metaBits.push(`<span>Estimate <span class="amt">${money(r.estimate)}</span></span>`);
+        if(r.decider_name && r.status !== 'proposed') metaBits.push(`<span>${r.status === 'approved' ? 'Approved' : 'Declined'} by ${esc(r.decider_name)}</span>`);
+        return `
+          <div class="row">
+            ${isMgmt ? `<div class="row-av" id="${avId}"></div>` : ''}
+            <div class="row-main">
+              <div class="row-top">
+                <span class="row-who">${esc(r.title) || 'Untitled'}</span>
+                ${isMgmt && r.staff_name ? `<span style="font-size:12px;color:#8fa0b8">· ${esc(r.staff_name)}</span>` : ''}
+              </div>
+              ${r.description ? `<div class="row-desc">${esc(r.description)}</div>` : ''}
+              <div class="row-meta">${metaBits.join('')}</div>
+              ${r.decision_note ? `<div class="decision-note">${esc(r.decision_note)}</div>` : ''}
+            </div>
+            <div class="row-right">
+              ${statusPill(r.status)}
+              ${isMgmt && r.status === 'proposed' ? `
+                <div class="decision-btns">
+                  <button class="dbtn approve" onclick="decideProject(${r.id},'approved')">Approve</button>
+                  <button class="dbtn reject" onclick="decideProject(${r.id},'declined')">Decline</button>
+                </div>` : ''}
+              ${canDelete ? `<button class="del-btn" title="Delete" onclick="deleteProject(${r.id})">&times;</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+      document.getElementById('proj-list').innerHTML = `<div class="card"><div class="list-head">${isMgmt ? 'All project pitches' : 'Your project pitches'}</div>${body}</div>`;
+      avatarJobs.forEach(j => rowAvatar(j[0], j[1], j[2], j[3]));
+    }
+    async function addProject(){
+      const title = document.getElementById('p-title').value.trim();
+      const description = document.getElementById('p-desc').value.trim();
+      const estimate = num(document.getElementById('p-estimate').value);
+      if(!title){ alert('Enter a project title.'); return; }
+      const btn = document.getElementById('p-submit'); btn.disabled = true;
+      try {
+        await apiJSON('/projects', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title, description, estimate }) });
+        document.getElementById('p-title').value=''; document.getElementById('p-desc').value=''; document.getElementById('p-estimate').value='';
+        await loadProjects();
+      } catch(e){ alert('Could not submit pitch: ' + e.message); }
+      finally { btn.disabled = false; }
+    }
+    async function decideProject(id, decision){
+      let note = '';
+      if(decision === 'declined' || decision === 'approved'){
+        note = prompt(`Add a note for this ${decision === 'approved' ? 'approval' : 'decline'} (optional):`, '') || '';
+      }
+      try { await apiJSON(`/projects/${id}/decision`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision, note }) });
+        await loadProjects();
+      } catch(e){ alert('Could not save decision: ' + e.message); }
+    }
+    async function deleteProject(id){
+      if(!confirm('Delete this proposed pitch?')) return;
+      try { await api(`/projects/${id}`, { method:'DELETE' }); await loadProjects(); }
+      catch(e){ alert('Could not delete: ' + e.message); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  SUMMARY
+    // ══════════════════════════════════════════════════════════
+    async function loadSummary(){
+      try {
+        const s = await apiJSON('/summary') || {};
+        const hours    = s.approved_hours ?? s.hours ?? 0;
+        const work     = s.approved_amount ?? s.approved_work_amount ?? s.approved_work ?? s.work_amount ?? 0;
+        const exp      = s.approved_expense_amount ?? s.approved_expenses ?? s.expense_amount ?? s.expenses ?? 0;
+        const subHours = s.sub_approved_hours ?? 0;
+        const subAmt   = s.sub_approved_amount ?? 0;
+        const subPend  = s.sub_pending ?? 0;
+        const pending  = (Number(s.pending_count ?? s.pending ?? 0) || 0) + (Number(subPend) || 0);
+        document.getElementById('sum-hours').textContent      = (Number(hours)||0);
+        document.getElementById('sum-work').textContent       = money(work);
+        document.getElementById('sum-exp').textContent        = money(exp);
+        document.getElementById('sum-sub-hours').textContent  = (Number(subHours)||0);
+        document.getElementById('sum-sub-amount').textContent = money(subAmt);
+        document.getElementById('sum-pending').textContent    = pending;
+        if(isMgmt){
+          const n = pending;
+          const alert = document.getElementById('mgmt-alert');
+          if(n > 0){
+            document.getElementById('mgmt-alert-text').textContent = `${n} item${n===1?'':'s'} awaiting your approval.`;
+            alert.style.display = 'flex';
+          } else {
+            alert.style.display = 'none';
+          }
+        }
+      } catch(e){
+        ['sum-hours','sum-work','sum-exp','sum-sub-hours','sum-sub-amount','sum-pending'].forEach(id => document.getElementById(id).textContent = '—');
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  NAV ROLE ADJUSTMENT
+    // ══════════════════════════════════════════════════════════
+    function adjustNav(){
+      if(isContractor){
+        // Trimmed nav: Hub (this page) · Schedule · Comms. No checklist, no More, no sheet.
+        const home = document.getElementById('mnav-home');
+        home.setAttribute('href','/contractor.html');
+        home.classList.add('active');
+        home.setAttribute('aria-current','page');
+        document.getElementById('mnav-home-label').textContent = 'Hub';
+        document.getElementById('mnav-checklist').style.display = 'none';
+        document.getElementById('mnav-more').style.display = 'none';
+        const sheet = document.getElementById('mnav-more-backdrop');
+        if(sheet) sheet.parentNode.removeChild(sheet);
+      } else {
+        // Management: full standard nav + Contractor link in More sheet, marked active here.
+        document.getElementById('mnav-more').classList.add('active');
+        // Contractor sheet link is already active in markup; nothing else to change.
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  INIT
+    // ══════════════════════════════════════════════════════════
+    async function init(){
+      let res;
+      try { res = await fetch('/api/me', { credentials:'same-origin' }); }
+      catch(e){ window.location.href = '/login.html'; return; }
+      if(res.status === 401){ window.location.href = '/login.html'; return; }
+      me = await res.json();
+
+      isContractor = (me.role === 'contractor');
+      isMgmt = !isContractor && !!me.is_management;
+
+      if(!isContractor && !isMgmt){ window.location.href = '/hub.html'; return; }
+
+      // Avatar
+      const av = document.getElementById('nav-avatar');
+      if(window.staffAvatar) staffAvatar(av, me.id, me.name, me.color);
+
+      adjustNav();
+
+      if(isContractor){
+        document.getElementById('page-h1').textContent = 'Contractor Hub';
+        document.getElementById('page-hint').textContent = 'Log your work, expenses, and project pitches. Management reviews and approves before payment.';
+        document.getElementById('review-note').style.display = 'flex';
+        // Show submission forms
+        document.getElementById('work-form-card').style.display = 'block';
+        document.getElementById('sub-form-card').style.display = 'block';
+        document.getElementById('exp-form-card').style.display = 'block';
+        document.getElementById('proj-form-card').style.display = 'block';
+        // Default dates to today
+        document.getElementById('w-date').value = todayStr();
+        document.getElementById('s-date').value = todayStr();
+        document.getElementById('e-date').value = todayStr();
+      } else {
+        document.getElementById('page-h1').textContent = 'Contractor Review';
+        document.getElementById('page-hint').textContent = 'Review and approve contractor work, expenses, and project pitches submitted for payment.';
+        document.getElementById('ts-sub').textContent = 'Management review';
+      }
+
+      await Promise.all([ loadSummary(), loadWork(), loadSubwork(), loadExpenses(), loadProjects() ]);
+    }
+
+    init();
+  </script>
+
+  <script src="/staff-avatar.js"></script>
+  <script src="/chat-widget.js"></script>
+  <!-- On mobile the bottom nav replaces any top quick-nav — nothing extra to hide here -->
+</body>
+</html>
