@@ -454,6 +454,15 @@
         </button>
         <div id="staff-sidebar"></div>
       </div>
+
+      <!-- Sent-to group filter (management only) -->
+      <div class="sidebar-section mgmt-only">
+        <div class="sidebar-label">Sent to</div>
+        <button class="sidebar-btn" data-group="management" onclick="filterGroup('management',this)">
+          <span class="shift-dot" style="background:#2c5c9c"></span> Management team
+          <span id="b-mgmt-group" class="unread-pill" style="display:none"></span>
+        </button>
+      </div>
     </div>
 
     <!-- Main content -->
@@ -602,7 +611,7 @@
 
 <script>
   let me = null, allStaff = [], messages = [];
-  let activeCategory = 'all', activeStaff = 'all';
+  let activeCategory = 'all', activeStaff = 'all', activeGroup = 'all';
 
   const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
   let selectedRecipients = [];
@@ -842,10 +851,25 @@
     renderFeed();
   }
 
+  // Toggle the "sent to management" filter (management-only). Click again to clear.
+  function filterGroup(g, btn) {
+    if (activeGroup === g) { activeGroup = 'all'; btn.classList.remove('active'); }
+    else { activeGroup = g; btn.classList.add('active'); }
+    renderFeed();
+  }
+  function managementIds() { return (allStaff || []).filter(s => s.role === 'admin' || s.role === 'manager').map(s => s.id); }
+  // A message "sent to the management team" = targeted (recipients set) and every recipient is management.
+  function isManagementMsg(m) {
+    if (!Array.isArray(m.recipients) || m.recipients.length === 0) return false;
+    const mg = managementIds();
+    return m.recipients.every(id => mg.includes(id));
+  }
+
   function getFiltered() {
     return messages.filter(m => {
       if (effDate(m) !== localDateStr(viewDate)) return false;
       if (activeCategory !== 'all' && (m.category || 'general') !== activeCategory) return false;
+      if (activeGroup === 'management' && !isManagementMsg(m)) return false;
       if (activeStaff !== 'all') {
         const sid = parseInt(activeStaff);
         const fromThem  = m.author_id === sid;
