@@ -63,3 +63,16 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
   })(bust ? base + '?t=' + Date.now() : base);
   __applyBadge(el, staffId); // apply immediately for the initials state too
 };
+
+// Hide management-only chrome (e.g. the Settings link) from non-management users.
+// Runs once per page load; safe pre-auth (fetch 401 → no-op).
+(function () {
+  fetch('/api/me')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (me) {
+      if (me && !me.is_management) {
+        document.querySelectorAll('.mgmt-only').forEach(function (el) { el.style.display = 'none'; });
+      }
+    })
+    .catch(function () {});
+})();
