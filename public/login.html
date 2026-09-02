@@ -296,7 +296,7 @@
           document.getElementById('pw-input').select();
           return;
         }
-        window.location.href = '/hub.html';
+        window.location.href = data.must_set_password ? '/set-password.html' : '/hub.html';
       } catch (e) {
         errEl.textContent = 'Connection error — try again';
         errEl.style.display = 'block';

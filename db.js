@@ -455,6 +455,17 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 
+// Migration: force a first-login password change. Everyone currently shares the
+// default password, which defeats role-based access — flag all existing accounts
+// so each person sets their own private password on next sign-in.
+{
+  let changed = false;
+  for (const s of (_data.staff || [])) {
+    if (s.must_set_password === undefined) { s.must_set_password = true; changed = true; }
+  }
+  if (changed) { save(); console.log('Flagged all staff for first-login password change.'); }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nextId(table) {
@@ -498,14 +509,19 @@ function getEffectiveStaffId(realId, viewAsId) {
 
 function updatePassword(staffId, hash) {
   const s = _data.staff.find(s => s.id === parseInt(staffId));
-  if (s) { s.password = hash; save(); }
+  if (s) { s.password = hash; s.must_set_password = false; save(); }
 }
 
 function addStaff({ name, color, role, passwordHash }) {
   const id = nextId('staff');
-  _data.staff.push({ id, name, color, role, password: passwordHash });
+  _data.staff.push({ id, name, color, role, password: passwordHash, must_set_password: true });
   save();
   return { id, name, color, role };
+}
+function setInitialPassword(staffId, hash) {
+  const s = _data.staff.find(x => x.id === parseInt(staffId));
+  if (!s) return false;
+  s.password = hash; s.must_set_password = false; save(); return true;
 }
 
 function updateStaff(staffId, { name, color, role }) {
@@ -1608,9 +1624,10 @@ function _payRow(sid) { return (_data.staff_pay || []).find(p => p.staff_id === 
   if (changed) save();
 })();
 function getStaffPay() {
-  // Owners / senior management (Craig, Jaime, Victor) aren't part of the hourly pay review.
+  // Owners / senior management (Craig, Jaime, Victor) aren't part of the hourly pay
+  // review, and contractors (e.g. Muzz) aren't on payroll — exclude both.
   return (_data.staff || []).slice()
-    .filter(s => !STAFF_MGMT_IDS.includes(s.id))
+    .filter(s => !STAFF_MGMT_IDS.includes(s.id) && s.role !== 'contractor')
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(s => {
       const p = _payRow(s.id) || {};
@@ -1619,7 +1636,7 @@ function getStaffPay() {
       let pct = null;
       if (cur != null && nw != null && cur > 0) pct = Math.round(((nw - cur) / cur) * 1000) / 10;
       return {
-        staff_id: s.id, name: s.name, role: s.role, color: s.color, badge: s.badge || null,
+        staff_id: s.id, name: s.name, role: s.role, is_pro: !!s.is_pro, color: s.color, badge: s.badge || null,
         pay_type: p.pay_type || 'hourly',
         current_rate: cur, new_rate: nw, effective_date: p.effective_date || '2026-09-01',
         notes: p.notes || '', pct_change: pct,
@@ -1639,6 +1656,48 @@ function updateStaffPay(staffId, f, actingId) {
   p.updated_by = parseInt(actingId); p.updated_at = now();
   save();
   return getStaffPay().find(x => x.staff_id === sid);
+}
+
+// ── Staff directory (manager-only: full profiles incl. last name + contact) ──
+const STAFF_ROLES = ['admin', 'manager', 'staff', 'pro', 'contractor'];
+const STAFF_PALETTE = ['#2c5c9c', '#0d9488', '#8b5cf6', '#f59e0b', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777'];
+function _dirOut(s) {
+  return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
+    badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '' };
+}
+function getStaffDirectory() {
+  return (_data.staff || []).slice().sort((a, b) => a.name.localeCompare(b.name)).map(_dirOut);
+}
+function addStaffMember(f, passwordHash) {
+  const id = nextId('staff');
+  const s = {
+    id,
+    name: String(f.first_name || '').slice(0, 60),
+    last_name: String(f.last_name || '').slice(0, 60),
+    role: STAFF_ROLES.includes(f.role) ? f.role : 'staff',
+    is_pro: !!f.is_pro,
+    phone: String(f.phone || '').slice(0, 40),
+    email: String(f.email || '').slice(0, 120),
+    address: String(f.address || '').slice(0, 200),
+    color: f.color || STAFF_PALETTE[(id - 1) % STAFF_PALETTE.length],
+    password: passwordHash,
+    must_set_password: true,
+  };
+  _data.staff.push(s); save();
+  return _dirOut(s);
+}
+function updateStaffMember(staffId, f) {
+  const s = _data.staff.find(x => x.id === parseInt(staffId)); if (!s) return null;
+  if (f.first_name !== undefined) s.name = String(f.first_name).slice(0, 60);
+  if (f.last_name !== undefined) s.last_name = String(f.last_name).slice(0, 60);
+  if (f.role !== undefined && STAFF_ROLES.includes(f.role)) s.role = f.role;
+  if (f.is_pro !== undefined) s.is_pro = !!f.is_pro;
+  if (f.phone !== undefined) s.phone = String(f.phone).slice(0, 40);
+  if (f.email !== undefined) s.email = String(f.email).slice(0, 120);
+  if (f.address !== undefined) s.address = String(f.address).slice(0, 200);
+  if (f.color !== undefined) s.color = String(f.color).slice(0, 20);
+  save();
+  return _dirOut(s);
 }
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
@@ -1686,10 +1745,14 @@ module.exports = {
   getAllStaff,
   getStaffById,
   getEffectiveStaffId,
+  setInitialPassword,
   canViewAs,
   canManageStaff,
   getStaffPay,
   updateStaffPay,
+  getStaffDirectory,
+  addStaffMember,
+  updateStaffMember,
   getAcademyClasses,
   getAcademyClass,
   addAcademyClass,

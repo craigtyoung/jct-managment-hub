@@ -148,7 +148,7 @@
     .nav-group-label {
       font-size: 9px; font-weight: 700;
       letter-spacing: 0.18em; text-transform: uppercase;
-      color: rgba(177,201,251,0.28);
+      color: rgba(255,255,255,0.5);
       padding: 14px 18px 5px;
     }
     .nav-group-label:first-child { padding-top: 10px; }
@@ -159,20 +159,20 @@
       background: none; border: none; cursor: pointer;
       border-left: 2px solid transparent;
       font-family: var(--font-body);
-      font-size: 13px; font-weight: 400;
-      color: rgba(177,201,251,0.55);
+      font-size: 13px; font-weight: 500;
+      color: rgba(255,255,255,0.86);
       text-align: left; text-decoration: none;
       transition: color 0.15s, background 0.15s, border-color 0.15s;
     }
     .nav-link:hover {
-      color: rgba(240,244,255,0.88);
+      color: #ffffff;
       background: var(--navy-hover);
     }
     .nav-link.active {
-      color: var(--powder);
+      color: #ffffff;
       border-left-color: var(--powder);
-      background: rgba(177,201,251,0.07);
-      font-weight: 500;
+      background: rgba(177,201,251,0.12);
+      font-weight: 600;
     }
     .nav-link.nav-soon {
       opacity: 0.45; cursor: default;
@@ -232,7 +232,7 @@
     .topstrip {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 13px 32px;
+      padding: 20px 36px;
       display: flex; align-items: center; justify-content: space-between;
       position: sticky; top: 0; z-index: 100;
     }
@@ -276,12 +276,12 @@
        HERO HEADER
     ───────────────────────────────────────────── */
     .page-hero {
-      display: flex; align-items: center; gap: 28px;
-      margin-bottom: 32px;
-      padding: 28px 32px;
+      display: flex; align-items: center; gap: 36px;
+      margin-bottom: 28px;
+      padding: 44px 44px;
       background: linear-gradient(135deg, #ffffff 0%, #f5f8fd 55%, #eaf1fb 100%);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 24px;
     }
     body.pro-mode .page-hero {
       background: linear-gradient(135deg, #ffffff 0%, #f2faf5 55%, #e7f5ed 100%);
@@ -295,11 +295,11 @@
     }
     .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .hero-logo {
-      width: 140px; flex-shrink: 0;
-      opacity: 0.92;
+      width: 210px; flex-shrink: 0;
+      opacity: 0.95;
     }
     .hero-divider {
-      width: 1px; height: 72px; flex-shrink: 0;
+      width: 1px; height: 92px; flex-shrink: 0;
       background: var(--border);
     }
     .hero-text { flex: 1; }
@@ -652,6 +652,13 @@
       box-shadow: 0 1px 3px rgba(12,23,56,0.10);
     }
     body.pro-mode .mode-toggle button.on { color: #2f9e5f; }
+    .mode-toggle button.mode-soon { opacity: 0.5; cursor: default; position: relative; }
+    .mode-toggle button.mode-soon:hover { color: var(--text-3); }
+    .mode-toggle button.mode-soon:hover::after {
+      content: attr(data-soon); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      white-space: nowrap; background: var(--navy); color: #fff; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+      padding: 4px 9px; border-radius: 7px; box-shadow: 0 3px 10px rgba(12,23,56,0.22); z-index: 200; pointer-events: none;
+    }
 
     .pro-pill {
       display: inline-flex; align-items: center; gap: 5px;
@@ -691,27 +698,48 @@
     .ask-send:hover { background: var(--navy); }
     .ask-send svg { width: 16px; height: 16px; }
 
+    /* ── Assistant button (slim, professional; opens the AI chat) ── */
+    .assistant-slim {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin: 0 0 26px; padding: 9px 16px 9px 11px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      cursor: pointer; font-family: var(--font-body); font-size: 13.5px; font-weight: 500; color: var(--text-2);
+      box-shadow: 0 1px 3px rgba(12,23,56,0.05); transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .assistant-slim:hover { border-color: rgba(44,92,156,0.4); color: var(--text); box-shadow: 0 3px 12px rgba(12,23,56,0.09); }
+    .assistant-slim .as-ico { width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(44,92,156,0.10); flex-shrink: 0; }
+    .assistant-slim .as-ico svg { width: 14px; height: 14px; color: var(--blue); }
+    .assistant-slim strong { font-weight: 600; color: var(--text); }
+    .assistant-slim .as-hint { color: var(--text-3); font-weight: 400; }
+    @media (max-width: 560px) { .assistant-slim .as-hint { display: none; } }
+
     /* ─────────────────────────────────────────────
        LIGHT NAV THEME (premium clean) — prototype
     ───────────────────────────────────────────── */
-    .sidenav { background: #ffffff; border-right: 1px solid var(--border); }
-    .sidenav-brand { border-bottom: 1px solid var(--border); }
-    .sidenav-brand-name { color: var(--text); }
-    .sidenav-brand-tag { color: var(--text-3); }
-    .brand-pro-pill { background: rgba(47,158,95,0.12); color: #2f9e5f; }
-    .nav-group-label { color: var(--text-3); }
-    .nav-link { color: var(--text-2); }
-    .nav-link:hover { color: var(--text); background: var(--surface-2); }
-    .nav-link.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-soft); }
-    .nav-link.nav-soon { color: var(--text-3); }
-    .nav-link.nav-soon:hover { color: var(--text-3); background: none; }
-    .nav-badge { background: var(--blue); color: #fff; }
-    .sidenav-user-name { color: var(--text); }
-    .sidenav-user-role { color: var(--text-3); }
-    .sidenav-signout { border: 1px solid var(--border); color: var(--text-3); }
-    .sidenav-signout:hover { color: #dc2626; border-color: rgba(220,38,38,0.3); }
+    body.nav-light .sidenav { background: #ffffff; border-right: 1px solid var(--border); }
+    body.nav-light .sidenav-brand { border-bottom: 1px solid var(--border); }
+    body.nav-light .sidenav-brand-name { color: var(--text); }
+    body.nav-light .sidenav-brand-tag { color: var(--text-3); }
+    body.nav-light .brand-pro-pill { background: rgba(47,158,95,0.12); color: #2f9e5f; }
+    body.nav-light .nav-group-label { color: var(--text-3); }
+    body.nav-light .nav-link { color: var(--text-2); }
+    body.nav-light .nav-link:hover { color: var(--text); background: var(--surface-2); }
+    body.nav-light .nav-link.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-soft); }
+    body.nav-light .nav-link.nav-soon { color: var(--text-3); }
+    body.nav-light .nav-link.nav-soon:hover { color: var(--text-3); background: none; }
+    body.nav-light .nav-badge { background: var(--blue); color: #fff; }
+    body.nav-light .sidenav-user-name { color: var(--text); }
+    body.nav-light .sidenav-user-role { color: var(--text-3); }
+    body.nav-light .sidenav-signout { border: 1px solid var(--border); color: var(--text-3); }
+    body.nav-light .sidenav-signout:hover { color: #dc2626; border-color: rgba(220,38,38,0.3); }
     /* softer canvas so the white cards pop */
     body { background: #f7f9fc; }
+    /* sidebar colour toggle button */
+    .nav-theme-toggle { display: flex; align-items: center; gap: 7px; width: 100%; margin-top: 8px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--border-nav); background: transparent; color: rgba(177,201,251,0.7); font-family: var(--font-body); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .nav-theme-toggle:hover { color: #f0f4ff; background: var(--navy-hover); }
+    .nav-theme-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+    body.nav-light .nav-theme-toggle { color: var(--text-3); border-color: var(--border); }
+    body.nav-light .nav-theme-toggle:hover { color: var(--text); background: var(--surface-2); }
 
     /* ── Reach the Team (quick contacts) ── */
     .contacts-wrap { margin-bottom: 32px; }
@@ -753,6 +781,7 @@
   </style>
 </head>
 <body>
+  <script>(function(){try{var t=localStorage.getItem('jct-nav-theme')||'light';if(t!=='navy')document.body.classList.add('nav-light');}catch(e){document.body.classList.add('nav-light');}})();</script>
 
   <!-- ══════════════════════════════════════════
        SPINE
@@ -959,6 +988,10 @@
         </div>
       </div>
       <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+      <button class="nav-theme-toggle" onclick="toggleNavTheme()" title="Switch the sidebar colour (staff preview vote)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+        <span id="nav-theme-label">Navy sidebar</span>
+      </button>
     </div>
   </nav>
 
@@ -973,7 +1006,7 @@
     <div class="ts-right">
       <div id="mode-toggle" class="mode-toggle" style="display:none">
         <button id="mode-office" onclick="setMode('admin')">Office</button>
-        <button id="mode-pro" onclick="setMode('pro')">Pro</button>
+        <button id="mode-pro" class="mode-soon" data-soon="Coming soon" onclick="return false">Pro</button>
       </div>
       <span id="mode-locked-pill" class="pro-pill" style="display:none">🎾 Pro Mode</span>
       <div class="ts-status">
@@ -999,17 +1032,12 @@
       <div class="hero-avatar" id="hero-avatar"></div>
     </div>
 
-    <!-- ── AI Ask Bar ─────────────────────────── -->
-    <form class="ask-bar" onsubmit="askHub(event)">
-      <svg class="ask-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
-        <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/>
-        <path d="M18 14.5l.65 1.6L20.3 16.8l-1.65.7L18 19.2l-.65-1.7L15.7 16.8l1.65-.7z"/>
-      </svg>
-      <input id="ask-input" type="text" autocomplete="off" placeholder="Ask the hub — who's on today, latest notes, anything…" />
-      <button type="submit" class="ask-send" aria-label="Ask">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </form>
+    <!-- ── Assistant (opens the AI chat) ──────── -->
+    <button type="button" class="assistant-slim" onclick="window.jctChat && window.jctChat.open()">
+      <span class="as-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
+      <strong>Ask the Assistant</strong>
+      <span class="as-hint">— who's on, latest notes, anything</span>
+    </button>
 
     <!-- ── Bubble Monitoring feed ─────────────── -->
     <div class="bub-wrap">
@@ -1066,7 +1094,7 @@
     <!-- ── Latest Notes ───────────────────────── -->
     <div class="section-title" style="margin-top:0">
       <div class="section-live-dot"></div>
-      Latest Notes
+      Latest Messages
     </div>
     <a href="/comms.html" class="notes-link">
       <div class="notes-panel">
@@ -1714,7 +1742,7 @@
       const wrap = document.getElementById('notes-list');
       const x = new Date();
       const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-      const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr).slice(0, 4);
+      const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr).slice(0, 3);
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
       const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
       const catColors = { membership:'#8b5cf6', 'pro-shop':'#d97706', reminders:'#2563eb', academy:'#059669', general:'#64748b' };
@@ -1737,6 +1765,32 @@
       wrap.querySelectorAll('[data-photo-id]').forEach(el =>
         staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
     }
+
+    // Sidebar colour toggle (staff preview vote): light (white) ↔ navy+powder-blue.
+    function syncNavThemeLabel() {
+      var l = document.getElementById('nav-theme-label');
+      if (l) l.textContent = document.body.classList.contains('nav-light') ? 'Navy sidebar' : 'White sidebar';
+    }
+    function toggleNavTheme() {
+      var light = document.body.classList.toggle('nav-light');
+      try { localStorage.setItem('jct-nav-theme', light ? 'light' : 'navy'); } catch (e) {}
+      syncNavThemeLabel();
+    }
+    syncNavThemeLabel();
+
+    // Colourful nav icons (keyed by destination) — pops on white, still bright on navy.
+    (function () {
+      var NAV_ICON_COLORS = {
+        '/hub.html': '#3b82f6', '/academy.html': '#f59e0b', '/checklist.html': '#10b981',
+        '/bubble.html': '#14b8a6', '/cash-summary.html': '#059669', '/schedule.html': '#8b5cf6',
+        '/timesheet.html': '#f97316', '/contractor.html': '#f43f5e', '/staff-management.html': '#6366f1',
+        '/comms.html': '#2563eb', '/ideas.html': '#eab308', '/admin.html': '#0ea5e9'
+      };
+      document.querySelectorAll('.sidenav .nav-link').forEach(function (a) {
+        var c = NAV_ICON_COLORS[a.getAttribute('href')]; var svg = a.querySelector('.nav-icon');
+        if (c && svg) svg.style.color = c;
+      });
+    })();
 
     async function doLogout() {
       await fetch('/api/auth/logout', { method: 'POST' });

@@ -71,6 +71,8 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (me) {
       if (!me) return;
+      // First-login guard: no access to any page until a private password is set.
+      if (me.must_set_password && location.pathname.indexOf('set-password') < 0) { location.href = '/set-password.html'; return; }
       if (!me.is_management) {
         document.querySelectorAll('.mgmt-only').forEach(function (el) { el.style.display = 'none'; });
       }

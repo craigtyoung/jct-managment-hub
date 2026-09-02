@@ -36,7 +36,18 @@ router.post('/login', (req, res) => {
 
   req.session.staffId = staff.id;
   delete req.session.viewAsStaffId; // never carry a stale dev-view into a fresh login
-  res.json({ ok: true, name: staff.name, role: staff.role });
+  res.json({ ok: true, name: staff.name, role: staff.role, must_set_password: !!staff.must_set_password });
+});
+
+// POST set-initial-password — first-login forced password change. Requires a
+// session (they've authenticated with the default), sets their own password,
+// and clears the must-change flag.
+router.post('/set-initial-password', (req, res) => {
+  if (!req.session.staffId) return res.status(401).json({ error: 'Not logged in' });
+  const { newPassword } = req.body;
+  if (!newPassword || String(newPassword).length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+  db.setInitialPassword(req.session.staffId, bcrypt.hashSync(String(newPassword), 10));
+  res.json({ ok: true });
 });
 
 // POST view-as — allow-listed testers only. Temporarily view the hub as another

@@ -43,6 +43,18 @@ const academyRoutes     = require('./routes/academy');
 const staffMgmtRoutes   = require('./routes/staff-mgmt');
 
 app.use('/api/auth', authRoutes);
+
+// First-login guard: until a user sets their own password, block every data
+// endpoint (auth, identity and avatar reads stay open so they can complete setup).
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth') || req.path === '/me' || req.path.startsWith('/staff/')) return next();
+  if (!req.session || !req.session.staffId) return next(); // requireAuth on each route handles 401
+  const db = require('./db');
+  const s = db.getStaffById(req.session.staffId);
+  if (s && s.must_set_password) return res.status(403).json({ error: 'Password change required', must_set_password: true });
+  next();
+});
+
 app.use('/api/messages', requireAuth, messageRoutes);
 app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/checklist', requireAuth, checklistRoutes);
@@ -99,6 +111,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     is_management: real.role === 'admin' || real.role === 'manager',
     can_view_as: db.canViewAs(real.id),
     can_manage_staff: db.canManageStaff(real.id),
+    must_set_password: !!real.must_set_password,
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
     viewing_as: eff.id !== real.id,
   });
