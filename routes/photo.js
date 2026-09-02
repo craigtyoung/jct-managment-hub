@@ -51,11 +51,14 @@ router.get('/:id/photo', (req, res) => {
   res.status(404).end();
 });
 
-// POST /api/staff/:id/photo — upload (admin/manager only)
+// POST /api/staff/:id/photo — upload. Management may set anyone's photo; any
+// staff member may set their OWN (self-service account panel).
 router.post('/:id/photo',
   (req, res, next) => {
     const acting = db.getStaffById(req.session.staffId);
-    if (!acting || !['admin', 'manager'].includes(acting.role)) {
+    const isSelf = acting && String(acting.id) === String(req.params.id);
+    const isManagement = acting && ['admin', 'manager'].includes(acting.role);
+    if (!isSelf && !isManagement) {
       return res.status(403).json({ error: 'Not authorised' });
     }
     next();
