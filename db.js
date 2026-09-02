@@ -451,7 +451,7 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
   save();
   console.log('Appended adult academy classes:', ACADEMY_ADULT_SEED.length);
 }
-['academy_waitlist', 'academy_changes', 'academy_notes'].forEach(t => {
+['academy_waitlist', 'academy_changes', 'academy_notes', 'staff_pay'].forEach(t => {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 
@@ -1587,6 +1587,60 @@ function deleteAcademyNote(id, staffId, isMgmt) {
   _data.academy_notes = _data.academy_notes.filter(x => x.id !== parseInt(id)); save(); return true;
 }
 
+// ─── Staff management / pay review ──────────────────────────────────────────
+// Sensitive manager surface (pay). Tighter allowlist than "management":
+// Craig(1), Jaime(2), Victor(3). Excludes David; widen STAFF_MGMT_IDS if needed.
+const STAFF_MGMT_IDS = [1, 2, 3];
+function canManageStaff(realId) { return STAFF_MGMT_IDS.includes(parseInt(realId)); }
+
+function _payRow(sid) { return (_data.staff_pay || []).find(p => p.staff_id === parseInt(sid)) || null; }
+// Pre-mark known salaried staff once (David, Megan). Only sets if unset, so manual
+// toggles stick. Matched by name to survive any id drift.
+(function seedSalaried() {
+  if (!Array.isArray(_data.staff_pay)) return;
+  let changed = false;
+  ['David', 'Megan'].forEach(nm => {
+    const s = (_data.staff || []).find(x => x.name === nm); if (!s) return;
+    let p = _data.staff_pay.find(x => x.staff_id === s.id);
+    if (!p) { p = { id: nextId('staff_pay'), staff_id: s.id }; _data.staff_pay.push(p); }
+    if (p.pay_type === undefined) { p.pay_type = 'salary'; changed = true; }
+  });
+  if (changed) save();
+})();
+function getStaffPay() {
+  // Owners / senior management (Craig, Jaime, Victor) aren't part of the hourly pay review.
+  return (_data.staff || []).slice()
+    .filter(s => !STAFF_MGMT_IDS.includes(s.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(s => {
+      const p = _payRow(s.id) || {};
+      const cur = (p.current_rate != null) ? p.current_rate : null;
+      const nw = (p.new_rate != null) ? p.new_rate : null;
+      let pct = null;
+      if (cur != null && nw != null && cur > 0) pct = Math.round(((nw - cur) / cur) * 1000) / 10;
+      return {
+        staff_id: s.id, name: s.name, role: s.role, color: s.color, badge: s.badge || null,
+        pay_type: p.pay_type || 'hourly',
+        current_rate: cur, new_rate: nw, effective_date: p.effective_date || '2026-09-01',
+        notes: p.notes || '', pct_change: pct,
+      };
+    });
+}
+function updateStaffPay(staffId, f, actingId) {
+  const sid = parseInt(staffId);
+  const s = getStaffById(sid); if (!s) return null;
+  let p = _payRow(sid);
+  if (!p) { p = { id: nextId('staff_pay'), staff_id: sid }; _data.staff_pay.push(p); }
+  if (f.pay_type !== undefined) p.pay_type = (f.pay_type === 'salary') ? 'salary' : 'hourly';
+  if (f.current_rate !== undefined) p.current_rate = (f.current_rate === '' || f.current_rate === null) ? null : Number(f.current_rate);
+  if (f.new_rate !== undefined) p.new_rate = (f.new_rate === '' || f.new_rate === null) ? null : Number(f.new_rate);
+  if (f.effective_date !== undefined) p.effective_date = String(f.effective_date).slice(0, 40);
+  if (f.notes !== undefined) p.notes = String(f.notes).slice(0, 500);
+  p.updated_by = parseInt(actingId); p.updated_at = now();
+  save();
+  return getStaffPay().find(x => x.staff_id === sid);
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -1633,6 +1687,9 @@ module.exports = {
   getStaffById,
   getEffectiveStaffId,
   canViewAs,
+  canManageStaff,
+  getStaffPay,
+  updateStaffPay,
   getAcademyClasses,
   getAcademyClass,
   addAcademyClass,

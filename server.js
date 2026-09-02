@@ -40,6 +40,7 @@ const bubbleRoutes      = require('./routes/bubble');
 const contractorRoutes  = require('./routes/contractor');
 const ideaRoutes        = require('./routes/ideas');
 const academyRoutes     = require('./routes/academy');
+const staffMgmtRoutes   = require('./routes/staff-mgmt');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', requireAuth, messageRoutes);
@@ -63,6 +64,7 @@ app.use('/api/bubble',       requireAuth, bubbleRoutes);
 app.use('/api/contractor',   requireAuth, contractorRoutes);
 app.use('/api/ideas',        requireAuth, ideaRoutes);
 app.use('/api/academy',      requireAuth, academyRoutes);
+app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {
@@ -96,6 +98,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     is_admin: real.role === 'admin',
     is_management: real.role === 'admin' || real.role === 'manager',
     can_view_as: db.canViewAs(real.id),
+    can_manage_staff: db.canManageStaff(real.id),
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
     viewing_as: eff.id !== real.id,
   });

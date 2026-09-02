@@ -70,8 +70,13 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
   fetch('/api/me')
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (me) {
-      if (me && !me.is_management) {
+      if (!me) return;
+      if (!me.is_management) {
         document.querySelectorAll('.mgmt-only').forEach(function (el) { el.style.display = 'none'; });
+      }
+      // Reveal the tighter manager-only chrome (Staff Management / pay) for the allowlist.
+      if (me.can_manage_staff) {
+        document.querySelectorAll('.staffmgmt-only').forEach(function (el) { el.style.display = ''; });
       }
     })
     .catch(function () {});
@@ -356,4 +361,35 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
       };
     })
     .catch(function () {});
+})();
+
+// ── Mobile nav trim ─────────────────────────────────────────────────────────
+// The phone experience is intentionally scaled down: hide Cash Summary,
+// Timesheets, Bubble Monitoring and Contractor from the mobile "More" sheet
+// (those are done on a computer), and make sure Wait Lists is reachable there.
+// Desktop keeps the full sidebar; this only touches the mobile bottom-nav sheet.
+(function () {
+  var st = document.createElement('style');
+  st.textContent =
+    '@media(max-width:820px){' +
+    '.mnav-sheet-link[href="/cash-summary.html"],' +
+    '.mnav-sheet-link[href="/timesheet.html"],' +
+    '.mnav-sheet-link[href="/bubble.html"],' +
+    '.mnav-sheet-link[href="/contractor.html"]{display:none!important;}}';
+  document.head.appendChild(st);
+  function ensureWaitlist() {
+    var sheet = document.querySelector('.mnav-sheet');
+    if (!sheet || sheet.querySelector('a[href="/academy.html"]')) return;
+    var a = document.createElement('a');
+    a.href = '/academy.html';
+    a.className = 'mnav-sheet-link';
+    a.innerHTML = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">' +
+      '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>' +
+      '<line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Wait Lists';
+    var title = sheet.querySelector('.mnav-sheet-title');
+    if (title && title.nextSibling) sheet.insertBefore(a, title.nextSibling);
+    else sheet.appendChild(a);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureWaitlist);
+  else ensureWaitlist();
 })();

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Staff Management — JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+    body {
+      --bg:#f7f9fc; --surface:#ffffff; --surface2:#f8fafc; --sidebar-bg:#fbfcfe; --border:rgba(12,23,56,0.08);
+      --text:#0c1738; --text2:#4a6080; --text3:#8fa0b8; --navy:#0c1738; --blue:#2c5c9c;
+      --input-bg:#f8fafc; --input-border:rgba(12,23,56,0.14);
+      background:var(--bg); color:var(--text); display:flex; flex-direction:column;
+    }
+    h1,h2,h3 { font-family:'Playfair Display',Georgia,serif; }
+    a { color:inherit; text-decoration:none; }
+
+    .topbar { background:rgba(255,255,255,0.97); border-bottom:1px solid var(--border); backdrop-filter:blur(20px); flex-shrink:0;
+      display:flex; align-items:center; gap:14px; padding:0 20px; height:52px; position:sticky; top:0; z-index:50; }
+    .back { display:inline-flex; align-items:center; gap:6px; color:var(--text2); font-size:13px; font-weight:600; padding:6px 10px; border-radius:9px; transition:all .15s; }
+    .back:hover { background:rgba(44,92,156,0.08); color:var(--text); }
+    .back svg { width:16px; height:16px; }
+    .topbar h1 { font-size:18px; margin:0; color:var(--navy); }
+    .topbar .sub { font-size:12px; color:var(--text3); font-family:'Inter',sans-serif; margin-left:2px; }
+
+    .shell { display:flex; flex:1; overflow:hidden; }
+    .sidebar { width:210px; flex-shrink:0; background:var(--sidebar-bg); border-right:1px solid var(--border); overflow-y:auto; padding:16px 10px; }
+    .sidebar-label { font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--text3); margin:0 6px 8px; }
+    .sidebar-btn { display:flex; align-items:center; gap:9px; width:100%; padding:9px 10px; border-radius:9px; border:none; background:transparent;
+      color:var(--text2); font-size:14.5px; cursor:pointer; text-align:left; transition:all .15s; font-family:inherit; }
+    .sidebar-btn:hover { background:rgba(44,92,156,0.07); color:var(--text); }
+    .sidebar-btn.active { background:rgba(44,92,156,0.1); color:var(--blue); font-weight:600; }
+    .sidebar-btn .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .soon { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--text3); background:var(--surface2); border:1px solid var(--border); border-radius:100px; padding:1px 7px; }
+
+    .main { flex:1; overflow-y:auto; }
+    .main-inner { max-width:1000px; margin:0 auto; padding:20px 20px 90px; }
+    .panel { display:none; } .panel.active { display:block; }
+
+    .banner { background:linear-gradient(180deg, rgba(44,92,156,0.06), rgba(44,92,156,0.02)); border:1px solid rgba(44,92,156,0.15);
+      border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:var(--text2); }
+    .banner strong { color:var(--text); }
+
+    .filterbar { display:flex; gap:6px; margin-bottom:14px; }
+    .fbtn { padding:7px 14px; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--text2); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .fbtn:hover { border-color:rgba(44,92,156,0.35); }
+    .fbtn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+    .summary { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px; }
+    .stat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:11px 16px; min-width:120px; }
+    .stat .n { font-size:20px; font-weight:700; color:var(--text); }
+    .stat .l { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.04em; margin-top:1px; }
+
+    .grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(12,23,56,0.06); }
+    table { width:100%; border-collapse:collapse; }
+    thead th { text-align:left; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text3);
+      padding:11px 12px; border-bottom:1px solid var(--border); background:var(--surface2); white-space:nowrap; }
+    thead th.num { text-align:right; }
+    tbody td { padding:8px 12px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
+    tbody tr:last-child td { border-bottom:none; }
+    tbody tr:hover { background:var(--surface2); }
+    .who { display:flex; align-items:center; gap:10px; }
+    .av { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; overflow:hidden; }
+    .who .nm { font-weight:600; }
+    .role-pill { font-size:11px; font-weight:600; color:var(--text2); background:var(--surface2); border:1px solid var(--border); border-radius:100px; padding:2px 9px; text-transform:capitalize; }
+    .type-sel { font-family:inherit; font-size:12.5px; font-weight:600; padding:5px 8px; border-radius:8px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text2); cursor:pointer; }
+    tr.is-salary .rate-in { opacity:0.45; }
+    tr.is-salary .type-sel { background:rgba(139,92,246,0.1); color:#7c3aed; border-color:rgba(139,92,246,0.3); }
+    .rate-cell { position:relative; }
+    .rate-in { width:82px; text-align:right; font-family:inherit; font-size:14px; color:var(--text); background:var(--input-bg);
+      border:1px solid var(--input-border); border-radius:8px; padding:6px 8px 6px 18px; outline:none; }
+    .rate-in:focus { border-color:var(--blue); background:#fff; }
+    .rate-cell .dollar { position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text3); pointer-events:none; }
+    td.num { text-align:right; }
+    .pct { font-weight:700; font-size:13px; }
+    .pct.up { color:#047857; } .pct.down { color:#dc2626; } .pct.flat { color:var(--text3); }
+    .note-in { width:100%; min-width:130px; font-family:inherit; font-size:13px; color:var(--text2); background:transparent; border:1px solid transparent; border-radius:7px; padding:5px 7px; outline:none; }
+    .note-in:hover { border-color:var(--border); }
+    .note-in:focus { border-color:var(--blue); background:var(--input-bg); color:var(--text); }
+    .saved-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981; opacity:0; transition:opacity .2s; margin-left:6px; }
+    .saved-dot.show { opacity:1; }
+
+    .soon-panel { text-align:center; max-width:520px; margin:40px auto; }
+    .soon-panel .ico { font-size:42px; }
+    .soon-panel h2 { font-size:22px; margin:14px 0 4px; }
+    .soon-tag2 { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--blue); background:rgba(44,92,156,0.1); border-radius:100px; padding:3px 12px; margin-bottom:12px; }
+    .soon-panel p { color:var(--text2); font-size:14px; line-height:1.6; }
+
+    .lock { max-width:440px; margin:80px auto; text-align:center; color:var(--text2); }
+    .lock .ico { font-size:40px; } .lock h2 { font-size:20px; margin:12px 0 6px; color:var(--text); }
+
+    @media (max-width:820px){
+      .shell { flex-direction:column; }
+      .sidebar { width:100%; display:flex; gap:12px; overflow-x:auto; padding:12px; border-right:none; border-bottom:1px solid var(--border); }
+      .sidebar-section { flex-shrink:0; }
+      .rate-in{ width:72px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="/hub.html" class="back"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> Hub</a>
+    <h1>Staff Management <span class="sub">people portal</span></h1>
+  </div>
+
+  <div id="shell"></div>
+
+  <script src="/staff-avatar.js"></script>
+  <script>
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    function fmtPct(p) { if (p == null) return '<span class="pct flat">—</span>'; var cls = p > 0 ? 'up' : (p < 0 ? 'down' : 'flat'); var sign = p > 0 ? '+' : ''; return '<span class="pct ' + cls + '">' + sign + p + '%</span>'; }
+
+    var ROADMAP = {
+      directory:  { dot:'#2c5c9c', label:'Contact Info', ico:'📇', title:'Directory & Contact Info', desc:'Phone, email, address and emergency contacts for every staff member — plus editing staff basics (name, role, photo, password) all in one place, moved here from Settings.' },
+      reviews:    { dot:'#f59e0b', label:'Reviews', ico:'⭐', title:'Performance Reviews', desc:'Review dates, ratings, notes and goals, with a full review history per staff member.' },
+      employment: { dot:'#0d9488', label:'Employment', ico:'📅', title:'Employment History', desc:'Start date, end date, status (active / on-leave / former), tenure, and an archive of past staff.' },
+      documents:  { dot:'#8b5cf6', label:'Documents', ico:'📄', title:'Documents & Certifications', desc:'Contracts, coaching certifications, first-aid and police checks — with expiry reminders.' },
+    };
+
+    var allRows = [], filter = 'all', view = 'pay';
+
+    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
+      if (!me) { location.href = '/login.html'; return; }
+      if (!me.can_manage_staff) {
+        document.getElementById('shell').innerHTML =
+          '<div class="lock"><div class="ico">🔒</div><h2>Managers only</h2><p>The staff management portal is restricted to Craig, Jaime and Victor.</p></div>';
+        return;
+      }
+      buildShell();
+      loadTable();
+    });
+
+    function buildShell() {
+      var items = '<button class="sidebar-btn active" data-view="pay" onclick="setView(\'pay\')"><span class="dot" style="background:#2c5c9c"></span> Pay Review</button>';
+      Object.keys(ROADMAP).forEach(function (k) {
+        var r = ROADMAP[k];
+        items += '<button class="sidebar-btn" data-view="' + k + '" onclick="setView(\'' + k + '\')"><span class="dot" style="background:' + r.dot + '"></span> ' + esc(r.label) + ' <span class="soon">Soon</span></button>';
+      });
+      document.getElementById('shell').innerHTML =
+        '<div class="shell">' +
+          '<div class="sidebar"><div class="sidebar-section"><div class="sidebar-label">Portal</div>' + items + '</div></div>' +
+          '<div class="main"><div class="main-inner">' +
+            '<div class="panel active" id="panel-pay"><div id="paytable"></div></div>' +
+            '<div class="panel" id="panel-soon"></div>' +
+          '</div></div>' +
+        '</div>';
+    }
+
+    function setView(v) {
+      view = v;
+      document.querySelectorAll('.sidebar-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
+      document.getElementById('panel-pay').classList.toggle('active', v === 'pay');
+      var soon = document.getElementById('panel-soon');
+      if (v === 'pay') { soon.classList.remove('active'); return; }
+      var r = ROADMAP[v];
+      soon.innerHTML = '<div class="soon-panel"><div class="ico">' + r.ico + '</div><div class="soon-tag2">Coming soon</div><h2>' + esc(r.title) + '</h2><p>' + esc(r.desc) + '</p></div>';
+      soon.classList.add('active');
+    }
+
+    // ── Pay Review ──
+    function loadTable() { fetch('/api/staff-mgmt').then(function (r) { return r.json(); }).then(function (rows) { allRows = rows; renderPay(); }); }
+    function setFilter(f) { filter = f; renderPay(); }
+    function visibleRows() { return allRows.filter(function (r) { if (filter === 'all') return true; if (filter === 'pro') return r.role === 'pro'; return r.role !== 'pro'; }); }
+    function patchRow(row) { if (!row) return; var i = allRows.findIndex(function (r) { return r.staff_id === row.staff_id; }); if (i >= 0) allRows[i] = row; }
+
+    function summary(rows) {
+      var withNew = rows.filter(function (r) { return r.new_rate != null; });
+      var raises = rows.filter(function (r) { return r.pct_change != null && r.pct_change > 0; }).length;
+      var ch = rows.filter(function (r) { return r.pct_change != null; });
+      var avg = ch.length ? Math.round((ch.reduce(function (a, r) { return a + r.pct_change; }, 0) / ch.length) * 10) / 10 : null;
+      return '<div class="summary">' +
+        '<div class="stat"><div class="n">' + rows.length + '</div><div class="l">Staff</div></div>' +
+        '<div class="stat"><div class="n">' + withNew.length + '</div><div class="l">New rate set</div></div>' +
+        '<div class="stat"><div class="n">' + raises + '</div><div class="l">Raises</div></div>' +
+        '<div class="stat"><div class="n">' + (avg == null ? '—' : (avg > 0 ? '+' : '') + avg + '%') + '</div><div class="l">Avg change</div></div>' +
+        '</div>';
+    }
+
+    function renderPay() {
+      var rows = visibleRows();
+      var fbar = '<div class="filterbar">' +
+        ['all', 'admin', 'pro'].map(function (f) { return '<button class="fbtn' + (filter === f ? ' active' : '') + '" onclick="setFilter(\'' + f + '\')">' + (f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)) + '</button>'; }).join('') +
+        '</div>';
+      var html =
+        '<div class="banner">Annual pay review — new rates effective <strong>September 1, 2026</strong>. Edit a cell to save automatically. Managers only (Craig, Jaime, Victor).</div>' +
+        fbar + summary(rows) +
+        '<div class="grid-wrap"><table><thead><tr>' +
+        '<th>Staff</th><th>Role</th><th>Type</th><th class="num">Current $/hr</th><th class="num">New $/hr (Sep 1)</th><th class="num">Change</th><th>Notes</th>' +
+        '</tr></thead><tbody>' +
+        rows.map(function (r) {
+          var sal = r.pay_type === 'salary';
+          return '<tr id="row-' + r.staff_id + '"' + (sal ? ' class="is-salary"' : '') + '>' +
+            '<td><div class="who"><div class="av" id="av-' + r.staff_id + '"></div><span class="nm">' + esc(r.name) + '</span></div></td>' +
+            '<td><span class="role-pill">' + esc(r.role) + '</span></td>' +
+            '<td><select class="type-sel" onchange="saveType(' + r.staff_id + ',this.value)"><option value="hourly"' + (sal ? '' : ' selected') + '>Hourly</option><option value="salary"' + (sal ? ' selected' : '') + '>Salary</option></select></td>' +
+            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.current_rate != null ? r.current_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'current_rate\',this.value)"></div></td>' +
+            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.new_rate != null ? r.new_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'new_rate\',this.value)"></div></td>' +
+            '<td class="num" id="pct-' + r.staff_id + '">' + fmtPct(r.pct_change) + '</td>' +
+            '<td><input class="note-in" value="' + esc(r.notes) + '" placeholder="add a note" onchange="saveNote(' + r.staff_id + ',this.value)"><span class="saved-dot" id="dot-' + r.staff_id + '"></span></td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table></div>';
+      document.getElementById('paytable').innerHTML = html;
+      rows.forEach(function (r) { var el = document.getElementById('av-' + r.staff_id); if (el && window.staffAvatar) staffAvatar(el, r.staff_id, r.name, r.color); });
+    }
+
+    function flashSaved(id) { var d = document.getElementById('dot-' + id); if (!d) return; d.classList.add('show'); setTimeout(function () { d.classList.remove('show'); }, 900); }
+    function put(id, body) { return fetch('/api/staff-mgmt/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : null; }); }
+    function saveRate(id, field, val) { var body = {}; body[field] = val; put(id, body).then(function (row) { if (!row) return; patchRow(row); var cell = document.getElementById('pct-' + id); if (cell) cell.innerHTML = fmtPct(row.pct_change); flashSaved(id); }); }
+    function saveNote(id, val) { put(id, { notes: val }).then(function (row) { if (row) { patchRow(row); flashSaved(id); } }); }
+    function saveType(id, val) { put(id, { pay_type: val }).then(function (row) { if (row) { patchRow(row); renderPay(); } }); }
+  </script>
+</body>
+</html>
