@@ -93,6 +93,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     id: eff.id, name: eff.name, color: eff.color, role: eff.role, badge: eff.badge || null,
     is_admin: real.role === 'admin',
     is_management: real.role === 'admin' || real.role === 'manager',
+    can_view_as: db.canViewAs(real.id),
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
     viewing_as: eff.id !== real.id,
   });

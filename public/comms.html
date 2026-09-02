@@ -95,6 +95,27 @@
     .compose-input::placeholder { color: var(--text3); }
     .compose-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     @keyframes pulse-rec { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.25)} }
+    /* ── Post Note trigger (collapsed state) ── */
+    .compose-trigger { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 12px 16px; color: var(--text3); font-size: 16px; font-family: 'Inter', sans-serif; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .compose-trigger:hover { border-color: rgba(44,92,156,0.4); color: var(--text2); }
+    .compose-trigger svg { flex-shrink: 0; color: var(--text2); }
+    .compose-trigger span { flex: 1; }
+    .compose-trigger.hidden { display: none; }
+    /* ── Compose panel (expanded state) — inline on desktop, bottom-sheet on mobile ── */
+    .compose-panel { display: none; }
+    .compose-panel.open { display: block; animation: compose-in 0.16s ease-out; }
+    @keyframes compose-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .compose-panel-head { display: none; }  /* header only shows on the mobile bottom-sheet */
+    .compose-backdrop { display: none; }
+    @media (max-width: 820px) {
+      .compose-panel.open { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 201; background: var(--surface); border-top: 1px solid var(--border); border-radius: 18px 18px 0 0; max-height: 88vh; overflow-y: auto; box-shadow: 0 -8px 40px rgba(0,0,0,0.32); animation: sheet-in 0.2s ease-out; }
+      @keyframes sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+      .compose-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+      .compose-panel-title { font-size: 16px; font-weight: 700; color: var(--text); font-family: 'Inter', sans-serif; }
+      .compose-panel-close { background: transparent; border: none; color: var(--text3); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+      .compose-panel .compose-box { border: none; border-radius: 0; background: transparent; }
+      .compose-backdrop.open { display: block; position: fixed; inset: 0; z-index: 200; background: rgba(15,23,42,0.5); }
+    }
     .select-pill { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 6px 12px; color: var(--text2); font-size: 14px; outline: none; cursor: pointer; font-family: 'Inter', sans-serif; }
     .btn { border-radius: 9px; font-size: 15px; font-weight: 600; padding: 8px 18px; cursor: pointer; border: none; transition: all 0.18s; font-family: 'Inter', sans-serif; }
     .btn-indigo { background: #2c5c9c; color: white; }
@@ -438,19 +459,28 @@
     <!-- Main content -->
     <div class="main">
 
-      <!-- Compose -->
+      <!-- Compose: collapsed trigger + inline-expand panel (bottom-sheet on mobile) -->
       <div class="compose-wrap">
-        <div class="compose-box">
-          <div class="to-row" style="flex-wrap:wrap;gap:5px;align-items:center">
-            <span class="to-label-txt">To:</span>
-            <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
-            <button class="chip group-chip" data-group="management" onclick="toggleGroup('management',this)">Management</button>
-            <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
-            <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+        <button class="compose-trigger" id="compose-trigger" onclick="openCompose()">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Post a note for the team...</span>
+        </button>
+        <div class="compose-panel" id="compose-panel">
+          <div class="compose-panel-head">
+            <span class="compose-panel-title">New note</span>
+            <button class="compose-panel-close" onclick="closeCompose()" aria-label="Close">&#10005;</button>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
-          <textarea id="compose-text" class="compose-input" rows="2" placeholder="Post a note for the team..."></textarea>
-          <div class="compose-footer">
+          <div class="compose-box">
+            <div class="to-row" style="flex-wrap:wrap;gap:5px;align-items:center">
+              <span class="to-label-txt">To:</span>
+              <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
+              <button class="chip group-chip" data-group="management" onclick="toggleGroup('management',this)">Management</button>
+              <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
+              <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
+            <textarea id="compose-text" class="compose-input" rows="3" placeholder="Post a note for the team..."></textarea>
+            <div class="compose-footer">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
             <select id="compose-category" class="select-pill">
               <option value="general">General</option>
@@ -467,12 +497,13 @@
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 <span id="compose-mic-dot" style="display:none;width:9px;height:9px;border-radius:50%;background:#f87171;animation:pulse-rec 1s infinite"></span>
               </button>
-              <button class="btn btn-ghost btn-sm" onclick="clearCompose()">Clear</button>
+              <button class="btn btn-ghost btn-sm" onclick="closeCompose()">Cancel</button>
               <button class="btn btn-indigo" onclick="postMessage()">Post Note</button>
             </div>
           </div>
         </div>
       </div>
+      <div class="compose-backdrop" id="compose-backdrop" onclick="closeCompose()"></div>
 
       <!-- Feed mode: All notes (by day) vs Unread (across days) -->
       <div class="feed-modebar">
@@ -1124,6 +1155,7 @@
       });
       if (!res.ok) { showToast('Failed to post — try again', true); return; }
       clearCompose();
+      closeCompose();
       if (feedMode === 'unread') setFeedMode('day');
       if (showOn && showOn > todayStr) {
         viewDate = new Date(showOn + 'T00:00:00');
@@ -1149,6 +1181,36 @@
     selectedRecipients = [];
     applyRecipientStyles();
   }
+
+  // ── Compose open/close (inline-expand on desktop, bottom-sheet on mobile) ────
+  function isMobileView() { return window.matchMedia('(max-width: 820px)').matches; }
+  function openCompose() {
+    const panel = document.getElementById('compose-panel');
+    const trigger = document.getElementById('compose-trigger');
+    const backdrop = document.getElementById('compose-backdrop');
+    if (!panel) return;
+    panel.classList.add('open');
+    if (trigger) trigger.classList.add('hidden');
+    if (backdrop) backdrop.classList.add('open');
+    if (isMobileView()) document.body.style.overflow = 'hidden';  // lock scroll only for the mobile sheet
+    setTimeout(() => { const t = document.getElementById('compose-text'); if (t) t.focus(); }, 60);
+  }
+  function closeCompose() {
+    const panel = document.getElementById('compose-panel');
+    const trigger = document.getElementById('compose-trigger');
+    const backdrop = document.getElementById('compose-backdrop');
+    if (panel) panel.classList.remove('open');
+    if (trigger) trigger.classList.remove('hidden');
+    if (backdrop) backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  // Close on Escape.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const panel = document.getElementById('compose-panel');
+      if (panel && panel.classList.contains('open')) closeCompose();
+    }
+  });
 
   // ── Recipient selector ─────────────────────────────────────────────────────
   function setChip(el, on, color) {
@@ -1217,7 +1279,7 @@
     const banner = document.getElementById('viewas-banner');
     const clearBtn = document.getElementById('btn-clear-day');
     if (clearBtn) clearBtn.style.display = (me.role === 'admin' || me.role === 'manager') ? 'inline-block' : 'none';
-    if (!me.is_admin) { wrap.style.display = 'none'; banner.style.display = 'none'; return; }
+    if (!me.can_view_as) { wrap.style.display = 'none'; banner.style.display = 'none'; return; }
 
     wrap.style.display = 'flex';
     const sel = document.getElementById('viewas-select');

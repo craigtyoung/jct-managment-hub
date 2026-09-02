@@ -39,12 +39,12 @@ router.post('/login', (req, res) => {
   res.json({ ok: true, name: staff.name, role: staff.role });
 });
 
-// POST view-as — admins only. Temporarily view the hub as another staff member.
-// Body: { staffId } to enter, or { staffId: null } to exit back to yourself.
+// POST view-as — allow-listed testers only. Temporarily view the hub as another
+// staff member. Body: { staffId } to enter, or { staffId: null } to exit.
 router.post('/view-as', (req, res) => {
   if (!req.session.staffId) return res.status(401).json({ error: 'Not logged in' });
   const real = db.getStaffById(req.session.staffId);
-  if (!real || real.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  if (!real || !db.canViewAs(real.id)) return res.status(403).json({ error: 'Not permitted' });
 
   const { staffId } = req.body;
   if (staffId === null || staffId === undefined || staffId === '') {

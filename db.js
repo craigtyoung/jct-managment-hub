@@ -381,13 +381,21 @@ function getStaffById(id) {
   return _data.staff.find(s => s.id === parseInt(id));
 }
 
-// Resolve the "acting" staff id. Admins may temporarily view the hub through
-// another staff member's eyes (dev / testing). Everyone else always acts as
+// TEMPORARY dev-view allowlist. These staff ids may use "View as" to see the hub
+// through another member's eyes during testing. Deliberately id-based (not role)
+// so Victor (manager) is included but David (also manager) is not. Craig=1, Jaime=2,
+// Victor=3. Remove this feature / trim the list when testing wraps.
+const VIEW_AS_TESTER_IDS = [1, 2, 3];
+function canViewAs(realId) {
+  return VIEW_AS_TESTER_IDS.includes(parseInt(realId));
+}
+
+// Resolve the "acting" staff id. Allow-listed testers may temporarily view the hub
+// through another staff member's eyes (dev / testing). Everyone else always acts as
 // themselves. Returns the effective staff id to use for reads, unread counts,
 // receipts, posting and replying.
 function getEffectiveStaffId(realId, viewAsId) {
-  const real = getStaffById(realId);
-  if (real && real.role === 'admin' && viewAsId) {
+  if (canViewAs(realId) && viewAsId) {
     const viewed = getStaffById(viewAsId);
     if (viewed) return viewed.id;
   }
@@ -1384,6 +1392,7 @@ module.exports = {
   getAllStaff,
   getStaffById,
   getEffectiveStaffId,
+  canViewAs,
   updatePassword,
   addStaff,
   updateStaff,
