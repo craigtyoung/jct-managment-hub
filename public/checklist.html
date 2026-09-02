@@ -443,6 +443,32 @@
     </div>
   </div>
 
+  <!-- Bubble pressure/temperature reading — logged inline from the checklist, feeds Bubble Monitoring -->
+  <div class="modal-overlay" id="bubble-modal">
+    <div class="modal">
+      <div class="modal-title">Log Pressure &amp; Temperature</div>
+      <div class="modal-task">This reading is saved to Bubble Monitoring, then the task is checked off.</div>
+      <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <div class="modal-label">Time</div>
+          <input type="time" id="bub-time" class="modal-textarea" style="height:auto;padding:9px 11px;resize:none">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="modal-label">Pressure</div>
+          <input type="number" step="0.01" inputmode="decimal" id="bub-pressure" class="modal-textarea" style="height:auto;padding:9px 11px;resize:none" placeholder="e.g. 0.30">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="modal-label">Temperature</div>
+          <input type="number" step="0.1" inputmode="decimal" id="bub-temp" class="modal-textarea" style="height:auto;padding:9px 11px;resize:none" placeholder="°C">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-cancel" onclick="closeBubbleModal()">Cancel</button>
+        <button class="modal-confirm" onclick="confirmBubble()">Log &amp; Complete</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ── Pressure Guide ───────────────────────────────────────────────
     function togglePressureGuide() {
@@ -611,7 +637,9 @@
         if (item.note) meta += `<span class="task-chip-note">${esc(item.note)}</span>`;
       }
 
-      const checkClick = canAct ? `onclick="checkItem(${item.id})"` : '';
+      // Bubble pressure/temperature check-off items log a reading inline (feeds Bubble Monitoring).
+      const isBubbleReading = /input on this sheet/i.test(item.text);
+      const checkClick = canAct ? `onclick="${isBubbleReading ? 'openBubbleLog' : 'checkItem'}(${item.id})"` : '';
       const nrBtn = canAct
         ? `<button class="nr-btn" onclick="openNR(${item.id}, \`${esc(item.text)}\`)">NR</button>`
         : '';
@@ -694,6 +722,44 @@
       if (ok) load();
     }
 
+    // ── Bubble reading (inline from checklist → Bubble Monitoring log) ──
+    let pendingBubble = null;
+    function openBubbleLog(itemId) {
+      pendingBubble = { itemId };
+      const now = new Date();
+      document.getElementById('bub-time').value =
+        `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('bub-pressure').value = '';
+      document.getElementById('bub-temp').value = '';
+      document.getElementById('bubble-modal').classList.add('open');
+      setTimeout(() => document.getElementById('bub-pressure').focus(), 200);
+    }
+    function closeBubbleModal() {
+      document.getElementById('bubble-modal').classList.remove('open');
+      pendingBubble = null;
+    }
+    async function confirmBubble() {
+      if (!pendingBubble) return;
+      const pressure    = document.getElementById('bub-pressure').value.trim();
+      const temperature = document.getElementById('bub-temp').value.trim();
+      const time        = document.getElementById('bub-time').value;
+      if (!pressure && !temperature) { alert('Enter a pressure or temperature.'); return; }
+      const note = time ? `Reading at ${time} (via checklist)` : 'Logged via checklist';
+      let logged = false;
+      try {
+        const r = await fetch('/api/bubble', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ temperature, pressure, note }),
+        });
+        logged = r.ok;
+      } catch (e) { logged = false; }
+      if (!logged) { alert('Could not save the reading — try again.'); return; }
+      const ok = await postComplete(pendingBubble.itemId, 'complete', null);
+      closeBubbleModal();
+      if (ok) load();
+    }
+
     function openNR(itemId, taskText) {
       pendingNR = { itemId };
       document.getElementById('modal-task-text').textContent = taskText;
@@ -756,6 +822,9 @@
     // ── Close modal on overlay click ─────────────────────────────────
     document.getElementById('nr-modal').addEventListener('click', function(e) {
       if (e.target === this) closeModal();
+    });
+    document.getElementById('bubble-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeBubbleModal();
     });
 
     // ── Init ─────────────────────────────────────────────────────────
