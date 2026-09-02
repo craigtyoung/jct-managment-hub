@@ -39,6 +39,7 @@ const coverageRoutes    = require('./routes/coverage');
 const bubbleRoutes      = require('./routes/bubble');
 const contractorRoutes  = require('./routes/contractor');
 const ideaRoutes        = require('./routes/ideas');
+const academyRoutes     = require('./routes/academy');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', requireAuth, messageRoutes);
@@ -61,6 +62,7 @@ app.use('/api/coverage',     requireAuth, coverageRoutes);
 app.use('/api/bubble',       requireAuth, bubbleRoutes);
 app.use('/api/contractor',   requireAuth, contractorRoutes);
 app.use('/api/ideas',        requireAuth, ideaRoutes);
+app.use('/api/academy',      requireAuth, academyRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {

@@ -108,6 +108,83 @@ const CHECKLIST_SEED = [
   { id:78, shifts:['closing'],   phase:'end',    bold:false, days:[4],  order:13, active:true, text:'Check the washroom checklists, initial appropriate boxes, and ensure all items on the list are addressed' },
 ];
 
+// ─── Academy Class Seed (Indoor 2026/27) ────────────────────────────────────
+// Seeded from the "Indoor Academy Pricing and Availability" sheet. Availability
+// normalized: sheet "Yes" → "Open". Junior classes only for now; adult classes
+// can be added in-app or appended here later. Classes stay editable in the hub.
+const ACADEMY_CLASS_SEED = [
+  // Future Stars (5–7, young beginner)
+  { program:'Future Stars', day_time:'Mondays 5:30–6:30 PM',  age:'5–7', cost:659, availability:'Full',    duration:'60 min', num_classes:26, start_date:'Sept 14' },
+  { program:'Future Stars', day_time:'Tuesdays 4:30–5:30 PM', age:'5–7', cost:736, availability:'Open',    duration:'60 min', num_classes:29, start_date:'Sept 8'  },
+  { program:'Future Stars', day_time:'Saturdays 9–10 AM',     age:'5–7', cost:736, availability:'Limited', duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Future Stars', day_time:'Sundays 9–10 AM',       age:'5–7', cost:711, availability:'Open',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  // Future Stars Plus (5–7, both days required)
+  { program:'Future Stars Plus', day_time:'Mon + Wed 6:30–7:30 PM', age:'5–7', cost:1510, availability:'Open', duration:'60 min', num_classes:55, start_date:'Sept 9' },
+  // Bronze / Rising Stars (beginner → intermediate)
+  { program:'Bronze (Rising Stars)', day_time:'Mondays 4:30–5:30 PM',   age:'7–9',   cost:707, availability:'Limited', duration:'60 min', num_classes:26, start_date:'Sept 14' },
+  { program:'Bronze (Rising Stars)', day_time:'Wednesdays 4:30–5:30 PM', age:'7–9',   cost:788, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 9'  },
+  { program:'Bronze (Rising Stars)', day_time:'Wednesdays 5:30–6:30 PM', age:'7–9',   cost:788, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 9'  },
+  { program:'Bronze (Rising Stars)', day_time:'Fridays 5:30–6:30 PM',    age:'7–9',   cost:760, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 11' },
+  { program:'Bronze (Rising Stars)', day_time:'Saturdays 9–10 AM',       age:'7–9',   cost:788, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Bronze (Rising Stars)', day_time:'Saturdays 10–11 AM',      age:'10–12', cost:822, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Bronze (Rising Stars)', day_time:'Saturdays 12–1 PM',       age:'13+',   cost:822, availability:'Limited', duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Bronze (Rising Stars)', day_time:'Sundays 10–11 AM',        age:'7–9',   cost:760, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  { program:'Bronze (Rising Stars)', day_time:'Sundays 11 AM–12 PM',     age:'10–12', cost:796, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  // Silver / Shooting Stars (intermediate)
+  { program:'Silver (Shooting Stars)', day_time:'Fridays 4:30–5:30 PM', age:'7–9',   cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 11' },
+  { program:'Silver (Shooting Stars)', day_time:'Fridays 4:30–5:30 PM', age:'10–12', cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 11' },
+  { program:'Silver (Shooting Stars)', day_time:'Fridays 6:30–7:30 PM', age:'13+',   cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 11' },
+  { program:'Silver (Shooting Stars)', day_time:'Saturdays 11 AM–12 PM', age:'7–9',   cost:849, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Silver (Shooting Stars)', day_time:'Saturdays 11 AM–12 PM', age:'10–12', cost:849, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Silver (Shooting Stars)', day_time:'Saturdays 11 AM–12 PM', age:'13+',   cost:849, availability:'Limited', duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Silver (Shooting Stars)', day_time:'Saturdays 12–1 PM',     age:'7–9',   cost:849, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Silver (Shooting Stars)', day_time:'Saturdays 12–1 PM',     age:'10–12', cost:849, availability:'Full',    duration:'60 min', num_classes:29, start_date:'Sept 12' },
+  { program:'Silver (Shooting Stars)', day_time:'Sundays 9–10 AM',       age:'7–9',   cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  { program:'Silver (Shooting Stars)', day_time:'Sundays 12–1 PM',       age:'10–12', cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  { program:'Silver (Shooting Stars)', day_time:'Sundays 1–2 PM',        age:'13+',   cost:820, availability:'Full',    duration:'60 min', num_classes:28, start_date:'Sept 13' },
+  // Gold (advanced)
+  { program:'Gold', day_time:'Tuesdays 4:30–6 PM',   age:'12–16', cost:1365, availability:'Full', duration:'90 min', num_classes:29, start_date:'Sept 8'  },
+  { program:'Gold', day_time:'Wednesdays 6–7:30 PM', age:'12–16', cost:1365, availability:'Full', duration:'90 min', num_classes:29, start_date:'Sept 9'  },
+  { program:'Gold', day_time:'Saturdays 1–2:30 PM',  age:'12–16', cost:1365, availability:'Full', duration:'90 min', num_classes:29, start_date:'Sept 12' },
+];
+
+// Adult classes (Indoor 2026/27, Session #1 / fall). category:'adult'. Winter
+// Session #2 is tracked separately at the club; this seeds the current season.
+const ACADEMY_ADULT_SEED = [
+  // Adult Introductory
+  { program:'Adult Introductory', day_time:'Mondays 11 AM–12:30 PM',   cost:538, availability:'Full',    duration:'90 min', num_classes:13, start_date:'Sept 14', category:'adult' },
+  { program:'Adult Introductory', day_time:'Wednesdays 10:30 AM–12 PM', cost:620, availability:'Full',    duration:'90 min', num_classes:15, start_date:'Sept 9',  category:'adult' },
+  { program:'Adult Introductory', day_time:'Thursdays 8:30–9:30 PM',    cost:449, availability:'Full',    duration:'60 min', num_classes:15, start_date:'Sept 10', category:'adult' },
+  { program:'Adult Introductory', day_time:'Fridays 9–10:30 AM',        cost:620, availability:'Open',    duration:'90 min', num_classes:15, start_date:'Sept 11', category:'adult' },
+  { program:'Adult Introductory', day_time:'Saturdays 9–10 AM',         cost:449, availability:'Full',    duration:'60 min', num_classes:15, start_date:'Sept 12', category:'adult' },
+  { program:'Adult Introductory', day_time:'Sundays 10–11 AM',          cost:449, availability:'Full',    duration:'60 min', num_classes:15, start_date:'Sept 13', category:'adult' },
+  // Adult Intermediate
+  { program:'Adult Intermediate', day_time:'Mondays 11 AM–12:30 PM',    cost:538, availability:'Full', duration:'90 min', num_classes:13, start_date:'Sept 14', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Mondays 6–7:30 PM',         cost:538, availability:'Full', duration:'90 min', num_classes:13, start_date:'Sept 14', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Tuesdays 9:30–11 AM',       cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 8',  category:'adult' },
+  { program:'Adult Intermediate', day_time:'Wednesdays 9–10:30 AM',     cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 9',  category:'adult' },
+  { program:'Adult Intermediate', day_time:'Wednesdays 10:30 AM–12 PM', cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 9',  category:'adult' },
+  { program:'Adult Intermediate', day_time:'Thursdays 7:30–8:30 PM',    cost:449, availability:'Full', duration:'60 min', num_classes:15, start_date:'Sept 10', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Fridays 10:30 AM–12 PM',    cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 11', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Saturdays 10–11 AM',        cost:449, availability:'Full', duration:'60 min', num_classes:15, start_date:'Sept 12', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Saturdays 12–1 PM',         cost:449, availability:'Full', duration:'60 min', num_classes:15, start_date:'Sept 12', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Sundays 11 AM–12 PM',       cost:449, availability:'Full', duration:'60 min', num_classes:15, start_date:'Sept 13', category:'adult' },
+  { program:'Adult Intermediate', day_time:'Sundays 1–2 PM',            cost:449, availability:'Full', duration:'60 min', num_classes:15, start_date:'Sept 13', category:'adult' },
+  // Adult Intermediate Plus (* = invite-only, max 4)
+  { program:'Adult Intermediate Plus', day_time:'Tuesdays 11 AM–12:30 PM (invite, low ratio)', cost:736, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 8',  category:'adult' },
+  { program:'Adult Intermediate Plus', day_time:'Tuesdays 7:30–9 PM',                          cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 8',  category:'adult' },
+  { program:'Adult Intermediate Plus', day_time:'Thursdays 9:30–11 AM (invite, low ratio)',    cost:736, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 10', category:'adult' },
+  { program:'Adult Intermediate Plus', day_time:'Fridays 12–1:30 PM (invite, low ratio)',      cost:736, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 11', category:'adult' },
+  { program:'Adult Intermediate Plus', day_time:'Fridays 6–7:30 PM',                           cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 11', category:'adult' },
+  { program:'Adult Intermediate Plus', day_time:'Saturdays 2:30–4 PM',                         cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 12', category:'adult' },
+  // Advanced (invitation only)
+  { program:'Advanced (Invitation Only)', day_time:'Tuesdays 7:30–9 PM', cost:620, availability:'Full', duration:'90 min', num_classes:15, start_date:'Sept 8', category:'adult' },
+  // Cardio Tennis
+  { program:'Cardio Tennis', day_time:'Mondays 9:30–11 AM',       cost:538, availability:'Limited', duration:'90 min', num_classes:13, start_date:'Sept 14', category:'adult' },
+  { program:'Cardio Tennis', day_time:'Thursdays 11 AM–12:30 PM', cost:620, availability:'Limited', duration:'90 min', num_classes:15, start_date:'Sept 10', category:'adult' },
+  { program:'Cardio Tennis', day_time:'Thursdays 8:30–9:30 PM',   cost:449, availability:'Full',    duration:'60 min', num_classes:15, start_date:'Sept 10', category:'adult' },
+];
+
 // ─── Load / Save ─────────────────────────────────────────────────────────────
 
 function load() {
@@ -360,6 +437,23 @@ if (!Array.isArray(_data.idea_comments)) {
   _data.idea_comments = [];
   save();
 }
+
+// Migration: Academy management (class catalog + waitlists + class changes + notes)
+if (!Array.isArray(_data.academy_classes)) {
+  _data.academy_classes = ACADEMY_CLASS_SEED.map((c, i) => ({ id: i + 1, active: true, category: c.category || 'junior', ...c }));
+  _data._seq.academy_classes = _data.academy_classes.length;
+  save();
+  console.log('Seeded academy classes:', _data.academy_classes.length);
+}
+// One-time: append adult classes if the catalog has none yet (juniors may already be seeded).
+if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.category === 'adult')) {
+  ACADEMY_ADULT_SEED.forEach(c => { _data.academy_classes.push({ id: nextId('academy_classes'), active: true, age: '', ...c }); });
+  save();
+  console.log('Appended adult academy classes:', ACADEMY_ADULT_SEED.length);
+}
+['academy_waitlist', 'academy_changes', 'academy_notes'].forEach(t => {
+  if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1347,6 +1441,152 @@ function deleteIdeaComment(id, staffId, isManagement) {
   save(); return true;
 }
 
+// ─── Academy management ──────────────────────────────────────────────────────
+const ACADEMY_AVAIL      = ['Open', 'Limited', 'Full', 'Cancelled'];
+const WAITLIST_STATUSES  = ['Waiting', 'Offered', 'Enrolled', 'Withdrawn'];
+const CHANGE_STATUSES    = ['Requested', 'Approved', 'Done', 'Cancelled'];
+const ACADEMY_ACTIONS    = ['claimed', 'followup', 'resolved', 'reopened'];
+
+function _classLabel(c) { if (!c) return 'Unknown class'; return [c.program, c.day_time, c.age ? 'Age ' + c.age : null].filter(Boolean).join(' · '); }
+function _who(id) { const s = getStaffById(id) || {}; return { author_name: s.name || null, author_color: s.color || null }; }
+function _activityOut(arr) { return (arr || []).map(a => { const s = getStaffById(a.staff_id) || {}; return { ...a, staff_name: s.name || null, staff_color: s.color || null }; }); }
+function _pushActivity(entry, action, note, actingId) {
+  if (!ACADEMY_ACTIONS.includes(action)) return false;
+  entry.activity = entry.activity || [];
+  entry.activity.push({ id: nextId('academy_activity'), action, staff_id: parseInt(actingId), note: note ? String(note).slice(0, 600) : null, at: now() });
+  entry.updated_at = now();
+  return true;
+}
+
+// Classes
+function getAcademyClasses() { return (_data.academy_classes || []).slice().sort((a, b) => a.id - b.id).map(c => ({ ...c, label: _classLabel(c) })); }
+function getAcademyClass(id) { return (_data.academy_classes || []).find(c => c.id === parseInt(id)) || null; }
+function addAcademyClass(f) {
+  const id = nextId('academy_classes');
+  const c = {
+    id,
+    program: String(f.program || '').slice(0, 80),
+    day_time: String(f.day_time || '').slice(0, 80),
+    age: String(f.age || '').slice(0, 40),
+    cost: f.cost ? parseInt(f.cost) : null,
+    availability: ACADEMY_AVAIL.includes(f.availability) ? f.availability : 'Open',
+    duration: String(f.duration || '').slice(0, 40),
+    num_classes: f.num_classes ? parseInt(f.num_classes) : null,
+    start_date: String(f.start_date || '').slice(0, 40),
+    category: f.category === 'adult' ? 'adult' : 'junior',
+    active: true,
+  };
+  _data.academy_classes.push(c); save();
+  return { ...c, label: _classLabel(c) };
+}
+function updateAcademyClass(id, f) {
+  const c = getAcademyClass(id); if (!c) return null;
+  ['program', 'day_time', 'age', 'duration', 'start_date'].forEach(k => { if (f[k] !== undefined) c[k] = String(f[k]).slice(0, 80); });
+  if (f.availability !== undefined && ACADEMY_AVAIL.includes(f.availability)) c.availability = f.availability;
+  if (f.cost !== undefined) c.cost = (f.cost === null || f.cost === '') ? null : parseInt(f.cost);
+  if (f.num_classes !== undefined) c.num_classes = (f.num_classes === null || f.num_classes === '') ? null : parseInt(f.num_classes);
+  if (f.category !== undefined) c.category = f.category === 'adult' ? 'adult' : 'junior';
+  if (f.active !== undefined) c.active = !!f.active;
+  save();
+  return { ...c, label: _classLabel(c) };
+}
+
+// Waitlist
+function _waitOut(w) { const c = getAcademyClass(w.class_id); return { ...w, class_label: c ? _classLabel(c) : null, class_availability: c ? c.availability : null, class_category: c ? c.category : null, activity: _activityOut(w.activity), ..._who(w.created_by) }; }
+function getWaitlist() { return (_data.academy_waitlist || []).slice().sort((a, b) => b.id - a.id).map(_waitOut); }
+function addWaitlist(f) {
+  const id = nextId('academy_waitlist');
+  const w = {
+    id,
+    student_name: String(f.student_name || '').slice(0, 120),
+    contact: String(f.contact || '').slice(0, 200),
+    class_id: f.class_id ? parseInt(f.class_id) : null,
+    status: WAITLIST_STATUSES.includes(f.status) ? f.status : 'Waiting',
+    notes: String(f.notes || '').slice(0, 1000),
+    created_by: parseInt(f.created_by),
+    activity: [],
+    created_at: now(), updated_at: now(),
+  };
+  _data.academy_waitlist.push(w); save();
+  return _waitOut(w);
+}
+function addWaitlistActivity(id, { action, note, actingId }) {
+  const w = (_data.academy_waitlist || []).find(x => x.id === parseInt(id)); if (!w) return null;
+  if (!_pushActivity(w, action, note, actingId)) return null;
+  save(); return _waitOut(w);
+}
+function updateWaitlist(id, f) {
+  const w = (_data.academy_waitlist || []).find(x => x.id === parseInt(id)); if (!w) return null;
+  if (f.student_name !== undefined) w.student_name = String(f.student_name).slice(0, 120);
+  if (f.contact !== undefined) w.contact = String(f.contact).slice(0, 200);
+  if (f.class_id !== undefined) w.class_id = f.class_id ? parseInt(f.class_id) : null;
+  if (f.status !== undefined && WAITLIST_STATUSES.includes(f.status)) w.status = f.status;
+  if (f.notes !== undefined) w.notes = String(f.notes).slice(0, 1000);
+  w.updated_at = now(); save();
+  return _waitOut(w);
+}
+function deleteWaitlist(id, staffId, isMgmt) {
+  const w = (_data.academy_waitlist || []).find(x => x.id === parseInt(id)); if (!w) return false;
+  if (w.created_by !== parseInt(staffId) && !isMgmt) return false;
+  _data.academy_waitlist = _data.academy_waitlist.filter(x => x.id !== parseInt(id)); save(); return true;
+}
+
+// Class changes / switches
+function _changeOut(ch) { const from = getAcademyClass(ch.from_class_id), to = getAcademyClass(ch.to_class_id); return { ...ch, from_label: from ? _classLabel(from) : null, to_label: to ? _classLabel(to) : null, from_category: from ? from.category : null, to_category: to ? to.category : null, activity: _activityOut(ch.activity), ..._who(ch.created_by) }; }
+function getChanges() { return (_data.academy_changes || []).slice().sort((a, b) => b.id - a.id).map(_changeOut); }
+function addChange(f) {
+  const id = nextId('academy_changes');
+  const ch = {
+    id,
+    student_name: String(f.student_name || '').slice(0, 120),
+    contact: String(f.contact || '').slice(0, 200),
+    from_class_id: f.from_class_id ? parseInt(f.from_class_id) : null,
+    to_class_id: f.to_class_id ? parseInt(f.to_class_id) : null,
+    reason: String(f.reason || '').slice(0, 1000),
+    status: CHANGE_STATUSES.includes(f.status) ? f.status : 'Requested',
+    created_by: parseInt(f.created_by),
+    activity: [],
+    created_at: now(), updated_at: now(),
+  };
+  _data.academy_changes.push(ch); save();
+  return _changeOut(ch);
+}
+function addChangeActivity(id, { action, note, actingId }) {
+  const ch = (_data.academy_changes || []).find(x => x.id === parseInt(id)); if (!ch) return null;
+  if (!_pushActivity(ch, action, note, actingId)) return null;
+  save(); return _changeOut(ch);
+}
+function updateChange(id, f) {
+  const ch = (_data.academy_changes || []).find(x => x.id === parseInt(id)); if (!ch) return null;
+  if (f.student_name !== undefined) ch.student_name = String(f.student_name).slice(0, 120);
+  if (f.contact !== undefined) ch.contact = String(f.contact).slice(0, 200);
+  if (f.from_class_id !== undefined) ch.from_class_id = f.from_class_id ? parseInt(f.from_class_id) : null;
+  if (f.to_class_id !== undefined) ch.to_class_id = f.to_class_id ? parseInt(f.to_class_id) : null;
+  if (f.reason !== undefined) ch.reason = String(f.reason).slice(0, 1000);
+  if (f.status !== undefined && CHANGE_STATUSES.includes(f.status)) ch.status = f.status;
+  ch.updated_at = now(); save();
+  return _changeOut(ch);
+}
+function deleteChange(id, staffId, isMgmt) {
+  const ch = (_data.academy_changes || []).find(x => x.id === parseInt(id)); if (!ch) return false;
+  if (ch.created_by !== parseInt(staffId) && !isMgmt) return false;
+  _data.academy_changes = _data.academy_changes.filter(x => x.id !== parseInt(id)); save(); return true;
+}
+
+// Academy notes (light feed)
+function getAcademyNotes() { return (_data.academy_notes || []).slice().sort((a, b) => b.id - a.id).map(n => ({ ...n, ..._who(n.created_by) })); }
+function addAcademyNote(f) {
+  const id = nextId('academy_notes');
+  const n = { id, body: String(f.body || '').slice(0, 2000), created_by: parseInt(f.created_by), created_at: now() };
+  _data.academy_notes.push(n); save();
+  return { ...n, ..._who(n.created_by) };
+}
+function deleteAcademyNote(id, staffId, isMgmt) {
+  const n = (_data.academy_notes || []).find(x => x.id === parseInt(id)); if (!n) return false;
+  if (n.created_by !== parseInt(staffId) && !isMgmt) return false;
+  _data.academy_notes = _data.academy_notes.filter(x => x.id !== parseInt(id)); save(); return true;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -1393,6 +1633,23 @@ module.exports = {
   getStaffById,
   getEffectiveStaffId,
   canViewAs,
+  getAcademyClasses,
+  getAcademyClass,
+  addAcademyClass,
+  updateAcademyClass,
+  getWaitlist,
+  addWaitlist,
+  addWaitlistActivity,
+  updateWaitlist,
+  deleteWaitlist,
+  getChanges,
+  addChange,
+  addChangeActivity,
+  updateChange,
+  deleteChange,
+  getAcademyNotes,
+  addAcademyNote,
+  deleteAcademyNote,
   updatePassword,
   addStaff,
   updateStaff,

@@ -96,7 +96,7 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
     var box = document.createElement('div');
     box.id = 'global-viewas';
     box.style.cssText =
-      'position:fixed;top:8px;right:10px;z-index:9999;display:flex;align-items:center;gap:7px;' +
+      'position:fixed;top:60px;right:10px;z-index:9999;display:flex;align-items:center;gap:7px;' +
       'padding:5px 9px;border-radius:10px;font-family:Inter,system-ui,sans-serif;font-size:12px;' +
       'box-shadow:0 3px 12px rgba(0,0,0,0.14);' +
       (active ? 'background:#f59e0b;color:#241a00;border:1px solid #d98c07;'
@@ -145,7 +145,7 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
 // their avatar — bottom-left on desktop, top-left on mobile (clear of the bottom
 // nav). Always acts on the REAL account, even while in dev "View as" mode.
 (function () {
-  if (document.getElementById('jct-acct-btn')) return;
+  if (document.getElementById('jct-acct-menu')) return;
   fetch('/api/me')
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (me) {
@@ -157,11 +157,21 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
       // Styles (injected once; media query handles desktop vs mobile placement).
       var st = document.createElement('style');
       st.textContent =
-        '#jct-acct-btn{position:fixed;left:12px;bottom:14px;z-index:9998;width:42px;height:42px;border-radius:50%;' +
+        '#jct-acct-fab{position:fixed;left:12px;bottom:14px;z-index:9998;width:42px;height:42px;border-radius:50%;' +
         'border:2px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,0.22);cursor:pointer;overflow:hidden;padding:0;' +
         'background:' + myColor + ';color:#fff;font-family:Inter,sans-serif;font-weight:700;font-size:14px;' +
         'display:flex;align-items:center;justify-content:center;}' +
-        '@media(max-width:820px){#jct-acct-btn{bottom:auto;top:8px;left:10px;width:36px;height:36px;font-size:12px;}}' +
+        '@media(max-width:820px){#jct-acct-fab{bottom:auto;top:8px;left:10px;width:36px;height:36px;font-size:12px;}}' +
+        '#jct-acct-menu{display:none;position:fixed;z-index:10001;min-width:172px;background:#fff;border:1px solid #e2e8f0;' +
+        'border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.18);overflow:hidden;font-family:Inter,system-ui,sans-serif;}' +
+        '#jct-acct-menu.open{display:block;}' +
+        '.jct-menu-hdr{padding:11px 14px;border-bottom:1px solid #eef2f7;}' +
+        '.jct-menu-hdr .nm{font-size:13px;font-weight:700;color:#1e293b;}' +
+        '.jct-menu-hdr .rl{font-size:11px;color:#64748b;text-transform:capitalize;}' +
+        '.jct-menu-item{display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;background:transparent;border:none;' +
+        'cursor:pointer;font-family:inherit;font-size:13.5px;color:#334155;text-align:left;}' +
+        '.jct-menu-item:hover{background:#f1f5f9;}' +
+        '.jct-menu-item.danger{color:#dc2626;border-top:1px solid #eef2f7;}' +
         '#jct-acct-overlay{display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,0.55);' +
         'align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}' +
         '#jct-acct-overlay.open{display:flex;}' +
@@ -194,14 +204,31 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
         'align-items:center;justify-content:center;font-weight:700;font-size:18px;}';
       document.head.appendChild(st);
 
-      // Entry button (avatar).
-      var btn = document.createElement('button');
-      btn.id = 'jct-acct-btn';
-      btn.title = 'Your account';
-      btn.setAttribute('aria-label', 'Your account');
-      document.body.appendChild(btn);
-      if (window.staffAvatar) staffAvatar(btn, myId, myName, myColor);
-      else btn.textContent = (myName || '?').slice(0, 2).toUpperCase();
+      // Dropdown menu (Profile / Sign out).
+      var menu = document.createElement('div');
+      menu.id = 'jct-acct-menu';
+      menu.innerHTML =
+        '<div class="jct-menu-hdr"><div class="nm">' + esc(myName) + '</div><div class="rl">' + esc(myRole) + '</div></div>' +
+        '<button class="jct-menu-item" id="jct-menu-profile"><span>👤</span> Profile</button>' +
+        '<button class="jct-menu-item danger" id="jct-menu-signout"><span>⎋</span> Sign out</button>';
+      document.body.appendChild(menu);
+
+      // Prefer an existing on-page avatar as the entry point; only fall back to a
+      // floating avatar button on pages that have none (avoids a duplicate avatar).
+      var anchorEl = null, sels = ['#nav-avatar', '#me-av', '#me-avatar'];
+      for (var ai = 0; ai < sels.length; ai++) { var cand = document.querySelector(sels[ai]); if (cand) { anchorEl = cand; break; } }
+      if (!anchorEl) {
+        anchorEl = document.createElement('button');
+        anchorEl.id = 'jct-acct-fab';
+        anchorEl.title = 'Your account';
+        anchorEl.setAttribute('aria-label', 'Your account');
+        document.body.appendChild(anchorEl);
+        if (window.staffAvatar) staffAvatar(anchorEl, myId, myName, myColor);
+        else anchorEl.textContent = (myName || '?').slice(0, 2).toUpperCase();
+      } else {
+        anchorEl.style.cursor = 'pointer';
+        anchorEl.title = 'Account';
+      }
 
       // Overlay + card.
       var ov = document.createElement('div');
@@ -236,7 +263,26 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
 
       function openAcct() { ov.classList.add('open'); document.body.style.overflow = 'hidden'; }
       function closeAcct() { ov.classList.remove('open'); document.body.style.overflow = ''; }
-      btn.onclick = openAcct;
+
+      // Position the menu next to the avatar (below if the avatar is up top, above if it's near the bottom).
+      function positionMenu(el) {
+        var r = el.getBoundingClientRect();
+        menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 188)) + 'px';
+        if (r.top < window.innerHeight / 2) { menu.style.top = (r.bottom + 6) + 'px'; menu.style.transform = 'none'; }
+        else { menu.style.top = (r.top - 6) + 'px'; menu.style.transform = 'translateY(-100%)'; }
+      }
+      anchorEl.addEventListener('click', function (e) {
+        e.stopPropagation(); e.preventDefault();
+        if (menu.classList.contains('open')) { menu.classList.remove('open'); }
+        else { positionMenu(anchorEl); menu.classList.add('open'); }
+      });
+      document.addEventListener('click', function (e) {
+        if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== anchorEl) menu.classList.remove('open');
+      });
+      document.getElementById('jct-menu-profile').onclick = function () { menu.classList.remove('open'); openAcct(); };
+      document.getElementById('jct-menu-signout').onclick = function () {
+        fetch('/api/auth/logout', { method: 'POST' }).then(function () { location.href = '/login.html'; }).catch(function () { location.href = '/login.html'; });
+      };
       document.getElementById('jct-acct-close').onclick = closeAcct;
       ov.addEventListener('click', function (e) { if (e.target === ov) closeAcct(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('open')) closeAcct(); });
