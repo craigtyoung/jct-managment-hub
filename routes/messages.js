@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const sse = require('../sse');
+const push = require('../push');
 const router = express.Router();
 
 // Resolve the acting identity for every request. Admins in "View as" mode act as
@@ -49,6 +50,23 @@ router.post('/', (req, res) => {
     show_on: req.body.show_on,
   });
   sse.broadcast('update');
+
+  // Push notifications to the intended recipients (never the author), respecting
+  // targeting: an everyone-note goes to all comms staff; a targeted note only to
+  // its recipients. Fire-and-forget.
+  try {
+    const author = db.getStaffById(req.actingStaffId);
+    const targetIds = recipients
+      ? recipients.filter(sid => sid !== req.actingStaffId)
+      : db.getAllStaff().filter(s => s.role !== 'pro' && s.id !== req.actingStaffId).map(s => s.id);
+    push.sendToStaff(targetIds, {
+      title: (author ? author.name : 'JCT Staff Hub') + (recipients ? ' · sent to you' : ''),
+      body: content.trim().slice(0, 140),
+      url: '/comms.html',
+      tag: 'jct-comms-' + id,
+    });
+  } catch (e) { console.error('push send failed:', e.message); }
+
   res.json({ ok: true, id });
 });
 

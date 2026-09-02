@@ -41,6 +41,7 @@ const contractorRoutes  = require('./routes/contractor');
 const ideaRoutes        = require('./routes/ideas');
 const academyRoutes     = require('./routes/academy');
 const staffMgmtRoutes   = require('./routes/staff-mgmt');
+const pushRoutes        = require('./routes/push');
 
 app.use('/api/auth', authRoutes);
 
@@ -77,6 +78,7 @@ app.use('/api/contractor',   requireAuth, contractorRoutes);
 app.use('/api/ideas',        requireAuth, ideaRoutes);
 app.use('/api/academy',      requireAuth, academyRoutes);
 app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
+app.use('/api/push',         requireAuth, pushRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {

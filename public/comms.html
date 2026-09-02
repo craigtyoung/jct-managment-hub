@@ -392,6 +392,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="mode-toggle" onclick="toggleMode()" id="mode-btn">Dark mode</button>
+      <button id="notif-btn" onclick="toggleNotif()" title="Notifications for new notes" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;color:var(--text3);cursor:pointer;font-family:Inter,sans-serif;transition:color .15s">🔔 <span id="notif-label">Notify</span></button>
       <div id="viewas-wrap" style="display:none;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--text3);font-weight:600">View as</span>
         <select id="viewas-select" class="select-pill" style="padding:4px 8px;font-size:12px" onchange="setViewAs(this.value)"></select>
@@ -639,6 +640,29 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
   }
 
+  // ── Push notifications toggle ──────────────────────────────────────────────
+  async function refreshNotifBtn() {
+    const b = document.getElementById('notif-btn'), l = document.getElementById('notif-label');
+    if (!b || !window.jctPush) return;
+    const st = await window.jctPush.status();
+    if (st === 'unsupported') { b.style.display = 'none'; return; }
+    if (st === 'on') { l.textContent = 'Notifications on'; b.style.color = '#10b981'; b.style.borderColor = 'rgba(16,185,129,0.4)'; }
+    else { l.textContent = 'Notify'; b.style.color = 'var(--text3)'; b.style.borderColor = 'var(--border)'; }
+  }
+  async function toggleNotif() {
+    if (!window.jctPush) return;
+    const st = await window.jctPush.status();
+    if (st === 'on') { await window.jctPush.disable(); showToast('Notifications turned off'); refreshNotifBtn(); return; }
+    if (st === 'ios-install') { showToast('On iPhone: Share → Add to Home Screen, open it from there, then enable.', true); return; }
+    if (st === 'denied') { showToast('Notifications are blocked in your browser settings.', true); return; }
+    const r = await window.jctPush.enable();
+    if (r.ok) showToast('Notifications on — you\'ll get a ping for new notes');
+    else if (r.reason === 'ios-install') showToast('On iPhone: Add to Home Screen first, then enable.', true);
+    else if (r.reason === 'denied') showToast('Notifications blocked — enable them in browser settings.', true);
+    else if (r.reason === 'unsupported') showToast('Not supported on this device.', true);
+    refreshNotifBtn();
+  }
+
   // ── Dark/light mode ────────────────────────────────────────────────────────
   function applyTheme(dark) {
     document.body.classList.toggle('dark', dark);
@@ -742,6 +766,7 @@
     }
 
     await loadAll();
+    try { refreshNotifBtn(); } catch (e) {}
   }
 
   function buildSidebar() {
@@ -1481,6 +1506,7 @@
   init();
   initComposeMic();
 </script>
+  <script src="/push-client.js"></script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
 </body>

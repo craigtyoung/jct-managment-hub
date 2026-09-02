@@ -87,6 +87,9 @@
 
     .panel-head-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
     .fbtn.add { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .row-act { background:transparent; border:none; cursor:pointer; font-size:14px; padding:4px 6px; border-radius:7px; opacity:0.7; }
+    .row-act:hover { opacity:1; background:var(--surface2); }
+    .del-act:hover { background:rgba(239,68,68,0.12); }
     .cell-in { width:100%; min-width:80px; font-family:inherit; font-size:13px; color:var(--text); background:transparent; border:1px solid transparent; border-radius:7px; padding:5px 7px; outline:none; }
     .cell-in:hover { border-color:var(--border); }
     .cell-in:focus { border-color:var(--blue); background:var(--input-bg); }
@@ -159,6 +162,8 @@
     </div>
   </div>
 
+  <input type="file" id="dir-photo-input" accept="image/*" style="display:none" onchange="onPhotoPicked()">
+
   <script src="/staff-avatar.js"></script>
   <script>
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
@@ -171,21 +176,26 @@
     };
 
     var allRows = [], filter = 'all', view = 'pay';
+    var me = null, canPay = false;
 
-    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
+    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
+      me = m;
       if (!me) { location.href = '/login.html'; return; }
-      if (!me.can_manage_staff) {
+      if (!me.is_management) {
         document.getElementById('shell').innerHTML =
-          '<div class="lock"><div class="ico">🔒</div><h2>Managers only</h2><p>The staff management portal is restricted to Craig, Jaime and Victor.</p></div>';
+          '<div class="lock"><div class="ico">🔒</div><h2>Management only</h2><p>The staff management portal is for the management team.</p></div>';
         return;
       }
+      canPay = !!me.can_manage_staff; // pay review is restricted to the tight allowlist
       buildShell();
-      loadTable();
+      if (canPay) { view = 'pay'; loadTable(); }
+      else { view = 'directory'; loadDirectory(); }
     });
 
     function buildShell() {
-      var items = '<button class="sidebar-btn active" data-view="pay" onclick="setView(\'pay\')"><span class="dot" style="background:#2c5c9c"></span> Pay Review</button>' +
-        '<button class="sidebar-btn" data-view="directory" onclick="setView(\'directory\')"><span class="dot" style="background:#0d9488"></span> Directory</button>';
+      var items = '';
+      if (canPay) items += '<button class="sidebar-btn active" data-view="pay" onclick="setView(\'pay\')"><span class="dot" style="background:#2c5c9c"></span> Pay Review</button>';
+      items += '<button class="sidebar-btn' + (canPay ? '' : ' active') + '" data-view="directory" onclick="setView(\'directory\')"><span class="dot" style="background:#0d9488"></span> Directory</button>';
       Object.keys(ROADMAP).forEach(function (k) {
         var r = ROADMAP[k];
         items += '<button class="sidebar-btn" data-view="' + k + '" onclick="setView(\'' + k + '\')"><span class="dot" style="background:' + r.dot + '"></span> ' + esc(r.label) + ' <span class="soon">Soon</span></button>';
@@ -194,14 +204,15 @@
         '<div class="shell">' +
           '<div class="sidebar"><div class="sidebar-section"><div class="sidebar-label">Portal</div>' + items + '</div></div>' +
           '<div class="main"><div class="main-inner">' +
-            '<div class="panel active" id="panel-pay"><div id="paytable"></div></div>' +
-            '<div class="panel" id="panel-directory"></div>' +
+            '<div class="panel' + (canPay ? ' active' : '') + '" id="panel-pay"><div id="paytable"></div></div>' +
+            '<div class="panel' + (canPay ? '' : ' active') + '" id="panel-directory"></div>' +
             '<div class="panel" id="panel-soon"></div>' +
           '</div></div>' +
         '</div>';
     }
 
     function setView(v) {
+      if (v === 'pay' && !canPay) return;
       view = v;
       document.querySelectorAll('.sidebar-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
       ['pay', 'directory'].forEach(function (p) { var el = document.getElementById('panel-' + p); if (el) el.classList.toggle('active', v === p); });
@@ -220,21 +231,51 @@
     function roleOpts(sel) { return ['staff', 'manager', 'admin', 'pro', 'contractor'].map(function (x) { return '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + ROLE_LABEL[x] + '</option>'; }).join(''); }
     function renderDirectory() {
       var html = '<div class="panel-head-row"><div><h2 style="margin:0;font-size:19px">Directory</h2><p style="margin:3px 0 0;font-size:12.5px;color:var(--text3)">First name shows everywhere else in the hub. Last name &amp; contact info live here only.</p></div><button class="fbtn add" onclick="openAddStaff()">+ Add staff</button></div>' +
-        '<div class="grid-wrap"><table><thead><tr><th>First</th><th>Last</th><th>Access</th><th style="text-align:center">Pro</th><th>Phone</th><th>Email</th><th>Address</th></tr></thead><tbody>' +
+        '<div class="grid-wrap"><table><thead><tr><th>First</th><th>Last</th><th>Access</th><th style="text-align:center">Pro</th><th>Phone</th><th>Email</th><th>Address</th><th></th></tr></thead><tbody>' +
         dirRows.map(function (r) {
           return '<tr>' +
-            '<td><div class="who"><div class="av" id="dav-' + r.id + '"></div><input class="cell-in" value="' + esc(r.first_name) + '" onchange="saveStaff(' + r.id + ',\'first_name\',this.value)"></div></td>' +
+            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><input class="cell-in" value="' + esc(r.first_name) + '" onchange="saveStaff(' + r.id + ',\'first_name\',this.value)"></div></td>' +
             '<td><input class="cell-in" value="' + esc(r.last_name) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'last_name\',this.value)"></td>' +
             '<td><select class="type-sel" onchange="saveStaff(' + r.id + ',\'role\',this.value)">' + roleOpts(r.role) + '</select></td>' +
             '<td style="text-align:center"><input type="checkbox" ' + (r.is_pro ? 'checked' : '') + ' onchange="saveStaff(' + r.id + ',\'is_pro\',this.checked)" style="width:16px;height:16px;accent-color:var(--blue);cursor:pointer"></td>' +
             '<td><input class="cell-in" value="' + esc(r.phone) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'phone\',this.value)"></td>' +
             '<td><input class="cell-in" value="' + esc(r.email) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'email\',this.value)"></td>' +
             '<td><input class="cell-in wide" value="' + esc(r.address) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'address\',this.value)"></td>' +
+            '<td style="white-space:nowrap">' +
+              '<button class="row-act" title="Change photo" onclick="pickPhoto(' + r.id + ')">📷</button>' +
+              '<button class="row-act" title="Reset password" onclick="resetPw(' + r.id + ')">🔑</button>' +
+              '<button class="row-act del-act" title="Remove staff" onclick="removeStaffRow(' + r.id + ')">🗑</button>' +
+            '</td>' +
             '</tr>';
         }).join('') +
         '</tbody></table></div>';
       document.getElementById('panel-directory').innerHTML = html;
       dirRows.forEach(function (r) { var el = document.getElementById('dav-' + r.id); if (el && window.staffAvatar) staffAvatar(el, r.id, r.first_name, r.color); });
+    }
+
+    // Directory row actions
+    var photoTargetId = null;
+    function pickPhoto(id) { photoTargetId = id; document.getElementById('dir-photo-input').click(); }
+    function onPhotoPicked() {
+      var inp = document.getElementById('dir-photo-input'); var f = inp.files && inp.files[0];
+      if (!f || !photoTargetId) return;
+      if (f.type.indexOf('image/') !== 0) { alert('Please choose an image.'); inp.value = ''; return; }
+      if (f.size > 5 * 1024 * 1024) { alert('Image must be under 5 MB.'); inp.value = ''; return; }
+      var fd = new FormData(); fd.append('photo', f);
+      fetch('/api/staff/' + photoTargetId + '/photo', { method: 'POST', body: fd }).then(function (r) { inp.value = ''; if (r.ok) loadDirectory(); else alert('Upload failed.'); });
+    }
+    function resetPw(id) {
+      var r = dirRows.find(function (x) { return x.id === id; }); var nm = r ? r.first_name : 'this staff member';
+      if (!confirm('Reset ' + nm + "'s password? They'll get a temporary password and must set their own on next login.")) return;
+      fetch('/api/staff-mgmt/directory/' + id + '/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { alert(d ? ('Password reset. Temporary password: ' + d.temp + "\nThey'll be prompted to set their own on next sign-in.") : 'Reset failed.'); });
+    }
+    function removeStaffRow(id) {
+      var r = dirRows.find(function (x) { return x.id === id; }); var nm = r ? r.first_name : 'this staff member';
+      if (!confirm('Remove ' + nm + ' from the hub? This deletes their account and cannot be undone.')) return;
+      fetch('/api/staff-mgmt/directory/' + id, { method: 'DELETE' })
+        .then(function (r) { if (r.ok) loadDirectory(); else r.json().then(function (d) { alert((d && d.error) || 'Could not remove.'); }); });
     }
     function saveStaff(id, field, val) {
       var body = {}; body[field] = val;

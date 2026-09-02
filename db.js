@@ -451,7 +451,7 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
   save();
   console.log('Appended adult academy classes:', ACADEMY_ADULT_SEED.length);
 }
-['academy_waitlist', 'academy_changes', 'academy_notes', 'staff_pay'].forEach(t => {
+['academy_waitlist', 'academy_changes', 'academy_notes', 'staff_pay', 'push_subscriptions'].forEach(t => {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 
@@ -522,6 +522,13 @@ function setInitialPassword(staffId, hash) {
   const s = _data.staff.find(x => x.id === parseInt(staffId));
   if (!s) return false;
   s.password = hash; s.must_set_password = false; save(); return true;
+}
+// A manager reset: set a temporary password AND re-flag must_set_password so the
+// staff member is forced to choose their own again on next login.
+function managerResetPassword(staffId, hash) {
+  const s = _data.staff.find(x => x.id === parseInt(staffId));
+  if (!s) return false;
+  s.password = hash; s.must_set_password = true; save(); return true;
 }
 
 function updateStaff(staffId, { name, color, role }) {
@@ -1700,6 +1707,27 @@ function updateStaffMember(staffId, f) {
   return _dirOut(s);
 }
 
+// ── Push subscriptions (Web Push) ────────────────────────────────────────────
+function addPushSubscription(staffId, subscription) {
+  if (!subscription || !subscription.endpoint) return null;
+  _data.push_subscriptions = _data.push_subscriptions || [];
+  // De-dupe by endpoint (a device re-subscribing replaces its old row).
+  _data.push_subscriptions = _data.push_subscriptions.filter(s => s.endpoint !== subscription.endpoint);
+  const row = { id: nextId('push_subscriptions'), staff_id: parseInt(staffId), endpoint: subscription.endpoint, subscription, created_at: now() };
+  _data.push_subscriptions.push(row); save();
+  return row;
+}
+function removeSubscriptionByEndpoint(endpoint) {
+  const before = (_data.push_subscriptions || []).length;
+  _data.push_subscriptions = (_data.push_subscriptions || []).filter(s => s.endpoint !== endpoint);
+  if (_data.push_subscriptions.length !== before) save();
+  return true;
+}
+function getSubscriptionsForStaff(staffIds) {
+  const ids = (staffIds || []).map(Number);
+  return (_data.push_subscriptions || []).filter(s => ids.includes(s.staff_id));
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -1746,6 +1774,7 @@ module.exports = {
   getStaffById,
   getEffectiveStaffId,
   setInitialPassword,
+  managerResetPassword,
   canViewAs,
   canManageStaff,
   getStaffPay,
@@ -1753,6 +1782,9 @@ module.exports = {
   getStaffDirectory,
   addStaffMember,
   updateStaffMember,
+  addPushSubscription,
+  removeSubscriptionByEndpoint,
+  getSubscriptionsForStaff,
   getAcademyClasses,
   getAcademyClass,
   addAcademyClass,
