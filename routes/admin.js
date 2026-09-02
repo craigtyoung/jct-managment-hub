@@ -3,16 +3,16 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const router = express.Router();
 
-// All routes here require admin role
-function requireAdmin(req, res, next) {
+// Settings routes are open to management (admin + manager) — Craig, Jaime, Victor, David.
+function requireManagement(req, res, next) {
   const staff = db.getStaffById(req.session.staffId);
-  if (!staff || staff.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
+  if (!staff || !['admin', 'manager'].includes(staff.role)) {
+    return res.status(403).json({ error: 'Management only' });
   }
   next();
 }
 
-router.use(requireAdmin);
+router.use(requireManagement);
 
 // GET all staff (full list for admin view)
 router.get('/staff', (req, res) => {

@@ -703,10 +703,19 @@
     // ── Load Staff ───────────────────────────────────────────────────────────
 
     async function loadStaff() {
-      const res = await fetch('/api/admin/staff');
-      if (!res.ok) { showToast('Failed to load staff', 'error'); return; }
-      staffList = await res.json();
-      renderStaff();
+      // Cold-start resilient: Railway can 502 briefly right after a deploy/wake — retry
+      // before giving up, so the staff list isn't left blank on a transient failure.
+      for (let i = 0; i < 4; i++) {
+        try {
+          const res = await fetch('/api/admin/staff');
+          if (res.status === 401) { window.location.href = '/login.html'; return; }
+          if (res.ok) { staffList = await res.json(); renderStaff(); return; }
+        } catch (e) {}
+        if (i < 3) await new Promise(r => setTimeout(r, 600 * (i + 1)));
+      }
+      document.getElementById('staff-list').innerHTML =
+        '<div style="padding:24px;text-align:center;color:#8fa0b8;font-size:13px">Couldn\'t load staff — the server may be waking up.' +
+        '<br><button onclick="loadStaff()" style="margin-top:10px;padding:6px 14px;border:1px solid rgba(44,92,156,0.35);background:rgba(44,92,156,0.08);color:#2c5c9c;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600">Retry</button></div>';
     }
 
     function renderStaff() {
