@@ -130,6 +130,17 @@
       .sidebar-section { flex-shrink:0; }
       .rate-in{ width:72px; }
     }
+
+    /* Directory: contact-on-hover + edit */
+    #panel-directory .grid-wrap { overflow: visible; } /* let the contact popover escape the card */
+    .contact-cell { position:relative; display:inline-block; }
+    .contact-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--blue); background:rgba(44,92,156,0.08); border:1px solid rgba(44,92,156,0.18); border-radius:100px; padding:4px 11px; cursor:default; white-space:nowrap; }
+    .contact-chip.empty { color:var(--text3); background:var(--surface2); border-color:var(--border); font-weight:500; }
+    .contact-pop { display:none; position:absolute; z-index:60; top:calc(100% + 6px); left:0; min-width:240px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 34px rgba(12,23,56,0.18); padding:11px 14px; }
+    .contact-cell:hover .contact-pop { display:block; }
+    .contact-pop .cp-row { display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--text); padding:4px 0; }
+    .contact-pop .cp-row a { color:var(--blue); word-break:break-all; }
+    .contact-pop .cp-lbl { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); width:58px; flex-shrink:0; padding-top:2px; }
   </style>
 </head>
 <body>
@@ -167,6 +178,25 @@
     </div>
   </div>
 
+  <!-- Edit staff modal -->
+  <div class="ov" id="ov-edit" onclick="if(event.target===this)closeEdit()">
+    <div class="modal">
+      <div class="modal-head"><h3>Edit staff member</h3><button class="modal-x" onclick="closeEdit()">&#10005;</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="e-id">
+        <div class="row2">
+          <div><label class="lbl">First name</label><input class="fld" id="e-first"></div>
+          <div><label class="lbl">Last name</label><input class="fld" id="e-last"></div>
+        </div>
+        <label class="lbl">Phone</label><input class="fld" id="e-phone">
+        <label class="lbl">Email</label><input class="fld" id="e-email">
+        <label class="lbl">Address</label><input class="fld" id="e-address">
+        <div class="modal-msg" id="e-msg"></div>
+        <div class="modal-foot"><button class="fbtn" onclick="closeEdit()">Cancel</button><button class="fbtn add" onclick="saveEditStaff()">Save changes</button></div>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="dir-photo-input" accept="image/*" style="display:none" onchange="onPhotoPicked()">
 
   <script src="/staff-avatar.js"></script>
@@ -186,12 +216,12 @@
     fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
       me = m;
       if (!me) { location.href = '/login.html'; return; }
-      if (!me.can_manage_staff) {
+      if (!me.can_manage_directory) {
         document.getElementById('shell').innerHTML =
-          '<div class="lock"><div class="ico">🔒</div><h2>Restricted</h2><p>The staff management portal is limited to Craig, Jaime and Victor.</p></div>';
+          '<div class="lock"><div class="ico">🔒</div><h2>Restricted</h2><p>The staff management portal is limited to management.</p></div>';
         return;
       }
-      canPay = !!me.can_manage_staff; // whole portal is the tight allowlist now
+      canPay = !!me.can_manage_pay; // Pay Review is the tight trio; Directory is all management
       buildShell();
       view = 'directory'; loadDirectory(); // Directory is the default landing view
     });
@@ -234,9 +264,18 @@
     var ROLE_LABEL = { staff: 'Office', manager: 'Manager', admin: 'Admin', pro: 'Pro', contractor: 'Contractor' };
     function loadDirectory() { fetch('/api/staff-mgmt/directory').then(function (r) { return r.json(); }).then(function (rows) { dirRows = rows; renderDirectory(); }); }
     function roleOpts(sel) { return ['staff', 'manager', 'admin', 'pro', 'contractor'].map(function (x) { return '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + ROLE_LABEL[x] + '</option>'; }).join(''); }
+    // Contact info shows as a compact chip; hover reveals phone / email / address.
+    function contactCell(r) {
+      if (!(r.phone || r.email || r.address)) return '<span class="contact-chip empty">— none</span>';
+      var rows = '';
+      if (r.phone)   rows += '<div class="cp-row"><span class="cp-lbl">Phone</span><a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + '</a></div>';
+      if (r.email)   rows += '<div class="cp-row"><span class="cp-lbl">Email</span><a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a></div>';
+      if (r.address) rows += '<div class="cp-row"><span class="cp-lbl">Address</span><span>' + esc(r.address) + '</span></div>';
+      return '<span class="contact-cell"><span class="contact-chip">&#128235; Contact</span><span class="contact-pop">' + rows + '</span></span>';
+    }
     function renderDirectory() {
-      var html = '<div class="panel-head-row"><div><h2 style="margin:0;font-size:19px">Directory</h2><p style="margin:3px 0 0;font-size:12.5px;color:var(--text3)">First name shows everywhere else in the hub. Last name &amp; contact info live here only.</p></div><button class="fbtn add" onclick="openAddStaff()">+ Add staff</button></div>' +
-        '<div class="grid-wrap"><table><thead><tr><th>First</th><th>Last</th><th>Role</th><th>Phone</th><th>Email</th><th>Address</th><th></th></tr></thead><tbody>' +
+      var html = '<div class="panel-head-row"><div><h2 style="margin:0;font-size:19px">Directory</h2><p style="margin:3px 0 0;font-size:12.5px;color:var(--text3)">First name shows across the hub. Hover <strong>Contact</strong> for phone, email &amp; address; use &#9999;&#65039; to edit details.</p></div><button class="fbtn add" onclick="openAddStaff()">+ Add staff</button></div>' +
+        '<div class="grid-wrap"><table><thead><tr><th>Staff</th><th>Role</th><th>Contact</th><th></th></tr></thead><tbody>' +
         dirRows.map(function (r) {
           var roleCell;
           if (r.role === 'manager' || r.role === 'admin') roleCell = '<td><span class="role-badge mgr">Manager</span></td>';
@@ -244,17 +283,16 @@
           else roleCell = '<td class="jobcell">' +
             '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Office</label> ' +
             '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Pro</label></td>';
+          var lastName = r.last_name ? ' ' + esc(r.last_name) : '';
           return '<tr>' +
-            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><input class="cell-in" value="' + esc(r.first_name) + '" onchange="saveStaff(' + r.id + ',\'first_name\',this.value)"></div></td>' +
-            '<td><input class="cell-in" value="' + esc(r.last_name) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'last_name\',this.value)"></td>' +
+            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><span class="nm">' + esc(r.first_name) + lastName + '</span></div></td>' +
             roleCell +
-            '<td><input class="cell-in" value="' + esc(r.phone) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'phone\',this.value)"></td>' +
-            '<td><input class="cell-in" value="' + esc(r.email) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'email\',this.value)"></td>' +
-            '<td><input class="cell-in wide" value="' + esc(r.address) + '" placeholder="—" onchange="saveStaff(' + r.id + ',\'address\',this.value)"></td>' +
+            '<td>' + contactCell(r) + '</td>' +
             '<td style="white-space:nowrap">' +
-              '<button class="row-act" title="Change photo" onclick="pickPhoto(' + r.id + ')">📷</button>' +
-              '<button class="row-act" title="Reset password" onclick="resetPw(' + r.id + ')">🔑</button>' +
-              '<button class="row-act del-act" title="Remove staff" onclick="removeStaffRow(' + r.id + ')">🗑</button>' +
+              '<button class="row-act" title="Edit details" onclick="openEditStaff(' + r.id + ')">&#9999;&#65039;</button>' +
+              '<button class="row-act" title="Change photo" onclick="pickPhoto(' + r.id + ')">&#128247;</button>' +
+              '<button class="row-act" title="Reset password" onclick="resetPw(' + r.id + ')">&#128273;</button>' +
+              '<button class="row-act del-act" title="Remove staff" onclick="removeStaffRow(' + r.id + ')">&#128465;</button>' +
             '</td>' +
             '</tr>';
         }).join('') +
@@ -313,6 +351,33 @@
         is_pro: document.getElementById('a-pro').checked, phone: document.getElementById('a-phone').value.trim(),
         email: document.getElementById('a-email').value.trim(), address: document.getElementById('a-address').value.trim()
       }) }).then(function (r) { if (r.ok) { closeAdd(); loadDirectory(); refreshPay(); } else { msg.textContent = 'Could not add staff.'; } });
+    }
+
+    // ── Edit staff details (name + contact) ──
+    function openEditStaff(id) {
+      var r = dirRows.find(function (x) { return x.id === id; }); if (!r) return;
+      document.getElementById('e-id').value = r.id;
+      document.getElementById('e-first').value = r.first_name || '';
+      document.getElementById('e-last').value = r.last_name || '';
+      document.getElementById('e-phone').value = r.phone || '';
+      document.getElementById('e-email').value = r.email || '';
+      document.getElementById('e-address').value = r.address || '';
+      document.getElementById('e-msg').textContent = '';
+      document.getElementById('ov-edit').classList.add('open'); document.body.style.overflow = 'hidden';
+    }
+    function closeEdit() { document.getElementById('ov-edit').classList.remove('open'); document.body.style.overflow = ''; }
+    function saveEditStaff() {
+      var id = parseInt(document.getElementById('e-id').value);
+      var first = document.getElementById('e-first').value.trim(); var msg = document.getElementById('e-msg');
+      if (!first) { msg.textContent = 'First name is required.'; return; }
+      var body = {
+        first_name: first, last_name: document.getElementById('e-last').value.trim(),
+        phone: document.getElementById('e-phone').value.trim(), email: document.getElementById('e-email').value.trim(),
+        address: document.getElementById('e-address').value.trim()
+      };
+      fetch('/api/staff-mgmt/directory/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (row) { if (row) { closeEdit(); loadDirectory(); } else { msg.textContent = 'Could not save changes.'; } });
     }
 
     // ── Pay Review ──

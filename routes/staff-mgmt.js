@@ -1,8 +1,10 @@
 /**
- * staff-mgmt.js — Staff Management portal API.
- * Single access tier: the whole portal (Directory + Pay Review) is locked to the
- * STAFF_MGMT_IDS allowlist (Craig, Jaime, Victor). Staff records and pay data are
- * both sensitive, so managers outside the allowlist (e.g. David) have no access.
+ * staff-mgmt.js — Staff Management portal API. Two access tiers:
+ *   • Directory (add / edit / remove staff records) — all management (admin +
+ *     manager): Craig, Jaime, Victor, David.
+ *   • Pay Review (rates) — tight allowlist Craig, Jaime, Victor only.
+ * David can organize the Directory but never sees pay. Guards check the REAL
+ * logged-in user (not any "view as" identity), so impersonation can't escalate.
  * Mounted behind requireAuth at /api/staff-mgmt.
  */
 const express = require('express');
@@ -13,15 +15,18 @@ const router = express.Router();
 
 const DEFAULT_PW = 'jct2026';
 
-// Whole portal — tight allowlist (Craig, Jaime, Victor). Directory and Pay both.
-function guardMgmt(req, res, next) {
+// Directory tier — all management (admin + manager, incl. David).
+function guardDir(req, res, next) {
+  const real = db.getStaffById(req.session.staffId);
+  if (!real || !db.canManageDirectory(real.id)) return res.status(403).json({ error: 'Not permitted' });
+  next();
+}
+// Pay tier — tight allowlist (Craig, Jaime, Victor).
+function guardPay(req, res, next) {
   const real = db.getStaffById(req.session.staffId);
   if (!real || !db.canManageStaff(real.id)) return res.status(403).json({ error: 'Not permitted' });
   next();
 }
-// Aliases keep the route definitions below readable (directory vs pay intent).
-const guardDir = guardMgmt;
-const guardPay = guardMgmt;
 
 // ── Directory (add / edit / remove staff, incl. last name + contact) ──
 router.get('/directory', guardDir, (req, res) => res.json(db.getStaffDirectory()));

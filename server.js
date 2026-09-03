@@ -107,12 +107,18 @@ app.get('/api/me', requireAuth, (req, res) => {
   if (!real) return res.status(404).json({ error: 'Not found' });
   const effId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
   const eff = db.getStaffById(effId) || real;
+  // Capabilities reflect the EFFECTIVE (viewed) user so "View as" is an honest
+  // preview — viewing as a staff member correctly shows what they'd see. The only
+  // exception is can_view_as, which stays tied to the REAL user so the tester never
+  // loses the view-as switcher / exit control while impersonating.
   res.json({
     id: eff.id, name: eff.name, color: eff.color, role: eff.role, badge: eff.badge || null,
-    is_admin: real.role === 'admin',
-    is_management: real.role === 'admin' || real.role === 'manager',
+    is_admin: eff.role === 'admin',
+    is_management: eff.role === 'admin' || eff.role === 'manager',
     can_view_as: db.canViewAs(real.id),
-    can_manage_staff: db.canManageStaff(real.id),
+    can_manage_directory: db.canManageDirectory(eff.id), // Directory: all management (incl. David)
+    can_manage_pay: db.canManageStaff(eff.id),           // Pay Review: trio only
+    can_manage_staff: db.canManageDirectory(eff.id),     // legacy alias → portal (directory) access
     must_set_password: !!real.must_set_password,
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
     viewing_as: eff.id !== real.id,

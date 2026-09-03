@@ -1611,10 +1611,17 @@ function deleteAcademyNote(id, staffId, isMgmt) {
 }
 
 // ─── Staff management / pay review ──────────────────────────────────────────
-// Sensitive manager surface (staff records + pay). Tight allowlist:
-// Craig(1), Jaime(2), Victor(3). Excludes David; widen STAFF_MGMT_IDS if needed.
+// Sensitive manager surface. Two tiers:
+//  • Directory (view/add/edit/remove staff records) — open to all management
+//    (admin + manager: Craig, Jaime, Victor, David).
+//  • Pay Review (rates) — tight allowlist Craig(1), Jaime(2), Victor(3) only.
+// David is a manager: he can organize the Directory but never sees pay rates.
 const STAFF_MGMT_IDS = [1, 2, 3];
-function canManageStaff(realId) { return STAFF_MGMT_IDS.includes(parseInt(realId)); }
+function canManageStaff(realId) { return STAFF_MGMT_IDS.includes(parseInt(realId)); } // pay tier (trio)
+function canManageDirectory(realId) {
+  const s = getStaffById(realId);
+  return !!s && (s.role === 'admin' || s.role === 'manager');
+}
 
 // Which pay tracks a person carries. A front-desk staffer who also coaches (role
 // 'staff' + is_pro) earns two DISTINCT rates — one for office shifts, one for
@@ -1829,6 +1836,7 @@ module.exports = {
   managerResetPassword,
   canViewAs,
   canManageStaff,
+  canManageDirectory,
   getStaffPay,
   updateStaffPay,
   getStaffDirectory,

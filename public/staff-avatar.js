@@ -76,8 +76,8 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
       if (!me.is_management) {
         document.querySelectorAll('.mgmt-only').forEach(function (el) { el.style.display = 'none'; });
       }
-      // Reveal the tighter manager-only chrome (Staff Management / pay) for the allowlist.
-      if (me.can_manage_staff) {
+      // Reveal the tightest pay-only chrome for the trio (Craig, Jaime, Victor).
+      if (me.can_manage_pay) {
         document.querySelectorAll('.staffmgmt-only').forEach(function (el) { el.style.display = ''; });
       }
     })
