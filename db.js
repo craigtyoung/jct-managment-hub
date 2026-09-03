@@ -1729,7 +1729,8 @@ const STAFF_ROLES = ['admin', 'manager', 'staff', 'pro', 'contractor'];
 const STAFF_PALETTE = ['#2c5c9c', '#0d9488', '#8b5cf6', '#f59e0b', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777'];
 function _dirOut(s) {
   return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
-    badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '' };
+    badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '',
+    certification: s.certification || '' };
 }
 function getStaffDirectory() {
   return (_data.staff || []).slice().sort((a, b) => a.name.localeCompare(b.name)).map(_dirOut);
@@ -1745,6 +1746,7 @@ function addStaffMember(f, passwordHash) {
     phone: String(f.phone || '').slice(0, 40),
     email: String(f.email || '').slice(0, 120),
     address: String(f.address || '').slice(0, 200),
+    certification: String(f.certification || '').slice(0, 60),
     color: f.color || STAFF_PALETTE[(id - 1) % STAFF_PALETTE.length],
     password: passwordHash,
     must_set_password: true,
@@ -1761,6 +1763,7 @@ function updateStaffMember(staffId, f) {
   if (f.phone !== undefined) s.phone = String(f.phone).slice(0, 40);
   if (f.email !== undefined) s.email = String(f.email).slice(0, 120);
   if (f.address !== undefined) s.address = String(f.address).slice(0, 200);
+  if (f.certification !== undefined) s.certification = String(f.certification).slice(0, 60);
   if (f.color !== undefined) s.color = String(f.color).slice(0, 20);
   save();
   return _dirOut(s);

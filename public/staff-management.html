@@ -131,6 +131,10 @@
       .rate-in{ width:72px; }
     }
 
+    /* Directory: cert tag under the name */
+    .who-nm { display:flex; flex-direction:column; gap:2px; }
+    .cert-tag { display:inline-block; align-self:flex-start; font-size:10.5px; font-weight:600; color:#047857; background:rgba(5,150,105,0.10); border:1px solid rgba(5,150,105,0.22); border-radius:100px; padding:1px 8px; }
+
     /* Directory: contact-on-hover + edit */
     #panel-directory .grid-wrap { overflow: visible; } /* let the contact popover escape the card */
     .contact-cell { position:relative; display:inline-block; }
@@ -168,6 +172,8 @@
           <option value="contractor">Contractor</option>
         </select>
         <label class="chk-row"><input type="checkbox" id="a-pro" style="width:16px;height:16px;accent-color:var(--blue)"> Also a coaching pro</label>
+        <label class="lbl">Certification (Tennis Canada)</label>
+        <select class="fld" id="a-cert"></select>
         <label class="lbl">Phone</label><input class="fld" id="a-phone">
         <label class="lbl">Email</label><input class="fld" id="a-email">
         <label class="lbl">Address</label><input class="fld" id="a-address">
@@ -191,6 +197,8 @@
         <label class="lbl">Phone</label><input class="fld" id="e-phone">
         <label class="lbl">Email</label><input class="fld" id="e-email">
         <label class="lbl">Address</label><input class="fld" id="e-address">
+        <label class="lbl">Certification (Tennis Canada)</label>
+        <select class="fld" id="e-cert"></select>
         <div class="modal-msg" id="e-msg"></div>
         <div class="modal-foot"><button class="fbtn" onclick="closeEdit()">Cancel</button><button class="fbtn add" onclick="saveEditStaff()">Save changes</button></div>
       </div>
@@ -264,6 +272,9 @@
     var ROLE_LABEL = { staff: 'Office', manager: 'Manager', admin: 'Admin', pro: 'Pro', contractor: 'Contractor' };
     function loadDirectory() { fetch('/api/staff-mgmt/directory').then(function (r) { return r.json(); }).then(function (rows) { dirRows = rows; renderDirectory(); }); }
     function roleOpts(sel) { return ['staff', 'manager', 'admin', 'pro', 'contractor'].map(function (x) { return '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + ROLE_LABEL[x] + '</option>'; }).join(''); }
+    // Tennis Canada / TPA certification ladder (entry → performance), per Craig + Victor.
+    var CERT_LEVELS = ['', 'Community Tennis Volunteer', 'Instructor', 'Club Professional 1 (CP1)', 'Club Professional 2 (CP2)', 'Club Professional 3 (CP3)', 'Coach 2', 'Coach 3', 'Coach 4', 'Coach 5', 'Tennis Facility Leader', 'Other'];
+    function certOpts(sel) { return CERT_LEVELS.map(function (c) { return '<option value="' + esc(c) + '"' + (c === (sel || '') ? ' selected' : '') + '>' + (c === '' ? '— none —' : esc(c)) + '</option>'; }).join(''); }
     // Contact info shows as a compact chip; hover reveals phone / email / address.
     function contactCell(r) {
       if (!(r.phone || r.email || r.address)) return '<span class="contact-chip empty">— none</span>';
@@ -284,8 +295,9 @@
             '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Office</label> ' +
             '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Pro</label></td>';
           var lastName = r.last_name ? ' ' + esc(r.last_name) : '';
+          var certTag = r.certification ? '<div class="cert-tag" title="Tennis Canada certification">' + esc(r.certification) + '</div>' : '';
           return '<tr>' +
-            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><span class="nm">' + esc(r.first_name) + lastName + '</span></div></td>' +
+            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><div class="who-nm"><span class="nm">' + esc(r.first_name) + lastName + '</span>' + certTag + '</div></div></td>' +
             roleCell +
             '<td>' + contactCell(r) + '</td>' +
             '<td style="white-space:nowrap">' +
@@ -341,7 +353,7 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (row) { if (row) { var i = dirRows.findIndex(function (x) { return x.id === id; }); if (i >= 0) dirRows[i] = row; } });
     }
-    function openAddStaff() { ['a-first', 'a-last', 'a-phone', 'a-email', 'a-address'].forEach(function (i) { document.getElementById(i).value = ''; }); document.getElementById('a-role').value = 'staff'; document.getElementById('a-pro').checked = false; document.getElementById('a-msg').textContent = ''; document.getElementById('ov-add').classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function openAddStaff() { ['a-first', 'a-last', 'a-phone', 'a-email', 'a-address'].forEach(function (i) { document.getElementById(i).value = ''; }); document.getElementById('a-role').value = 'staff'; document.getElementById('a-pro').checked = false; document.getElementById('a-cert').innerHTML = certOpts(''); document.getElementById('a-msg').textContent = ''; document.getElementById('ov-add').classList.add('open'); document.body.style.overflow = 'hidden'; }
     function closeAdd() { document.getElementById('ov-add').classList.remove('open'); document.body.style.overflow = ''; }
     function saveNewStaff() {
       var first = document.getElementById('a-first').value.trim(); var msg = document.getElementById('a-msg');
@@ -349,7 +361,8 @@
       fetch('/api/staff-mgmt/directory', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         first_name: first, last_name: document.getElementById('a-last').value.trim(), role: document.getElementById('a-role').value,
         is_pro: document.getElementById('a-pro').checked, phone: document.getElementById('a-phone').value.trim(),
-        email: document.getElementById('a-email').value.trim(), address: document.getElementById('a-address').value.trim()
+        email: document.getElementById('a-email').value.trim(), address: document.getElementById('a-address').value.trim(),
+        certification: document.getElementById('a-cert').value
       }) }).then(function (r) { if (r.ok) { closeAdd(); loadDirectory(); refreshPay(); } else { msg.textContent = 'Could not add staff.'; } });
     }
 
@@ -362,6 +375,7 @@
       document.getElementById('e-phone').value = r.phone || '';
       document.getElementById('e-email').value = r.email || '';
       document.getElementById('e-address').value = r.address || '';
+      document.getElementById('e-cert').innerHTML = certOpts(r.certification || '');
       document.getElementById('e-msg').textContent = '';
       document.getElementById('ov-edit').classList.add('open'); document.body.style.overflow = 'hidden';
     }
@@ -373,7 +387,7 @@
       var body = {
         first_name: first, last_name: document.getElementById('e-last').value.trim(),
         phone: document.getElementById('e-phone').value.trim(), email: document.getElementById('e-email').value.trim(),
-        address: document.getElementById('e-address').value.trim()
+        address: document.getElementById('e-address').value.trim(), certification: document.getElementById('e-cert').value
       };
       fetch('/api/staff-mgmt/directory/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         .then(function (r) { return r.ok ? r.json() : null; })
