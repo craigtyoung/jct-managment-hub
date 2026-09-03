@@ -189,7 +189,7 @@
     .till-sub{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--border);font-size:12px;}
     .till-sub-label{font-weight:600;color:var(--text-2);}
     .till-sub-val{font-weight:700;color:var(--text);}
-    .slips-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+    .slips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:5px;}
     .slip-row{display:flex;align-items:center;gap:6px;}
     .slip-label{font-size:11px;color:var(--text-3);min-width:38px;}
     .slip-input{width:80px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);text-align:right;font-family:var(--font-body);background:var(--canvas);}
@@ -401,6 +401,13 @@
     const getEl   = id => document.getElementById(id);
 
     const UNIT_PRICES = { tennis_balls: 6 };
+    // Slot counts — more room per Craig's Sep 3 request (especially slips). Cash
+    // Summary storage is a flexible blob, so raising these is safe and preserves
+    // existing shorter data (extra slots just start empty).
+    const N_SLOT = 8;   // pro-shop / drinks / snacks line slots
+    const N_SLIP = 24;  // card slip slots
+    const SLOTS = Array.from({ length: N_SLOT }, function (_, i) { return i; });
+    const SLIPS = Array.from({ length: N_SLIP }, function (_, i) { return i; });
 
     function getAmt(si, item, idx, field) {
       const sel = field
@@ -498,8 +505,8 @@
       };
       const d = (item, idx, field) =>
         `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
-      const amts5 = (item) => [0,1,2,3,4].map(i => a(item, i)).join('');
-      const amtsWithMember = (item) => [0,1,2,3,4].map(i =>
+      const amts5 = (item) => SLOTS.map(i => a(item, i)).join('');
+      const amtsWithMember = (item) => SLOTS.map(i =>
         `<div class="amt-wrap">${a(item,i,'amount')}${d(item,i,'member')}</div>`
       ).join('');
 
@@ -627,7 +634,7 @@
             <div>
               <div class="till-col-head">Card Slips</div>
               <div class="slips-grid">
-                ${[0,1,2,3,4,5,6,7,8,9].map(i =>
+                ${SLIPS.map(i =>
                   `<div class="slip-row">
                     <span class="slip-label">Slip ${i+1}</span>
                     <input type="number" class="slip-input" id="s${si}-slip-${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
@@ -673,8 +680,8 @@
     // ── Recalculation ──────────────────────────────────────────────────────────
 
     function recalcShift(si) {
-      const sumAmts5 = (item) => [0,1,2,3,4].reduce((acc, i) => acc + getAmt(si,item,i), 0);
-      const sumObjs5 = (item) => [0,1,2,3,4].reduce((acc, i) => acc + getAmt(si,item,i,'amount'), 0);
+      const sumAmts5 = (item) => SLOTS.reduce((acc, i) => acc + getAmt(si,item,i), 0);
+      const sumObjs5 = (item) => SLOTS.reduce((acc, i) => acc + getAmt(si,item,i,'amount'), 0);
 
       const tb   = sumAmts5('tennis_balls');
       const str  = sumObjs5('stringing');
@@ -727,7 +734,7 @@
         setText(`s${si}-till-${d.key}-amt`, fmt(amt));
       });
       let slipSub = 0;
-      [0,1,2,3,4,5,6,7,8,9].forEach(i => {
+      SLIPS.forEach(i => {
         slipSub += n(getEl(`s${si}-slip-${i}`)?.value);
       });
       const tillT = cashSub + slipSub;
@@ -784,20 +791,20 @@
         label: SHIFT_LABELS[si],
         staff_name: getEl(`s${si}-staff`)?.value.trim() || '',
         pro_shop: {
-          tennis_balls:  [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="tennis_balls"][data-idx="${i}"]`); const u=parseFloat(el?.dataset.unit)||1; return el?.value!==''&&el?.value!=null?(parseFloat(el.value)||0)*u:null; }),
-          stringing:     [0,1,2,3,4].map(i => ({ amount: getAmt(si,'stringing',i,'amount') || null, member: getStr(si,'stringing',i,'member') })),
-          accessories:   [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="accessories"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
-          racquet_sales: [0,1,2,3,4].map(i => ({ amount: getAmt(si,'racquet_sales',i,'amount') || null, member: getStr(si,'racquet_sales',i,'member') })),
-          grips:         [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="grips"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          tennis_balls:  SLOTS.map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="tennis_balls"][data-idx="${i}"]`); const u=parseFloat(el?.dataset.unit)||1; return el?.value!==''&&el?.value!=null?(parseFloat(el.value)||0)*u:null; }),
+          stringing:     SLOTS.map(i => ({ amount: getAmt(si,'stringing',i,'amount') || null, member: getStr(si,'stringing',i,'member') })),
+          accessories:   SLOTS.map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="accessories"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          racquet_sales: SLOTS.map(i => ({ amount: getAmt(si,'racquet_sales',i,'amount') || null, member: getStr(si,'racquet_sales',i,'member') })),
+          grips:         SLOTS.map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="grips"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
         },
         court_fees: { entries: getCfEntries(si) },
         drinks_snacks: {
-          drinks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="drinks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
-          snacks: [0,1,2,3,4].map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="snacks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          drinks: SLOTS.map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="drinks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          snacks: SLOTS.map(i => { const el = document.querySelector(`[data-si="${si}"][data-item="snacks"][data-idx="${i}"]`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
         },
         till: {
           cash:  Object.fromEntries(DENOM.map(d => [d.key, parseInt(getEl(`s${si}-till-${d.key}`)?.value || '0') || 0])),
-          slips: [0,1,2,3,4,5,6,7,8,9].map(i => { const el = getEl(`s${si}-slip-${i}`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
+          slips: SLIPS.map(i => { const el = getEl(`s${si}-slip-${i}`); return el?.value !== '' && el?.value != null ? parseFloat(el.value) : null; }),
         },
       };
     }
