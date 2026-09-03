@@ -314,6 +314,7 @@
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg>
       </button>
       <button class="today-btn" onclick="goToday()">Current period</button>
+      <button class="today-btn" onclick="exportTimesheet()" style="margin-left:auto">Export CSV</button>
     </div>
 
     <!-- Person cards -->
@@ -401,6 +402,7 @@
     }
 
     // ── Nav ────────────────────────────────────────────────────────
+    function exportTimesheet() { window.location.href = '/api/timesheet/export?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
     function prevPeriod() { const p = shiftPeriod(currentStart,-1); currentStart=p.start; currentEnd=p.end; load(); }
     function nextPeriod() { const p = shiftPeriod(currentStart, 1); currentStart=p.start; currentEnd=p.end; load(); }
     function goToday()    { const p = computePeriod(todayStr()); currentStart=p.start; currentEnd=p.end; load(); }

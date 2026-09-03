@@ -174,6 +174,55 @@ router.put('/defaults/:shift', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /export?start=YYYY-MM-DD&end=YYYY-MM-DD — CSV of the pay period.
+router.get('/export', (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const start = req.query.start || periodStart(today);
+  const end   = req.query.end   || periodEnd(start);
+
+  const assignments = db.getAssignmentsForRange(start, end);
+  const entries     = db.getTimesheetForRange(start, end);
+  const defaults    = db.getShiftDefaults();
+  const overrides   = db.getTimeOverridesForRange(start, end);
+  const periodExp   = db.getPeriodExpensesForRange(start);
+
+  const entryMap = {};
+  for (const e of entries) entryMap[`${e.staff_id}:${e.date}:${e.shift}`] = e;
+
+  const q = c => `"${String(c ?? '').replace(/"/g, '""')}"`;
+  const hrs = (s, e2) => {
+    if (!s || !e2) return '';
+    const [sh, sm] = s.split(':').map(Number), [eh, em] = e2.split(':').map(Number);
+    let m = (eh * 60 + em) - (sh * 60 + sm); if (m < 0) m += 1440;
+    return (m / 60).toFixed(2);
+  };
+
+  const lines = [];
+  lines.push(['Staff', 'Date', 'Shift', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
+  assignments.slice().sort((a, b) => (a.date + a.shift).localeCompare(b.date + b.shift)).forEach(a => {
+    const key = `${a.staff_id}:${a.date}:${a.shift}`;
+    const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
+    const s = db.getStaffById(a.staff_id);
+    const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
+    lines.push([
+      s ? s.name : a.staff_id, a.date, a.shift,
+      ov?.start || def.start || '', ov?.end || def.end || '',
+      as || '', ae || '', hrs(as, ae), en ? en.notes : ''
+    ].map(q).join(','));
+  });
+  lines.push('');
+  lines.push(['Period Expenses (by staff)'].map(q).join(','));
+  Object.entries(periodExp || {}).forEach(([sid, val]) => {
+    const s = db.getStaffById(parseInt(sid));
+    const amt = (val && typeof val === 'object') ? (val.total != null ? val.total : '') : val;
+    lines.push([s ? s.name : sid, amt].map(q).join(','));
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="timesheets-${start}_${end}.csv"`);
+  res.send(lines.join('\n'));
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function periodStart(dateStr) {
