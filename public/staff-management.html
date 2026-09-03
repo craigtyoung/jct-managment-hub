@@ -151,7 +151,7 @@
         </div>
         <label class="lbl">Role</label>
         <select class="fld" id="a-role">
-          <option value="staff">Admin (office / front desk)</option>
+          <option value="staff">Office (front desk)</option>
           <option value="pro">Pro (coach)</option>
           <option value="manager">Manager</option>
           <option value="contractor">Contractor</option>
@@ -186,21 +186,21 @@
     fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
       me = m;
       if (!me) { location.href = '/login.html'; return; }
-      if (!me.is_management) {
+      if (!me.can_manage_staff) {
         document.getElementById('shell').innerHTML =
-          '<div class="lock"><div class="ico">🔒</div><h2>Management only</h2><p>The staff management portal is for the management team.</p></div>';
+          '<div class="lock"><div class="ico">🔒</div><h2>Restricted</h2><p>The staff management portal is limited to Craig, Jaime and Victor.</p></div>';
         return;
       }
-      canPay = !!me.can_manage_staff; // pay review is restricted to the tight allowlist
+      canPay = !!me.can_manage_staff; // whole portal is the tight allowlist now
       buildShell();
-      if (canPay) { view = 'pay'; loadTable(); }
-      else { view = 'directory'; loadDirectory(); }
+      view = 'directory'; loadDirectory(); // Directory is the default landing view
     });
 
     function buildShell() {
       var items = '';
-      if (canPay) items += '<button class="sidebar-btn active" data-view="pay" onclick="setView(\'pay\')"><span class="dot" style="background:#2c5c9c"></span> Pay Review</button>';
-      items += '<button class="sidebar-btn' + (canPay ? '' : ' active') + '" data-view="directory" onclick="setView(\'directory\')"><span class="dot" style="background:#0d9488"></span> Directory</button>';
+      // Directory sits at the top — it's the primary people portal.
+      items += '<button class="sidebar-btn active" data-view="directory" onclick="setView(\'directory\')"><span class="dot" style="background:#0d9488"></span> Directory</button>';
+      if (canPay) items += '<button class="sidebar-btn" data-view="pay" onclick="setView(\'pay\')"><span class="dot" style="background:#2c5c9c"></span> Pay Review</button>';
       Object.keys(ROADMAP).forEach(function (k) {
         var r = ROADMAP[k];
         items += '<button class="sidebar-btn" data-view="' + k + '" onclick="setView(\'' + k + '\')"><span class="dot" style="background:' + r.dot + '"></span> ' + esc(r.label) + ' <span class="soon">Soon</span></button>';
@@ -209,8 +209,8 @@
         '<div class="shell">' +
           '<div class="sidebar"><div class="sidebar-section"><div class="sidebar-label">Portal</div>' + items + '</div></div>' +
           '<div class="main"><div class="main-inner">' +
-            '<div class="panel' + (canPay ? ' active' : '') + '" id="panel-pay"><div id="paytable"></div></div>' +
-            '<div class="panel' + (canPay ? '' : ' active') + '" id="panel-directory"></div>' +
+            '<div class="panel" id="panel-pay"><div id="paytable"></div></div>' +
+            '<div class="panel active" id="panel-directory"></div>' +
             '<div class="panel" id="panel-soon"></div>' +
           '</div></div>' +
         '</div>';
@@ -222,7 +222,7 @@
       document.querySelectorAll('.sidebar-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
       ['pay', 'directory'].forEach(function (p) { var el = document.getElementById('panel-' + p); if (el) el.classList.toggle('active', v === p); });
       var soon = document.getElementById('panel-soon');
-      if (v === 'pay') { soon.classList.remove('active'); return; }
+      if (v === 'pay') { soon.classList.remove('active'); if (!allRows.length) loadTable(); return; }
       if (v === 'directory') { soon.classList.remove('active'); loadDirectory(); return; }
       var r = ROADMAP[v];
       soon.innerHTML = '<div class="soon-panel"><div class="ico">' + r.ico + '</div><div class="soon-tag2">Coming soon</div><h2>' + esc(r.title) + '</h2><p>' + esc(r.desc) + '</p></div>';
@@ -231,7 +231,7 @@
 
     // ── Directory (add / edit staff) ──
     var dirRows = [];
-    var ROLE_LABEL = { staff: 'Staff', manager: 'Manager', admin: 'Admin', pro: 'Pro', contractor: 'Contractor' };
+    var ROLE_LABEL = { staff: 'Office', manager: 'Manager', admin: 'Admin', pro: 'Pro', contractor: 'Contractor' };
     function loadDirectory() { fetch('/api/staff-mgmt/directory').then(function (r) { return r.json(); }).then(function (rows) { dirRows = rows; renderDirectory(); }); }
     function roleOpts(sel) { return ['staff', 'manager', 'admin', 'pro', 'contractor'].map(function (x) { return '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + ROLE_LABEL[x] + '</option>'; }).join(''); }
     function renderDirectory() {
@@ -242,7 +242,7 @@
           if (r.role === 'manager' || r.role === 'admin') roleCell = '<td><span class="role-badge mgr">Manager</span></td>';
           else if (r.role === 'contractor') roleCell = '<td><span class="role-badge con">Contractor</span></td>';
           else roleCell = '<td class="jobcell">' +
-            '<label class="jobchk"><input type="checkbox" id="adm-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Admin</label> ' +
+            '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Office</label> ' +
             '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Pro</label></td>';
           return '<tr>' +
             '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><input class="cell-in" value="' + esc(r.first_name) + '" onchange="saveStaff(' + r.id + ',\'first_name\',this.value)"></div></td>' +
@@ -295,10 +295,10 @@
     }
     // Admin (office) + Pro (coach) checkboxes → derive the stored role + pro flag.
     function saveJob(id) {
-      var adm = document.getElementById('adm-' + id).checked, pro = document.getElementById('pro-' + id).checked;
+      var adm = document.getElementById('off-' + id).checked, pro = document.getElementById('pro-' + id).checked;
       var role, is_pro;
       if (pro && !adm) { role = 'pro'; is_pro = false; }   // coach only
-      else { role = 'staff'; is_pro = pro; }                // office (Admin), + pro flag if they also coach
+      else { role = 'staff'; is_pro = pro; }                // office, + pro flag if they also coach
       fetch('/api/staff-mgmt/directory/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role, is_pro: is_pro }) })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (row) { if (row) { var i = dirRows.findIndex(function (x) { return x.id === id; }); if (i >= 0) dirRows[i] = row; } });
@@ -338,9 +338,17 @@
       });
     }
     function setFilter(f) { filter = f; renderPay(); }
-    function isPro(r) { return r.role === 'pro' || r.is_pro; }
-    function visibleRows() { return allRows.filter(function (r) { if (filter === 'all') return true; if (filter === 'pro') return isPro(r); return !isPro(r); }); }
-    function patchRow(row) { if (!row) return; var i = allRows.findIndex(function (r) { return r.staff_id === row.staff_id; }); if (i >= 0) allRows[i] = row; }
+    // Server already splits dual-role people into one line per job — filter on the track.
+    function visibleRows() { return allRows.filter(function (r) { if (filter === 'all') return true; return r.job === filter; }); }
+    function patchRow(row) { if (!row) return; var i = allRows.findIndex(function (r) { return r.staff_id === row.staff_id && r.job === row.job; }); if (i >= 0) allRows[i] = row; }
+    function payLineLabel(r) { return r.job === 'pro' ? 'Pro' : 'Office'; }
+    function payRoleLabel(r) {
+      if (r.dual) return payLineLabel(r);
+      if (r.role === 'pro') return 'Pro';
+      if (r.role === 'manager') return 'Manager';
+      if (r.role === 'admin') return 'Admin';
+      return 'Office';
+    }
 
     function summary(rows) {
       var withNew = rows.filter(function (r) { return r.new_rate != null; });
@@ -348,7 +356,7 @@
       var ch = rows.filter(function (r) { return r.pct_change != null; });
       var avg = ch.length ? Math.round((ch.reduce(function (a, r) { return a + r.pct_change; }, 0) / ch.length) * 10) / 10 : null;
       return '<div class="summary">' +
-        '<div class="stat"><div class="n">' + rows.length + '</div><div class="l">Staff</div></div>' +
+        '<div class="stat"><div class="n">' + rows.length + '</div><div class="l">Rate lines</div></div>' +
         '<div class="stat"><div class="n">' + withNew.length + '</div><div class="l">New rate set</div></div>' +
         '<div class="stat"><div class="n">' + raises + '</div><div class="l">Raises</div></div>' +
         '<div class="stat"><div class="n">' + (avg == null ? '—' : (avg > 0 ? '+' : '') + avg + '%') + '</div><div class="l">Avg change</div></div>' +
@@ -358,36 +366,38 @@
     function renderPay() {
       var rows = visibleRows();
       var fbar = '<div class="filterbar">' +
-        ['all', 'admin', 'pro'].map(function (f) { return '<button class="fbtn' + (filter === f ? ' active' : '') + '" onclick="setFilter(\'' + f + '\')">' + (f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)) + '</button>'; }).join('') +
+        [['all', 'All'], ['office', 'Office'], ['pro', 'Pro']].map(function (f) { return '<button class="fbtn' + (filter === f[0] ? ' active' : '') + '" onclick="setFilter(\'' + f[0] + '\')">' + f[1] + '</button>'; }).join('') +
         '</div>';
       var html =
-        '<div class="banner">Annual pay review — new rates effective <strong>September 1, 2026</strong>. Edit a cell to save automatically. Managers only (Craig, Jaime, Victor).</div>' +
+        '<div class="banner">Annual pay review — new rates effective <strong>September 1, 2026</strong>. Staff who work the desk <em>and</em> coach carry a separate Office and Pro rate. Edit a cell to save automatically. Restricted to Craig, Jaime, Victor.</div>' +
         fbar + summary(rows) +
         '<div class="grid-wrap"><table><thead><tr>' +
-        '<th>Staff</th><th>Role</th><th>Type</th><th class="num">Current $/hr</th><th class="num">New $/hr (Sep 1)</th><th class="num">Change</th><th>Notes</th>' +
+        '<th>Staff</th><th>Track</th><th>Type</th><th class="num">Current $/hr</th><th class="num">New $/hr (Sep 1)</th><th class="num">Change</th><th>Notes</th>' +
         '</tr></thead><tbody>' +
         rows.map(function (r) {
           var sal = r.pay_type === 'salary';
-          return '<tr id="row-' + r.staff_id + '"' + (sal ? ' class="is-salary"' : '') + '>' +
-            '<td><div class="who"><div class="av" id="av-' + r.staff_id + '"></div><span class="nm">' + esc(r.name) + '</span></div></td>' +
-            '<td><span class="role-pill">' + esc(r.role) + '</span></td>' +
-            '<td><select class="type-sel" onchange="saveType(' + r.staff_id + ',this.value)"><option value="hourly"' + (sal ? '' : ' selected') + '>Hourly</option><option value="salary"' + (sal ? ' selected' : '') + '>Salary</option></select></td>' +
-            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.current_rate != null ? r.current_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'current_rate\',this.value)"></div></td>' +
-            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.new_rate != null ? r.new_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'new_rate\',this.value)"></div></td>' +
-            '<td class="num" id="pct-' + r.staff_id + '">' + fmtPct(r.pct_change) + '</td>' +
-            '<td><input class="note-in" value="' + esc(r.notes) + '" placeholder="add a note" onchange="saveNote(' + r.staff_id + ',this.value)"><span class="saved-dot" id="dot-' + r.staff_id + '"></span></td>' +
+          var key = r.staff_id + '-' + r.job;
+          var nameHtml = esc(r.name) + (r.dual ? ' <span style="color:var(--text3);font-weight:500;font-size:12.5px">· ' + payLineLabel(r) + '</span>' : '');
+          return '<tr id="row-' + key + '"' + (sal ? ' class="is-salary"' : '') + '>' +
+            '<td><div class="who"><div class="av" id="av-' + key + '"></div><span class="nm">' + nameHtml + '</span></div></td>' +
+            '<td><span class="role-pill">' + esc(payRoleLabel(r)) + '</span></td>' +
+            '<td><select class="type-sel" onchange="saveType(' + r.staff_id + ',\'' + r.job + '\',this.value)"><option value="hourly"' + (sal ? '' : ' selected') + '>Hourly</option><option value="salary"' + (sal ? ' selected' : '') + '>Salary</option></select></td>' +
+            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.current_rate != null ? r.current_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'' + r.job + '\',\'current_rate\',this.value)"></div></td>' +
+            '<td class="num"><div class="rate-cell"><span class="dollar">$</span><input class="rate-in" type="number" step="0.25" min="0" inputmode="decimal" value="' + (r.new_rate != null ? r.new_rate : '') + '" onchange="saveRate(' + r.staff_id + ',\'' + r.job + '\',\'new_rate\',this.value)"></div></td>' +
+            '<td class="num" id="pct-' + key + '">' + fmtPct(r.pct_change) + '</td>' +
+            '<td><input class="note-in" value="' + esc(r.notes) + '" placeholder="add a note" onchange="saveNote(' + r.staff_id + ',\'' + r.job + '\',this.value)"><span class="saved-dot" id="dot-' + key + '"></span></td>' +
             '</tr>';
         }).join('') +
         '</tbody></table></div>';
       document.getElementById('paytable').innerHTML = html;
-      rows.forEach(function (r) { var el = document.getElementById('av-' + r.staff_id); if (el && window.staffAvatar) staffAvatar(el, r.staff_id, r.name, r.color); });
+      rows.forEach(function (r) { var el = document.getElementById('av-' + r.staff_id + '-' + r.job); if (el && window.staffAvatar) staffAvatar(el, r.staff_id, r.name, r.color); });
     }
 
-    function flashSaved(id) { var d = document.getElementById('dot-' + id); if (!d) return; d.classList.add('show'); setTimeout(function () { d.classList.remove('show'); }, 900); }
-    function put(id, body) { return fetch('/api/staff-mgmt/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : null; }); }
-    function saveRate(id, field, val) { var body = {}; body[field] = val; put(id, body).then(function (row) { if (!row) return; patchRow(row); var cell = document.getElementById('pct-' + id); if (cell) cell.innerHTML = fmtPct(row.pct_change); flashSaved(id); }); }
-    function saveNote(id, val) { put(id, { notes: val }).then(function (row) { if (row) { patchRow(row); flashSaved(id); } }); }
-    function saveType(id, val) { put(id, { pay_type: val }).then(function (row) { if (row) { patchRow(row); renderPay(); } }); }
+    function flashSaved(key) { var d = document.getElementById('dot-' + key); if (!d) return; d.classList.add('show'); setTimeout(function () { d.classList.remove('show'); }, 900); }
+    function put(id, job, body) { body.job = job; return fetch('/api/staff-mgmt/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : null; }); }
+    function saveRate(id, job, field, val) { var body = {}; body[field] = val; put(id, job, body).then(function (row) { if (!row) return; patchRow(row); var cell = document.getElementById('pct-' + id + '-' + job); if (cell) cell.innerHTML = fmtPct(row.pct_change); flashSaved(id + '-' + job); }); }
+    function saveNote(id, job, val) { put(id, job, { notes: val }).then(function (row) { if (row) { patchRow(row); flashSaved(id + '-' + job); } }); }
+    function saveType(id, job, val) { put(id, job, { pay_type: val }).then(function (row) { if (row) { patchRow(row); renderPay(); } }); }
   </script>
 </body>
 </html>

@@ -1611,58 +1611,110 @@ function deleteAcademyNote(id, staffId, isMgmt) {
 }
 
 // ─── Staff management / pay review ──────────────────────────────────────────
-// Sensitive manager surface (pay). Tighter allowlist than "management":
+// Sensitive manager surface (staff records + pay). Tight allowlist:
 // Craig(1), Jaime(2), Victor(3). Excludes David; widen STAFF_MGMT_IDS if needed.
 const STAFF_MGMT_IDS = [1, 2, 3];
 function canManageStaff(realId) { return STAFF_MGMT_IDS.includes(parseInt(realId)); }
 
+// Which pay tracks a person carries. A front-desk staffer who also coaches (role
+// 'staff' + is_pro) earns two DISTINCT rates — one for office shifts, one for
+// on-court coaching — so they get two independent tracks. Everyone else has one.
+function jobsFor(s) {
+  if (!s) return ['office'];
+  if (s.role === 'pro') return ['pro'];                          // coach only
+  if (s.role === 'staff' && s.is_pro) return ['office', 'pro'];  // does both
+  return ['office'];                                             // office staff / manager / admin
+}
+
 function _payRow(sid) { return (_data.staff_pay || []).find(p => p.staff_id === parseInt(sid)) || null; }
-// Pre-mark known salaried staff once (David, Megan). Only sets if unset, so manual
-// toggles stick. Matched by name to survive any id drift.
+function _blankJob() { return { current_rate: null, new_rate: null, pay_type: 'hourly', effective_date: '2026-09-01', notes: '' }; }
+function _ensureRow(sid) {
+  let p = _payRow(sid);
+  if (!p) { p = { id: nextId('staff_pay'), staff_id: parseInt(sid), jobs: {} }; _data.staff_pay.push(p); }
+  if (!p.jobs) p.jobs = {};
+  return p;
+}
+
+// Migration: convert flat pay rows ({current_rate,new_rate,pay_type,...}) into the
+// per-job shape ({ jobs: { office|pro: {...} } }). Old flat values move into the
+// person's primary track (pro for coaches, office for everyone else).
+(function migratePayJobs() {
+  if (!Array.isArray(_data.staff_pay)) return;
+  let changed = false;
+  for (const p of _data.staff_pay) {
+    if (p.jobs) continue; // already migrated
+    const s = (_data.staff || []).find(x => x.id === p.staff_id);
+    const primary = (s && s.role === 'pro') ? 'pro' : 'office';
+    const job = _blankJob();
+    if (p.current_rate != null) job.current_rate = p.current_rate;
+    if (p.new_rate != null) job.new_rate = p.new_rate;
+    if (p.pay_type) job.pay_type = p.pay_type;
+    if (p.effective_date) job.effective_date = p.effective_date;
+    if (p.notes) job.notes = p.notes;
+    p.jobs = { [primary]: job };
+    delete p.current_rate; delete p.new_rate; delete p.pay_type; delete p.effective_date; delete p.notes;
+    changed = true;
+  }
+  if (changed) { save(); console.log('Pay rows migrated to per-job rate tracks.'); }
+})();
+
+// Pre-mark known salaried staff once (David → office, Megan → pro). Only seeds a
+// track that doesn't exist yet, so manual toggles always stick. Matched by name.
 (function seedSalaried() {
   if (!Array.isArray(_data.staff_pay)) return;
   let changed = false;
-  ['David', 'Megan'].forEach(nm => {
-    const s = (_data.staff || []).find(x => x.name === nm); if (!s) return;
-    let p = _data.staff_pay.find(x => x.staff_id === s.id);
-    if (!p) { p = { id: nextId('staff_pay'), staff_id: s.id }; _data.staff_pay.push(p); }
-    if (p.pay_type === undefined) { p.pay_type = 'salary'; changed = true; }
+  [['David', 'office'], ['Megan', 'pro']].forEach(function (pair) {
+    const s = (_data.staff || []).find(x => x.name === pair[0]); if (!s) return;
+    const p = _ensureRow(s.id);
+    if (!p.jobs[pair[1]]) { p.jobs[pair[1]] = Object.assign(_blankJob(), { pay_type: 'salary' }); changed = true; }
   });
   if (changed) save();
 })();
+
 function getStaffPay() {
   // Owners / senior management (Craig, Jaime, Victor) aren't part of the hourly pay
-  // review, and contractors (e.g. Muzz) aren't on payroll — exclude both.
-  return (_data.staff || []).slice()
+  // review, and contractors (e.g. Muzz) aren't on payroll — exclude both. Returns
+  // one line per (staff, job): dual-role people appear twice, once per rate track.
+  const lines = [];
+  (_data.staff || []).slice()
     .filter(s => !STAFF_MGMT_IDS.includes(s.id) && s.role !== 'contractor')
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map(s => {
-      const p = _payRow(s.id) || {};
-      const cur = (p.current_rate != null) ? p.current_rate : null;
-      const nw = (p.new_rate != null) ? p.new_rate : null;
-      let pct = null;
-      if (cur != null && nw != null && cur > 0) pct = Math.round(((nw - cur) / cur) * 1000) / 10;
-      return {
-        staff_id: s.id, name: s.name, role: s.role, is_pro: !!s.is_pro, color: s.color, badge: s.badge || null,
-        pay_type: p.pay_type || 'hourly',
-        current_rate: cur, new_rate: nw, effective_date: p.effective_date || '2026-09-01',
-        notes: p.notes || '', pct_change: pct,
-      };
+    .forEach(s => {
+      const p = _payRow(s.id);
+      const jobs = jobsFor(s);
+      const dual = jobs.length > 1;
+      jobs.forEach(job => {
+        const j = (p && p.jobs && p.jobs[job]) ? p.jobs[job] : _blankJob();
+        const cur = (j.current_rate != null) ? j.current_rate : null;
+        const nw = (j.new_rate != null) ? j.new_rate : null;
+        let pct = null;
+        if (cur != null && nw != null && cur > 0) pct = Math.round(((nw - cur) / cur) * 1000) / 10;
+        lines.push({
+          staff_id: s.id, job: job, dual: dual,
+          name: s.name, role: s.role, is_pro: !!s.is_pro, color: s.color, badge: s.badge || null,
+          pay_type: j.pay_type || 'hourly',
+          current_rate: cur, new_rate: nw, effective_date: j.effective_date || '2026-09-01',
+          notes: j.notes || '', pct_change: pct,
+        });
+      });
     });
+  return lines;
 }
-function updateStaffPay(staffId, f, actingId) {
+function updateStaffPay(staffId, job, f, actingId) {
   const sid = parseInt(staffId);
   const s = getStaffById(sid); if (!s) return null;
-  let p = _payRow(sid);
-  if (!p) { p = { id: nextId('staff_pay'), staff_id: sid }; _data.staff_pay.push(p); }
-  if (f.pay_type !== undefined) p.pay_type = (f.pay_type === 'salary') ? 'salary' : 'hourly';
-  if (f.current_rate !== undefined) p.current_rate = (f.current_rate === '' || f.current_rate === null) ? null : Number(f.current_rate);
-  if (f.new_rate !== undefined) p.new_rate = (f.new_rate === '' || f.new_rate === null) ? null : Number(f.new_rate);
-  if (f.effective_date !== undefined) p.effective_date = String(f.effective_date).slice(0, 40);
-  if (f.notes !== undefined) p.notes = String(f.notes).slice(0, 500);
+  const jkey = (job === 'pro') ? 'pro' : 'office';
+  const p = _ensureRow(sid);
+  if (!p.jobs[jkey]) p.jobs[jkey] = _blankJob();
+  const j = p.jobs[jkey];
+  if (f.pay_type !== undefined) j.pay_type = (f.pay_type === 'salary') ? 'salary' : 'hourly';
+  if (f.current_rate !== undefined) j.current_rate = (f.current_rate === '' || f.current_rate === null) ? null : Number(f.current_rate);
+  if (f.new_rate !== undefined) j.new_rate = (f.new_rate === '' || f.new_rate === null) ? null : Number(f.new_rate);
+  if (f.effective_date !== undefined) j.effective_date = String(f.effective_date).slice(0, 40);
+  if (f.notes !== undefined) j.notes = String(f.notes).slice(0, 500);
   p.updated_by = parseInt(actingId); p.updated_at = now();
   save();
-  return getStaffPay().find(x => x.staff_id === sid);
+  return getStaffPay().find(x => x.staff_id === sid && x.job === jkey);
 }
 
 // ── Staff directory (manager-only: full profiles incl. last name + contact) ──

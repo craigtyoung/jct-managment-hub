@@ -1556,6 +1556,12 @@
       if (!(me.is_management || me.role === 'contractor')) {
         document.querySelectorAll('a[href="/contractor.html"]').forEach(el => el.style.display = 'none');
       }
+      // Staff Management (Directory + Pay) is locked to the tight allowlist (Craig,
+      // Jaime, Victor). The .mgmt-only links are visible by default, so hide them
+      // for everyone else — this is keyed to the REAL identity, not "view as".
+      if (!me.can_manage_staff) {
+        document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
+      }
 
       setGreeting(me.name);
 

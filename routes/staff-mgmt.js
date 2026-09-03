@@ -1,10 +1,8 @@
 /**
  * staff-mgmt.js — Staff Management portal API.
- * Two access tiers:
- *   - Directory (add/edit/remove staff, photo, password reset) → all management
- *     (admin + manager), so it fully replaces the old Settings > Staff.
- *   - Pay Review → tighter STAFF_MGMT_IDS allowlist (Craig, Jaime, Victor) since
- *     pay data is sensitive.
+ * Single access tier: the whole portal (Directory + Pay Review) is locked to the
+ * STAFF_MGMT_IDS allowlist (Craig, Jaime, Victor). Staff records and pay data are
+ * both sensitive, so managers outside the allowlist (e.g. David) have no access.
  * Mounted behind requireAuth at /api/staff-mgmt.
  */
 const express = require('express');
@@ -15,18 +13,15 @@ const router = express.Router();
 
 const DEFAULT_PW = 'jct2026';
 
-// Directory tier — all management.
-function guardDir(req, res, next) {
-  const real = db.getStaffById(req.session.staffId);
-  if (!real || !['admin', 'manager'].includes(real.role)) return res.status(403).json({ error: 'Management only' });
-  next();
-}
-// Pay tier — tight allowlist.
-function guardPay(req, res, next) {
+// Whole portal — tight allowlist (Craig, Jaime, Victor). Directory and Pay both.
+function guardMgmt(req, res, next) {
   const real = db.getStaffById(req.session.staffId);
   if (!real || !db.canManageStaff(real.id)) return res.status(403).json({ error: 'Not permitted' });
   next();
 }
+// Aliases keep the route definitions below readable (directory vs pay intent).
+const guardDir = guardMgmt;
+const guardPay = guardMgmt;
 
 // ── Directory (add / edit / remove staff, incl. last name + contact) ──
 router.get('/directory', guardDir, (req, res) => res.json(db.getStaffDirectory()));
@@ -67,7 +62,7 @@ router.delete('/directory/:id', guardDir, (req, res) => {
 router.get('/', guardPay, (req, res) => res.json(db.getStaffPay()));
 
 router.put('/:staffId', guardPay, (req, res) => {
-  const row = db.updateStaffPay(req.params.staffId, req.body, req.session.staffId);
+  const row = db.updateStaffPay(req.params.staffId, req.body.job, req.body, req.session.staffId);
   if (!row) return res.status(404).json({ error: 'Not found' });
   sse.broadcast('staff-pay'); // live-sync open Staff Management screens
   res.json(row);
