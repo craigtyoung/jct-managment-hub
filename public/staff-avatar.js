@@ -84,68 +84,8 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
     .catch(function () {});
 })();
 
-// ── TEMPORARY shared "View as" dev widget ───────────────────────────────────
-// Injects a compact floating control on every page for allow-listed testers
-// (Craig, Jaime, Victor — see db.js VIEW_AS_TESTER_IDS). Lets them view the hub
-// as any staff member while testing. Skips comms.html, which has its own inline
-// control. Remove this block + the db.js allowlist when testing wraps.
-(function () {
-  if (document.getElementById('viewas-wrap')) return; // comms page owns its control
-  Promise.all([
-    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-    fetch('/api/auth/staff').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; })
-  ]).then(function (arr) {
-    var me = arr[0], staff = arr[1] || [];
-    if (!me || !me.can_view_as) return;
-    if (document.getElementById('global-viewas')) return;
-    var active = !!me.viewing_as;
-
-    var box = document.createElement('div');
-    box.id = 'global-viewas';
-    box.style.cssText =
-      'position:fixed;top:60px;right:10px;z-index:9999;display:flex;align-items:center;gap:7px;' +
-      'padding:5px 9px;border-radius:10px;font-family:Inter,system-ui,sans-serif;font-size:12px;' +
-      'box-shadow:0 3px 12px rgba(0,0,0,0.14);' +
-      (active ? 'background:#f59e0b;color:#241a00;border:1px solid #d98c07;'
-              : 'background:#fff;color:#334155;border:1px solid #e2e8f0;');
-
-    var label = document.createElement('span');
-    label.textContent = active ? ('👁 Viewing as ' + (me.name || '')) : '👁 View as';
-    label.style.cssText = 'font-weight:700;white-space:nowrap;';
-
-    var sel = document.createElement('select');
-    sel.style.cssText =
-      'font-family:inherit;font-size:12px;padding:3px 6px;border-radius:7px;cursor:pointer;max-width:150px;' +
-      'color:#1e293b;border:1px solid ' + (active ? '#b8790a' : '#cbd5e1') + ';' +
-      'background:' + (active ? '#fff7e6' : '#f8fafc') + ';';
-    var opts = '<option value="">Yourself (' + (me.real_name || 'me') + ')</option>';
-    staff.filter(function (s) { return s.id !== me.real_id; }).forEach(function (s) {
-      opts += '<option value="' + s.id + '">' + s.name + ' · ' + s.role + '</option>';
-    });
-    sel.innerHTML = opts;
-    sel.value = active ? String(me.id) : '';
-    function switchTo(v) {
-      fetch('/api/auth/view-as', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staffId: v === '' || v === null ? null : parseInt(v) })
-      }).then(function (r) { if (r.ok) location.reload(); });
-    }
-    sel.onchange = function () { switchTo(this.value); };
-
-    box.appendChild(label);
-    box.appendChild(sel);
-    if (active) {
-      var exit = document.createElement('button');
-      exit.textContent = 'Exit';
-      exit.style.cssText =
-        'font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:none;' +
-        'border-radius:7px;padding:3px 10px;background:rgba(0,0,0,0.22);color:#241a00;';
-      exit.onclick = function () { switchTo(null); };
-      box.appendChild(exit);
-    }
-    document.body.appendChild(box);
-  });
-})();
+// "View as" is no longer a floating widget — it now lives inside the shared
+// account menu below (testers only). See the jct-va-overlay block.
 
 // ── Shared self-service Account panel ───────────────────────────────────────
 // Any logged-in staff member can change their own photo and password. Entry is
@@ -212,11 +152,16 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
       document.head.appendChild(st);
 
       // Dropdown menu (Profile / Sign out).
+      // "View as" (testers only) lives inside the account menu now — no more floating widget.
+      var viewAsItem = me.can_view_as
+        ? '<button class="jct-menu-item" id="jct-menu-viewas"><span>👁</span> ' + (me.viewing_as ? ('Viewing as ' + esc(me.name)) : 'View as…') + '</button>'
+        : '';
       var menu = document.createElement('div');
       menu.id = 'jct-acct-menu';
       menu.innerHTML =
         '<div class="jct-menu-hdr"><div class="nm">' + esc(myName) + '</div><div class="rl">' + esc(myRole) + '</div></div>' +
         '<button class="jct-menu-item" id="jct-menu-profile"><span>👤</span> Profile</button>' +
+        viewAsItem +
         '<button class="jct-menu-item danger" id="jct-menu-signout"><span>⎋</span> Sign out</button>';
       document.body.appendChild(menu);
 
@@ -290,6 +235,51 @@ window.staffAvatar = function(el, staffId, name, color, bust) {
       document.getElementById('jct-menu-signout').onclick = function () {
         fetch('/api/auth/logout', { method: 'POST' }).then(function () { location.href = '/login.html'; }).catch(function () { location.href = '/login.html'; });
       };
+
+      // ── View As (testers only) — opened from the account menu ──
+      if (me.can_view_as) {
+        var vaOv = document.createElement('div');
+        vaOv.id = 'jct-va-overlay';
+        vaOv.style.cssText = 'display:none;position:fixed;inset:0;z-index:10002;background:rgba(15,23,42,0.55);align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;';
+        vaOv.innerHTML =
+          '<div style="width:100%;max-width:380px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.35);overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#1e293b;">' +
+            '<div style="display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid #eef2f7;">' +
+              '<span style="font-size:18px">👁</span><h3 style="margin:0;font-size:15px;font-weight:700;">View as</h3>' +
+              '<button id="jct-va-x" style="margin-left:auto;background:transparent;border:none;color:#94a3b8;font-size:20px;cursor:pointer;line-height:1;">×</button>' +
+            '</div>' +
+            '<div style="padding:16px 18px;">' +
+              '<p style="margin:0 0 10px;font-size:12.5px;color:#64748b;">Preview the hub through another staff member’s eyes (testing). You keep your own access.</p>' +
+              '<select id="jct-va-sel" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;font-family:inherit;font-size:14px;margin-bottom:12px;"><option>Loading…</option></select>' +
+              '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+                (me.viewing_as ? '<button id="jct-va-exit" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:9px;padding:9px 14px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;">Exit view-as</button>' : '') +
+                '<button id="jct-va-apply" style="background:#2c5c9c;color:#fff;border:none;border-radius:9px;padding:9px 16px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;">Apply</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(vaOv);
+
+        var vaSwitch = function (v) {
+          fetch('/api/auth/view-as', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: (v === '' || v == null) ? null : parseInt(v) }) })
+            .then(function (r) { if (r.ok) location.reload(); });
+        };
+        var openVA = function () {
+          vaOv.style.display = 'flex'; document.body.style.overflow = 'hidden';
+          var sel = document.getElementById('jct-va-sel');
+          fetch('/api/auth/staff').then(function (r) { return r.ok ? r.json() : []; }).then(function (staff) {
+            var opts = '<option value="">Yourself (' + esc(me.real_name || 'me') + ')</option>';
+            (staff || []).filter(function (s) { return s.id !== me.real_id; }).forEach(function (s) {
+              opts += '<option value="' + s.id + '"' + (me.viewing_as && s.id === me.id ? ' selected' : '') + '>' + esc(s.name) + ' · ' + esc(s.role) + '</option>';
+            });
+            sel.innerHTML = opts;
+          });
+        };
+        var closeVA = function () { vaOv.style.display = 'none'; document.body.style.overflow = ''; };
+        document.getElementById('jct-menu-viewas').onclick = function () { menu.classList.remove('open'); openVA(); };
+        document.getElementById('jct-va-x').onclick = closeVA;
+        vaOv.addEventListener('click', function (e) { if (e.target === vaOv) closeVA(); });
+        document.getElementById('jct-va-apply').onclick = function () { vaSwitch(document.getElementById('jct-va-sel').value); };
+        var vaExit = document.getElementById('jct-va-exit'); if (vaExit) vaExit.onclick = function () { vaSwitch(null); };
+      }
       document.getElementById('jct-acct-close').onclick = closeAcct;
       ov.addEventListener('click', function (e) { if (e.target === ov) closeAcct(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('open')) closeAcct(); });

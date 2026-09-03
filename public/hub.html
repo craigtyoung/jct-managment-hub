@@ -776,6 +776,11 @@
     .bub-note { font-size: 11.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bub-time { font-size: 11px; color: var(--text-3); white-space: nowrap; }
     .bub-empty { padding: 14px; text-align: center; font-size: 13px; color: var(--text-3); background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; }
+    /* Bubble pressure-check warning */
+    .bub-warn { display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; font-size: 12.5px; font-weight: 600; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
+    .bub-warn a { margin-left: auto; color: #c2410c; white-space: nowrap; text-decoration: none; }
+    .bub-warn a:hover { text-decoration: underline; }
+
     /* ── Comms + Bubble two-column ── */
     .dash-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 28px; }
     .duo-col { min-width: 0; }
@@ -1088,6 +1093,7 @@
             <span id="bub-rec" style="font-size:12px;color:var(--text-3)"></span>
             <a href="/bubble.html" class="bub-link">Log a reading →</a>
           </div>
+          <div id="bub-warn" class="bub-warn" style="display:none"><span>⚠</span><span class="bw-text"></span><a href="/bubble.html">Log now →</a></div>
           <div id="bub-list" class="bub-list"></div>
         </div>
       </div>
@@ -1526,8 +1532,23 @@
       try {
         const r = await fetch('/api/bubble?limit=3');
         if (!r.ok) return;
-        renderBubble((await r.json()).slice(0, 3));
+        const rows = (await r.json()).slice(0, 3);
+        renderBubble(rows);
+        updateBubbleWarn(rows[0]);
       } catch (e) {}
+    }
+    // Prompt to check the bubble when the latest reading is stale (or none today).
+    function updateBubbleWarn(latest) {
+      const el = document.getElementById('bub-warn'); if (!el) return;
+      let overdue = false, msg = '';
+      if (!latest || !latest.created_at) {
+        overdue = true; msg = 'No pressure reading logged yet — time to check the bubble.';
+      } else {
+        const hrs = (Date.now() - new Date(latest.created_at).getTime()) / 3600000;
+        if (hrs >= 3) { overdue = true; msg = 'Last reading ' + (hrs >= 24 ? Math.round(hrs / 24) + 'd' : Math.round(hrs) + 'h') + ' ago — time to check the pressure.'; }
+      }
+      el.style.display = overdue ? 'flex' : 'none';
+      if (overdue) { const t = el.querySelector('.bw-text'); if (t) t.textContent = msg; }
     }
     // Live wind → recommended pressure (from the club guide), shown in the section header
     const BUB_GUIDE = [[10,'0.7–1.0',0.7],[20,'1.0',1.0],[35,'1.2',1.2],[50,'1.4',1.4],[60,'1.6',1.6],[Infinity,'1.70',1.70]];

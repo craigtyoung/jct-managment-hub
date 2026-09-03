@@ -883,7 +883,7 @@
     function onInput() {
       setSaveStatus('saving', 'Saving…');
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(doSave, 1500);
+      saveTimer = setTimeout(doSave, 600); // faster live sync across open screens
     }
 
     async function doSave() {

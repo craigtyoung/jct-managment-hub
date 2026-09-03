@@ -1330,7 +1330,7 @@
     if (clearBtn) clearBtn.style.display = (me.role === 'admin' || me.role === 'manager') ? 'inline-block' : 'none';
     if (!me.can_view_as) { wrap.style.display = 'none'; banner.style.display = 'none'; return; }
 
-    wrap.style.display = 'flex';
+    wrap.style.display = 'none'; // View As now lives in the shared account menu; keep the banner below.
     const sel = document.getElementById('viewas-select');
     let opts = `<option value="">Yourself (${esc(me.real_name)})</option>`;
     allStaff.filter(s => s.id !== me.real_id).forEach(s => {
