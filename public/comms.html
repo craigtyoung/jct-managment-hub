@@ -738,6 +738,8 @@
     const [meRes, staffRes] = await Promise.all([fetch('/api/me'), fetch('/api/messages/staff-list' + (AUDIENCE === 'pro' ? '?audience=pro' : ''))]);
     if (!meRes.ok) { window.location.href='/login.html'; return; }
     me = await meRes.json();
+    // Pros always use the pro log — bounce a bare /comms.html to the pro audience.
+    if (me && me.role === 'pro' && AUDIENCE !== 'pro') { location.replace('/comms.html?audience=pro'); return; }
     try { allStaff = await staffRes.json(); } catch (e) { allStaff = []; }
     if (!Array.isArray(allStaff)) allStaff = [];
 

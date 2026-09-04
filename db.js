@@ -575,9 +575,10 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
   //   'pro'              = the 6 teaching pros + management (David, Victor, Craig, Jaime)
   // A viewer only ever sees one audience: pros → pro, office/contractor → office,
   // management → whichever audience they're currently viewing (query param).
-  const aud = audience === 'pro' ? 'pro' : 'office';
+  // Pros are always resolved to the pro log (never stranded on an empty office log);
+  // office/contractor → office; management → whichever audience they requested.
+  const aud = viewerIsPro ? 'pro' : (audience === 'pro' ? 'pro' : 'office');
   if (aud === 'pro' && !(viewerIsMgmt || viewerIsPro)) return [];
-  if (aud === 'office' && viewerIsPro) return [];
   const inAudience = _data.messages.filter(m => (m.audience || 'office') === aud);
 
   // Privacy: management sees the whole log for the audience (oversight). Everyone else
@@ -690,9 +691,8 @@ function getUnreadCount(staffId, audience) {
   const viewer = _data.staff.find(s => s.id === sid);
   const viewerIsPro = viewer && viewer.role === 'pro';
   const viewerIsMgmt = viewer && (viewer.role === 'admin' || viewer.role === 'manager');
-  const aud = audience === 'pro' ? 'pro' : (audience === 'office' ? 'office' : (viewerIsPro ? 'pro' : 'office'));
+  const aud = viewerIsPro ? 'pro' : (audience === 'pro' ? 'pro' : 'office');
   if (aud === 'pro' && !(viewerIsPro || viewerIsMgmt)) return 0;
-  if (aud === 'office' && viewerIsPro) return 0;
   const t = new Date();
   const todayStr = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   return _data.messages.filter(msg => {
