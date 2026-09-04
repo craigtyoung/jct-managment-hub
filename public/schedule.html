@@ -940,6 +940,8 @@
       const me0 = await fetchJSONRetry('/api/me');
       if (me0 && me0.__unauth) { window.location.href = '/login.html'; return; }
       me = me0;
+      // Pros don't work the office shift grid — their schedule is the class scheduler.
+      if (me && me.role === 'pro') { location.replace('/pro-schedule.html'); return; }
 
       const av = document.getElementById('nav-avatar');
       staffAvatar(av, me.id, me.name, me.color);

@@ -1697,6 +1697,9 @@
       // In pro mode, nav "Comms" links point at the pro log so you never land on office by accident.
       const commsHref = pro ? '/comms.html?audience=pro' : '/comms.html';
       document.querySelectorAll('.sidenav a[href^="/comms.html"], .mnav a[href^="/comms.html"]').forEach(a => a.setAttribute('href', commsHref));
+      // In pro mode, the nav "Schedule" link goes to the pro class scheduler, not the office shift grid.
+      const schedHref = pro ? '/pro-schedule.html' : '/schedule.html';
+      document.querySelectorAll('.sidenav a[href^="/schedule.html"], .mnav a[href^="/schedule.html"]').forEach(a => a.setAttribute('href', schedHref));
       const o = document.getElementById('mode-office');
       const p = document.getElementById('mode-pro');
       if (o && p) { o.classList.toggle('on', !pro); p.classList.toggle('on', pro); }
