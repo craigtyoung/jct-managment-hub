@@ -466,6 +466,59 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 
+// Migration: pro schedule slots — the season class grid the teaching pros are
+// assigned to. Seeded ONCE from the academy class catalog (parse day_time into a
+// structured day + start/end); court + pros are assigned in-app via dropdowns.
+// Gated by a flag so edits/deletions survive reboots.
+if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
+if (!_data._migrations) _data._migrations = {};
+if (!_data._migrations.proSchedule2026) {
+  const DAYMAP = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+  function parseDayTime(dt) {
+    let s = String(dt || '').trim();
+    let note = '';
+    const paren = s.match(/\(([^)]*)\)\s*$/);
+    if (paren) { note = paren[1]; s = s.slice(0, paren.index).trim(); }
+    const firstDigit = s.search(/\d/);
+    if (firstDigit === -1) return null;
+    const dayPart = s.slice(0, firstDigit);
+    const timePart = s.slice(firstDigit).trim();
+    const found = (dayPart.toLowerCase().match(/mon|tue|wed|thu|fri|sat|sun/g) || []);
+    const days = found.map(d => DAYMAP[d]);
+    if (!days.length) return null;
+    const [a, b] = timePart.split(/[–—-]/).map(x => (x || '').trim());
+    function parse(t) {
+      const m = String(t).match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
+      if (!m) return null;
+      return { h: parseInt(m[1]), min: m[2] ? parseInt(m[2]) : 0, mer: m[3] ? m[3].toUpperCase() : null };
+    }
+    const A = parse(a), B = parse(b);
+    if (!A || !B) return null;
+    if (!B.mer && A.mer) B.mer = A.mer;
+    if (!A.mer && B.mer) A.mer = B.mer;
+    const to24 = (p) => { let h = p.h % 12; if (p.mer === 'PM') h += 12; return String(h).padStart(2, '0') + ':' + String(p.min).padStart(2, '0'); };
+    return { days, start: to24(A), end: to24(B), timeLabel: timePart, note };
+  }
+  for (const c of (_data.academy_classes || [])) {
+    if (c.active === false) continue;
+    const p = parseDayTime(c.day_time);
+    if (!p) continue;
+    for (const day of p.days) {
+      _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+      _data.pro_schedule_slots.push({
+        id: _data._seq.pro_schedule_slots,
+        class_id: c.id,
+        day, start: p.start, end: p.end, time_label: p.timeLabel,
+        program: c.program, category: c.category || 'junior',
+        court: null, capacity: null, pro_ids: [], note: p.note || '', active: true,
+      });
+    }
+  }
+  _data._migrations.proSchedule2026 = true;
+  save();
+  console.log('Seeded pro schedule slots:', _data.pro_schedule_slots.length);
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
@@ -1825,6 +1878,70 @@ function getSubscriptionsForStaff(staffIds) {
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
+// ─── Pro schedule slots ────────────────────────────────────────────────────────
+const _SLOT_DAY_ORDER = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+const _SLOT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function getProScheduleSlots(day) {
+  let list = (_data.pro_schedule_slots || []).filter(s => s.active !== false);
+  if (day) list = list.filter(s => s.day === day);
+  return list.slice().sort((a, b) =>
+    (_SLOT_DAY_ORDER[a.day] - _SLOT_DAY_ORDER[b.day]) ||
+    String(a.start).localeCompare(String(b.start)) ||
+    String(a.court || '').localeCompare(String(b.court || '')) ||
+    String(a.program).localeCompare(String(b.program))
+  );
+}
+
+function addProScheduleSlot(f) {
+  if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
+  _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+  const s = {
+    id: _data._seq.pro_schedule_slots,
+    class_id: f.class_id || null,
+    day: _SLOT_DAYS.includes(f.day) ? f.day : 'Mon',
+    start: String(f.start || '09:00').slice(0, 5),
+    end: String(f.end || '10:00').slice(0, 5),
+    time_label: String(f.time_label || '').slice(0, 40),
+    program: String(f.program || 'New slot').slice(0, 80),
+    category: String(f.category || 'junior').slice(0, 20),
+    court: f.court ? String(f.court).slice(0, 20) : null,
+    capacity: f.capacity ? String(f.capacity).slice(0, 20) : null,
+    pro_ids: Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [],
+    note: String(f.note || '').slice(0, 120),
+    active: true,
+  };
+  _data.pro_schedule_slots.push(s);
+  save();
+  return s;
+}
+
+function updateProScheduleSlot(id, f) {
+  const s = (_data.pro_schedule_slots || []).find(x => x.id === parseInt(id));
+  if (!s) return null;
+  if (f.pro_ids !== undefined) s.pro_ids = Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [];
+  if (f.court !== undefined) s.court = (f.court === '' || f.court === null) ? null : String(f.court).slice(0, 20);
+  if (f.capacity !== undefined) s.capacity = (f.capacity === '' || f.capacity === null) ? null : String(f.capacity).slice(0, 20);
+  if (f.program !== undefined) s.program = String(f.program).slice(0, 80);
+  if (f.day !== undefined && _SLOT_DAYS.includes(f.day)) s.day = f.day;
+  if (f.start !== undefined) s.start = String(f.start).slice(0, 5);
+  if (f.end !== undefined) s.end = String(f.end).slice(0, 5);
+  if (f.time_label !== undefined) s.time_label = String(f.time_label).slice(0, 40);
+  if (f.category !== undefined) s.category = String(f.category).slice(0, 20);
+  if (f.note !== undefined) s.note = String(f.note).slice(0, 120);
+  if (f.active !== undefined) s.active = !!f.active;
+  save();
+  return s;
+}
+
+function deleteProScheduleSlot(id) {
+  const s = (_data.pro_schedule_slots || []).find(x => x.id === parseInt(id));
+  if (!s) return false;
+  s.active = false; // soft-delete: recoverable, hidden from the board
+  save();
+  return true;
+}
+
 module.exports = {
   getIdeas,
   getIdea,
@@ -1898,6 +2015,10 @@ module.exports = {
   getAcademyNotes,
   addAcademyNote,
   deleteAcademyNote,
+  getProScheduleSlots,
+  addProScheduleSlot,
+  updateProScheduleSlot,
+  deleteProScheduleSlot,
   updatePassword,
   addStaff,
   updateStaff,
