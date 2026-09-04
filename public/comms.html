@@ -426,26 +426,8 @@
           <span class="shift-dot" style="background:#2c5c9c"></span> All
           <span id="b-all" class="unread-pill" style="display:none"></span>
         </button>
-        <button class="sidebar-btn" data-cat="membership" onclick="filterCategory('membership',this)">
-          <span class="shift-dot" style="background:#8b5cf6"></span> Membership
-          <span id="b-membership" class="unread-pill" style="display:none"></span>
-        </button>
-        <button class="sidebar-btn" data-cat="pro-shop" onclick="filterCategory('pro-shop',this)">
-          <span class="shift-dot" style="background:#f59e0b"></span> Pro Shop
-          <span id="b-pro-shop" class="unread-pill" style="display:none"></span>
-        </button>
-        <button class="sidebar-btn" data-cat="maintenance" onclick="filterCategory('maintenance',this)">
-          <span class="shift-dot" style="background:#0d9488"></span> Maintenance
-          <span id="b-maintenance" class="unread-pill" style="display:none"></span>
-        </button>
-        <button class="sidebar-btn" data-cat="academy" onclick="filterCategory('academy',this)">
-          <span class="shift-dot" style="background:#10b981"></span> Academy
-          <span id="b-academy" class="unread-pill" style="display:none"></span>
-        </button>
-        <button class="sidebar-btn" data-cat="general" onclick="filterCategory('general',this)">
-          <span class="shift-dot" style="background:#94a3b8"></span> General
-          <span id="b-general" class="unread-pill" style="display:none"></span>
-        </button>
+        <!-- Category filter buttons are generated per-audience by applyAudienceUI() -->
+        <div id="cat-filter-buttons"></div>
       </div>
       <!-- Staff filter -->
       <div class="sidebar-section">
@@ -492,13 +474,7 @@
             <textarea id="compose-text" class="compose-input" rows="3" placeholder="Post a note for the team..."></textarea>
             <div class="compose-footer">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
-            <select id="compose-category" class="select-pill">
-              <option value="general">General</option>
-              <option value="membership">Membership</option>
-              <option value="pro-shop">Pro Shop</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="academy">Academy</option>
-            </select>
+            <select id="compose-category" class="select-pill"><!-- options set per-audience by applyAudienceUI() --></select>
             <span style="font-size:11px;color:var(--text3);font-weight:500">Schedule for:</span>
             <input type="date" id="compose-showon" class="select-pill" title="Leave blank to post today. Pick a future date to surface this note for an upcoming shift." onchange="document.getElementById('showon-hint').style.display=this.value?'none':'inline'">
             <span id="showon-hint" style="font-size:11px;color:var(--text3);font-style:italic">today</span>
@@ -614,7 +590,26 @@
   let me = null, allStaff = [], messages = [];
   let activeCategory = 'all', activeStaff = 'all', activeGroup = 'all';
 
-  const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
+  // ── Audience: 'office' (default) or 'pro' — chosen by ?audience=pro in the URL. ──
+  // The pro comms log mirrors the office one but is scoped to the 6 teaching pros +
+  // management (David, Victor, Craig, Jaime), with its own category set.
+  const AUDIENCE = new URLSearchParams(location.search).get('audience') === 'pro' ? 'pro' : 'office';
+  const AUD_Q = AUDIENCE === 'pro' ? '&audience=pro' : '';
+  const CAT_CONFIG = {
+    office: {
+      cats:   ['membership','pro-shop','maintenance','academy','general'],
+      names:  { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' },
+      colors: { membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' },
+    },
+    pro: {
+      cats:   ['general','class-switch','player-assessment','sub-coverage','player-progress','program','equipment','incident'],
+      names:  { general:'General', 'class-switch':'Class Switches', 'player-assessment':'Player Assessments', 'sub-coverage':'Sub / Coverage', 'player-progress':'Player Progress', program:'Program & Curriculum', equipment:'Equipment', incident:'Incidents / Injuries' },
+      colors: { general:'#94a3b8', 'class-switch':'#2c5c9c', 'player-assessment':'#8b5cf6', 'sub-coverage':'#f59e0b', 'player-progress':'#10b981', program:'#0d9488', equipment:'#0ea5e9', incident:'#ef4444' },
+    },
+  };
+  const CATS = CAT_CONFIG[AUDIENCE];
+
+  const catNames = CATS.names;
   let selectedRecipients = [];
   let viewDate = new Date(); // the day currently shown
   viewDate.setHours(0,0,0,0);
@@ -740,7 +735,7 @@
 
   // ── Init ───────────────────────────────────────────────────────────────────
   async function init() {
-    const [meRes, staffRes] = await Promise.all([fetch('/api/me'), fetch('/api/messages/staff-list')]);
+    const [meRes, staffRes] = await Promise.all([fetch('/api/me'), fetch('/api/messages/staff-list' + (AUDIENCE === 'pro' ? '?audience=pro' : ''))]);
     if (!meRes.ok) { window.location.href='/login.html'; return; }
     me = await meRes.json();
     try { allStaff = await staffRes.json(); } catch (e) { allStaff = []; }
@@ -751,6 +746,7 @@
     document.getElementById('me-name').textContent = me.name;
 
     // Each step guarded so one failure can't stop the recipient picker or avatars loading
+    try { applyAudienceUI(); }     catch (e) { console.error('applyAudienceUI', e); }
     try { renderViewAs(); }        catch (e) { console.error('renderViewAs', e); }
     try { buildSidebar(); }        catch (e) { console.error('buildSidebar', e); }
     try { buildRecipientChips(); } catch (e) { console.error('buildRecipientChips', e); }
@@ -767,6 +763,37 @@
 
     await loadAll();
     try { refreshNotifBtn(); } catch (e) {}
+  }
+
+  // Paint the per-audience UI: sidebar category filters, compose dropdown, and — for the
+  // pro log — the category tag/border colors, the "Pros" group chip, and page copy.
+  function applyAudienceUI() {
+    const cf = document.getElementById('cat-filter-buttons');
+    if (cf) {
+      cf.innerHTML = CATS.cats.map(c =>
+        `<button class="sidebar-btn" data-cat="${c}" onclick="filterCategory('${c}',this)">
+           <span class="shift-dot" style="background:${CATS.colors[c]}"></span> ${CATS.names[c]}
+           <span id="b-${c}" class="unread-pill" style="display:none"></span>
+         </button>`).join('');
+    }
+    const sel = document.getElementById('compose-category');
+    if (sel) sel.innerHTML = CATS.cats.map(c => `<option value="${c}">${CATS.names[c]}</option>`).join('');
+
+    if (AUDIENCE === 'pro') {
+      // Office category colors ship in CSS; inject the pro set for tags + unread borders.
+      const css = CATS.cats.map(c => {
+        const key = c.replace('-', '_');
+        return `.cat-${key}{background:${CATS.colors[c]}22;color:${CATS.colors[c]};}` +
+               `.msg-card.unread[data-category="${c}"]{border-left-color:${CATS.colors[c]};}`;
+      }).join('\n');
+      const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+      // Repurpose the "Office" group chip as "Pros"
+      const off = document.querySelector('.group-chip[data-group="office"]');
+      if (off) { off.textContent = 'Pros'; off.dataset.group = 'pros'; off.setAttribute('onclick', "toggleGroup('pros',this)"); }
+      document.title = 'Pro Comms · JCT';
+      const trig = document.querySelector('#compose-trigger span');
+      if (trig) trig.textContent = 'Post a note for the pro team...';
+    }
   }
 
   function buildSidebar() {
@@ -817,7 +844,7 @@
 
   // ── Load all messages (up to 200 for date filtering client-side) ───────────
   async function loadAll() {
-    const res = await fetch('/api/messages?limit=200&offset=0');
+    const res = await fetch('/api/messages?limit=200&offset=0' + AUD_Q);
     if (!res.ok) return;
     messages = await res.json();
     renderFeed();
@@ -929,8 +956,8 @@
       groups[g].push(m);
     });
 
-    const catColors = { membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' };
-    const catNames  = { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
+    const catColors = CATS.colors;
+    const catNames  = CATS.names;
 
     // Order sections by their newest message so the most recent note is always at the very top.
     const newestInGroup = g => Math.max(...groups[g].map(m => new Date(m.created_at).getTime()));
@@ -1200,7 +1227,7 @@
     try {
       const res = await fetch('/api/messages', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn})
+        body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn, audience: AUDIENCE})
       });
       if (!res.ok) { showToast('Failed to post — try again', true); return; }
       clearCompose();
@@ -1271,7 +1298,11 @@
   // Staff ids for a group. 'management' = admins + managers; 'office' = front-desk staff.
   function groupIds(kind) {
     return allStaff
-      .filter(s => kind === 'management' ? (s.role === 'admin' || s.role === 'manager') : s.role === 'staff')
+      .filter(s => {
+        if (kind === 'management') return s.role === 'admin' || s.role === 'manager';
+        if (kind === 'pros') return s.role === 'pro';
+        return s.role === 'staff';
+      })
       .map(s => s.id)
       .filter(id => id !== me.id);
   }
@@ -1309,7 +1340,7 @@
   // ── Badges ─────────────────────────────────────────────────────────────────
   function updateBadges() {
     const isActive = isMyUnread;
-    ['all','membership','pro-shop','maintenance','academy','general'].forEach(cat => {
+    ['all', ...CATS.cats].forEach(cat => {
       const pool = cat === 'all' ? messages : messages.filter(m => (m.category||'general') === cat);
       const n = pool.filter(isActive).length;
       const el = document.getElementById('b-'+cat);

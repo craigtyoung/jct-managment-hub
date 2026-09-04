@@ -552,22 +552,31 @@ function removeStaff(staffId) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-function getMessages({ limit = 30, offset = 0, staffId }) {
+function getMessages({ limit = 30, offset = 0, staffId, audience }) {
   const allStaff = _data.staff;
   const vid = parseInt(staffId);
   const viewer = allStaff.find(s => s.id === vid);
   const viewerIsMgmt = viewer && (viewer.role === 'admin' || viewer.role === 'manager');
   const viewerIsPro  = viewer && viewer.role === 'pro';
 
-  // Privacy: management sees the whole log (oversight). Everyone else only sees a note
-  // if they authored it, it targets them specifically, or it's an everyone-note
-  // (recipients === null → office + management, not pros). Targeted notes never reach
-  // a non-recipient's browser. (Admins in "view as" mode inherit the viewed person's id,
-  // so this correctly simulates that person's view.)
-  const visible = viewerIsMgmt ? _data.messages : _data.messages.filter(m =>
+  // Two separate comms logs live in one table, split by `audience`:
+  //   'office' (default) = office staff + management (+ contractor) — pros excluded
+  //   'pro'              = the 6 teaching pros + management (David, Victor, Craig, Jaime)
+  // A viewer only ever sees one audience: pros → pro, office/contractor → office,
+  // management → whichever audience they're currently viewing (query param).
+  const aud = audience === 'pro' ? 'pro' : 'office';
+  if (aud === 'pro' && !(viewerIsMgmt || viewerIsPro)) return [];
+  if (aud === 'office' && viewerIsPro) return [];
+  const inAudience = _data.messages.filter(m => (m.audience || 'office') === aud);
+
+  // Privacy: management sees the whole log for the audience (oversight). Everyone else
+  // only sees a note if they authored it, it targets them specifically, or it's an
+  // everyone-note within their audience. Targeted notes never reach a non-recipient's
+  // browser. (Admins in "view as" mode inherit the viewed person's id.)
+  const visible = viewerIsMgmt ? inAudience : inAudience.filter(m =>
     m.staff_id === vid ||
     (Array.isArray(m.recipients) && m.recipients.includes(vid)) ||
-    (!m.recipients && !viewerIsPro)
+    (!m.recipients)
   );
 
   const sorted = [...visible].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -594,16 +603,20 @@ function getMessages({ limit = 30, offset = 0, staffId }) {
     const is_read_by_me = _data.reads.some(r => r.message_id === msg.id && r.staff_id === parseInt(staffId));
 
     // Determine which staff to show read receipts for
-    const recipients = msg.recipients || null; // null = everyone (office + management, not pros)
+    const recipients = msg.recipients || null; // null = everyone within this audience
+    const audMembers = aud === 'pro'
+      ? allStaff.filter(s => ['pro', 'admin', 'manager'].includes(s.role))
+      : allStaff.filter(s => s.role !== 'pro');
     const receiptStaff = recipients
       ? allStaff.filter(s => recipients.includes(s.id))
-      : allStaff.filter(s => s.role !== 'pro');
+      : audMembers;
 
     return {
       id: msg.id,
       content: msg.content,
       shift: msg.shift,
       category: msg.category || 'general',
+      audience: aud,
       recipients,
       receipt_staff: receiptStaff.map(s => ({ id: s.id, name: s.name, color: s.color })),
       created_at: msg.created_at,
@@ -619,18 +632,22 @@ function getMessages({ limit = 30, offset = 0, staffId }) {
   });
 }
 
-function createMessage({ staffId, content, shift, category, recipients, show_on }) {
+function createMessage({ staffId, content, shift, category, recipients, show_on, audience }) {
   const id = nextId('messages');
-  const validCategories = ['membership', 'pro-shop', 'maintenance', 'academy', 'general'];
+  const aud = audience === 'pro' ? 'pro' : 'office';
+  const officeCategories = ['membership', 'pro-shop', 'maintenance', 'academy', 'general'];
+  const proCategories = ['general', 'class-switch', 'player-assessment', 'sub-coverage', 'player-progress', 'program', 'equipment', 'incident'];
+  const validCategories = aud === 'pro' ? proCategories : officeCategories;
   // show_on: 'YYYY-MM-DD' to surface the note on a future day, else null (shows on the day it was posted)
   const validShowOn = (typeof show_on === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(show_on)) ? show_on : null;
-  // recipients: null = everyone, array of staff IDs = targeted
+  // recipients: null = everyone (within audience), array of staff IDs = targeted
   const msg = {
     id,
     staff_id: parseInt(staffId),
     content,
     shift,
     category: validCategories.includes(category) ? category : 'general',
+    audience: aud,
     recipients: recipients && recipients.length > 0 ? recipients.map(Number) : null,
     show_on: validShowOn,
     created_at: now()
@@ -657,18 +674,23 @@ function markRead(messageId, staffId) {
   }
 }
 
-function getUnreadCount(staffId) {
+function getUnreadCount(staffId, audience) {
   const sid = parseInt(staffId);
   const viewer = _data.staff.find(s => s.id === sid);
   const viewerIsPro = viewer && viewer.role === 'pro';
+  const viewerIsMgmt = viewer && (viewer.role === 'admin' || viewer.role === 'manager');
+  const aud = audience === 'pro' ? 'pro' : (audience === 'office' ? 'office' : (viewerIsPro ? 'pro' : 'office'));
+  if (aud === 'pro' && !(viewerIsPro || viewerIsMgmt)) return 0;
+  if (aud === 'office' && viewerIsPro) return 0;
   const t = new Date();
   const todayStr = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   return _data.messages.filter(msg => {
+    if ((msg.audience || 'office') !== aud) return false;    // other audience's log
     if (msg.staff_id === sid) return false;                 // own messages don't count
     if (msg.show_on && msg.show_on > todayStr) return false; // scheduled for a future day
     const isRecipient = msg.recipients
       ? (Array.isArray(msg.recipients) && msg.recipients.includes(sid))
-      : !viewerIsPro;                                        // implicit "everyone" = office + management, not pros
+      : true;                                                // everyone within this audience
     if (!isRecipient) return false;                          // not relevant to this person
     return !_data.reads.some(r => r.message_id === msg.id && r.staff_id === sid);
   }).length;

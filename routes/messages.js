@@ -11,24 +11,32 @@ router.use((req, res, next) => {
   next();
 });
 
-// GET messages — paginated, newest first
+// GET messages — paginated, newest first. `audience` selects which log ('office'|'pro').
 router.get('/', (req, res) => {
   const limit = parseInt(req.query.limit) || 30;
   const offset = parseInt(req.query.offset) || 0;
-  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId });
+  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId, audience: req.query.audience });
   res.json(messages);
 });
 
-// GET unread count for current user
+// GET unread count for current user (optionally scoped to a specific audience)
 router.get('/unread-count', (req, res) => {
-  const count = db.getUnreadCount(req.actingStaffId);
+  const count = db.getUnreadCount(req.actingStaffId, req.query.audience);
   res.json({ count });
 });
 
-// GET comms audience (for read receipts + recipient picker).
-// Comms is office + management only for now — teaching pros are excluded.
+// GET comms audience members (for read receipts + recipient picker), audience-aware:
+//   office → office staff + management (pros excluded)
+//   pro    → the 6 teaching pros + management (David, Victor, Craig, Jaime)
+// Pros may only ever address the pro audience.
 router.get('/staff-list', (req, res) => {
-  res.json(db.getAllStaff().filter(s => s.role !== 'pro'));
+  const me = db.getStaffById(req.actingStaffId);
+  let aud = req.query.audience === 'pro' ? 'pro' : 'office';
+  if (me && me.role === 'pro') aud = 'pro';
+  const list = aud === 'pro'
+    ? db.getAllStaff().filter(s => ['pro', 'admin', 'manager'].includes(s.role))
+    : db.getAllStaff().filter(s => s.role !== 'pro');
+  res.json(list);
 });
 
 // POST new message
@@ -36,10 +44,16 @@ router.post('/', (req, res) => {
   const { content, shift, category } = req.body;
   if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
   const validShifts = ['morning', 'afternoon', 'evening', 'general'];
-  // recipients: array of staff IDs or empty/absent = everyone
+  // recipients: array of staff IDs or empty/absent = everyone (within the audience)
   const recipients = Array.isArray(req.body.recipients) && req.body.recipients.length > 0
     ? req.body.recipients.map(Number)
     : null;
+
+  // Audience: pros always post to the pro log; management may choose; office → office.
+  const author = db.getStaffById(req.actingStaffId);
+  let audience = 'office';
+  if (author && author.role === 'pro') audience = 'pro';
+  else if (req.body.audience === 'pro' && author && ['admin', 'manager'].includes(author.role)) audience = 'pro';
 
   const id = db.createMessage({
     staffId: req.actingStaffId,
@@ -48,21 +62,24 @@ router.post('/', (req, res) => {
     category,
     recipients,
     show_on: req.body.show_on,
+    audience,
   });
   sse.broadcast('update');
 
   // Push notifications to the intended recipients (never the author), respecting
-  // targeting: an everyone-note goes to all comms staff; a targeted note only to
-  // its recipients. Fire-and-forget.
+  // targeting and audience: an everyone-note goes to all members of its audience;
+  // a targeted note only to its recipients. Fire-and-forget.
   try {
-    const author = db.getStaffById(req.actingStaffId);
+    const isMember = (s) => audience === 'pro'
+      ? ['pro', 'admin', 'manager'].includes(s.role)
+      : s.role !== 'pro';
     const targetIds = recipients
       ? recipients.filter(sid => sid !== req.actingStaffId)
-      : db.getAllStaff().filter(s => s.role !== 'pro' && s.id !== req.actingStaffId).map(s => s.id);
+      : db.getAllStaff().filter(s => isMember(s) && s.id !== req.actingStaffId).map(s => s.id);
     push.sendToStaff(targetIds, {
       title: (author ? author.name : 'JCT Staff Hub') + (recipients ? ' · sent to you' : ''),
       body: content.trim().slice(0, 140),
-      url: '/comms.html',
+      url: '/comms.html' + (audience === 'pro' ? '?audience=pro' : ''),
       tag: 'jct-comms-' + id,
     });
   } catch (e) { console.error('push send failed:', e.message); }
