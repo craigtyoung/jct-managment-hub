@@ -441,6 +441,9 @@
     let shiftDefaults = {};
     let modalTimeAdjusted = false;
     let popoverCtx = null;
+    // Pro schedule view: URL ?view=pro, or set true for pro users at init. Scopes the
+    // grid + assign picker to teaching pros only, using the same schedule engine.
+    let PRO_VIEW = new URLSearchParams(location.search).get('view') === 'pro';
 
     function fmt12(t) {
       if (!t) return '—';
@@ -523,6 +526,7 @@
           weekData[d] = { morning:[], afternoon:[], closing:[] };
         }
         for (const a of assignments) {
+          if (PRO_VIEW && a.staff_role !== 'pro') continue; // pro schedule shows teaching pros only
           if (weekData[a.date] && weekData[a.date][a.shift]) {
             weekData[a.date][a.shift].push(a);
           }
@@ -948,6 +952,13 @@
         ? 'Click + on any shift slot to assign staff, or check "Repeat weekly" to set a recurring rule.'
         : 'View-only. Admins and managers can edit assignments.';
 
+      if (me && me.role === 'pro') PRO_VIEW = true;
+      if (PRO_VIEW) {
+        document.title = 'Pro Schedule · JCT';
+        const h = document.getElementById('admin-hint');
+        if (h) h.textContent = '🎾 Pro schedule — showing teaching pros only.' + (canEdit ? ' Click + on a slot to assign a pro.' : '');
+      }
+
       if (canEdit) document.getElementById('rules-panel').style.display = 'block';
 
       try {
@@ -959,6 +970,7 @@
       try {
         const sr = await fetch('/api/schedule/staff');
         allStaff = await sr.json();
+        if (PRO_VIEW && Array.isArray(allStaff)) allStaff = allStaff.filter(s => s.role === 'pro');
       } catch(e) {}
 
       try {

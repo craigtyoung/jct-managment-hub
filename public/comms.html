@@ -763,6 +763,17 @@
 
     await loadAll();
     try { refreshNotifBtn(); } catch (e) {}
+
+    // Deep-link: ?compose=<category> opens the composer pre-set to that category
+    // (used by the pro dashboard's Sub/Coverage + Schedule-Change quick actions).
+    try {
+      const composeCat = new URLSearchParams(location.search).get('compose');
+      if (composeCat && CATS.cats.includes(composeCat)) {
+        openCompose();
+        const sel = document.getElementById('compose-category');
+        if (sel) sel.value = composeCat;
+      }
+    } catch (e) {}
   }
 
   // Paint the per-audience UI: sidebar category filters, compose dropdown, and — for the
