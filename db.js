@@ -1888,9 +1888,8 @@ function getProScheduleSlots(day) {
   return list.slice().sort((a, b) =>
     (_SLOT_DAY_ORDER[a.day] - _SLOT_DAY_ORDER[b.day]) ||
     String(a.start).localeCompare(String(b.start)) ||
-    String(a.court || '').localeCompare(String(b.court || '')) ||
     String(a.program).localeCompare(String(b.program))
-  );
+  ).map(s => ({ ...s, courts: Array.isArray(s.courts) ? s.courts : (s.court ? [String(s.court)] : []) }));
 }
 
 function addProScheduleSlot(f) {
@@ -1906,6 +1905,7 @@ function addProScheduleSlot(f) {
     program: String(f.program || 'New slot').slice(0, 80),
     category: String(f.category || 'junior').slice(0, 20),
     court: f.court ? String(f.court).slice(0, 20) : null,
+    courts: Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [],
     capacity: f.capacity ? String(f.capacity).slice(0, 20) : null,
     pro_ids: Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [],
     note: String(f.note || '').slice(0, 120),
@@ -1921,6 +1921,7 @@ function updateProScheduleSlot(id, f) {
   if (!s) return null;
   if (f.pro_ids !== undefined) s.pro_ids = Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [];
   if (f.court !== undefined) s.court = (f.court === '' || f.court === null) ? null : String(f.court).slice(0, 20);
+  if (f.courts !== undefined) s.courts = Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [];
   if (f.capacity !== undefined) s.capacity = (f.capacity === '' || f.capacity === null) ? null : String(f.capacity).slice(0, 20);
   if (f.program !== undefined) s.program = String(f.program).slice(0, 80);
   if (f.day !== undefined && _SLOT_DAYS.includes(f.day)) s.day = f.day;

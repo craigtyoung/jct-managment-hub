@@ -56,6 +56,33 @@
     .empty { padding:40px; text-align:center; color:var(--text3); }
     .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--navy); color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; font-weight:600; opacity:0; transition:all .25s; z-index:50; }
     .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* View toggle */
+    .viewtoggle { display:inline-flex; gap:0; border:1px solid var(--border2); border-radius:100px; overflow:hidden; margin-bottom:14px; }
+    .vtbtn { padding:7px 16px; border:none; background:var(--surface); font-family:inherit; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; }
+    .vtbtn.on { background:var(--navy); color:#fff; }
+
+    /* Multi-court picker */
+    .courts-pick { display:inline-flex; gap:4px; }
+    .courtchip { width:26px; height:26px; border-radius:7px; border:1px solid var(--border2); background:var(--input-bg); color:var(--text3); font-weight:800; font-size:12px; cursor:pointer; font-family:inherit; }
+    .courtchip.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .courts-label { font-size:11px; color:var(--text3); font-weight:700; margin-right:2px; }
+
+    /* Court × Time board */
+    .ctwrap { overflow-x:auto; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+    table.ct { border-collapse:collapse; width:100%; min-width:720px; }
+    table.ct th, table.ct td { border:1px solid var(--border); padding:6px; vertical-align:top; text-align:left; }
+    table.ct thead th { background:var(--navy); color:#fff; font-size:12px; font-weight:700; position:sticky; top:0; }
+    table.ct th.ct-time, table.ct td.ct-time { background:var(--input-bg); font-size:12px; font-weight:800; color:var(--blue); white-space:nowrap; width:110px; }
+    .ctcell { border-radius:8px; padding:6px 8px; margin-bottom:5px; border-left:3px solid var(--border2); background:var(--input-bg); }
+    .ctcell.cat-j { border-left-color:var(--blue); }
+    .ctcell.cat-a { border-left-color:var(--green); }
+    .ctcell.cat-o { border-left-color:#94a3b8; }
+    .ctprog { font-size:12px; font-weight:700; margin-bottom:3px; }
+    .ctpros { display:flex; flex-wrap:wrap; gap:3px; }
+    .ctp { font-size:10px; font-weight:700; color:#fff; padding:2px 6px; border-radius:100px; }
+    .ctnone { font-size:11px; color:var(--text3); font-style:italic; }
+    .unassigned { margin-top:12px; padding:10px 14px; border:1px dashed var(--border2); border-radius:10px; font-size:12px; color:var(--text2); background:var(--surface); }
     @media (max-width:640px){ .slot-meta{ margin-left:0; width:100%; } }
   </style>
 </head>
@@ -70,6 +97,10 @@
     <div class="lead">The season class grid. <b>Assign a court and the pros</b> for each class — set once, tweak anytime. Pros see the board read-only.</div>
     <div id="roview" class="roview">👀 View only — management sets the schedule.</div>
     <div id="daytabs" class="daytabs"></div>
+    <div class="viewtoggle">
+      <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
+      <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
+    </div>
     <div id="board"><div class="empty">Loading…</div></div>
     <button id="addbtn" class="addbtn" style="display:none" onclick="addSlot()">+ Add a slot (performance, house league, etc.)</button>
   </div>
@@ -79,7 +110,7 @@
   <script>
     const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const DAY_FULL = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
-    let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon';
+    let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon', view = 'list';
 
     function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000); }
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -118,28 +149,49 @@
     }
     function setDay(d){ activeDay=d; renderTabs(); renderBoard(); }
 
-    function renderBoard(){
+    function renderBoard(){ if(view==='grid') renderCourtTimeBoard(); else renderListBoard(); }
+    function setView(v){ view=v; document.getElementById('vt-list').classList.toggle('on',v==='list'); document.getElementById('vt-grid').classList.toggle('on',v==='grid'); renderBoard(); }
+    function renderListBoard(){
       const board=document.getElementById('board');
       const list = slots.filter(s=>s.day===activeDay);
       if (!list.length){ board.innerHTML='<div class="empty">No classes for '+DAY_FULL[activeDay]+' yet.</div>'; return; }
       board.innerHTML = list.map(renderSlot).join('');
     }
+    function renderCourtTimeBoard(){
+      const board=document.getElementById('board');
+      const list = slots.filter(s=>s.day===activeDay);
+      if(!list.length){ board.innerHTML='<div class="empty">No classes for '+DAY_FULL[activeDay]+' yet.</div>'; return; }
+      const COURTS=['1','2','3','4','5','6'];
+      const key=s=>s.start+'-'+s.end;
+      const times=[...new Map(list.map(s=>[key(s),{start:s.start,end:s.end,label:s.time_label||(s.start+'–'+s.end)}])).values()].sort((a,b)=>a.start.localeCompare(b.start));
+      const catAbbr=c=>c==='junior'?'j':c==='adult'?'a':'o';
+      let html='<div class="ctwrap"><table class="ct"><thead><tr><th class="ct-time">Time</th>'+COURTS.map(c=>`<th>Court ${c}</th>`).join('')+'</tr></thead><tbody>';
+      for(const t of times){
+        html+=`<tr><td class="ct-time">${esc(t.label)}</td>`;
+        for(const c of COURTS){
+          const cells=list.filter(s=>key(s)===t.start+'-'+t.end && (s.courts||[]).includes(c));
+          html+='<td>'+cells.map(s=>`<div class="ctcell cat-${catAbbr(s.category)}"><div class="ctprog">${esc(s.program)}</div><div class="ctpros">${(s.pro_ids||[]).map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}">${esc(String(p.name).split(' ')[0])}</span>`:''}).join('')||'<span class="ctnone">—</span>'}</div></div>`).join('')+'</td>';
+        }
+        html+='</tr>';
+      }
+      html+='</tbody></table></div>';
+      const noCourt=list.filter(s=>!(s.courts&&s.courts.length));
+      if(noCourt.length){ html+='<div class="unassigned"><b>No court assigned yet:</b> '+noCourt.map(s=>esc(s.program)+' <span style="color:var(--text3)">('+esc(s.time_label||s.start)+')</span>').join(' · ')+'</div>'; }
+      board.innerHTML=html;
+    }
 
     function renderSlot(s){
-      const courtOpts = ['','1','2','3','4','5','6'].map(c=>`<option value="${c}" ${String(s.court||'')===c?'selected':''}>${c?('Court '+c):'—'}</option>`).join('');
+      const courts = s.courts || [];
+      const courtPick = ['1','2','3','4','5','6'].map(c=>`<button class="courtchip ${courts.includes(c)?'on':''}" onclick="toggleCourt(${s.id},'${c}')">${c}</button>`).join('');
       const assigned = (s.pro_ids||[]).map(id=>{ const p=proById(id); if(!p) return ''; return `<span class="pchip ${canEdit?'':'ro'}" style="background:${p.color||'#2c5c9c'}">${esc(p.name)}<button onclick="unassign(${s.id},${p.id})" title="Remove">✕</button></span>`; }).join('');
       const unassigned = pros.filter(p=>!(s.pro_ids||[]).includes(p.id));
       const addSel = canEdit ? `<select class="paddsel" onchange="assign(${s.id}, this.value); this.value=''">
           <option value="">+ pro</option>
           ${unassigned.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
         </select>` : '';
-      const meta = canEdit ? `<div class="slot-meta">
-          <span class="field">Court <select onchange="setField(${s.id},'court',this.value)">${courtOpts}</select></span>
-          <span class="field">Cap <input value="${esc(s.capacity||'')}" placeholder="—" onchange="setField(${s.id},'capacity',this.value)"></span>
-        </div>` : `<div class="slot-meta">
-          ${s.court?`<span class="field">Court ${esc(s.court)}</span>`:''}
-          ${s.capacity?`<span class="field">Cap ${esc(s.capacity)}</span>`:''}
-        </div>`;
+      const meta = canEdit
+        ? `<div class="slot-meta"><span class="courts-label">Courts</span><span class="courts-pick">${courtPick}</span></div>`
+        : `<div class="slot-meta">${courts.length?('Court '+courts.join(', ')):'<span class="noone">No court</span>'}</div>`;
       return `<div class="slot">
         <div class="slot-top">
           <span class="slot-time">${esc(s.time_label || (s.start+'–'+s.end))}</span>
@@ -167,6 +219,7 @@
     async function assign(id, proId){ if(!proId) return; const s=slots.find(x=>x.id===id); const ids=[...(s.pro_ids||[]), parseInt(proId)]; if(await put(id,{pro_ids:ids})){ renderBoard(); toast('Assigned'); } }
     async function unassign(id, proId){ const s=slots.find(x=>x.id===id); const ids=(s.pro_ids||[]).filter(x=>x!==proId); if(await put(id,{pro_ids:ids})){ renderBoard(); } }
     async function setField(id, field, val){ if(await put(id,{[field]:val})){ toast('Saved'); } }
+    async function toggleCourt(id, c){ const s=slots.find(x=>x.id===id); const cur=(s.courts||[]); const courts= cur.includes(c)? cur.filter(x=>x!==c) : [...cur,c].sort(); if(await put(id,{courts})){ renderBoard(); } }
 
     async function addSlot(){
       const body = { day:activeDay, program:'New slot', category:'other', start:'09:00', end:'10:00', time_label:'9–10 AM' };
