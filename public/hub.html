@@ -1694,6 +1694,9 @@
     function setMode(mode) {
       const pro = mode === 'pro';
       document.body.classList.toggle('pro-mode', pro);
+      // In pro mode, nav "Comms" links point at the pro log so you never land on office by accident.
+      const commsHref = pro ? '/comms.html?audience=pro' : '/comms.html';
+      document.querySelectorAll('.sidenav a[href^="/comms.html"], .mnav a[href^="/comms.html"]').forEach(a => a.setAttribute('href', commsHref));
       const o = document.getElementById('mode-office');
       const p = document.getElementById('mode-pro');
       if (o && p) { o.classList.toggle('on', !pro); p.classList.toggle('on', pro); }

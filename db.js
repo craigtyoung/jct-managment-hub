@@ -236,8 +236,13 @@ if (!_data) {
   console.log('Data store created. Default password for all: jct2025');
 }
 
-// Migration: add season 2026 staff
-{
+// One-time migration flags so seed migrations never re-add deleted staff on reboot.
+_data._migrations = _data._migrations || {};
+
+// Migration: add season 2026 staff — runs ONCE. If any of these already exist,
+// the migration is treated as already-run and only its flag is set (so a staffer
+// deleted via the directory is not resurrected on the next deploy).
+if (!_data._migrations.season2026) {
   const SEASON_STAFF = [
     { name: 'Cassandra', color: '#e11d48' },
     { name: 'Vicky',     color: '#7c3aed' },
@@ -247,19 +252,22 @@ if (!_data) {
     { name: 'Emilia',    color: '#b45309' },
   ];
   const pw2026 = bcrypt.hashSync('jct2026', 10);
+  const anyPresent = SEASON_STAFF.some(s => _data.staff.some(x => x.name.toLowerCase() === s.name.toLowerCase()));
   let added = false;
-  for (const s of SEASON_STAFF) {
-    if (!_data.staff.some(x => x.name.toLowerCase() === s.name.toLowerCase())) {
+  if (!anyPresent) {
+    for (const s of SEASON_STAFF) {
       _data._seq.staff = (_data._seq.staff || 0) + 1;
       _data.staff.push({ id: _data._seq.staff, name: s.name, color: s.color, role: 'staff', password: pw2026 });
       added = true;
     }
   }
-  if (added) { save(); console.log('Season 2026 staff added (password: jct2026).'); }
+  _data._migrations.season2026 = true;
+  save();
+  if (added) console.log('Season 2026 staff added (password: jct2026).');
 }
 
-// Migration: add teaching pros (role 'pro') — Aug 2026
-{
+// Migration: add teaching pros (role 'pro') — Aug 2026 — runs ONCE (same guard).
+if (!_data._migrations.pros2026) {
   const PRO_STAFF = [
     { name: 'Megan',   color: '#0ea5e9' },
     { name: 'Mike',    color: '#16a34a' },
@@ -269,15 +277,18 @@ if (!_data) {
     { name: 'Daniel',  color: '#dc2626' },
   ];
   const pwPro = bcrypt.hashSync('jct2026', 10);
+  const anyPresent = PRO_STAFF.some(s => _data.staff.some(x => x.name.toLowerCase() === s.name.toLowerCase()));
   let addedPro = false;
-  for (const s of PRO_STAFF) {
-    if (!_data.staff.some(x => x.name.toLowerCase() === s.name.toLowerCase())) {
+  if (!anyPresent) {
+    for (const s of PRO_STAFF) {
       _data._seq.staff = (_data._seq.staff || 0) + 1;
       _data.staff.push({ id: _data._seq.staff, name: s.name, color: s.color, role: 'pro', password: pwPro });
       addedPro = true;
     }
   }
-  if (addedPro) { save(); console.log('Teaching pros added (role: pro, password: jct2026).'); }
+  _data._migrations.pros2026 = true;
+  save();
+  if (addedPro) console.log('Teaching pros added (role: pro, password: jct2026).');
 }
 
 // Migration: add shift_assignments table if missing
