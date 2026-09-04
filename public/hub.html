@@ -1755,16 +1755,20 @@
         document.getElementById('admin-nav-group').style.display = 'block';
       }
 
-      // Mode: pros are locked to Pro. Management is locked to Office for now (Pro mode is
-      // pros-only to avoid confusion); they reach the pro side via the Pro Schedule /
-      // Pro Comms links + View As. The Office⇄Pro toggle stays hidden.
+      // Mode: pros are locked to Pro; the four managers (Craig, Jaime, Victor, David)
+      // get the Office⇄Pro toggle to move between interfaces; other staff are Office-only.
+      const canToggle = me.role === 'admin' || me.role === 'manager';
       const isPro = me.role === 'pro';
-      window.__canToggle = false;
-      const startMode = isPro ? 'pro' : 'admin';
-      if (isPro) document.getElementById('mode-locked-pill').style.display = 'inline-flex';
+      window.__canToggle = canToggle;
+      let startMode;
+      if (isPro) startMode = 'pro';
+      else if (!canToggle) startMode = 'admin';
+      else startMode = localStorage.getItem('jct-hub-mode') || 'admin';
+      if (canToggle) document.getElementById('mode-toggle').style.display = 'inline-flex';
+      else if (isPro) document.getElementById('mode-locked-pill').style.display = 'inline-flex';
       setMode(startMode);
 
-      if (isPro) { try { initProDashboard(me); } catch (e) { console.error('initProDashboard', e); } }
+      if (isPro || canToggle) { try { initProDashboard(me); } catch (e) { console.error('initProDashboard', e); } }
 
       renderContacts();
       loadBubble();

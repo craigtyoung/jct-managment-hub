@@ -519,6 +519,50 @@ if (!_data._migrations.proSchedule2026) {
   console.log('Seeded pro schedule slots:', _data.pro_schedule_slots.length);
 }
 
+// One-time: pre-assign pros + courts to the clearest entries read from the court
+// schedule PDF (a starter for cross-checking). Names resolve against the LIVE staff
+// directory at runtime, so ids match whatever roster exists. Ambiguous/private cells
+// are intentionally left blank. Runs once (flag), so hand-edits are never overwritten.
+if (!_data._migrations.proScheduleAssign2026v1 && Array.isArray(_data.pro_schedule_slots) && _data.pro_schedule_slots.length) {
+  const ALIAS = { katia: 'katya', donski: 'mike donski' };
+  function resolvePro(name) {
+    const n = String(name).trim().toLowerCase();
+    const target = ALIAS[n] || n;
+    const st = _data.staff;
+    let m = st.find(s => s.name.toLowerCase() === target)
+         || st.find(s => s.name.toLowerCase().startsWith(target))
+         || st.find(s => s.name.toLowerCase().includes(target));
+    if (!m && target === 'mike donski') m = st.find(s => s.name.toLowerCase() === 'mike');
+    return m ? m.id : null;
+  }
+  // {day, t:start24, prog:substring, not?:excludeSubstring, pros:[], courts:[]}
+  const ASSIGN = [
+    { day: 'Mon', t: '17:30', prog: 'future stars', not: 'plus', pros: ['Katya', 'Sylvia', 'Angie'], courts: ['6'] },
+    { day: 'Mon', t: '18:30', prog: 'future stars plus', pros: ['Megan', 'Katya', 'Sylvia', 'Angie'], courts: ['6'] },
+    { day: 'Mon', t: '18:00', prog: 'adult intermediate', pros: ['Martin'], courts: ['5'] },
+    { day: 'Tue', t: '09:30', prog: 'adult intermediate', pros: ['Megan'], courts: ['1'] },
+    { day: 'Wed', t: '18:30', prog: 'future stars plus', pros: ['Katya', 'Matthew', 'Nino', 'Sylvia'], courts: ['6'] },
+    { day: 'Wed', t: '16:30', prog: 'bronze', pros: ['Katya', 'Nino', 'Sylvia'], courts: ['6'] },
+    { day: 'Wed', t: '17:30', prog: 'bronze', pros: ['Katya', 'Nino', 'Sylvia'], courts: ['6'] },
+    { day: 'Sat', t: '09:00', prog: 'future stars', not: 'plus', pros: ['Katya', 'Angie'], courts: ['6'] },
+  ];
+  let assigned = 0;
+  for (const e of ASSIGN) {
+    const slot = _data.pro_schedule_slots.find(s =>
+      s.day === e.day && s.start === e.t &&
+      s.program.toLowerCase().includes(e.prog) &&
+      (!e.not || !s.program.toLowerCase().includes(e.not))
+    );
+    if (!slot) continue;
+    const ids = e.pros.map(resolvePro).filter(Boolean);
+    if (ids.length) { slot.pro_ids = ids; assigned++; }
+    if (Array.isArray(e.courts)) slot.courts = e.courts.slice();
+  }
+  _data._migrations.proScheduleAssign2026v1 = true;
+  save();
+  console.log('Pro schedule starter assignments applied to', assigned, 'slots.');
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
