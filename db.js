@@ -563,6 +563,42 @@ if (!_data._migrations.proScheduleAssign2026v1 && Array.isArray(_data.pro_schedu
   console.log('Pro schedule starter assignments applied to', assigned, 'slots.');
 }
 
+// One-time: add Monday's non-catalog performance/house-league blocks (from the court
+// sheet) that don't exist as sellable classes. Names resolve against the live roster.
+if (!_data._migrations.proScheduleMondayPerf2026v1 && Array.isArray(_data.pro_schedule_slots)) {
+  const ALIAS = { katia: 'katya', donski: 'mike donski' };
+  const resolve = (name) => {
+    const target = ALIAS[String(name).trim().toLowerCase()] || String(name).trim().toLowerCase();
+    const st = _data.staff;
+    let m = st.find(s => s.name.toLowerCase() === target)
+         || st.find(s => s.name.toLowerCase().startsWith(target))
+         || st.find(s => s.name.toLowerCase().includes(target));
+    if (!m && target === 'mike donski') m = st.find(s => s.name.toLowerCase() === 'mike');
+    return m ? m.id : null;
+  };
+  const MON_EXTRA = [
+    { start: '14:30', end: '16:30', time_label: '2:30–4:30 PM', program: 'Performance Program (Afternoon)', category: 'performance', courts: ['1','2','3','4','5'], pros: ['David','Daniel H','Roman','Mike Donski','Martin'] },
+    { start: '13:30', end: '14:30', time_label: '1:30–2:30 PM', program: 'U18 Performance Fitness', category: 'performance', courts: ['6'], pros: ['Martin'] },
+    { start: '19:30', end: '21:00', time_label: '7:30–9:00 PM', program: "Men's House League", category: 'other', courts: ['3','4','5'], pros: ['Mike Donski','Roman','Daniel G'] },
+  ];
+  for (const e of MON_EXTRA) {
+    // skip if a Monday slot with this program already exists (idempotent-ish)
+    if (_data.pro_schedule_slots.some(s => s.day === 'Mon' && s.program === e.program)) continue;
+    _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+    _data.pro_schedule_slots.push({
+      id: _data._seq.pro_schedule_slots, class_id: null, day: 'Mon',
+      start: e.start, end: e.end, time_label: e.time_label,
+      program: e.program, category: e.category,
+      court: null, courts: e.courts.slice(),
+      capacity: null, pro_ids: e.pros.map(resolve).filter(Boolean),
+      note: 'Starter from court sheet — verify', active: true,
+    });
+  }
+  _data._migrations.proScheduleMondayPerf2026v1 = true;
+  save();
+  console.log('Added Monday performance/house-league slots.');
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
