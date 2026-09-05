@@ -599,6 +599,25 @@ if (!_data._migrations.proScheduleMondayPerf2026v1 && Array.isArray(_data.pro_sc
   console.log('Added Monday performance/house-league slots.');
 }
 
+// One-time: migrate flat (courts + pro_ids) starter data into the per-court map so the
+// drag-and-drop board shows existing assignments. One pro per court when counts match;
+// otherwise all pros land on the first court for the user to re-drag.
+if (!_data._migrations.proScheduleCourtPros2026v1 && Array.isArray(_data.pro_schedule_slots)) {
+  for (const s of _data.pro_schedule_slots) {
+    if (s.court_pros && Object.keys(s.court_pros).length) continue;
+    const courts = Array.isArray(s.courts) ? s.courts : [];
+    const pros = Array.isArray(s.pro_ids) ? s.pro_ids : [];
+    if (!pros.length || !courts.length) { s.court_pros = s.court_pros || {}; continue; }
+    const cp = {};
+    if (courts.length === pros.length) courts.forEach((c, i) => { cp[c] = [pros[i]]; });
+    else cp[courts[0]] = pros.slice();
+    s.court_pros = cp;
+  }
+  _data._migrations.proScheduleCourtPros2026v1 = true;
+  save();
+  console.log('Backfilled per-court pro assignments.');
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
@@ -1969,7 +1988,11 @@ function getProScheduleSlots(day) {
     (_SLOT_DAY_ORDER[a.day] - _SLOT_DAY_ORDER[b.day]) ||
     String(a.start).localeCompare(String(b.start)) ||
     String(a.program).localeCompare(String(b.program))
-  ).map(s => ({ ...s, courts: Array.isArray(s.courts) ? s.courts : (s.court ? [String(s.court)] : []) }));
+  ).map(s => ({
+    ...s,
+    courts: Array.isArray(s.courts) ? s.courts : (s.court ? [String(s.court)] : []),
+    court_pros: (s.court_pros && typeof s.court_pros === 'object') ? s.court_pros : {},
+  }));
 }
 
 function addProScheduleSlot(f) {
@@ -1986,6 +2009,7 @@ function addProScheduleSlot(f) {
     category: String(f.category || 'junior').slice(0, 20),
     court: f.court ? String(f.court).slice(0, 20) : null,
     courts: Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [],
+    court_pros: {},
     capacity: f.capacity ? String(f.capacity).slice(0, 20) : null,
     pro_ids: Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [],
     note: String(f.note || '').slice(0, 120),
@@ -2002,6 +2026,19 @@ function updateProScheduleSlot(id, f) {
   if (f.pro_ids !== undefined) s.pro_ids = Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [];
   if (f.court !== undefined) s.court = (f.court === '' || f.court === null) ? null : String(f.court).slice(0, 20);
   if (f.courts !== undefined) s.courts = Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [];
+  // Per-court pro assignment: { "3": [proId, ...], ... }. Keeps courts + pro_ids in sync.
+  if (f.court_pros !== undefined && f.court_pros && typeof f.court_pros === 'object') {
+    const cp = {};
+    for (const k of Object.keys(f.court_pros)) {
+      const arr = Array.isArray(f.court_pros[k]) ? f.court_pros[k].map(Number).filter(n => !isNaN(n)) : [];
+      cp[String(k).slice(0, 8)] = arr;
+    }
+    s.court_pros = cp;
+    const courtSet = new Set(Array.isArray(s.courts) ? s.courts : []);
+    Object.keys(cp).forEach(k => { if (cp[k].length) courtSet.add(k); });
+    s.courts = [...courtSet].sort();
+    s.pro_ids = [...new Set(Object.values(cp).flat())];
+  }
   if (f.capacity !== undefined) s.capacity = (f.capacity === '' || f.capacity === null) ? null : String(f.capacity).slice(0, 20);
   if (f.program !== undefined) s.program = String(f.program).slice(0, 80);
   if (f.day !== undefined && _SLOT_DAYS.includes(f.day)) s.day = f.day;

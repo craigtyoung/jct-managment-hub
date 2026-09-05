@@ -110,6 +110,24 @@
     .daytab .n { color:var(--text3); font-weight:600; }
     .daytab.on .n { color:#cbd5e1; }
     @media (max-width:720px){ .sched-cols { flex-direction:column; } .day-rail { flex-direction:row; flex-wrap:wrap; position:static; flex-basis:auto; width:100%; } .daytab { width:auto; } }
+
+    /* Drag-and-drop assignment */
+    .prorail { position:sticky; top:58px; z-index:20; display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:10px 12px; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(12,23,56,0.05); }
+    .pr-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; margin-right:2px; }
+    .prochip { display:inline-flex; align-items:center; font-size:12px; font-weight:700; padding:5px 11px; border-radius:100px; color:#fff; cursor:grab; user-select:none; }
+    .prochip:active { cursor:grabbing; }
+    .prochip.dragging { opacity:0.4; }
+    .courtzones { display:flex; flex-wrap:wrap; gap:8px; margin-top:11px; padding-top:11px; border-top:1px dashed var(--border); }
+    .courtdrop { min-width:104px; border:1.5px dashed var(--border2); border-radius:10px; padding:7px 9px; background:var(--input-bg); transition:all .12s; }
+    .courtdrop.drop-hot { border-color:var(--blue); background:rgba(44,92,156,0.10); }
+    .cd-label { font-size:10px; font-weight:800; letter-spacing:0.04em; color:var(--text3); text-transform:uppercase; margin-bottom:5px; }
+    .cd-pros { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+    .cd-empty { font-size:11px; color:var(--text3); font-style:italic; }
+    .cdchip { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:3px 8px; border-radius:100px; color:#fff; cursor:grab; }
+    .cdchip button, .ctp button { background:rgba(255,255,255,0.4); border:none; color:#fff; width:14px; height:14px; border-radius:50%; cursor:pointer; font-size:9px; line-height:1; display:inline-flex; align-items:center; justify-content:center; margin-left:1px; }
+    .cd-add { font-family:inherit; font-size:11px; padding:2px 7px; border:1px dashed var(--border2); border-radius:100px; background:transparent; color:var(--blue); font-weight:700; cursor:pointer; }
+    .ctcell.dz { cursor:default; }
+    .ctcell.drop-hot { outline:2px solid var(--blue); outline-offset:-2px; background:rgba(44,92,156,0.10); }
   </style>
 </head>
 <body>
@@ -133,6 +151,7 @@
     <div class="sched-cols">
       <aside id="daytabs" class="day-rail"></aside>
       <div class="sched-body">
+        <div id="prorail" class="prorail" style="display:none"></div>
         <div class="viewtoggle">
           <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
           <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
@@ -172,9 +191,27 @@
       const jsDay = new Date().getDay(); // 0=Sun..6=Sat
       activeDay = DAYS[(jsDay+6)%7] || 'Mon';
       try { pros = await (await fetch('/api/pro-schedule/pros')).json(); } catch(e){ pros=[]; }
+      renderProRail();
       await loadSlots();
       renderTabs();
     }
+
+    function renderProRail(){
+      const rail=document.getElementById('prorail');
+      if(!rail) return;
+      if(!canEdit){ rail.style.display='none'; return; }
+      rail.style.display='flex';
+      rail.innerHTML='<span class="pr-label">Drag a pro onto a court →</span>'+
+        pros.map(p=>`<span class="prochip" draggable="true" ondragstart="dragPro(event,${p.id})" ondragend="dragEnd(event)" style="background:${p.color||'#2c5c9c'}">${esc(p.name)}</span>`).join('');
+    }
+
+    // ── Drag-and-drop ──
+    let dragProId=null;
+    function dragPro(e,id){ dragProId=id; try{ e.dataTransfer.setData('text/plain',String(id)); e.dataTransfer.effectAllowed='copy'; }catch(_){ } if(e.currentTarget.classList) e.currentTarget.classList.add('dragging'); }
+    function dragEnd(e){ if(e.currentTarget.classList) e.currentTarget.classList.remove('dragging'); dragProId=null; }
+    function dzOver(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='copy'; }catch(_){ } e.currentTarget.classList.add('drop-hot'); }
+    function dzLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
+    function dzDrop(e){ e.preventDefault(); const el=e.currentTarget; el.classList.remove('drop-hot'); let id=dragProId; try{ id=parseInt(e.dataTransfer.getData('text/plain'))||dragProId; }catch(_){ } if(!id) return; assignToCourt(parseInt(el.dataset.slot), el.dataset.court, id); }
 
     async function loadSlots(){
       try { slots = await (await fetch('/api/pro-schedule/slots')).json(); }
@@ -213,14 +250,9 @@
         for(const c of COURTS){
           const cells=list.filter(s=>key(s)===t.start+'-'+t.end && (s.courts||[]).includes(c));
           html+='<td>'+cells.map(s=>{
-            const cs=s.courts||[], ps=s.pro_ids||[];
-            // One pro per court when counts match (position-matched); else show all.
-            const idx=cs.indexOf(c);
-            const cellPros=(cs.length===ps.length && cs.length>0)
-              ? (idx>=0 && ps[idx]!=null ? [ps[idx]] : [])
-              : ps;
-            const chips=cellPros.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}">${esc(String(p.name).split(' ')[0])}</span>`:''}).join('')||'<span class="ctnone">—</span>';
-            return `<div class="ctcell cat-${catAbbr(s.category)}"><div class="ctprog">${esc(s.program)}</div><div class="ctpros">${chips}</div></div>`;
+            const ids=(s.court_pros&&s.court_pros[c])||[];
+            const chips=ids.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(String(p.name).split(' ')[0])}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''}).join('')||'<span class="ctnone">—</span>';
+            return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${esc(s.program)}</div><div class="ctpros">${chips}</div></div>`;
           }).join('')+'</td>';
         }
         html+='</tr>';
@@ -233,16 +265,26 @@
 
     function renderSlot(s){
       const courts = s.courts || [];
+      const cp = s.court_pros || {};
       const courtPick = ['1','2','3','4','5','6'].map(c=>`<button class="courtchip ${courts.includes(c)?'on':''}" onclick="toggleCourt(${s.id},'${c}')">${c}</button>`).join('');
-      const assigned = (s.pro_ids||[]).map(id=>{ const p=proById(id); if(!p) return ''; return `<span class="pchip ${canEdit?'':'ro'}" style="background:${p.color||'#2c5c9c'}">${esc(p.name)}<button onclick="unassign(${s.id},${p.id})" title="Remove">✕</button></span>`; }).join('');
-      const unassigned = pros.filter(p=>!(s.pro_ids||[]).includes(p.id));
-      const addSel = canEdit ? `<select class="paddsel" onchange="assign(${s.id}, this.value); this.value=''">
-          <option value="">+ pro</option>
-          ${unassigned.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
-        </select>` : '';
       const meta = canEdit
-        ? `<div class="slot-meta"><span class="courts-label">Courts</span><span class="courts-pick">${courtPick}</span></div>`
+        ? `<div class="slot-meta"><span class="courts-label">Courts</span><span class="courts-pick">${courtPick}</span>
+             <button class="cd-add" style="border-style:solid;color:#dc2626;margin-left:6px" onclick="removeSlot(${s.id})" title="Remove slot">🗑</button></div>`
         : `<div class="slot-meta">${courts.length?('Court '+courts.join(', ')):'<span class="noone">No court</span>'}</div>`;
+      let zones;
+      if (courts.length) {
+        zones = courts.map(c=>{
+          const ids = cp[c] || [];
+          const chips = ids.map(id=>{ const p=proById(id); return p?`<span class="cdchip" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(p.name)}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''; }).join('');
+          const add = canEdit ? `<select class="cd-add" onchange="if(this.value){assignToCourt(${s.id},'${c}',parseInt(this.value));this.value='';}"><option value="">+</option>${pros.filter(p=>!ids.includes(p.id)).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>` : '';
+          return `<div class="courtdrop" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}>
+            <div class="cd-label">Court ${c}</div>
+            <div class="cd-pros">${chips || `<span class="cd-empty">${canEdit?'drop a pro':'—'}</span>`}${add}</div>
+          </div>`;
+        }).join('');
+      } else {
+        zones = `<span class="noone">${canEdit?'Pick a court above, then drag pros in':'No court assigned'}</span>`;
+      }
       return `<div class="slot">
         <div class="slot-top">
           <span class="slot-time">${esc(s.time_label || (s.start+'–'+s.end))}</span>
@@ -251,12 +293,7 @@
           ${s.note?`<span class="field" title="note">· ${esc(s.note)}</span>`:''}
           ${meta}
         </div>
-        <div class="pros-row">
-          <span class="pros-label">Pros</span>
-          ${assigned || (canEdit?'':'<span class="noone">Unassigned</span>')}
-          ${addSel}
-          ${canEdit?`<button class="paddsel" style="border-style:solid;color:#dc2626" onclick="removeSlot(${s.id})" title="Remove slot">🗑</button>`:''}
-        </div>
+        <div class="courtzones">${zones}</div>
       </div>`;
     }
 
@@ -267,10 +304,29 @@
       const i = slots.findIndex(s=>s.id===id); if (i>=0) slots[i]=updated;
       return updated;
     }
-    async function assign(id, proId){ if(!proId) return; const s=slots.find(x=>x.id===id); const ids=[...(s.pro_ids||[]), parseInt(proId)]; if(await put(id,{pro_ids:ids})){ renderBoard(); toast('Assigned'); } }
-    async function unassign(id, proId){ const s=slots.find(x=>x.id===id); const ids=(s.pro_ids||[]).filter(x=>x!==proId); if(await put(id,{pro_ids:ids})){ renderBoard(); } }
+    async function assignToCourt(slotId, court, proId){
+      if(!proId) return;
+      const s=slots.find(x=>x.id===slotId); if(!s) return;
+      const cp=JSON.parse(JSON.stringify(s.court_pros||{}));
+      cp[court]=cp[court]||[]; if(!cp[court].includes(proId)) cp[court].push(proId);
+      const courts=[...new Set([...(s.courts||[]), court])].sort();
+      if(await put(slotId,{court_pros:cp, courts})){ renderBoard(); toast('Assigned'); }
+    }
+    async function unassignFromCourt(slotId, court, proId){
+      const s=slots.find(x=>x.id===slotId); if(!s) return;
+      const cp=JSON.parse(JSON.stringify(s.court_pros||{}));
+      cp[court]=(cp[court]||[]).filter(x=>x!==proId);
+      if(await put(slotId,{court_pros:cp})){ renderBoard(); }
+    }
     async function setField(id, field, val){ if(await put(id,{[field]:val})){ toast('Saved'); } }
-    async function toggleCourt(id, c){ const s=slots.find(x=>x.id===id); const cur=(s.courts||[]); const courts= cur.includes(c)? cur.filter(x=>x!==c) : [...cur,c].sort(); if(await put(id,{courts})){ renderBoard(); } }
+    async function toggleCourt(id, c){
+      const s=slots.find(x=>x.id===id); const cur=(s.courts||[]);
+      const removing=cur.includes(c);
+      const courts= removing ? cur.filter(x=>x!==c) : [...cur,c].sort();
+      const body={courts};
+      if(removing){ const cp=JSON.parse(JSON.stringify(s.court_pros||{})); delete cp[c]; body.court_pros=cp; }
+      if(await put(id,body)){ renderBoard(); }
+    }
 
     async function addSlot(){
       const body = { day:activeDay, program:'New slot', category:'other', start:'09:00', end:'10:00', time_label:'9–10 AM' };
