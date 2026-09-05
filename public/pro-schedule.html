@@ -100,6 +100,11 @@
     .ts-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; color:#fff; background:var(--navy); }
     .ts-signout { padding:6px 11px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text3); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; }
     .ts-signout:hover { color:#dc2626; border-color:rgba(220,38,38,0.3); }
+    .ts-share { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; background:var(--navy); border:1px solid var(--navy); border-radius:8px; color:#fff; font-size:11px; font-weight:700; text-decoration:none; white-space:nowrap; }
+    .ts-share svg { width:13px; height:13px; }
+    .ts-share:hover { background:var(--blue); border-color:var(--blue); }
+    .ts-copy { padding:6px 10px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text3); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .ts-copy:hover { color:var(--blue); border-color:var(--blue); }
 
     /* Day side-nav + board layout */
     .sched-cols { display:flex; gap:18px; align-items:flex-start; }
@@ -150,6 +155,8 @@
       <a href="/comms.html?audience=pro" class="qnav" title="Pro Comms"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Pro Comms</span></a>
     </div>
     <div class="ts-right">
+      <a class="ts-share" href="/pro-schedule-view.html" target="_blank" rel="noopener" title="Open the public, no-login schedule (shareable with pros)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Public view</a>
+      <button class="ts-copy" onclick="copyPublicLink()" title="Copy the public schedule link to share with pros">Copy link</button>
       <div style="text-align:right"><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
       <div class="ts-user"><div class="ts-avatar" id="nav-avatar">—</div><button class="ts-signout" onclick="doLogout()">Sign out</button></div>
     </div>
@@ -184,6 +191,7 @@
     function proById(id){ return pros.find(p=>p.id===id); }
     function catClass(c){ return c==='junior'?'cat-junior':c==='adult'?'cat-adult':'cat-other'; }
     async function doLogout(){ try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){} location.href='/login.html'; }
+    function copyPublicLink(){ const url=location.origin+'/pro-schedule-view.html'; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(()=>toast('Public link copied')).catch(()=>toast(url)); } else { toast(url); } }
     function tick(){ const n=new Date(); const c=document.getElementById('clock'), d=document.getElementById('dateline'); if(c) c.textContent=n.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true}); if(d) d.textContent=n.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}); }
     tick(); setInterval(tick, 30000);
 
