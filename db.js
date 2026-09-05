@@ -618,6 +618,22 @@ if (!_data._migrations.proScheduleCourtPros2026v1 && Array.isArray(_data.pro_sch
   console.log('Backfilled per-court pro assignments.');
 }
 
+// One-time cleanup: purge deprecated pro records (Katya — incl. any duplicate) that
+// lingered on the scheduler board because earlier deletes never scrubbed slot
+// assignments. Removes every matching staff record AND clears their ids from all
+// pro-schedule slots. Flag-gated → runs once on the live volume, then never again.
+if (!_data._migrations.purgeDeprecatedPros2026v1) {
+  const PURGE = ['katya', 'katia'];
+  const gone = (_data.staff || []).filter(s => PURGE.includes(String(s.name).trim().toLowerCase()));
+  for (const s of gone) {
+    _data.staff = _data.staff.filter(x => x.id !== s.id);
+    scrubStaffFromSlots(s.id);
+  }
+  _data._migrations.purgeDeprecatedPros2026v1 = true;
+  save();
+  if (gone.length) console.log('Purged deprecated pros:', gone.map(s => s.name + '#' + s.id).join(', '));
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
@@ -709,8 +725,31 @@ function removeStaff(staffId) {
   const idx = _data.staff.findIndex(s => s.id === id);
   if (idx === -1) return false;
   _data.staff.splice(idx, 1);
+  scrubStaffFromSlots(id);   // clear ghost court/board assignments so the person can't linger
   save();
   return true;
+}
+
+// Remove a staff id from every pro-schedule slot (pro_ids + court_pros). Called on
+// delete so a removed person never lingers as a ghost assignment on the board.
+function scrubStaffFromSlots(id) {
+  const sid = parseInt(id);
+  let changed = false;
+  for (const s of (_data.pro_schedule_slots || [])) {
+    if (Array.isArray(s.pro_ids) && s.pro_ids.includes(sid)) {
+      s.pro_ids = s.pro_ids.filter(x => x !== sid); changed = true;
+    }
+    if (s.court_pros) {
+      for (const c of Object.keys(s.court_pros)) {
+        const arr = s.court_pros[c];
+        if (Array.isArray(arr) && arr.includes(sid)) {
+          s.court_pros[c] = arr.filter(x => x !== sid); changed = true;
+          if (!s.court_pros[c].length) delete s.court_pros[c];
+        }
+      }
+    }
+  }
+  return changed;
 }
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
