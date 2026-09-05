@@ -46,6 +46,13 @@ const pushRoutes        = require('./routes/push');
 
 app.use('/api/auth', authRoutes);
 
+// Public (no-login) read-only pro schedule — feeds the shareable /pro-schedule-view.html
+// page so pros can glance at times without signing in. First names + class/court/time
+// only; nothing sensitive. Mounted before the /api guard so it stays open to everyone.
+app.get('/api/public/pro-schedule', (req, res) => {
+  res.json(require('./db').getPublicProSchedule());
+});
+
 // First-login guard: until a user sets their own password, block every data
 // endpoint (auth, identity and avatar reads stay open so they can complete setup).
 app.use('/api', (req, res, next) => {

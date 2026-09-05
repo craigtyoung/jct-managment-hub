@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JCT Pro Schedule</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#f4f6fa; --surface:#ffffff; --border:#e4e8f0; --border2:#d4dae6;
+      --text:#0c1738; --text2:#3b4a63; --text3:#8a97ad;
+      --navy:#0c1738; --blue:#2c5c9c; --blue-soft:rgba(44,92,156,0.10);
+      --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:var(--font-body); background:var(--bg); color:var(--text); padding:0 0 60px; -webkit-font-smoothing:antialiased; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:14px 18px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+    .topbar .mark { width:34px; height:34px; border-radius:9px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; letter-spacing:0.02em; }
+    .topbar .title { font-weight:800; font-size:16px; line-height:1.1; }
+    .topbar .sub { font-size:12px; color:var(--text3); font-weight:600; }
+    .ro-pill { margin-left:auto; font-size:11px; font-weight:700; color:var(--text2); background:var(--bg); border:1px solid var(--border2); border-radius:100px; padding:5px 11px; text-transform:uppercase; letter-spacing:0.05em; }
+    .wrap { max-width:640px; margin:0 auto; padding:16px 14px 0; }
+    .lead { color:var(--text2); font-size:13px; margin-bottom:14px; }
+    .daytabs { display:flex; gap:7px; overflow-x:auto; padding-bottom:12px; position:sticky; top:63px; background:var(--bg); z-index:9; -webkit-overflow-scrolling:touch; }
+    .daytab { padding:8px 15px; border:1px solid var(--border2); background:var(--surface); border-radius:100px; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .daytab.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .daytab .n { color:var(--text3); font-weight:600; margin-left:5px; }
+    .daytab.on .n { color:rgba(255,255,255,0.6); }
+    .slot { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:13px 15px; margin-bottom:10px; box-shadow:0 1px 3px rgba(12,23,56,0.04); }
+    .slot-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .slot-time { font-size:14px; font-weight:800; color:var(--blue); background:var(--blue-soft); border-radius:8px; padding:4px 10px; white-space:nowrap; }
+    .slot-prog { font-weight:700; font-size:15px; }
+    .cat { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; border-radius:6px; padding:3px 8px; }
+    .cat-junior { background:rgba(44,92,156,0.12); color:var(--blue); }
+    .cat-performance { background:rgba(217,119,6,0.14); color:#b45309; }
+    .cat-adult { background:rgba(5,150,105,0.14); color:#047857; }
+    .cat-other { background:rgba(124,58,237,0.14); color:#6d28d9; }
+    .meta-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+    .courts { display:flex; gap:5px; flex-wrap:wrap; }
+    .court { font-size:11px; font-weight:700; color:var(--text2); background:var(--bg); border:1px solid var(--border2); border-radius:7px; padding:3px 9px; }
+    .pros { display:flex; gap:5px; flex-wrap:wrap; margin-left:auto; }
+    .pchip { font-size:12px; font-weight:700; color:#fff; background:var(--blue); border-radius:100px; padding:4px 11px; }
+    .noone { font-size:12px; color:var(--text3); font-style:italic; margin-left:auto; }
+    .label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.05em; }
+    .empty { padding:44px 20px; text-align:center; color:var(--text3); font-size:14px; }
+    .foot { max-width:640px; margin:22px auto 0; padding:0 14px; text-align:center; color:var(--text3); font-size:12px; line-height:1.6; }
+    .foot a { color:var(--blue); font-weight:700; text-decoration:none; }
+    .updated { text-align:center; color:var(--text3); font-size:11px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="mark">JCT</div>
+    <div>
+      <div class="title">Pro Schedule</div>
+      <div class="sub">Joshua Creek Tennis</div>
+    </div>
+    <div class="ro-pill">View only</div>
+  </div>
+
+  <div class="wrap">
+    <div class="lead">Quick weekly reference. No sign-in needed. For changes or coverage, use the Staff Hub.</div>
+    <div class="daytabs" id="daytabs"></div>
+    <div id="board"><div class="empty">Loading schedule…</div></div>
+  </div>
+
+  <div class="foot">
+    Read-only view · times and assignments may change.<br />
+    Need to make a change? <a href="/pro-schedule.html">Open the Staff Hub</a>.
+    <div class="updated" id="updated"></div>
+  </div>
+
+  <script>
+    const DAYS = [['Mon','Monday'],['Tue','Tuesday'],['Wed','Wednesday'],['Thu','Thursday'],['Fri','Friday'],['Sat','Saturday'],['Sun','Sunday']];
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let SLOTS = [];
+    // Default to today's weekday (Mon–Sun); JS getDay() 0=Sun.
+    const jsDay = new Date().getDay();
+    let current = DAYS[(jsDay + 6) % 7][0];
+
+    function catClass(c) {
+      const k = String(c || '').toLowerCase();
+      if (k.includes('perform')) return 'cat-performance';
+      if (k.includes('adult')) return 'cat-adult';
+      if (k.includes('junior')) return 'cat-junior';
+      return 'cat-other';
+    }
+    function timeLabel(s) {
+      if (s.time_label) return s.time_label;
+      return (s.start || '') + (s.end ? '–' + s.end : '');
+    }
+
+    function renderTabs() {
+      const counts = {};
+      for (const s of SLOTS) counts[s.day] = (counts[s.day] || 0) + 1;
+      document.getElementById('daytabs').innerHTML = DAYS.map(([d, full]) =>
+        `<button class="daytab ${d === current ? 'on' : ''}" onclick="pick('${d}')">${full.slice(0,3)}<span class="n">${counts[d] || 0}</span></button>`
+      ).join('');
+    }
+    function renderBoard() {
+      const list = SLOTS.filter(s => s.day === current)
+        .sort((a, b) => String(a.start).localeCompare(String(b.start)));
+      const board = document.getElementById('board');
+      if (!list.length) { board.innerHTML = `<div class="empty">No classes scheduled for ${DAYS.find(d => d[0] === current)[1]}.</div>`; return; }
+      board.innerHTML = list.map(s => {
+        const courts = (s.courts || []).map(c => `<span class="court">Court ${esc(c)}</span>`).join('');
+        const pros = (s.pros || []).length
+          ? `<div class="pros">${s.pros.map(p => `<span class="pchip">${esc(p)}</span>`).join('')}</div>`
+          : `<span class="noone">Pro TBD</span>`;
+        return `
+        <div class="slot">
+          <div class="slot-head">
+            <span class="slot-time">${esc(timeLabel(s))}</span>
+            <span class="slot-prog">${esc(s.program)}</span>
+            ${s.category ? `<span class="cat ${catClass(s.category)}">${esc(s.category)}</span>` : ''}
+          </div>
+          <div class="meta-row">
+            ${courts ? `<span class="label">Courts</span><div class="courts">${courts}</div>` : `<span class="label">Court TBD</span>`}
+            ${pros}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function pick(d) { current = d; renderTabs(); renderBoard(); }
+
+    async function load() {
+      try {
+        const r = await fetch('/api/public/pro-schedule', { cache: 'no-store' });
+        SLOTS = await r.json();
+      } catch (e) { SLOTS = []; }
+      renderTabs();
+      renderBoard();
+      const now = new Date();
+      document.getElementById('updated').textContent =
+        'Loaded ' + now.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' }) +
+        ' at ' + now.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+    }
+    load();
+  </script>
+</body>
+</html>

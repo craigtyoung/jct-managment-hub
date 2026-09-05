@@ -634,6 +634,20 @@ if (!_data._migrations.purgeDeprecatedPros2026v1) {
   if (gone.length) console.log('Purged deprecated pros:', gone.map(s => s.name + '#' + s.id).join(', '));
 }
 
+// One-time: correct role drift for the founders. Craig(1) and Jaime(2) run the desk
+// (role 'admin'), not the courts — admins are excluded from the pro-schedule drag rail.
+// If either drifted to 'manager'/'pro' on the live volume they wrongly appear as an
+// assignable pro. Force them back to admin. Flag-gated → runs once.
+if (!_data._migrations.fixFounderRoles2026v1) {
+  let fixed = 0;
+  for (const s of (_data.staff || [])) {
+    if ((s.id === 1 || s.id === 2) && s.role !== 'admin') { s.role = 'admin'; fixed++; }
+  }
+  _data._migrations.fixFounderRoles2026v1 = true;
+  save();
+  if (fixed) console.log('Corrected founder roles to admin:', fixed);
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
@@ -2099,6 +2113,25 @@ function deleteProScheduleSlot(id) {
   return true;
 }
 
+// Public (no-login) read-only view of the pro schedule. Resolves pro ids to FIRST
+// names only — no ids, contact info, passwords, or anything sensitive leaks. Feeds the
+// shareable /pro-schedule-view.html page so pros can check times without signing in.
+function getPublicProSchedule() {
+  const nameById = {};
+  for (const s of (_data.staff || [])) nameById[s.id] = String(s.name || '').split(' ')[0];
+  return getProScheduleSlots().map(s => {
+    const ids = (s.court_pros && Object.keys(s.court_pros).length)
+      ? [...new Set(Object.values(s.court_pros).flat())]
+      : (Array.isArray(s.pro_ids) ? s.pro_ids : []);
+    const pros = ids.map(id => nameById[id]).filter(Boolean);
+    return {
+      day: s.day, start: s.start, end: s.end,
+      time_label: s.time_label || '', program: s.program,
+      category: s.category || '', courts: s.courts || [], pros,
+    };
+  });
+}
+
 module.exports = {
   getIdeas,
   getIdea,
@@ -2173,6 +2206,7 @@ module.exports = {
   addAcademyNote,
   deleteAcademyNote,
   getProScheduleSlots,
+  getPublicProSchedule,
   addProScheduleSlot,
   updateProScheduleSlot,
   deleteProScheduleSlot,
