@@ -17,10 +17,11 @@ router.use((req, res, next) => {
 function acting(req) { return db.getStaffById(req.actingStaffId); }
 function isManagement(s) { return s && (s.role === 'admin' || s.role === 'manager'); }
 
-// Pros available for assignment: teaching pros + management who also coach.
+// Pros available for assignment: teaching pros + managers who also coach (Victor,
+// David). Admins (Craig, Jaime) run the desk, not lessons, so they're excluded.
 router.get('/pros', (req, res) => {
   res.json(db.getAllStaff()
-    .filter(s => ['pro', 'admin', 'manager'].includes(s.role))
+    .filter(s => ['pro', 'manager'].includes(s.role))
     .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role })));
 });
 
