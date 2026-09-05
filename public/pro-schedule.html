@@ -128,6 +128,16 @@
     .cd-add { font-family:inherit; font-size:11px; padding:2px 7px; border:1px dashed var(--border2); border-radius:100px; background:transparent; color:var(--blue); font-weight:700; cursor:pointer; }
     .ctcell.dz { cursor:default; }
     .ctcell.drop-hot { outline:2px solid var(--blue); outline-offset:-2px; background:rgba(44,92,156,0.10); }
+
+    /* Days on top (horizontal), pros down the left (vertical) */
+    .daytop { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+    .daytop .daytab { width:auto; }
+    .prorail-left { flex-direction:column !important; align-items:stretch; gap:5px; flex:0 0 156px; width:156px; position:sticky; top:64px; max-height:calc(100vh - 90px); overflow-y:auto; margin-bottom:0 !important; }
+    .prorail-left .pr-label { margin:0 0 3px; }
+    .prorail-left .prochip { justify-content:flex-start; }
+    @media (max-width:720px){
+      .prorail-left { flex-direction:row !important; flex-wrap:wrap; position:static; width:100%; flex:0 0 auto; max-height:none; margin-bottom:12px !important; }
+    }
   </style>
 </head>
 <body>
@@ -148,10 +158,10 @@
   <div class="wrap">
     <div class="lead">The season class grid. <b>Assign a court and the pros</b> for each class — set once, tweak anytime. Pros see the board read-only.</div>
     <div id="roview" class="roview">👀 View only — management sets the schedule.</div>
+    <div id="daytabs" class="daytop"></div>
     <div class="sched-cols">
-      <aside id="daytabs" class="day-rail"></aside>
+      <aside id="prorail" class="prorail prorail-left" style="display:none"></aside>
       <div class="sched-body">
-        <div id="prorail" class="prorail" style="display:none"></div>
         <div class="viewtoggle">
           <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
           <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
@@ -201,7 +211,7 @@
       if(!rail) return;
       if(!canEdit){ rail.style.display='none'; return; }
       rail.style.display='flex';
-      rail.innerHTML='<span class="pr-label">Drag a pro onto a court →</span>'+
+      rail.innerHTML='<span class="pr-label">Pros — drag onto a court</span>'+
         pros.map(p=>`<span class="prochip" draggable="true" ondragstart="dragPro(event,${p.id})" ondragend="dragEnd(event)" style="background:${p.color||'#2c5c9c'}">${esc(p.name)}</span>`).join('');
     }
 
