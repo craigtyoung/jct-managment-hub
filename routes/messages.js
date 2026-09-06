@@ -103,6 +103,21 @@ router.post('/:id/reply', (req, res) => {
   res.json({ ok: true });
 });
 
+// PUT edit a note's content — the author or management (admin/manager) only.
+router.put('/:id', (req, res) => {
+  const { content } = req.body;
+  if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
+  const msg = db.getMessage(req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
+  const staff = db.getStaffById(req.actingStaffId);
+  const isMgmt = staff && ['admin', 'manager'].includes(staff.role);
+  const isAuthor = staff && msg.staff_id === staff.id;
+  if (!isMgmt && !isAuthor) return res.status(403).json({ error: 'Not authorised' });
+  db.editMessage(req.params.id, content.trim());
+  sse.broadcast('update');
+  res.json({ ok: true });
+});
+
 // DELETE all messages for a given day — must be before /:id (admin only)
 router.delete('/day/:date', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
@@ -114,12 +129,14 @@ router.delete('/day/:date', (req, res) => {
   res.json({ ok: true, deleted: count });
 });
 
-// DELETE a single message (admin or manager only)
+// DELETE a single message — the author or management (admin/manager) only.
 router.delete('/:id', (req, res) => {
+  const msg = db.getMessage(req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) {
-    return res.status(403).json({ error: 'Not authorised' });
-  }
+  const isMgmt = staff && ['admin', 'manager'].includes(staff.role);
+  const isAuthor = staff && msg.staff_id === staff.id;
+  if (!isMgmt && !isAuthor) return res.status(403).json({ error: 'Not authorised' });
   db.deleteMessage(req.params.id);
   sse.broadcast('update');
   res.json({ ok: true });

@@ -837,6 +837,7 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
       recipients,
       receipt_staff: receiptStaff.map(s => ({ id: s.id, name: s.name, color: s.color })),
       created_at: msg.created_at,
+      edited_at: msg.edited_at || null,
       show_on: msg.show_on || null,
       author_id: author.id,
       author_name: author.name,
@@ -930,6 +931,16 @@ function deleteMessage(messageId) {
   _data.reads     = _data.reads.filter(r => r.message_id !== mid);
   _data.replies   = _data.replies.filter(r => r.message_id !== mid);
   save();
+}
+
+// Edit a note's content. Authorisation (author-or-management) is enforced in the route.
+function editMessage(messageId, content) {
+  const m = _data.messages.find(x => x.id === parseInt(messageId));
+  if (!m) return null;
+  m.content = String(content).slice(0, 4000);
+  m.edited_at = now();
+  save();
+  return m;
 }
 
 function clearDay(dateStr) {
@@ -2221,6 +2232,7 @@ module.exports = {
   getUnreadCount,
   createReply,
   deleteMessage,
+  editMessage,
   clearDay,
   getAssignmentsForRange,
   getAssignmentsForShift,

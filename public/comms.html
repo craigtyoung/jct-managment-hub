@@ -1079,6 +1079,7 @@
     if (!msg.receipt_staff) msg.receipt_staff = allStaff.map(s => ({ id: s.id, name: s.name, color: s.color }));
 
     const isMine     = msg.author_id === me.id;
+    const canModify  = isMine || me.role === 'admin' || me.role === 'manager';
     const isTargeted = isMine && Array.isArray(msg.recipients) && msg.recipients.length > 0;
     const unread     = !msg.is_read_by_me && !isMine;
     const readIds    = new Set((msg.reads||[]).map(r => r.id));
@@ -1142,6 +1143,7 @@
               ${(msg.replies||[]).length>0?`<span style="font-size:11px;color:var(--text3)">${msg.replies.length} repl${msg.replies.length===1?'y':'ies'}</span>`:''}
               ${unread?`<span style="background:#2c5c9c;color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px">NEW</span>`:''}
               ${isMine?`<span style="background:${msg.author_color}18;color:${msg.author_color};font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px">SENT</span>`:''}
+              ${msg.edited_at?`<span style="font-size:10px;color:var(--text3)" title="Edited ${new Date(msg.edited_at).toLocaleString('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true})}">edited</span>`:''}
               ${(msg.show_on && msg.show_on > todayStr)?`<span class="cat-tag" style="background:rgba(245,158,11,0.16);color:#d97706" title="Scheduled to surface on this day">⏰ ${new Date(msg.show_on+'T00:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</span>`:''}
             </div>
             <div id="preview-${msg.id}" class="msg-preview" style="display:none">${esc(msg.content)}</div>
@@ -1158,13 +1160,14 @@
               <div class="rail-avatars">${railAvatars || '<span class="rail-person-status">No one yet</span>'}</div>
             </div>
             <div class="msg-col-note">
-              <div class="msg-content">${esc(msg.content)}</div>
+              <div class="msg-content" id="content-${msg.id}">${esc(msg.content)}</div>
               <div class="msg-actions">
                 ${unread ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();markRead(${msg.id})">Mark as read</button>` : ''}
                 <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openReplyBox(${msg.id})">Reply</button>
-                ${(me.role === 'admin' || me.role === 'manager') ? `
+                ${canModify ? `
+                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editNote(${msg.id})" style="margin-left:auto">Edit</button>
                 <button onclick="event.stopPropagation();deleteNote(${msg.id})"
-                  style="margin-left:auto;font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;cursor:pointer;font-family:Inter,sans-serif;transition:all 0.15s"
+                  style="font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;cursor:pointer;font-family:Inter,sans-serif;transition:all 0.15s"
                   onmouseover="this.style.background='rgba(239,68,68,0.08)'"
                   onmouseout="this.style.background='transparent'">
                   Delete
@@ -1419,6 +1422,42 @@
   }
 
   // ── Admin actions ──────────────────────────────────────────────────────────
+  // Inline edit: swap a note's content for a textarea + Save/Cancel. Author or management.
+  function editNote(id) {
+    const msg = messages.find(m => m.id === id); if (!msg) return;
+    const cell = document.getElementById('content-' + id); if (!cell) return;
+    if (cell.dataset.editing) return;
+    cell.dataset.editing = '1';
+    cell.dataset.orig = cell.innerHTML;
+    cell.innerHTML = `
+      <textarea id="edit-txt-${id}" class="reply-input" rows="3" style="width:100%;box-sizing:border-box">${esc(msg.content)}</textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn btn-indigo btn-sm" onclick="event.stopPropagation();saveNote(${id})">Save</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();cancelEditNote(${id})">Cancel</button>
+      </div>`;
+    const ta = document.getElementById('edit-txt-' + id);
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+  function cancelEditNote(id) {
+    const cell = document.getElementById('content-' + id); if (!cell) return;
+    if (cell.dataset.orig !== undefined) cell.innerHTML = cell.dataset.orig;
+    delete cell.dataset.editing; delete cell.dataset.orig;
+  }
+  async function saveNote(id) {
+    const ta = document.getElementById('edit-txt-' + id); if (!ta) return;
+    const content = ta.value.trim();
+    if (!content) { showToast('Note cannot be empty', true); return; }
+    try {
+      const res = await fetch(`/api/messages/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); showToast(e.error || 'Could not save note', true); return; }
+      showToast('Note updated');
+      await loadAll();
+    } catch (e) { showToast('Connection error', true); }
+  }
+
   async function deleteNote(id) {
     if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
