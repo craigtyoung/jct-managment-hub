@@ -147,7 +147,14 @@
     .date-nav-sub { font-size: 12px; color: var(--text3); font-weight: 400; display: block; }
 
     /* ── Feed ── */
-    .feed-wrap { flex: 1; overflow-y: auto; padding: 14px 18px; }
+    .feed-wrap { flex: 1; overflow-y: auto; padding: 14px 18px; min-height: 0; }
+    /* Desktop: pin the feed's scroll height to the viewport so it ALWAYS scrolls,
+       independent of the flex-height chain (which was being defeated in render and
+       clipping long days of notes with no scrollbar). ~210px = topbar + compose
+       trigger + mode bar + date nav. */
+    @media (min-width: 821px) {
+      .feed-wrap { max-height: calc(100vh - 210px); }
+    }
     .feed-empty { text-align: center; padding: 60px 20px; color: var(--text3); font-size: 14px; }
     .feed-empty .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
 
