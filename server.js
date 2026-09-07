@@ -64,6 +64,22 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Global live-sync: after ANY successful mutating API request, push a generic
+// 'update' over SSE so every open screen refreshes near-instantly (Google-Docs
+// style). Individual routes may still emit their own channel events; an extra
+// generic 'update' is idempotent for listeners. One hook covers all routes,
+// including future ones, without touching each handler.
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    res.on('finish', () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        try { require('./sse').broadcast('update'); } catch (e) {}
+      }
+    });
+  }
+  next();
+});
+
 app.use('/api/messages', requireAuth, messageRoutes);
 app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/checklist', requireAuth, checklistRoutes);
