@@ -501,7 +501,8 @@
       <!-- Feed mode: All notes (by day) vs Unread (across days) -->
       <div class="feed-modebar">
         <div class="seg">
-          <button id="seg-day" class="seg-btn active" onclick="setFeedMode('day')">All notes</button>
+          <button id="seg-day" class="seg-btn active" onclick="setFeedMode('day')">By day</button>
+          <button id="seg-all" class="seg-btn" onclick="setFeedMode('all')">All notes</button>
           <button id="seg-unread" class="seg-btn" onclick="setFeedMode('unread')">Unread<span id="seg-unread-badge" class="seg-badge" style="display:none"></span></button>
         </div>
       </div>
@@ -967,13 +968,16 @@
   // ── Render ─────────────────────────────────────────────────────────────────
   function renderFeed() {
     if (feedMode === 'unread') { renderUnread(); return; }
+    if (feedMode === 'all')    { renderAll();    return; }
     const feed = document.getElementById('feed');
     const empty = document.getElementById('feed-empty');
     const filtered = getFiltered(); // newest first (server returns newest-first)
 
     if (filtered.length === 0) {
       feed.innerHTML = '';
-      empty.innerHTML = '<span class="emoji">📋</span> No notes for this day.';
+      empty.innerHTML = activeStaff !== 'all'
+        ? `<span class="emoji">📋</span> No notes for ${staffNameById(activeStaff)} on this day.<br><span style="font-size:12px;color:var(--text3)">Switch to <b>All notes</b> above to see everything relevant to them across all days.</span>`
+        : '<span class="emoji">📋</span> No notes for this day.';
       empty.style.display = 'block';
       return;
     }
@@ -1064,12 +1068,69 @@
       staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
   }
 
+  // ── All notes — every note across all days, honouring category + person filters.
+  //    The "catch-up" view: pick a name in Relevant to, see everything for them. ──
+  function renderAll() {
+    const feed = document.getElementById('feed');
+    const empty = document.getElementById('feed-empty');
+
+    let items = messages.slice();
+    if (activeCategory !== 'all') items = items.filter(m => (m.category || 'general') === activeCategory);
+    if (activeGroup === 'management') items = items.filter(isManagementMsg);
+    if (activeStaff !== 'all') {
+      const sid = parseInt(activeStaff);
+      items = items.filter(m => m.author_id === sid || !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(sid)));
+    }
+
+    if (items.length === 0) {
+      feed.innerHTML = '';
+      empty.innerHTML = activeStaff !== 'all'
+        ? `<span class="emoji">📋</span> No notes relevant to ${staffNameById(activeStaff)} yet.`
+        : '<span class="emoji">📋</span> No notes yet.';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Group by effective date, newest day first
+    const groups = {};
+    items.forEach(m => { const d = effDate(m); (groups[d] = groups[d] || []).push(m); });
+    const dates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    let html = '';
+    dates.forEach(d => {
+      const dayMsgs = groups[d];
+      const unreadCount = dayMsgs.filter(m => !m.is_read_by_me && m.author_id !== me.id).length;
+      html += `
+        <div class="shift-section">
+          <div class="shift-header" style="cursor:default">
+            <span class="shift-header-label" style="color:#2c5c9c">${dateHeaderLabel(d)}</span>
+            <span class="count-badge">${dayMsgs.length} note${dayMsgs.length===1?'':'s'}${unreadCount>0?' · '+unreadCount+' unread':''}</span>
+            <div class="shift-line"></div>
+          </div>
+          <div>${dayMsgs.map(m => renderMsg(m)).join('')}</div>
+        </div>`;
+    });
+    feed.innerHTML = html;
+    feed.querySelectorAll('[data-photo-id]').forEach(el =>
+      staffAvatar(el, el.dataset.photoId, el.dataset.photoName, el.dataset.photoColor));
+  }
+
   function setFeedMode(mode) {
     feedMode = mode;
     document.getElementById('seg-day').classList.toggle('active', mode === 'day');
+    const segAll = document.getElementById('seg-all');
+    if (segAll) segAll.classList.toggle('active', mode === 'all');
     document.getElementById('seg-unread').classList.toggle('active', mode === 'unread');
-    document.querySelector('.date-nav').style.display = mode === 'unread' ? 'none' : 'flex';
+    // Date arrows only make sense in the day-bucketed view; hide them for the
+    // cross-day "All notes" and "Unread" views.
+    document.querySelector('.date-nav').style.display = (mode === 'day') ? 'flex' : 'none';
     renderFeed();
+  }
+
+  function staffNameById(id) {
+    const s = (allStaff || []).find(x => x.id === parseInt(id));
+    return s ? s.name : 'this person';
   }
 
   function toggleSection(key) {
