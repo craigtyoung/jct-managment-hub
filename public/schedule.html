@@ -830,11 +830,8 @@
       const dayName = DAY_FULL[new Date(date + 'T12:00:00').getDay()];
 
       if (isRecurring) {
-        if (!confirm(`Remove recurring rule?\n\nThis will remove ${name} from every ${dayName} ${SHIFT_LABELS[shift]} going forward.`)) return;
-        try {
-          await fetch(`/api/schedule/rules/${ruleId}`, { method: 'DELETE' });
-          load(); loadRules();
-        } catch(e) { alert('Failed to remove recurring rule.'); }
+        openRemoveModal({ date, shift, staffId, ruleId, name });
+        return;
       } else {
         const current = (weekData[date] && weekData[date][shift]) || [];
         const updatedIds = current.filter(a => !a.is_recurring && a.staff_id !== staffId).map(a => a.staff_id);
@@ -847,6 +844,48 @@
           load();
         } catch(e) { alert('Failed to remove from shift.'); }
       }
+    }
+
+    // ── In-app remove modal (recurring occurrence) ────────────────
+    let removeCtx = null;
+    function openRemoveModal(ctx) {
+      removeCtx = ctx;
+      const dayName = DAY_FULL[new Date(ctx.date + 'T12:00:00').getDay()];
+      document.getElementById('rm-title').textContent = `Remove ${ctx.name}?`;
+      document.getElementById('rm-msg').innerHTML =
+        `<b>${esc(ctx.name)}</b> is on this ${dayName} ${SHIFT_LABELS[ctx.shift]} from a <b>recurring rule</b>. What would you like to do?`;
+      const actions = document.getElementById('rm-actions');
+      actions.innerHTML = '';
+      actions.appendChild(rmBtn('Just this day — keep the recurring rule', 'primary', doSkip));
+      actions.appendChild(rmBtn(`Remove every ${dayName} going forward`, 'danger', doDeleteRule));
+      actions.appendChild(rmBtn('Cancel', 'ghost', closeRemoveModal));
+      document.getElementById('remove-modal').style.display = 'flex';
+    }
+    function rmBtn(label, cls, fn) {
+      const b = document.createElement('button');
+      b.className = 'rm-btn ' + cls; b.textContent = label; b.onclick = fn;
+      return b;
+    }
+    function closeRemoveModal() {
+      document.getElementById('remove-modal').style.display = 'none';
+      removeCtx = null;
+    }
+    async function doSkip() {
+      const c = removeCtx; if (!c) return;
+      try {
+        await fetch('/api/schedule/skip', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: c.date, shift: c.shift, staff_id: c.staffId }),
+        });
+        closeRemoveModal(); load();
+      } catch (e) { alert('Failed to remove for this day.'); }
+    }
+    async function doDeleteRule() {
+      const c = removeCtx; if (!c) return;
+      try {
+        await fetch(`/api/schedule/rules/${c.ruleId}`, { method: 'DELETE' });
+        closeRemoveModal(); load(); loadRules();
+      } catch (e) { alert('Failed to remove recurring rule.'); }
     }
 
     // ── Rules panel ────────────────────────────────────────────────
@@ -1061,6 +1100,25 @@
   <style>/* On mobile the bottom nav replaces the top quick-nav — hide the redundant top strip */@media(max-width:768px){.qnav{display:none!important}}</style>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
+  <style>
+    .rm-overlay{position:fixed;inset:0;background:rgba(13,21,37,.55);display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+    .rm-card{background:var(--surface,#fff);color:var(--text,#0f172a);border-radius:16px;max-width:430px;width:100%;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+    .rm-title{font-size:17px;font-weight:700;margin-bottom:8px}
+    .rm-msg{font-size:14px;color:var(--text-2,#475569);margin-bottom:20px;line-height:1.55}
+    .rm-actions{display:flex;flex-direction:column;gap:9px}
+    .rm-btn{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border-radius:10px;padding:11px 14px;border:1px solid transparent;text-align:center;transition:filter .15s}
+    .rm-btn:hover{filter:brightness(0.97)}
+    .rm-btn.primary{background:#2c5c9c;color:#fff}
+    .rm-btn.danger{background:#fff;color:#dc2626;border-color:#f0c4c4}
+    .rm-btn.ghost{background:transparent;color:var(--text-3,#64748b);border-color:var(--border,#e2e8f0)}
+  </style>
+  <div id="remove-modal" class="rm-overlay" onclick="if(event.target===this)closeRemoveModal()">
+    <div class="rm-card">
+      <div class="rm-title" id="rm-title">Remove</div>
+      <div class="rm-msg" id="rm-msg"></div>
+      <div class="rm-actions" id="rm-actions"></div>
+    </div>
+  </div>
   <script src="/live-sync.js"></script>
 </body>
 </html>

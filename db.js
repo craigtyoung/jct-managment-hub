@@ -307,6 +307,16 @@ if (!Array.isArray(_data.shift_rules)) {
   console.log('Shift rules table initialized.');
 }
 
+// Migration: add shift_skips table if missing.
+// A skip removes ONE occurrence of a recurring rule for a given date+shift+staff,
+// without deleting the rule itself (the "she didn't work this morning" case).
+if (!Array.isArray(_data.shift_skips)) {
+  _data._seq.shift_skips = 0;
+  _data.shift_skips = [];
+  save();
+  console.log('Shift skips table initialized.');
+}
+
 // Migration: slot time overrides
 if (!_data.shift_time_overrides) {
   _data.shift_time_overrides = {};
@@ -989,6 +999,13 @@ function _expandRules(startDate, endDate) {
 
 function getAssignmentsForRange(startDate, endDate) {
   const slotMap = _expandRules(startDate, endDate);
+  // Apply per-day skips to the recurring occurrences first, so an explicit
+  // one-off re-add below still shows the person for that day.
+  for (const sk of (_data.shift_skips || [])) {
+    if (sk.date < startDate || sk.date > endDate) continue;
+    const key = `${sk.date}|${sk.shift}`;
+    if (slotMap[key]) slotMap[key].delete(sk.staff_id);
+  }
   // Layer one-off assignments on top (supplement, not replace)
   for (const a of _data.shift_assignments) {
     if (a.date < startDate || a.date > endDate) continue;
@@ -1009,6 +1026,9 @@ function getAssignmentsForRange(startDate, endDate) {
 
 function getAssignmentsForShift(date, shift) {
   const slotMap = _expandRules(date, date);
+  for (const sk of (_data.shift_skips || [])) {
+    if (sk.date === date && sk.shift === shift && slotMap[`${date}|${shift}`]) slotMap[`${date}|${shift}`].delete(sk.staff_id);
+  }
   for (const a of _data.shift_assignments.filter(a => a.date === date && a.shift === shift)) {
     const key = `${date}|${shift}`;
     if (!slotMap[key]) slotMap[key] = new Map();
@@ -1056,6 +1076,24 @@ function addShiftRule({ staffId, shift, dayOfWeek, startDate, endDate, createdBy
 
 function deleteShiftRule(id) {
   _data.shift_rules = _data.shift_rules.filter(r => r.id !== parseInt(id));
+  save();
+}
+
+// Skip a single occurrence of a recurring rule (keeps the rule intact).
+function addShiftSkip({ staffId, date, shift }) {
+  staffId = parseInt(staffId);
+  const exists = _data.shift_skips.find(s => s.staff_id === staffId && s.date === date && s.shift === shift);
+  if (exists) return exists.id;
+  const id = nextId('shift_skips');
+  _data.shift_skips.push({ id, staff_id: staffId, date, shift, created_at: now() });
+  save();
+  return id;
+}
+function removeShiftSkip({ staffId, date, shift }) {
+  staffId = parseInt(staffId);
+  _data.shift_skips = _data.shift_skips.filter(
+    s => !(s.staff_id === staffId && s.date === date && s.shift === shift)
+  );
   save();
 }
 
@@ -2239,6 +2277,8 @@ module.exports = {
   setShiftAssignments,
   addShiftRule,
   deleteShiftRule,
+  addShiftSkip,
+  removeShiftSkip,
   getShiftRules,
   getChecklistItems,
   getChecklistProgress,
