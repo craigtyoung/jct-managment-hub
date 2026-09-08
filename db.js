@@ -367,6 +367,19 @@ if (!Array.isArray(_data.bubble_readings)) {
   save();
 }
 
+// Migration: waitlist / open-spots board (the digital replacement for the printed
+// cancellation sheet). spots = the open seats; updates = the shared chain of comms.
+if (!Array.isArray(_data.waitlist_spots)) {
+  _data._seq.waitlist_spots = 0;
+  _data.waitlist_spots = [];
+  save();
+}
+if (!Array.isArray(_data.waitlist_updates)) {
+  _data._seq.waitlist_updates = 0;
+  _data.waitlist_updates = [];
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -1529,6 +1542,90 @@ function cancelCoverageRequest(id, staffId, isAdmin) {
   return true;
 }
 
+// ─── Waitlist / open-spots board ───────────────────────────────────────────────
+
+// Returns every spot with its update thread. Open + working spots sort to the top
+// (newest first); filled spots linger 14 days for the record, then drop off.
+function getWaitlistSpots() {
+  const nowMs = Date.now();
+  const keepMs = 14 * 24 * 60 * 60 * 1000;
+  const rank = { open: 0, working: 1, filled: 2 };
+  return (_data.waitlist_spots || [])
+    .filter(s => s.status !== 'filled' || (nowMs - new Date(s.filled_at || s.created_at).getTime()) < keepMs)
+    .map(s => {
+      const creator = getStaffById(s.created_by) || {};
+      const filler  = s.filled_by ? (getStaffById(s.filled_by) || {}) : null;
+      const updates = (_data.waitlist_updates || [])
+        .filter(u => u.spot_id === s.id)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .map(u => {
+          const au = getStaffById(u.staff_id) || {};
+          return { id: u.id, content: u.content, created_at: u.created_at, author_id: au.id, author_name: au.name, author_color: au.color };
+        });
+      return {
+        ...s,
+        created_by_name: creator.name || null,
+        filled_by_name: filler ? filler.name : null,
+        updates,
+      };
+    })
+    .sort((a, b) => {
+      if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
+      // within a tier: newest activity first
+      return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
+    });
+}
+
+function createWaitlistSpot({ staffId, program, day_time, opened_date, spots, note }) {
+  const id = nextId('waitlist_spots');
+  _data.waitlist_spots.push({
+    id,
+    program: String(program || '').slice(0, 160),
+    day_time: String(day_time || '').slice(0, 120),
+    opened_date: (typeof opened_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(opened_date)) ? opened_date : null,
+    spots: Math.max(1, parseInt(spots) || 1),
+    note: note ? String(note).slice(0, 500) : '',
+    status: 'open',
+    created_by: parseInt(staffId),
+    created_at: now(),
+    updated_at: now(),
+    filled_by: null,
+    filled_at: null,
+  });
+  save();
+  return id;
+}
+
+function setWaitlistStatus(id, status, staffId) {
+  const s = _data.waitlist_spots.find(x => x.id === parseInt(id));
+  if (!s) return null;
+  if (!['open', 'working', 'filled'].includes(status)) return null;
+  s.status = status;
+  s.updated_at = now();
+  if (status === 'filled') { s.filled_by = parseInt(staffId); s.filled_at = now(); }
+  else { s.filled_by = null; s.filled_at = null; }
+  save();
+  return s;
+}
+
+function addWaitlistUpdate({ spotId, staffId, content }) {
+  const s = _data.waitlist_spots.find(x => x.id === parseInt(spotId));
+  if (!s) return null;
+  const id = nextId('waitlist_updates');
+  _data.waitlist_updates.push({ id, spot_id: parseInt(spotId), staff_id: parseInt(staffId), content: String(content).slice(0, 500), created_at: now() });
+  s.updated_at = now();
+  save();
+  return id;
+}
+
+function deleteWaitlistSpot(id) {
+  id = parseInt(id);
+  _data.waitlist_spots = _data.waitlist_spots.filter(s => s.id !== id);
+  _data.waitlist_updates = _data.waitlist_updates.filter(u => u.spot_id !== id);
+  save();
+  return true;
+}
+
 // ─── Bubble (temperature / pressure) readings ──────────────────────────────────
 
 function getBubbleReadings(limit = 50) {
@@ -2303,6 +2400,11 @@ module.exports = {
   createCoverageRequest,
   coverCoverageRequest,
   cancelCoverageRequest,
+  getWaitlistSpots,
+  createWaitlistSpot,
+  setWaitlistStatus,
+  addWaitlistUpdate,
+  deleteWaitlistSpot,
   getAllStaff,
   getStaffById,
   getEffectiveStaffId,
