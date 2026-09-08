@@ -385,5 +385,6 @@
     fetch('/api/me').then(function(r){return r.ok?r.json():null;}).then(function(me){ if(me){ document.getElementById('me-name').textContent=me.name||''; avatarInto('me-av', me.id, me.name, me.color); } });
     loadAll();
   </script>
+  <script src="/app-version.js"></script>
 </body>
 </html>

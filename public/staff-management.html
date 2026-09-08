@@ -478,5 +478,6 @@
     function saveNote(id, job, val) { put(id, job, { notes: val }).then(function (row) { if (row) { patchRow(row); flashSaved(id + '-' + job); } }); }
     function saveType(id, job, val) { put(id, job, { pay_type: val }).then(function (row) { if (row) { patchRow(row); renderPay(); } }); }
   </script>
+  <script src="/app-version.js"></script>
 </body>
 </html>

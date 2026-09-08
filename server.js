@@ -1,9 +1,18 @@
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Sessions persist to the Railway volume (next to the data file) so a redeploy no
+// longer wipes everyone's login. Locally this falls back to ./sessions.
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'jct-data.json');
+const SESSIONS_DIR = path.join(path.dirname(DATA_FILE), 'sessions');
+
+// Server boot id — changes on every deploy so open pages can detect a new version.
+const BOOT_ID = Date.now();
 
 // Middleware
 app.use(express.json());
@@ -11,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
+  store: new FileStore({ path: SESSIONS_DIR, ttl: 60 * 60 * 12, reapInterval: 60 * 60, retries: 1, logFn: function () {} }),
   secret: process.env.SESSION_SECRET || 'jct-staff-hub-secret-2024',
   resave: false,
   saveUninitialized: false,
@@ -53,6 +63,10 @@ app.use('/api/auth', authRoutes);
 app.get('/api/public/pro-schedule', (req, res) => {
   res.json(require('./db').getPublicProSchedule());
 });
+
+// Public: current server build id. Open pages poll this to detect a new deploy and
+// offer a soft "update now" prompt — never a forced reload.
+app.get('/api/version', (req, res) => res.json({ boot: BOOT_ID }));
 
 // First-login guard: until a user sets their own password, block every data
 // endpoint (auth, identity and avatar reads stay open so they can complete setup).
