@@ -799,12 +799,12 @@
     const cf = document.getElementById('cat-filter-buttons');
     if (cf) {
       cf.innerHTML = CATS.cats.map(c =>
-        `<button class="sidebar-btn" data-cat="${c}"${c==='urgent'?' title="Time-sensitive — pushed to the top of the dashboard"':''} onclick="filterCategory('${c}',this)">
+        `<button class="sidebar-btn" data-cat="${c}"${c==='urgent'?' title="Highest priority — pinned to the top until an admin clears it"':''} onclick="filterCategory('${c}',this)">
            <span class="shift-dot" style="background:${CATS.colors[c]}"></span> ${CATS.names[c]}
            <span id="b-${c}" class="unread-pill" style="display:none"></span>
          </button>`).join('');
     }
-    const URGENT_HINT = "Time-sensitive — jumps to the top of the dashboard. If it can't wait (e.g. the bubble), call the team.";
+    const URGENT_HINT = "Highest priority — pins to the top of the dashboard until an admin clears it. If it can't wait (e.g. the bubble), call the team.";
     const sel = document.getElementById('compose-category');
     if (sel) {
       // "Urgent" is a management-only category — staff should call, not post urgent.
