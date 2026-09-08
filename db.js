@@ -2293,6 +2293,16 @@ function addStaffMember(f, passwordHash) {
   _data.staff.push(s); save();
   return _dirOut(s);
 }
+
+// Quick-add a coach as a role 'pro' with the default club password (no login required
+// — they still appear in the pro rail, schedule, and public view). Used by the AI editor.
+function addCoachAccount(name) {
+  const raw = String(name || '').trim();
+  const parts = raw.split(/\s+/);
+  const first = parts.shift() || raw;
+  const last = parts.join(' ');
+  return addStaffMember({ first_name: first, last_name: last, role: 'pro' }, bcrypt.hashSync('jct2026', 10));
+}
 function updateStaffMember(staffId, f) {
   const s = _data.staff.find(x => x.id === parseInt(staffId)); if (!s) return null;
   if (f.first_name !== undefined) s.name = String(f.first_name).slice(0, 60);
@@ -2529,6 +2539,7 @@ module.exports = {
   updateStaffPay,
   getStaffDirectory,
   addStaffMember,
+  addCoachAccount,
   updateStaffMember,
   addPushSubscription,
   removeSubscriptionByEndpoint,

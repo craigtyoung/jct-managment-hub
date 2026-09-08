@@ -96,8 +96,17 @@ const WRITE_TOOLS = [
     }
   },
   {
+    name: 'propose_add_coach',
+    description: "Stage adding a new coach as a pro so they appear in the schedule drag rail, the board, and the public view. No login is required (they can be given one later). Use this when a coach isn't in the system yet. Stage it, confirm with the user, then apply with apply_schedule_edit.",
+    input_schema: {
+      type: 'object',
+      properties: { name: { type: 'string', description: 'Coach name, e.g. "Katya" or "Katya Smith"' } },
+      required: ['name']
+    }
+  },
+  {
     name: 'apply_schedule_edit',
-    description: 'Commit a change that was previously staged by propose_schedule_edit. Only call this after the user has clearly confirmed the specific change_id.',
+    description: 'Commit a change that was previously staged (a schedule edit or an add-coach). Only call this after the user has clearly confirmed the specific change_id.',
     input_schema: {
       type: 'object',
       properties: { change_id: { type: 'string' } },
@@ -163,6 +172,7 @@ function applyScheduleEdit(change_id, me) {
   if (change.kind === 'add') { const s = db.addProScheduleSlot(change.payload); result = { ok: true, created_slot_id: s.id }; }
   else if (change.kind === 'update') { result = db.updateProScheduleSlot(change.slot_id, change.payload) ? { ok: true } : { error: 'Slot no longer exists.' }; }
   else if (change.kind === 'remove') { result = db.deleteProScheduleSlot(change.slot_id) ? { ok: true } : { error: 'Slot no longer exists.' }; }
+  else if (change.kind === 'add_coach') { const c = db.addCoachAccount(change.payload.name); result = { ok: true, coach_id: c.id }; }
   _pendingEdits.delete(change_id);
   if (result.ok) {
     db.addScheduleAiLog({ by: me.name, by_id: me.id, kind: change.kind, summary });
@@ -213,9 +223,14 @@ function executeTool(name, input, ctx) {
       (db.getProScheduleSlots() || []).forEach(s => (s.coaches || '').split(',').map(x => x.trim()).filter(Boolean).forEach(n => known.add(n)));
       return { staff_pros: staffPros, coaches_in_schedule: [...known], note: 'You may also name any other coach as free text.' };
     }
-    if (name === 'propose_schedule_edit' || name === 'apply_schedule_edit') {
+    if (name === 'propose_schedule_edit' || name === 'propose_add_coach' || name === 'apply_schedule_edit') {
       if (!ctx.isMgmt) return { error: 'Only management can edit the pro schedule.' };
       if (name === 'propose_schedule_edit') return proposeScheduleEdit(input);
+      if (name === 'propose_add_coach') {
+        const nm = String(input.name || '').trim();
+        if (!nm) return { error: 'Coach name is required.' };
+        return _stash({ kind: 'add_coach', payload: { name: nm } }, `ADD COACH · ${nm} (role: pro — shows in the rail + public view, no login needed)`, null);
+      }
       return applyScheduleEdit(input.change_id, ctx.me);
     }
     return { error: `Unknown tool: ${name}` };
@@ -255,6 +270,7 @@ Editing the Pro Schedule (management only — these tools only exist for admins/
 - To change anything, call propose_schedule_edit — this only STAGES the change and returns a summary + change_id. Show the user exactly what will change and WAIT for them to clearly confirm ("yes"). Only then call apply_schedule_edit with that change_id. NEVER apply without an explicit confirmation. One change at a time.
 - A **private lesson** = type "private": one court, one coach, a start/end time, no program name. A **class** = type "class" with a program name (e.g. Cardio Tennis, U9, National Transition, Bronze), one or more courts, coaches, and times.
 - Coaches are free text — they do NOT need to be staff members. "Donski" means Mike.
+- If a coach isn't in the system yet and the user wants them draggable / properly on the roster, use propose_add_coach to add them as a pro (then apply after confirmation). They don't need a login — they still appear in the drag rail and public view.
 - Times are 24-hour (e.g. 16:30); also give a friendly time_label like "4:30–6:00 PM".
 - Do NOT add non-pro events (e.g. Men's House League, or outside groups like "RMarshall Group").
 
