@@ -438,6 +438,14 @@
         <!-- Category filter buttons are generated per-audience by applyAudienceUI() -->
         <div id="cat-filter-buttons"></div>
       </div>
+      <!-- Priority filter — narrows to time-sensitive notes; toggle again to clear -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Priority</div>
+        <button class="sidebar-btn" id="ts-filter-btn" onclick="filterTimeSensitive(this)" title="Show only time-sensitive notes. Click again to show everything.">
+          <span class="shift-dot" style="background:#d97706"></span> ⏱ Time-Sensitive
+          <span id="b-ts" class="unread-pill" style="display:none"></span>
+        </button>
+      </div>
       <!-- Staff filter -->
       <div class="sidebar-section">
         <div class="sidebar-label">Relevant to</div>
@@ -603,7 +611,7 @@
 
 <script>
   let me = null, allStaff = [], messages = [];
-  let activeCategory = 'all', activeStaff = 'all', activeGroup = 'all';
+  let activeCategory = 'all', activeStaff = 'all', activeGroup = 'all', activeTimeSensitive = false;
 
   // ── Audience: 'office' (default) or 'pro' — chosen by ?audience=pro in the URL. ──
   // The pro comms log mirrors the office one but is scoped to the 6 teaching pros +
@@ -960,6 +968,13 @@
     renderFeed();
   }
 
+  // Toggle the time-sensitive filter. Click again to clear — never hides notes unless on.
+  function filterTimeSensitive(btn) {
+    activeTimeSensitive = !activeTimeSensitive;
+    btn.classList.toggle('active', activeTimeSensitive);
+    renderFeed();
+  }
+
   // Toggle the "sent to management" filter (management-only). Click again to clear.
   function filterGroup(g, btn) {
     if (activeGroup === g) { activeGroup = 'all'; btn.classList.remove('active'); }
@@ -979,6 +994,7 @@
       if (effDate(m) !== localDateStr(viewDate)) return false;
       if (activeCategory !== 'all' && (m.category || 'general') !== activeCategory) return false;
       if (activeGroup === 'management' && !isManagementMsg(m)) return false;
+      if (activeTimeSensitive && !m.time_sensitive) return false;
       if (activeStaff !== 'all') {
         const sid = parseInt(activeStaff);
         const fromThem  = m.author_id === sid;
@@ -1058,6 +1074,7 @@
     let items = messages.filter(isMyUnread);
     // honour the active category + staff filters
     if (activeCategory !== 'all') items = items.filter(m => (m.category||'general') === activeCategory);
+    if (activeTimeSensitive) items = items.filter(m => m.time_sensitive);
     if (activeStaff !== 'all') {
       const sid = parseInt(activeStaff);
       items = items.filter(m => m.author_id === sid || !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(sid)));
@@ -1102,6 +1119,7 @@
     let items = messages.slice();
     if (activeCategory !== 'all') items = items.filter(m => (m.category || 'general') === activeCategory);
     if (activeGroup === 'management') items = items.filter(isManagementMsg);
+    if (activeTimeSensitive) items = items.filter(m => m.time_sensitive);
     if (activeStaff !== 'all') {
       const sid = parseInt(activeStaff);
       items = items.filter(m => m.author_id === sid || !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(sid)));
