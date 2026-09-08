@@ -27,7 +27,7 @@ router.post('/staff', (req, res) => {
   const validColors = ['#6366f1','#10b981','#8b5cf6','#f59e0b','#ec4899','#f97316','#14b8a6','#f43f5e','#06b6d4','#a78bfa','#3b82f6','#84cc16'];
   const safeRole  = validRoles.includes(role)   ? role  : 'staff';
   const safeColor = validColors.includes(color)  ? color : '#6366f1';
-  const hash = bcrypt.hashSync(password && password.length >= 4 ? password : 'jct2025', 10);
+  const hash = bcrypt.hashSync(password && password.length >= 4 ? password : 'jct2026', 10);
   const newStaff = db.addStaff({ name: name.trim(), color: safeColor, role: safeRole, passwordHash: hash });
   res.json({ ok: true, staff: newStaff });
 });

@@ -456,8 +456,8 @@
         </select>
       </div>
       <div id="password-section" class="form-group">
-        <label class="form-label">Password <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(leave blank for default: jct2025)</span></label>
-        <input id="modal-password" type="text" class="input-field" placeholder="jct2025" autocomplete="off" />
+        <label class="form-label">Password <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(leave blank for default: jct2026)</span></label>
+        <input id="modal-password" type="text" class="input-field" placeholder="jct2026" autocomplete="off" />
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="document.getElementById('staff-modal').classList.add('hidden')">Cancel</button>
@@ -804,7 +804,7 @@
         if (!res.ok) { showToast(data.error || 'Update failed', 'error'); return; }
         showToast(`${name} updated`);
       } else {
-        const password = document.getElementById('modal-password').value || 'jct2025';
+        const password = document.getElementById('modal-password').value || 'jct2026';
         const res = await fetch('/api/admin/staff', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

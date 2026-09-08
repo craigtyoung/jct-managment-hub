@@ -213,7 +213,7 @@ function save() {
 let _data = load();
 
 if (!_data) {
-  const pw = bcrypt.hashSync('jct2025', 10);
+  const pw = bcrypt.hashSync('jct2026', 10);
   _data = {
     _seq: { staff: 10, messages: 0, reads: 0, replies: 0 },
     staff: [
@@ -233,7 +233,7 @@ if (!_data) {
     replies: [],  // { id, message_id, staff_id, content, created_at }
   };
   save();
-  console.log('Data store created. Default password for all: jct2025');
+  console.log('Data store created. Default password for all: jct2026');
 }
 
 // One-time migration flags so seed migrations never re-add deleted staff on reboot.
@@ -752,6 +752,22 @@ if (!_data._migrations.scheduleRotaSep2026v1) {
     if (s.must_set_password === undefined) { s.must_set_password = true; changed = true; }
   }
   if (changed) { save(); console.log('Flagged all staff for first-login password change.'); }
+}
+
+// Migration: normalize the default password to jct2026. Earlier accounts were seeded
+// with jct2025 and later ones with jct2026, so a not-yet-logged-in staffer's default
+// depended on when they were added. Reset EVERY account still on the shared default
+// (must_set_password === true) to jct2026 so the login-screen hint is always correct.
+// Accounts where someone already set their own password (flag false) are never touched.
+if (!_data._migrations.defaultPwNormalize2026v1) {
+  const DEFAULT_PW_HASH = bcrypt.hashSync('jct2026', 10);
+  let reset = 0;
+  for (const s of (_data.staff || [])) {
+    if (s.must_set_password === true) { s.password = DEFAULT_PW_HASH; reset++; }
+  }
+  _data._migrations.defaultPwNormalize2026v1 = true;
+  save();
+  console.log('Normalized default password to jct2026 for ' + reset + ' not-yet-logged-in account(s).');
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
