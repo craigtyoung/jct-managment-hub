@@ -1930,10 +1930,14 @@
       if (!wrap) return;
       const x = new Date();
       const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-      const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr).slice(0, 3);
+      const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr)
+        // Urgent / time-sensitive notes jump to the top; the fetch is already newest-first,
+        // and Array.sort is stable, so recency order is preserved within each group.
+        .sort((a, b) => (b.category === 'urgent') - (a.category === 'urgent'))
+        .slice(0, 3);
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
-      const catNames  = (cats && cats.names)  || { membership:'Membership', 'pro-shop':'Pro Shop', reminders:'Reminders', academy:'Academy', general:'General' };
-      const catColors = (cats && cats.colors) || { membership:'#8b5cf6', 'pro-shop':'#d97706', reminders:'#2563eb', academy:'#059669', general:'#64748b' };
+      const catNames  = (cats && cats.names)  || { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
+      const catColors = (cats && cats.colors) || { urgent:'#ef4444', membership:'#8b5cf6', 'pro-shop':'#d97706', maintenance:'#0d9488', academy:'#059669', general:'#64748b' };
       wrap.innerHTML = visible.map(m => {
         const cat = m.category || 'general';
         const unread = !m.is_read_by_me && m.author_id !== me.id;

@@ -927,7 +927,7 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
 function createMessage({ staffId, content, shift, category, recipients, show_on, audience }) {
   const id = nextId('messages');
   const aud = audience === 'pro' ? 'pro' : 'office';
-  const officeCategories = ['membership', 'pro-shop', 'maintenance', 'academy', 'general'];
+  const officeCategories = ['urgent', 'membership', 'pro-shop', 'maintenance', 'academy', 'general'];
   const proCategories = ['general', 'class-switch', 'player-assessment', 'sub-coverage', 'player-progress', 'program', 'equipment', 'incident'];
   const validCategories = aud === 'pro' ? proCategories : officeCategories;
   // show_on: 'YYYY-MM-DD' to surface the note on a future day, else null (shows on the day it was posted)

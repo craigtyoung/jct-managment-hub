@@ -169,6 +169,7 @@
     .msg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 7px; overflow: hidden; box-shadow: var(--card-shadow); transition: box-shadow 0.2s; }
     .msg-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .msg-card.unread { border-left: 3px solid #2c5c9c; }
+    .msg-card.unread[data-category="urgent"]     { border-left-color: #ef4444; }
     .msg-card.unread[data-category="membership"] { border-left-color: #8b5cf6; }
     .msg-card.unread[data-category="pro-shop"]   { border-left-color: #f59e0b; }
     .msg-card.unread[data-category="maintenance"]  { border-left-color: #0d9488; }
@@ -184,6 +185,7 @@
     .cat-maintenance { background: rgba(13,148,136,0.12); color: #0f766e; }
     .cat-academy    { background: rgba(16,185,129,0.1);  color: #059669; }
     .cat-general    { background: rgba(148,163,184,0.12);color: #64748b; }
+    .cat-urgent     { background: rgba(239,68,68,0.12);  color: #dc2626; }
     .msg-to { font-size: 12px; color: var(--text3); }
     .msg-time { font-size: 14px; font-weight: 700; color: var(--text2); margin-left: auto; white-space: nowrap; background: var(--input-bg); border: 1px solid var(--border2); border-radius: 7px; padding: 3px 9px; }
     .msg-preview { font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
@@ -482,6 +484,7 @@
             <div class="compose-footer">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
             <select id="compose-category" class="select-pill"><!-- options set per-audience by applyAudienceUI() --></select>
+            <span id="cat-hint" style="display:none;font-size:11px;color:#dc2626;font-weight:600;line-height:1.3;flex-basis:100%;margin-top:4px"></span>
             <span style="font-size:11px;color:var(--text3);font-weight:500">Schedule for:</span>
             <input type="date" id="compose-showon" class="select-pill" title="Leave blank to post today. Pick a future date to surface this note for an upcoming shift." onchange="document.getElementById('showon-hint').style.display=this.value?'none':'inline'">
             <span id="showon-hint" style="font-size:11px;color:var(--text3);font-style:italic">today</span>
@@ -605,9 +608,9 @@
   const AUD_Q = AUDIENCE === 'pro' ? '&audience=pro' : '';
   const CAT_CONFIG = {
     office: {
-      cats:   ['membership','pro-shop','maintenance','academy','general'],
-      names:  { membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' },
-      colors: { membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' },
+      cats:   ['urgent','membership','pro-shop','maintenance','academy','general'],
+      names:  { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' },
+      colors: { urgent:'#ef4444', membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' },
     },
     pro: {
       cats:   ['general','class-switch','player-assessment','sub-coverage','player-progress','program','equipment','incident'],
@@ -781,7 +784,7 @@
       if (composeCat && CATS.cats.includes(composeCat)) {
         openCompose();
         const sel = document.getElementById('compose-category');
-        if (sel) sel.value = composeCat;
+        if (sel) { sel.value = composeCat; if (sel.onchange) sel.onchange(); }
       }
     } catch (e) {}
   }
@@ -792,13 +795,28 @@
     const cf = document.getElementById('cat-filter-buttons');
     if (cf) {
       cf.innerHTML = CATS.cats.map(c =>
-        `<button class="sidebar-btn" data-cat="${c}" onclick="filterCategory('${c}',this)">
+        `<button class="sidebar-btn" data-cat="${c}"${c==='urgent'?' title="Time-sensitive — pushed to the top of the dashboard"':''} onclick="filterCategory('${c}',this)">
            <span class="shift-dot" style="background:${CATS.colors[c]}"></span> ${CATS.names[c]}
            <span id="b-${c}" class="unread-pill" style="display:none"></span>
          </button>`).join('');
     }
+    const URGENT_HINT = "Time-sensitive — jumps to the top of the dashboard. If it can't wait (e.g. the bubble), call the team.";
     const sel = document.getElementById('compose-category');
-    if (sel) sel.innerHTML = CATS.cats.map(c => `<option value="${c}">${CATS.names[c]}</option>`).join('');
+    if (sel) {
+      sel.innerHTML = CATS.cats.map(c =>
+        `<option value="${c}"${c==='urgent'?` title="${URGENT_HINT}"`:''}>${CATS.names[c]}</option>`).join('');
+      // Default the composer to General, not whichever option lands first in the list.
+      if (CATS.cats.includes('general')) sel.value = 'general';
+      // Native dropdowns don't reliably show per-option tooltips (and staff are on phones —
+      // no hover), so surface the urgent meaning as a small hint line when it's selected.
+      sel.onchange = () => {
+        const h = document.getElementById('cat-hint');
+        if (!h) return;
+        if (sel.value === 'urgent') { h.textContent = URGENT_HINT; h.style.display = ''; }
+        else h.style.display = 'none';
+      };
+      sel.onchange();
+    }
 
     if (AUDIENCE === 'pro') {
       // Office category colors ship in CSS; inject the pro set for tags + unread borders.
