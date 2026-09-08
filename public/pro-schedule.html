@@ -208,11 +208,19 @@
       // default to today if it's a weekday we have
       const jsDay = new Date().getDay(); // 0=Sun..6=Sat
       activeDay = DAYS[(jsDay+6)%7] || 'Mon';
-      try { pros = await (await fetch('/api/pro-schedule/pros')).json(); } catch(e){ pros=[]; }
-      renderProRail();
+      await refreshPros();
       await loadSlots();
       renderTabs();
     }
+
+    async function refreshPros(){
+      try { pros = await (await fetch('/api/pro-schedule/pros')).json(); } catch(e){ pros=[]; }
+      renderProRail();
+    }
+
+    // Live-sync hook: on any server change (e.g. the assistant adds a coach or edits a
+    // slot), re-pull BOTH the pro rail and the slots so new coaches appear without a refresh.
+    window.onLiveUpdate = async function(){ await refreshPros(); await loadSlots(); };
 
     function renderProRail(){
       const rail=document.getElementById('prorail');

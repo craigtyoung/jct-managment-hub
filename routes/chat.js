@@ -67,6 +67,11 @@ const TOOLS = [
     name: 'list_coaches',
     description: 'List the staff pros plus coach names already used in the schedule (to check spelling). You may still name any other coach as free text.',
     input_schema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'list_class_catalog',
+    description: "List the club's official class/program names (the academy catalog, e.g. Future Stars, Future Stars Plus, Bronze (Rising Stars), Silver, Gold, Adult tiers) plus program names already used on the schedule. Call this when adding or discussing classes so you use the correct names and can map a shorthand the user says to the real one.",
+    input_schema: { type: 'object', properties: {} }
   }
 ];
 
@@ -223,6 +228,11 @@ function executeTool(name, input, ctx) {
       (db.getProScheduleSlots() || []).forEach(s => (s.coaches || '').split(',').map(x => x.trim()).filter(Boolean).forEach(n => known.add(n)));
       return { staff_pros: staffPros, coaches_in_schedule: [...known], note: 'You may also name any other coach as free text.' };
     }
+    if (name === 'list_class_catalog') {
+      const catalog = [...new Set((db.getAcademyClasses() || []).map(c => c.program).filter(Boolean))];
+      const inSchedule = [...new Set((db.getProScheduleSlots() || []).map(s => s.program).filter(Boolean))];
+      return { academy_catalog: catalog, programs_used_in_schedule: inSchedule, note: 'Use these exact program names when adding classes; map any shorthand the user says to the closest one.' };
+    }
     if (name === 'propose_schedule_edit' || name === 'propose_add_coach' || name === 'apply_schedule_edit') {
       if (!ctx.isMgmt) return { error: 'Only management can edit the pro schedule.' };
       if (name === 'propose_schedule_edit') return proposeScheduleEdit(input);
@@ -269,6 +279,7 @@ Editing the Pro Schedule (management only — these tools only exist for admins/
 - You CAN edit the pro teaching schedule. Always call read_pro_schedule for the day first so you work from what's already there.
 - To change anything, call propose_schedule_edit — this only STAGES the change and returns a summary + change_id. Show the user exactly what will change and WAIT for them to clearly confirm ("yes"). Only then call apply_schedule_edit with that change_id. NEVER apply without an explicit confirmation. One change at a time.
 - A **private lesson** = type "private": one court, one coach, a start/end time, no program name. A **class** = type "class" with a program name (e.g. Cardio Tennis, U9, National Transition, Bronze), one or more courts, coaches, and times.
+- When adding a CLASS, use the club's real program names — call list_class_catalog to see them (Future Stars, Future Stars Plus, Bronze (Rising Stars), Silver, Gold, Adult Introductory/Intermediate, etc.) and map the user's shorthand (e.g. "Bronze 7-9") to the closest catalog name.
 - Coaches are free text — they do NOT need to be staff members. "Donski" means Mike.
 - If a coach isn't in the system yet and the user wants them draggable / properly on the roster, use propose_add_coach to add them as a pro (then apply after confirmation). They don't need a login — they still appear in the drag rail and public view.
 - Times are 24-hour (e.g. 16:30); also give a friendly time_label like "4:30–6:00 PM".
