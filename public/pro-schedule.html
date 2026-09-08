@@ -231,8 +231,9 @@
           </div>
         </div>
         <div class="mfield" id="m-prog-field">
-          <label id="m-prog-label">Class name</label>
-          <input type="text" id="m-prog" placeholder="e.g. Cardio Tennis, U9, Bronze" />
+          <label id="m-prog-label">Class</label>
+          <select id="m-prog-select" onchange="onProgSelect()"></select>
+          <input type="text" id="m-prog-custom" placeholder="Type a class name" style="display:none; margin-top:6px" />
         </div>
         <div class="mrow">
           <div class="mfield"><label>Day</label><select id="m-day"></select></div>
@@ -270,6 +271,7 @@
     const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const DAY_FULL = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
     let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon', view = 'list';
+    let classCatalog = [];   // program names from the academy catalog, for the add-slot dropdown
 
     function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000); }
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -295,7 +297,18 @@
       activeDay = DAYS[(jsDay+6)%7] || 'Mon';
       await refreshPros();
       await loadSlots();
+      await loadClassCatalog();
       renderTabs();
+    }
+
+    // Pull the academy class catalog so the add-slot dialog offers the real class/level
+    // names instead of free text. Non-fatal — if it fails, the dropdown falls back to
+    // whatever programs already exist on the schedule, plus the custom option.
+    async function loadClassCatalog(){
+      try {
+        const rows = await (await fetch('/api/academy/classes')).json();
+        classCatalog = [...new Set((rows||[]).map(c=>String(c.program||'').trim()).filter(Boolean))];
+      } catch(e){ classCatalog = []; }
     }
 
     async function refreshPros(){
@@ -463,7 +476,7 @@
       addType = 'class';
       document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type==='class'));
       document.getElementById('m-prog-field').style.display='';
-      document.getElementById('m-prog').value='';
+      buildProgOptions();
       // Day dropdown seeded to the day you're viewing
       const daySel=document.getElementById('m-day');
       daySel.innerHTML=DAYS.map(d=>`<option value="${d}" ${d===activeDay?'selected':''}>${DAY_FULL[d]}</option>`).join('');
@@ -474,6 +487,26 @@
       document.getElementById('addModal').classList.add('show');
     }
     function closeAddSlot(){ document.getElementById('addModal').classList.remove('show'); }
+    // Build the class dropdown: academy catalog + any program already on the schedule
+    // (deduped, alpha), a leading placeholder, and a trailing "Other" for one-offs.
+    function buildProgOptions(){
+      const fromSlots = [...new Set(slots.map(s=>String(s.program||'').trim()))]
+        .filter(p=>p && p!=='New class' && p!=='Private lesson');
+      const names = [...new Set([...classCatalog, ...fromSlots])].sort((a,b)=>a.localeCompare(b));
+      const sel = document.getElementById('m-prog-select');
+      sel.innerHTML = '<option value="">— Select a class —</option>'
+        + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')
+        + '<option value="__custom__">Other — type a name…</option>';
+      sel.value = '';
+      const custom = document.getElementById('m-prog-custom');
+      custom.value = ''; custom.style.display = 'none';
+    }
+    function onProgSelect(){
+      const custom = document.getElementById('m-prog-custom');
+      const isCustom = document.getElementById('m-prog-select').value === '__custom__';
+      custom.style.display = isCustom ? '' : 'none';
+      if (isCustom) custom.focus();
+    }
     function setSlotType(t){
       addType=t;
       document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type===t));
@@ -494,14 +527,21 @@
       const end=document.getElementById('m-end').value||'17:00';
       if(end<=start){ toast('End time must be after start'); return; }
       const courts=[...document.querySelectorAll('#m-courts .mcourt.on')].map(b=>b.dataset.court);
-      const progInput=document.getElementById('m-prog').value.trim();
+      let program;
+      if (addType==='private') {
+        program = 'Private lesson';
+      } else {
+        const sel = document.getElementById('m-prog-select').value;
+        program = sel==='__custom__' ? document.getElementById('m-prog-custom').value.trim() : sel;
+        if (!program){ toast('Pick a class, or choose Other to type one'); return; }
+      }
       const body = {
         type: addType,
         day: document.getElementById('m-day').value,
         category: document.getElementById('m-cat').value,
         start, end,
         time_label: fmtTimeLabel(start,end),
-        program: addType==='private' ? (progInput||'Private lesson') : (progInput||'New class'),
+        program,
         courts,
       };
       const r = await fetch('/api/pro-schedule/slots', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
