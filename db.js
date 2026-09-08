@@ -907,6 +907,7 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
       content: msg.content,
       shift: msg.shift,
       category: msg.category || 'general',
+      time_sensitive: !!msg.time_sensitive,
       audience: aud,
       recipients,
       receipt_staff: receiptStaff.map(s => ({ id: s.id, name: s.name, color: s.color })),
@@ -926,7 +927,7 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
   });
 }
 
-function createMessage({ staffId, content, shift, category, recipients, show_on, audience }) {
+function createMessage({ staffId, content, shift, category, recipients, show_on, audience, time_sensitive }) {
   const id = nextId('messages');
   const aud = audience === 'pro' ? 'pro' : 'office';
   const officeCategories = ['urgent', 'membership', 'pro-shop', 'maintenance', 'academy', 'general'];
@@ -941,6 +942,7 @@ function createMessage({ staffId, content, shift, category, recipients, show_on,
     content,
     shift,
     category: validCategories.includes(category) ? category : 'general',
+    time_sensitive: !!time_sensitive,
     audience: aud,
     recipients: recipients && recipients.length > 0 ? recipients.map(Number) : null,
     show_on: validShowOn,

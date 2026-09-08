@@ -96,10 +96,10 @@
     .compose-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     @keyframes pulse-rec { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.25)} }
     /* ── Post Note trigger (collapsed state) ── */
-    .compose-trigger { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 14px; padding: 12px 16px; color: var(--text3); font-size: 16px; font-family: 'Inter', sans-serif; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
-    .compose-trigger:hover { border-color: rgba(44,92,156,0.4); color: var(--text2); }
-    .compose-trigger svg { flex-shrink: 0; color: var(--text2); }
-    .compose-trigger span { flex: 1; }
+    .compose-trigger { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: rgba(44,92,156,0.06); border: 1.5px solid rgba(44,92,156,0.35); border-radius: 14px; padding: 13px 16px; color: #2c5c9c; font-size: 16px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.18s; box-shadow: 0 1px 4px rgba(44,92,156,0.10); }
+    .compose-trigger:hover { background: rgba(44,92,156,0.11); border-color: rgba(44,92,156,0.6); box-shadow: 0 2px 10px rgba(44,92,156,0.18); }
+    .compose-trigger svg { flex-shrink: 0; color: #fff; background: #2c5c9c; border-radius: 50%; padding: 4px; box-sizing: content-box; width: 16px; height: 16px; }
+    .compose-trigger span { flex: 1; color: #2c5c9c; }
     .compose-trigger.hidden { display: none; }
     /* ── Compose panel (expanded state) — inline on desktop, bottom-sheet on mobile ── */
     .compose-panel { display: none; }
@@ -488,6 +488,10 @@
             <span style="font-size:11px;color:var(--text3);font-weight:500">Schedule for:</span>
             <input type="date" id="compose-showon" class="select-pill" title="Leave blank to post today. Pick a future date to surface this note for an upcoming shift." onchange="document.getElementById('showon-hint').style.display=this.value?'none':'inline'">
             <span id="showon-hint" style="font-size:11px;color:var(--text3);font-style:italic">today</span>
+            <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);font-weight:600;cursor:pointer;margin-left:2px" title="Adds a Time-Sensitive badge and floats the note up the dashboard. For a real emergency, call.">
+              <input type="checkbox" id="compose-timesensitive" style="width:15px;height:15px;accent-color:#d97706;cursor:pointer">
+              ⏱ Time-sensitive
+            </label>
             <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
               <button id="compose-mic-btn" onclick="toggleComposeMic()" title="Dictate" style="display:none;padding:6px 10px;border-radius:9px;border:1px solid var(--input-border);background:transparent;cursor:pointer;transition:all 0.18s;display:none;align-items:center;justify-content:center">
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -803,8 +807,11 @@
     const URGENT_HINT = "Time-sensitive — jumps to the top of the dashboard. If it can't wait (e.g. the bubble), call the team.";
     const sel = document.getElementById('compose-category');
     if (sel) {
-      sel.innerHTML = CATS.cats.map(c =>
-        `<option value="${c}"${c==='urgent'?` title="${URGENT_HINT}"`:''}>${CATS.names[c]}</option>`).join('');
+      // "Urgent" is a management-only category — staff should call, not post urgent.
+      const canUrgent = me && ['admin','manager'].includes(me.role);
+      sel.innerHTML = CATS.cats
+        .filter(c => c !== 'urgent' || canUrgent)
+        .map(c => `<option value="${c}"${c==='urgent'?` title="${URGENT_HINT}"`:''}>${CATS.names[c]}</option>`).join('');
       // Default the composer to General, not whichever option lands first in the list.
       if (CATS.cats.includes('general')) sel.value = 'general';
       // Native dropdowns don't reliably show per-option tooltips (and staff are on phones —
@@ -1225,6 +1232,7 @@
             <div class="msg-top">
               <span class="msg-author" style="color:${msg.author_color}">${isMine ? 'You' : esc(msg.author_name)}</span>
               <span class="cat-tag cat-${(msg.category||'general').replace('-','_')}">${catNames[msg.category||'general']||msg.category||'General'}</span>
+              ${msg.time_sensitive?`<span class="cat-tag" style="background:rgba(217,119,6,0.14);color:#b45309" title="Time-sensitive">⏱ Time-Sensitive</span>`:''}
               ${toLabel}
               ${(msg.replies||[]).length>0?`<span style="font-size:11px;color:var(--text3)">${msg.replies.length} repl${msg.replies.length===1?'y':'ies'}</span>`:''}
               ${unread?`<span style="background:#2c5c9c;color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px">NEW</span>`:''}
@@ -1337,10 +1345,11 @@
     if (!content) { showToast('Please write something first', true); return; }
     const category = document.getElementById('compose-category').value;
     const showOn = document.getElementById('compose-showon').value || null;
+    const timeSensitive = document.getElementById('compose-timesensitive').checked;
     try {
       const res = await fetch('/api/messages', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn, audience: AUDIENCE})
+        body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn, audience: AUDIENCE, time_sensitive: timeSensitive})
       });
       if (!res.ok) { showToast('Failed to post — try again', true); return; }
       clearCompose();
@@ -1367,6 +1376,7 @@
     document.getElementById('compose-category').value = 'general';
     document.getElementById('compose-showon').value = '';
     document.getElementById('showon-hint').style.display = 'inline';
+    document.getElementById('compose-timesensitive').checked = false;
     selectedRecipients = [];
     applyRecipientStyles();
   }

@@ -1927,6 +1927,8 @@
 
     // A note pins to the top of the dashboard only while it's urgent AND not yet cleared.
     function isPinnedUrgent(m) { return !!(m && m.category === 'urgent' && !m.urgent_cleared_at); }
+    // Dashboard priority tier: active-urgent (2) floats above time-sensitive (1) above normal (0).
+    function noteRank(m) { return isPinnedUrgent(m) ? 2 : (m && m.time_sensitive ? 1 : 0); }
 
     // Admin/manager dismiss: clears the urgent pin so the note drops off the top of the
     // dashboard. The note itself stays in the Comm Log — nothing is deleted.
@@ -1946,9 +1948,9 @@
       const x = new Date();
       const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
       const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr)
-        // Urgent / time-sensitive notes jump to the top until an admin clears them; the
-        // fetch is newest-first and Array.sort is stable, so recency holds within each group.
-        .sort((a, b) => (isPinnedUrgent(b) - isPinnedUrgent(a)))
+        // Urgent (until cleared) then time-sensitive jump to the top; the fetch is
+        // newest-first and Array.sort is stable, so recency holds within each tier.
+        .sort((a, b) => (noteRank(b) - noteRank(a)))
         .slice(0, 3);
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
       const catNames  = (cats && cats.names)  || { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
@@ -1962,6 +1964,7 @@
             <div class="note-top">
               <span class="note-author">${esc(m.author_name)}</span>
               <span class="note-cat" style="background:${(catColors[cat]||'#64748b')}18;color:${(catColors[cat]||'#64748b')}">${catNames[cat]||'General'}</span>
+              ${m.time_sensitive?'<span style="font-size:9px;font-weight:700;color:#b45309;background:rgba(217,119,6,0.14);padding:1px 6px;border-radius:100px">⏱ TIME-SENSITIVE</span>':''}
               ${unread ? '<span style="font-size:9px;font-weight:700;color:#fff;background:var(--blue);padding:1px 6px;border-radius:100px">NEW</span>' : ''}
               ${(isPinnedUrgent(m) && me && me.is_management) ? `<button onclick="dismissUrgent(event, ${m.id})" title="Clear this urgent note from the dashboard (it stays in the Comm Log)" style="margin-left:4px;font-size:10px;font-weight:700;color:#dc2626;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);border-radius:100px;padding:1px 8px;cursor:pointer">Dismiss</button>` : ''}
               <span class="note-time">${noteWhen(m.created_at)}</span>

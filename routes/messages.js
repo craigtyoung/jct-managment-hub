@@ -55,14 +55,23 @@ router.post('/', (req, res) => {
   if (author && author.role === 'pro') audience = 'pro';
   else if (req.body.audience === 'pro' && author && ['admin', 'manager'].includes(author.role)) audience = 'pro';
 
+  // Urgent is a management-only signal — staff should call, not post "urgent". Guard the
+  // API even though the composer already hides the option for non-management.
+  const isMgmt = author && ['admin', 'manager'].includes(author.role);
+  let effCategory = category;
+  if (effCategory === 'urgent' && !isMgmt) effCategory = 'general';
+  // Time-sensitive: a lightweight flag anyone can set (badge + dashboard float). Not a category.
+  const timeSensitive = req.body.time_sensitive === true || req.body.time_sensitive === 'true';
+
   const id = db.createMessage({
     staffId: req.actingStaffId,
     content: content.trim(),
     shift: validShifts.includes(shift) ? shift : 'general',
-    category,
+    category: effCategory,
     recipients,
     show_on: req.body.show_on,
     audience,
+    time_sensitive: timeSensitive,
   });
   sse.broadcast('update');
 
