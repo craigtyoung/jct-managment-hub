@@ -15,7 +15,9 @@ router.get('/week', (req, res) => {
   const overrides = db.getTimeOverridesForRange(start, end);
   const assignments = rows.map(a => {
     const ov = overrides[`${a.date}:${a.shift}`] || null;
-    return { ...a, override_start: ov?.start || null, override_end: ov?.end || null };
+    // Precedence: an explicit per-date override wins; else the recurring rule's own
+    // hours (if it carries custom times); else null → the grid falls back to the shift default.
+    return { ...a, override_start: ov?.start || a.rule_start || null, override_end: ov?.end || a.rule_end || null };
   });
   res.json({ start, end, assignments });
 });
@@ -55,12 +57,12 @@ router.get('/rules', (req, res) => {
 router.post('/rules', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
   if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
-  const { staff_id, shift, day_of_week, start_date, end_date } = req.body;
+  const { staff_id, shift, day_of_week, start_date, end_date, start, end } = req.body;
   const validShifts = ['morning', 'afternoon', 'closing'];
   if (!staff_id || !validShifts.includes(shift) || day_of_week === undefined || !start_date) {
     return res.status(400).json({ error: 'staff_id, shift, day_of_week, start_date required' });
   }
-  const id = db.addShiftRule({ staffId: staff_id, shift, dayOfWeek: day_of_week, startDate: start_date, endDate: end_date || null, createdBy: req.actingStaffId });
+  const id = db.addShiftRule({ staffId: staff_id, shift, dayOfWeek: day_of_week, startDate: start_date, endDate: end_date || null, createdBy: req.actingStaffId, start: start || null, end: end || null });
   res.json({ ok: true, id });
 });
 

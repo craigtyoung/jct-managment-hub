@@ -658,6 +658,70 @@ if (!_data._migrations.fixFounderRoles2026v1) {
   if (fixed) console.log('Corrected founder roles to admin:', fixed);
 }
 
+// Migration: replace the recurring weekly rota with Victor's Sept 2026 schedule.
+// Runs ONCE (flag-gated). Resolves staff by NAME at runtime so it stays correct
+// even if the live volume's staff IDs differ from any local copy. Standard days use
+// the global shift blocks (8-1 / 1-6 / 6-11); Thursday and Friday carry per-rule
+// custom hours (Thu = 8-4 / 4-11; Fri = 8-12 / 12-4 / 4-11). Existing one-off
+// assignments are left untouched (they layer on top and age out by date).
+if (!_data._migrations.scheduleRotaSep2026v1) {
+  // day_of_week: Sun=0, Mon=1 ... Sat=6.  start/end omitted → use the global shift default.
+  const ROTA = [
+    // Monday
+    { name: 'Vicky',     shift: 'morning',   dow: 1 },
+    { name: 'Lily',      shift: 'afternoon', dow: 1 },
+    { name: 'Emilia',    shift: 'closing',   dow: 1 },
+    // Tuesday
+    { name: 'Lily',      shift: 'morning',   dow: 2 },
+    { name: 'Angelina',  shift: 'afternoon', dow: 2 },
+    { name: 'Dawson',    shift: 'closing',   dow: 2 },
+    // Wednesday
+    { name: 'Lily',      shift: 'morning',   dow: 3 },
+    { name: 'Vicky',     shift: 'afternoon', dow: 3 },
+    { name: 'Cassandra', shift: 'closing',   dow: 3 },
+    // Thursday — two shifts covering 8-11
+    { name: 'Lily',      shift: 'morning',   dow: 4, start: '08:00', end: '16:00' },
+    { name: 'Angelina',  shift: 'closing',   dow: 4, start: '16:00', end: '23:00' },
+    // Friday — shifted blocks
+    { name: 'Vicky',     shift: 'morning',   dow: 5, start: '08:00', end: '12:00' },
+    { name: 'Lily',      shift: 'afternoon', dow: 5, start: '12:00', end: '16:00' },
+    { name: 'Dawson',    shift: 'closing',   dow: 5, start: '16:00', end: '23:00' },
+    // Saturday
+    { name: 'Skyler',    shift: 'morning',   dow: 6 },
+    { name: 'Ali',       shift: 'afternoon', dow: 6 },
+    { name: 'Emilia',    shift: 'closing',   dow: 6 },
+    // Sunday
+    { name: 'Dawson',    shift: 'morning',   dow: 0 },
+    { name: 'Emilia',    shift: 'afternoon', dow: 0 },
+    { name: 'Skyler',    shift: 'closing',   dow: 0 },
+  ];
+  const byName = (n) => (_data.staff || []).find(s => String(s.name).trim().toLowerCase() === n.toLowerCase());
+  const START_DATE = '2026-09-08', END_DATE = '2026-12-31';
+  const missing = [];
+  _data.shift_rules = [];               // replace the recurring rota
+  for (const r of ROTA) {
+    const s = byName(r.name);
+    if (!s) { missing.push(r.name + ' (' + r.shift + '/day' + r.dow + ')'); continue; }
+    _data._seq.shift_rules = (_data._seq.shift_rules || 0) + 1;
+    _data.shift_rules.push({
+      id: _data._seq.shift_rules,
+      staff_id: s.id,
+      shift: r.shift,
+      day_of_week: r.dow,
+      start_date: START_DATE,
+      end_date: END_DATE,
+      start: r.start || null,
+      end: r.end || null,
+      created_by: 1,
+      created_at: now(),
+    });
+  }
+  _data._migrations.scheduleRotaSep2026v1 = true;
+  save();
+  console.log('Applied Sept 2026 rota: ' + _data.shift_rules.length + ' recurring rules.' +
+    (missing.length ? ' MISSING staff (skipped): ' + missing.join(', ') : ''));
+}
+
 // Migration: force a first-login password change. Everyone currently shares the
 // default password, which defeats role-based access — flag all existing accounts
 // so each person sets their own private password on next sign-in.
@@ -989,7 +1053,7 @@ function _expandRules(startDate, endDate) {
       if (cur.getDay() === rule.day_of_week) {
         const key = `${dateStr}|${rule.shift}`;
         if (!slotMap[key]) slotMap[key] = new Map();
-        slotMap[key].set(rule.staff_id, { staff_id: rule.staff_id, date: dateStr, shift: rule.shift, is_recurring: true, rule_id: rule.id });
+        slotMap[key].set(rule.staff_id, { staff_id: rule.staff_id, date: dateStr, shift: rule.shift, is_recurring: true, rule_id: rule.id, rule_start: rule.start || null, rule_end: rule.end || null });
       }
       cur.setDate(cur.getDate() + 1);
     }
@@ -1058,7 +1122,7 @@ function setShiftAssignments({ date, shift, staffIds, createdBy }) {
   save();
 }
 
-function addShiftRule({ staffId, shift, dayOfWeek, startDate, endDate, createdBy }) {
+function addShiftRule({ staffId, shift, dayOfWeek, startDate, endDate, createdBy, start, end }) {
   const id = nextId('shift_rules');
   _data.shift_rules.push({
     id,
@@ -1067,6 +1131,8 @@ function addShiftRule({ staffId, shift, dayOfWeek, startDate, endDate, createdBy
     day_of_week: parseInt(dayOfWeek),
     start_date: startDate,
     end_date: endDate || null,
+    start: start || null,   // optional per-rule shift hours (override the global shift default for this recurring slot)
+    end: end || null,
     created_by: parseInt(createdBy),
     created_at: now(),
   });
