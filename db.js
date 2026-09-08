@@ -913,6 +913,8 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
       created_at: msg.created_at,
       edited_at: msg.edited_at || null,
       show_on: msg.show_on || null,
+      urgent_cleared_at: msg.urgent_cleared_at || null,
+      urgent_cleared_by_name: msg.urgent_cleared_by ? ((allStaff.find(s => s.id === msg.urgent_cleared_by) || {}).name || null) : null,
       author_id: author.id,
       author_name: author.name,
       author_color: author.color,
@@ -1013,6 +1015,18 @@ function editMessage(messageId, content) {
   if (!m) return null;
   m.content = String(content).slice(0, 4000);
   m.edited_at = now();
+  save();
+  return m;
+}
+
+// Clear (or restore) an urgent note's dashboard pin. Clearing does NOT delete or hide
+// the note from the comms log — it only drops it out of the dashboard's pinned-to-top
+// position. Records who cleared it and when.
+function setUrgentCleared(messageId, staffId, cleared = true) {
+  const m = _data.messages.find(x => x.id === parseInt(messageId));
+  if (!m) return null;
+  if (cleared) { m.urgent_cleared_at = now(); m.urgent_cleared_by = parseInt(staffId); }
+  else { m.urgent_cleared_at = null; m.urgent_cleared_by = null; }
   save();
   return m;
 }
@@ -2337,6 +2351,7 @@ module.exports = {
   createReply,
   deleteMessage,
   editMessage,
+  setUrgentCleared,
   clearDay,
   getAssignmentsForRange,
   getAssignmentsForShift,

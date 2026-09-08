@@ -1925,15 +1925,30 @@
         : d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
     }
 
+    // A note pins to the top of the dashboard only while it's urgent AND not yet cleared.
+    function isPinnedUrgent(m) { return !!(m && m.category === 'urgent' && !m.urgent_cleared_at); }
+
+    // Admin/manager dismiss: clears the urgent pin so the note drops off the top of the
+    // dashboard. The note itself stays in the Comm Log — nothing is deleted.
+    async function dismissUrgent(ev, id) {
+      if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+      try {
+        await fetch('/api/messages/' + id + '/clear-urgent', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+      } catch (e) {}
+      try { init(); } catch (e) {}   // refresh the dashboard (live-sync isn't wired on hub.html)
+    }
+
     function renderNotes(notes, me, targetId, cats) {
       const wrap = document.getElementById(targetId || 'notes-list');
       if (!wrap) return;
       const x = new Date();
       const todayStr = `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
       const visible = (notes || []).filter(m => !m.show_on || m.show_on <= todayStr)
-        // Urgent / time-sensitive notes jump to the top; the fetch is already newest-first,
-        // and Array.sort is stable, so recency order is preserved within each group.
-        .sort((a, b) => (b.category === 'urgent') - (a.category === 'urgent'))
+        // Urgent / time-sensitive notes jump to the top until an admin clears them; the
+        // fetch is newest-first and Array.sort is stable, so recency holds within each group.
+        .sort((a, b) => (isPinnedUrgent(b) - isPinnedUrgent(a)))
         .slice(0, 3);
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
       const catNames  = (cats && cats.names)  || { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
@@ -1948,6 +1963,7 @@
               <span class="note-author">${esc(m.author_name)}</span>
               <span class="note-cat" style="background:${(catColors[cat]||'#64748b')}18;color:${(catColors[cat]||'#64748b')}">${catNames[cat]||'General'}</span>
               ${unread ? '<span style="font-size:9px;font-weight:700;color:#fff;background:var(--blue);padding:1px 6px;border-radius:100px">NEW</span>' : ''}
+              ${(isPinnedUrgent(m) && me && me.is_management) ? `<button onclick="dismissUrgent(event, ${m.id})" title="Clear this urgent note from the dashboard (it stays in the Comm Log)" style="margin-left:4px;font-size:10px;font-weight:700;color:#dc2626;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);border-radius:100px;padding:1px 8px;cursor:pointer">Dismiss</button>` : ''}
               <span class="note-time">${noteWhen(m.created_at)}</span>
             </div>
             <div class="note-snippet">${esc(m.content)}</div>

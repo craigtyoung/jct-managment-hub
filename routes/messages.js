@@ -118,6 +118,19 @@ router.put('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// POST clear (or restore) an urgent note's dashboard pin — management (admin/manager)
+// only. Keeps the note in the comms log; just removes it from the dashboard's pinned
+// urgent position. Body { restore: true } puts the pin back.
+router.post('/:id/clear-urgent', (req, res) => {
+  const msg = db.getMessage(req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
+  const staff = db.getStaffById(req.actingStaffId);
+  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  db.setUrgentCleared(req.params.id, req.actingStaffId, req.body.restore !== true);
+  sse.broadcast('update');
+  res.json({ ok: true });
+});
+
 // DELETE all messages for a given day — must be before /:id (admin only)
 router.delete('/day/:date', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
