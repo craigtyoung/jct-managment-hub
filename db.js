@@ -1565,6 +1565,7 @@ function getWaitlistSpots() {
       return {
         ...s,
         created_by_name: creator.name || null,
+        created_by_color: creator.color || null,
         filled_by_name: filler ? filler.name : null,
         updates,
       };

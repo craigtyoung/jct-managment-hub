@@ -28,9 +28,27 @@
     .ts-signout{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-3);font-family:var(--font-body);font-size:11px;font-weight:600;cursor:pointer;}
     .ts-signout:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);}
 
-    .main{max-width:900px;margin:0 auto;padding:26px 24px 90px;}
+    .main{max-width:1060px;margin:0 auto;padding:26px 24px 90px;}
     h1{font-family:var(--font-display);font-size:1.7rem;font-weight:600;margin-bottom:3px;}
-    .sub{font-size:13px;color:var(--text-2);margin-bottom:20px;max-width:640px;}
+    .sub{font-size:13px;color:var(--text-2);margin-bottom:20px;max-width:660px;}
+
+    /* Two-column layout: left filter rail + content, consistent with the rest of the platform */
+    .layout{display:flex;gap:24px;align-items:flex-start;}
+    .rail{width:190px;flex-shrink:0;position:sticky;top:84px;}
+    .rail-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin:2px 0 8px 6px;}
+    .rail-btn{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border:none;border-radius:9px;padding:9px 12px;font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--text-2);cursor:pointer;transition:all .15s;margin-bottom:2px;}
+    .rail-btn:hover{background:#eef2f8;color:var(--text);}
+    .rail-btn.active{background:var(--blue-soft);color:var(--blue);}
+    .rail-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .rail-count{margin-left:auto;font-size:12px;font-weight:700;color:var(--text-3);background:#eef2f8;border-radius:100px;padding:1px 8px;}
+    .rail-btn.active .rail-count{background:#fff;color:var(--blue);}
+    .content{flex:1;min-width:0;}
+    @media(max-width:760px){
+      .layout{flex-direction:column;}
+      .rail{width:100%;position:static;display:flex;gap:7px;flex-wrap:wrap;}
+      .rail-label{display:none;}
+      .rail-btn{width:auto;margin-bottom:0;border:1px solid var(--border);}
+    }
 
     .add-btn{display:inline-flex;align-items:center;gap:9px;background:var(--blue-soft);border:1.5px solid rgba(44,92,156,0.35);color:var(--blue);font-weight:600;font-size:15px;border-radius:13px;padding:12px 16px;cursor:pointer;transition:all .18s;box-shadow:0 1px 4px rgba(44,92,156,0.10);margin-bottom:18px;}
     .add-btn:hover{background:rgba(44,92,156,0.14);box-shadow:0 2px 10px rgba(44,92,156,0.18);}
@@ -49,7 +67,7 @@
     .btn-primary:hover{background:#24507f;}
     .btn-ghost{background:transparent;border-color:var(--border);color:var(--text-2);}
 
-    .section-label{font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin:22px 0 10px;}
+    .section-label{font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin:6px 0 10px;}
     .empty{color:var(--text-3);font-size:14px;padding:24px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:14px;}
 
     .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
@@ -59,6 +77,9 @@
     .card-program{font-size:16px;font-weight:700;color:var(--text);}
     .card-meta{font-size:13px;color:var(--text-2);margin-top:2px;}
     .card-meta .dot{color:var(--text-3);margin:0 6px;}
+    .logged-by{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12.5px;color:var(--text-2);}
+    .logged-by .lb-av{width:22px;height:22px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;}
+    .logged-by b{font-weight:700;color:var(--text);}
     .pill{font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:3px 10px;border-radius:100px;white-space:nowrap;}
     .pill-open{background:rgba(44,92,156,0.12);color:var(--blue);}
     .pill-working{background:rgba(217,119,6,0.14);color:#b45309;}
@@ -111,37 +132,63 @@
     <h1>Waitlist — Open Spots</h1>
     <p class="sub">When a class cancellation opens a spot, log it here so the whole team can see it and fill it from the CampBrain waitlist. This is the shared record that replaces the printed sheet — nothing gets lost between shifts.</p>
 
-    <button class="add-btn" id="add-btn" onclick="toggleAddForm()">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-      Log an open spot
-    </button>
+    <div class="layout">
+      <aside class="rail">
+        <div class="rail-label">Filter</div>
+        <button class="rail-btn active" data-filter="all"     onclick="setFilter('all',this)"><span class="rail-dot" style="background:var(--text-3)"></span> All <span class="rail-count" id="c-all">0</span></button>
+        <button class="rail-btn"        data-filter="open"    onclick="setFilter('open',this)"><span class="rail-dot" style="background:#2c5c9c"></span> Open <span class="rail-count" id="c-open">0</span></button>
+        <button class="rail-btn"        data-filter="working" onclick="setFilter('working',this)"><span class="rail-dot" style="background:#d97706"></span> Working <span class="rail-count" id="c-working">0</span></button>
+        <button class="rail-btn"        data-filter="filled"  onclick="setFilter('filled',this)"><span class="rail-dot" style="background:#10b981"></span> Filled <span class="rail-count" id="c-filled">0</span></button>
+      </aside>
 
-    <div class="add-form" id="add-form">
-      <div class="af-grid">
-        <div class="field" style="flex:1;min-width:220px"><label>Class / program</label><input id="f-program" placeholder="e.g. Bronze (Rising Stars)"></div>
-        <div class="field" style="flex:1;min-width:180px"><label>Day &amp; time</label><input id="f-daytime" placeholder="e.g. Tuesdays 4–5 PM"></div>
-        <div class="field"><label>Opened</label><input type="date" id="f-opened"></div>
-        <div class="field" style="width:90px"><label>Spots</label><input type="number" id="f-spots" value="1" min="1"></div>
-        <div class="field" style="flex-basis:100%"><label>Note (optional)</label><input id="f-note" placeholder="Anything the next person should know"></div>
-      </div>
-      <div class="af-actions">
-        <button class="btn btn-ghost" onclick="toggleAddForm()">Cancel</button>
-        <button class="btn btn-primary" onclick="addSpot()">Add spot</button>
+      <div class="content">
+        <button class="add-btn" id="add-btn" onclick="toggleAddForm()">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Log an open spot
+        </button>
+
+        <div class="add-form" id="add-form">
+          <div class="af-grid">
+            <div class="field" style="flex:1;min-width:220px"><label>Class / program</label>
+              <input id="f-program" list="program-list" placeholder="Pick a program or type your own" autocomplete="off">
+              <datalist id="program-list"></datalist>
+            </div>
+            <div class="field" style="flex:1;min-width:180px"><label>Day &amp; time</label><input id="f-daytime" placeholder="e.g. Tuesdays 4–5 PM"></div>
+            <div class="field"><label>Opened</label><input type="date" id="f-opened"></div>
+            <div class="field" style="width:90px"><label>Spots</label><input type="number" id="f-spots" value="1" min="1"></div>
+            <div class="field" style="flex-basis:100%"><label>Note (optional)</label><input id="f-note" placeholder="Anything the next person should know"></div>
+          </div>
+          <div class="af-actions">
+            <button class="btn btn-ghost" onclick="toggleAddForm()">Cancel</button>
+            <button class="btn btn-primary" onclick="addSpot()">Add spot</button>
+          </div>
+        </div>
+
+        <div id="board"></div>
       </div>
     </div>
-
-    <div id="board"></div>
   </main>
 
   <script src="/staff-avatar.js"></script>
   <script src="/live-sync.js"></script>
   <script>
-    let me = null;
+    let me = null, spotsCache = [], activeFilter = 'all';
 
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
     function fmtDate(s){ if(!s) return ''; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }
     function fmtWhen(iso){ const d=new Date(iso), t=new Date(); return d.toDateString()===t.toDateString() ? d.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true}) : d.toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }
+
+    // Populate the program dropdown from the academy class list (staff can still type a custom one).
+    async function loadPrograms(){
+      try{
+        const res = await fetch('/api/academy/classes');
+        if(!res.ok) return;
+        const classes = await res.json();
+        const programs = [...new Set((classes||[]).map(c => c.program).filter(Boolean))].sort();
+        document.getElementById('program-list').innerHTML = programs.map(p => `<option value="${esc(p)}"></option>`).join('');
+      }catch(e){}
+    }
 
     function toggleAddForm(){
       const f=document.getElementById('add-form');
@@ -193,6 +240,13 @@
       load();
     }
 
+    function setFilter(f, btn){
+      activeFilter = f;
+      document.querySelectorAll('.rail-btn').forEach(b=>b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      render();
+    }
+
     function card(s){
       const updates=(s.updates||[]).map(u=>`
         <div class="upd">
@@ -202,12 +256,19 @@
       const meta=[ s.day_time?esc(s.day_time):'', s.spots>1?`${s.spots} spots`:'1 spot', s.opened_date?`opened ${fmtDate(s.opened_date)}`:'' ]
         .filter(Boolean).join('<span class="dot">·</span>');
       const canDelete = me && me.is_management;
+      const col = s.created_by_color || '#4a6080';
+      const loggedBy = s.created_by_name ? `
+        <div class="logged-by">
+          <div class="lb-av" data-av="${s.created_by}" data-name="${esc(s.created_by_name)}" data-color="${col}" style="background:${col}22;color:${col}">${esc(s.created_by_name.slice(0,2).toUpperCase())}</div>
+          <span>Logged by <b>${esc(s.created_by_name)}</b> · ${fmtWhen(s.created_at)}</span>
+        </div>` : '';
       return `
       <div class="card ${s.status==='filled'?'filled':''}">
         <div class="card-top">
           <div class="card-main">
             <div class="card-program">${esc(s.program)}</div>
             <div class="card-meta">${meta}</div>
+            ${loggedBy}
           </div>
           <span class="pill pill-${s.status}">${s.status}</span>
           ${canDelete?`<button class="del-btn" title="Remove spot" onclick="delSpot(${s.id})">✕</button>`:''}
@@ -229,15 +290,28 @@
       </div>`;
     }
 
-    function render(spots){
-      const active=spots.filter(s=>s.status!=='filled');
-      const filled=spots.filter(s=>s.status==='filled');
+    function render(){
+      const spots = spotsCache;
+      // counts for the rail
+      document.getElementById('c-all').textContent     = spots.length;
+      document.getElementById('c-open').textContent    = spots.filter(s=>s.status==='open').length;
+      document.getElementById('c-working').textContent = spots.filter(s=>s.status==='working').length;
+      document.getElementById('c-filled').textContent  = spots.filter(s=>s.status==='filled').length;
+
+      const shown = activeFilter==='all' ? spots : spots.filter(s=>s.status===activeFilter);
+      const active = shown.filter(s=>s.status!=='filled');
+      const filled = shown.filter(s=>s.status==='filled');
       let html='';
-      html+=`<div class="section-label">Open (${active.length})</div>`;
-      html+= active.length ? active.map(card).join('') : '<div class="empty">No open spots right now. When a cancellation comes in, log it above.</div>';
+      if(activeFilter==='all' || activeFilter!=='filled'){
+        const label = activeFilter==='all' ? `Open (${active.length})` : `${activeFilter[0].toUpperCase()+activeFilter.slice(1)} (${active.length})`;
+        html+=`<div class="section-label">${label}</div>`;
+        html+= active.length ? active.map(card).join('') : '<div class="empty">Nothing here right now. When a cancellation comes in, log it above.</div>';
+      }
       if(filled.length){
         html+=`<div class="section-label">Filled — last 14 days (${filled.length})</div>`;
         html+= filled.map(card).join('');
+      } else if(activeFilter==='filled'){
+        html+='<div class="empty">No filled spots in the last 14 days.</div>';
       }
       const board=document.getElementById('board');
       board.innerHTML=html;
@@ -247,8 +321,8 @@
     async function load(){
       const res=await fetch('/api/waitlist');
       if(res.status===401){ window.location.href='/login.html'; return; }
-      const spots=await res.json();
-      render(spots);
+      spotsCache = await res.json();
+      render();
     }
     window.onLiveUpdate = load;   // refresh instantly when any teammate changes a spot
 
@@ -267,6 +341,7 @@
       const av=document.getElementById('nav-avatar'); if(av){ try{ staffAvatar(av,me.id,me.name,me.color); }catch(e){} }
       updateClock(); setInterval(updateClock,30000);
       document.getElementById('f-opened').value=todayStr();
+      loadPrograms();
       load();
     }
     init();
