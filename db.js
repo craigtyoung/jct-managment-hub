@@ -2344,6 +2344,8 @@ function getProScheduleSlots(day) {
     String(a.program).localeCompare(String(b.program))
   ).map(s => ({
     ...s,
+    type: s.type === 'private' ? 'private' : 'class',
+    coaches: s.coaches || '',
     courts: Array.isArray(s.courts) ? s.courts : (s.court ? [String(s.court)] : []),
     court_pros: (s.court_pros && typeof s.court_pros === 'object') ? s.court_pros : {},
   }));
@@ -2352,9 +2354,23 @@ function getProScheduleSlots(day) {
 function addProScheduleSlot(f) {
   if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
   _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+  // Optional per-court pro assignment on create: { "3": [proId,...] }
+  let court_pros = {};
+  if (f.court_pros && typeof f.court_pros === 'object') {
+    for (const k of Object.keys(f.court_pros)) {
+      court_pros[String(k).slice(0, 8)] = (Array.isArray(f.court_pros[k]) ? f.court_pros[k] : []).map(Number).filter(n => !isNaN(n));
+    }
+  }
+  let courts = Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [];
+  Object.keys(court_pros).forEach(k => { if (!courts.includes(k)) courts.push(k); });
+  const pro_ids = Array.isArray(f.pro_ids)
+    ? f.pro_ids.map(Number).filter(n => !isNaN(n))
+    : [...new Set(Object.values(court_pros).flat())];
   const s = {
     id: _data._seq.pro_schedule_slots,
     class_id: f.class_id || null,
+    type: f.type === 'private' ? 'private' : 'class',
+    coaches: String(f.coaches || '').slice(0, 200),
     day: _SLOT_DAYS.includes(f.day) ? f.day : 'Mon',
     start: String(f.start || '09:00').slice(0, 5),
     end: String(f.end || '10:00').slice(0, 5),
@@ -2362,10 +2378,10 @@ function addProScheduleSlot(f) {
     program: String(f.program || 'New slot').slice(0, 80),
     category: String(f.category || 'junior').slice(0, 20),
     court: f.court ? String(f.court).slice(0, 20) : null,
-    courts: Array.isArray(f.courts) ? f.courts.map(c => String(c).slice(0, 8)).filter(Boolean) : [],
-    court_pros: {},
+    courts,
+    court_pros,
     capacity: f.capacity ? String(f.capacity).slice(0, 20) : null,
-    pro_ids: Array.isArray(f.pro_ids) ? f.pro_ids.map(Number).filter(n => !isNaN(n)) : [],
+    pro_ids,
     note: String(f.note || '').slice(0, 120),
     active: true,
   };
@@ -2401,9 +2417,27 @@ function updateProScheduleSlot(id, f) {
   if (f.time_label !== undefined) s.time_label = String(f.time_label).slice(0, 40);
   if (f.category !== undefined) s.category = String(f.category).slice(0, 20);
   if (f.note !== undefined) s.note = String(f.note).slice(0, 120);
+  if (f.type !== undefined) s.type = f.type === 'private' ? 'private' : 'class';
+  if (f.coaches !== undefined) s.coaches = String(f.coaches).slice(0, 200);
   if (f.active !== undefined) s.active = !!f.active;
   save();
   return s;
+}
+
+// Full record fetch (incl. inactive) — used by the AI editor's undo to restore state.
+function getProScheduleSlotRaw(id) {
+  return (_data.pro_schedule_slots || []).find(x => x.id === parseInt(id)) || null;
+}
+
+// Append-only audit of AI-made schedule edits (who/when/what), newest first.
+function addScheduleAiLog(entry) {
+  if (!Array.isArray(_data.schedule_ai_log)) _data.schedule_ai_log = [];
+  _data.schedule_ai_log.unshift({ ...entry, at: now() });
+  _data.schedule_ai_log = _data.schedule_ai_log.slice(0, 200);
+  save();
+}
+function getScheduleAiLog(limit = 20) {
+  return (_data.schedule_ai_log || []).slice(0, limit);
 }
 
 function deleteProScheduleSlot(id) {
@@ -2521,6 +2555,9 @@ module.exports = {
   addProScheduleSlot,
   updateProScheduleSlot,
   deleteProScheduleSlot,
+  getProScheduleSlotRaw,
+  addScheduleAiLog,
+  getScheduleAiLog,
   updatePassword,
   addStaff,
   updateStaff,

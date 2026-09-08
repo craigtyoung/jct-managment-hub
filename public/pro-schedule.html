@@ -269,8 +269,9 @@
           const cells=list.filter(s=>key(s)===t.start+'-'+t.end && (s.courts||[]).includes(c));
           html+='<td>'+cells.map(s=>{
             const ids=(s.court_pros&&s.court_pros[c])||[];
-            const chips=ids.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(String(p.name).split(' ')[0])}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''}).join('')||'<span class="ctnone">—</span>';
-            return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${esc(s.program)}</div><div class="ctpros">${chips}</div></div>`;
+            const chips=ids.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(String(p.name).split(' ')[0])}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''}).join('') || (s.coaches?`<span class="ctp" style="background:#64748b">${esc(s.coaches)}</span>`:'<span class="ctnone">—</span>');
+            const prog = (s.type==='private'?'🎾 ':'')+esc(s.program);
+            return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${prog}</div><div class="ctpros">${chips}</div></div>`;
           }).join('')+'</td>';
         }
         html+='</tr>';
@@ -307,6 +308,8 @@
         <div class="slot-top">
           <span class="slot-time">${esc(s.time_label || (s.start+'–'+s.end))}</span>
           <span class="slot-prog">${esc(s.program)}</span>
+          ${s.type==='private'?'<span style="font-size:10px;font-weight:700;color:#2c5c9c;background:rgba(44,92,156,0.12);padding:1px 8px;border-radius:100px">PRIVATE</span>':''}
+          ${s.coaches?`<span style="font-size:12.5px;color:#4a6080;font-weight:600">· ${esc(s.coaches)}</span>`:''}
           <span class="cat ${catClass(s.category)}">${esc(s.category||'')}</span>
           ${s.note?`<span class="field" title="note">· ${esc(s.note)}</span>`:''}
           ${meta}

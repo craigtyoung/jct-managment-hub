@@ -53,12 +53,128 @@ const TOOLS = [
       },
       required: ['shift', 'date']
     }
+  },
+  {
+    name: 'read_pro_schedule',
+    description: 'List the pro teaching schedule for a day of the week (classes + private lessons, with courts, times, coaches, and each slot id). Always call this before proposing any schedule edit so you know what already exists.',
+    input_schema: {
+      type: 'object',
+      properties: { day: { type: 'string', enum: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] } },
+      required: ['day']
+    }
+  },
+  {
+    name: 'list_coaches',
+    description: 'List the staff pros plus coach names already used in the schedule (to check spelling). You may still name any other coach as free text.',
+    input_schema: { type: 'object', properties: {} }
   }
 ];
 
+// Management-only write tools. A change is STAGED by propose_schedule_edit (no save),
+// then COMMITTED by apply_schedule_edit only after the user confirms in their own words.
+const WRITE_TOOLS = [
+  {
+    name: 'propose_schedule_edit',
+    description: 'Stage one change to the pro schedule for the manager to confirm. This does NOT save anything — it returns a plain-English summary and a change_id. Show the summary and wait for the user to clearly say yes, THEN call apply_schedule_edit with the change_id. Never apply without an explicit confirmation. One change per call.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['add','assign_coaches','remove'], description: 'add = create a class or private lesson; assign_coaches = set the coaches on an existing slot; remove = delete a slot' },
+        day: { type: 'string', enum: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+        type: { type: 'string', enum: ['class','private'], description: "private = a private lesson (one court, one coach, no program name)" },
+        program: { type: 'string', description: 'Class/program name (e.g. "Cardio Tennis", "U9", "National Transition"). Not needed for a private lesson.' },
+        courts: { type: 'array', items: { type: 'string' }, description: 'Court numbers, e.g. ["1","2"]' },
+        start: { type: 'string', description: '24-hour HH:MM, e.g. "16:30"' },
+        end: { type: 'string', description: '24-hour HH:MM, e.g. "18:00"' },
+        time_label: { type: 'string', description: 'Human label, e.g. "4:30–6:00 PM"' },
+        coaches: { type: 'string', description: 'Coach name(s) as free text, comma-separated, e.g. "Megan, Daniel G". "Donski" = Mike.' },
+        capacity: { type: 'string', description: 'Optional, e.g. "12/12"' },
+        category: { type: 'string', enum: ['junior','adult','private'] },
+        slot_id: { type: 'number', description: 'Required for assign_coaches and remove — the slot id from read_pro_schedule' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'apply_schedule_edit',
+    description: 'Commit a change that was previously staged by propose_schedule_edit. Only call this after the user has clearly confirmed the specific change_id.',
+    input_schema: {
+      type: 'object',
+      properties: { change_id: { type: 'string' } },
+      required: ['change_id']
+    }
+  }
+];
+
+// In-memory staging area for proposed edits (survives across requests in the same
+// server process; a redeploy clears it, which is fine — the user just re-proposes).
+const _pendingEdits = new Map();
+let _pendingSeq = 0;
+
+function _stash(change, summary, staffId) {
+  _pendingSeq += 1;
+  const id = 'chg_' + _pendingSeq;
+  _pendingEdits.set(id, { change, summary, staffId });
+  return { change_id: id, summary, next: 'Show this summary to the user and wait for a clear yes before calling apply_schedule_edit.' };
+}
+
+function proposeScheduleEdit(input) {
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  if (input.action === 'add') {
+    if (!DAYS.includes(input.day)) return { error: 'A valid day (Mon–Sun) is required.' };
+    const isPrivate = input.type === 'private';
+    const program = isPrivate ? 'Private Lesson' : String(input.program || '').trim();
+    if (!isPrivate && !program) return { error: 'A program name is required for a class.' };
+    const courts = Array.isArray(input.courts) ? input.courts.map(String) : (input.courts ? [String(input.courts)] : []);
+    const payload = {
+      day: input.day, type: isPrivate ? 'private' : 'class', program, courts,
+      start: input.start || '', end: input.end || '', time_label: input.time_label || '',
+      coaches: input.coaches || '', capacity: input.capacity || null,
+      category: input.category || (isPrivate ? 'private' : 'junior'),
+    };
+    const when = input.time_label || (input.start ? `${input.start}–${input.end}` : '');
+    const summary = `ADD ${isPrivate ? 'private lesson' : program} · ${input.day}` +
+      (courts.length ? ` · court${courts.length > 1 ? 's' : ''} ${courts.join(', ')}` : '') +
+      (when ? ` · ${when}` : '') + (input.coaches ? ` · ${input.coaches}` : '');
+    return _stash({ kind: 'add', payload }, summary, null);
+  }
+  if (input.action === 'assign_coaches') {
+    if (!input.slot_id) return { error: 'slot_id is required — read_pro_schedule first.' };
+    const slot = db.getProScheduleSlotRaw(input.slot_id);
+    if (!slot) return { error: 'Slot not found.' };
+    const summary = `SET COACHES on "${slot.program}" (${slot.day} ${slot.time_label || slot.start}) → ${input.coaches || '(none)'}`;
+    return _stash({ kind: 'update', slot_id: input.slot_id, payload: { coaches: input.coaches || '' } }, summary, null);
+  }
+  if (input.action === 'remove') {
+    if (!input.slot_id) return { error: 'slot_id is required.' };
+    const slot = db.getProScheduleSlotRaw(input.slot_id);
+    if (!slot) return { error: 'Slot not found.' };
+    const summary = `REMOVE "${slot.program}" · ${slot.day} ${slot.time_label || slot.start}${slot.coaches ? ` · ${slot.coaches}` : ''}`;
+    return _stash({ kind: 'remove', slot_id: input.slot_id }, summary, null);
+  }
+  return { error: 'Unknown action.' };
+}
+
+function applyScheduleEdit(change_id, me) {
+  const p = _pendingEdits.get(change_id);
+  if (!p) return { error: 'No staged change with that id (it may have cleared). Please re-propose.' };
+  const { change, summary } = p;
+  let result = { ok: false };
+  if (change.kind === 'add') { const s = db.addProScheduleSlot(change.payload); result = { ok: true, created_slot_id: s.id }; }
+  else if (change.kind === 'update') { result = db.updateProScheduleSlot(change.slot_id, change.payload) ? { ok: true } : { error: 'Slot no longer exists.' }; }
+  else if (change.kind === 'remove') { result = db.deleteProScheduleSlot(change.slot_id) ? { ok: true } : { error: 'Slot no longer exists.' }; }
+  _pendingEdits.delete(change_id);
+  if (result.ok) {
+    db.addScheduleAiLog({ by: me.name, by_id: me.id, kind: change.kind, summary });
+    try { require('../sse').broadcast('update'); } catch (e) {}
+  }
+  return { ...result, applied: result.ok ? summary : undefined };
+}
+
 // ─── Tool execution ───────────────────────────────────────────────────────────
 
-function executeTool(name, input, staffId) {
+function executeTool(name, input, ctx) {
+  const staffId = ctx.staffId;
   try {
     if (name === 'get_schedule') {
       const assigned = db.getAssignmentsForShift(input.date, input.shift);
@@ -82,6 +198,25 @@ function executeTool(name, input, staffId) {
     }
     if (name === 'get_checklist_progress') {
       return { ...db.getChecklistProgress(input.shift, input.date), shift: input.shift, date: input.date };
+    }
+    if (name === 'read_pro_schedule') {
+      const proName = id => (db.getStaffById(id) || {}).name || ('#' + id);
+      return (db.getProScheduleSlots(input.day) || []).map(s => {
+        let coaches = s.coaches || '';
+        if (!coaches && s.court_pros) { const ids = [...new Set(Object.values(s.court_pros).flat())]; if (ids.length) coaches = ids.map(proName).join(', '); }
+        return { id: s.id, type: s.type, program: s.program, courts: s.courts, time: s.time_label || `${s.start}-${s.end}`, coaches, capacity: s.capacity };
+      });
+    }
+    if (name === 'list_coaches') {
+      const staffPros = db.getAllStaff().filter(s => ['pro', 'manager'].includes(s.role)).map(s => s.name);
+      const known = new Set();
+      (db.getProScheduleSlots() || []).forEach(s => (s.coaches || '').split(',').map(x => x.trim()).filter(Boolean).forEach(n => known.add(n)));
+      return { staff_pros: staffPros, coaches_in_schedule: [...known], note: 'You may also name any other coach as free text.' };
+    }
+    if (name === 'propose_schedule_edit' || name === 'apply_schedule_edit') {
+      if (!ctx.isMgmt) return { error: 'Only management can edit the pro schedule.' };
+      if (name === 'propose_schedule_edit') return proposeScheduleEdit(input);
+      return applyScheduleEdit(input.change_id, ctx.me);
     }
     return { error: `Unknown tool: ${name}` };
   } catch (err) {
@@ -112,8 +247,16 @@ Behavior:
 - Use tools to look up live schedule, checklist, and comms data. Never invent schedule data — always call the tool.
 - For club-policy questions (booking rules, membership, pricing, leagues, house-league rules, etc.) use the CLUB KNOWLEDGE BASE below.
 - **If the answer isn't in the Knowledge Base or available via a tool, say you don't have that information and suggest checking with management. Never guess or invent policy, pricing, hours, or rules.**
-- If asked to make a change (add staff, post a note), say you can look things up but changes are made directly in the hub for now.
+- For posting notes or other changes (besides the pro schedule below), say you can look things up but those changes are made directly in the hub for now.
 - Format lists cleanly. No unnecessary preamble.
+
+Editing the Pro Schedule (management only — these tools only exist for admins/managers):
+- You CAN edit the pro teaching schedule. Always call read_pro_schedule for the day first so you work from what's already there.
+- To change anything, call propose_schedule_edit — this only STAGES the change and returns a summary + change_id. Show the user exactly what will change and WAIT for them to clearly confirm ("yes"). Only then call apply_schedule_edit with that change_id. NEVER apply without an explicit confirmation. One change at a time.
+- A **private lesson** = type "private": one court, one coach, a start/end time, no program name. A **class** = type "class" with a program name (e.g. Cardio Tennis, U9, National Transition, Bronze), one or more courts, coaches, and times.
+- Coaches are free text — they do NOT need to be staff members. "Donski" means Mike.
+- Times are 24-hour (e.g. 16:30); also give a friendly time_label like "4:30–6:00 PM".
+- Do NOT add non-pro events (e.g. Men's House League, or outside groups like "RMarshall Group").
 
 ${knowledge
   ? `=== CLUB KNOWLEDGE BASE ===\n${knowledge}\n=== END KNOWLEDGE BASE ===`
@@ -151,13 +294,17 @@ router.post('/', async (req, res) => {
     ];
     let apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
 
+    // Schedule-edit tools are exposed to management only.
+    const isMgmt = me.role === 'admin' || me.role === 'manager';
+    const tools = isMgmt ? [...TOOLS, ...WRITE_TOOLS] : TOOLS;
+
     // Agentic loop — max 6 rounds to avoid runaway tool chains
     for (let i = 0; i < 6; i++) {
       const response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         system: systemBlocks,
-        tools: TOOLS,
+        tools,
         messages: apiMessages,
       });
 
@@ -171,7 +318,7 @@ router.post('/', async (req, res) => {
         const toolResults = [];
         for (const block of response.content) {
           if (block.type !== 'tool_use') continue;
-          const result = executeTool(block.name, block.input, staffId);
+          const result = executeTool(block.name, block.input, { staffId, me, isMgmt });
           toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
         }
         apiMessages.push({ role: 'user', content: toolResults });
