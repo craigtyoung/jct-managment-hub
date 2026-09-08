@@ -151,6 +151,32 @@
     @media (max-width:720px){
       .prorail-left { flex-direction:row !important; flex-wrap:wrap; position:static; width:100%; flex:0 0 auto; max-height:none; margin-bottom:12px !important; }
     }
+
+    /* Add-a-slot guided dialog */
+    .modal-overlay { position:fixed; inset:0; background:rgba(12,23,56,0.45); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:200; overflow-y:auto; }
+    .modal-overlay.show { display:flex; }
+    .modal { background:var(--surface); border-radius:16px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(12,23,56,0.30); overflow:hidden; }
+    .modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .modal-head h2 { font-size:16px; font-weight:800; letter-spacing:-0.01em; }
+    .modal-x { background:none; border:none; font-size:20px; line-height:1; color:var(--text3); cursor:pointer; padding:2px 6px; border-radius:6px; }
+    .modal-x:hover { color:var(--text); background:#eef2f8; }
+    .modal-body { padding:18px 20px; display:flex; flex-direction:column; gap:15px; }
+    .mfield { display:flex; flex-direction:column; gap:6px; }
+    .mfield > label { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text3); }
+    .mfield input[type=text], .mfield input[type=time], .mfield select { font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--border2); border-radius:9px; background:var(--input-bg); color:var(--text); width:100%; }
+    .mrow { display:flex; gap:12px; }
+    .mrow .mfield { flex:1; }
+    .seg { display:inline-flex; border:1px solid var(--border2); border-radius:10px; overflow:hidden; }
+    .segbtn { flex:1; padding:9px 12px; border:none; background:var(--input-bg); font-family:inherit; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; }
+    .segbtn.on { background:var(--blue); color:#fff; }
+    .mcourts { display:flex; gap:6px; }
+    .mcourt { width:38px; height:38px; border-radius:9px; border:1px solid var(--border2); background:var(--input-bg); color:var(--text3); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; }
+    .mcourt.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .modal-foot { display:flex; gap:10px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border); background:var(--input-bg); }
+    .btn-ghost { padding:9px 16px; border:1px solid var(--border2); background:var(--surface); border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; }
+    .btn-primary { padding:9px 18px; border:1px solid var(--navy); background:var(--navy); border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
+    .btn-primary:hover { background:var(--blue); border-color:var(--blue); }
+    .mhint { font-size:12px; color:var(--text3); }
   </style>
 </head>
 <body>
@@ -185,6 +211,55 @@
       <div class="sched-body">
         <div id="board"><div class="empty">Loading…</div></div>
         <button id="addbtn" class="addbtn" style="display:none" onclick="addSlot()">+ Add a slot (performance, house league, etc.)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guided add-a-slot dialog: type → time → level → court, then drag pros in -->
+  <div id="addModal" class="modal-overlay" onclick="if(event.target===this)closeAddSlot()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+      <div class="modal-head">
+        <h2 id="addModalTitle">Add a slot</h2>
+        <button class="modal-x" onclick="closeAddSlot()" title="Cancel">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="mfield">
+          <label>Type</label>
+          <div class="seg" id="m-type">
+            <button type="button" class="segbtn on" data-type="class" onclick="setSlotType('class')">Class</button>
+            <button type="button" class="segbtn" data-type="private" onclick="setSlotType('private')">Private lesson</button>
+          </div>
+        </div>
+        <div class="mfield" id="m-prog-field">
+          <label id="m-prog-label">Class name</label>
+          <input type="text" id="m-prog" placeholder="e.g. Cardio Tennis, U9, Bronze" />
+        </div>
+        <div class="mrow">
+          <div class="mfield"><label>Day</label><select id="m-day"></select></div>
+          <div class="mfield"><label>Level</label>
+            <select id="m-cat"><option value="junior">Junior</option><option value="adult">Adult</option><option value="other">Other</option></select>
+          </div>
+        </div>
+        <div class="mrow">
+          <div class="mfield"><label>Start</label><input type="time" id="m-start" value="16:00" step="900" /></div>
+          <div class="mfield"><label>End</label><input type="time" id="m-end" value="17:00" step="900" /></div>
+        </div>
+        <div class="mfield">
+          <label>Court(s)</label>
+          <div class="mcourts" id="m-courts">
+            <button type="button" class="mcourt" data-court="1" onclick="toggleMCourt(this)">1</button>
+            <button type="button" class="mcourt" data-court="2" onclick="toggleMCourt(this)">2</button>
+            <button type="button" class="mcourt" data-court="3" onclick="toggleMCourt(this)">3</button>
+            <button type="button" class="mcourt" data-court="4" onclick="toggleMCourt(this)">4</button>
+            <button type="button" class="mcourt" data-court="5" onclick="toggleMCourt(this)">5</button>
+            <button type="button" class="mcourt" data-court="6" onclick="toggleMCourt(this)">6</button>
+          </div>
+          <span class="mhint">Optional now — you can set courts and drag pros on after it's added.</span>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" onclick="closeAddSlot()">Cancel</button>
+        <button class="btn-primary" onclick="submitAddSlot()">Add slot</button>
       </div>
     </div>
   </div>
@@ -302,7 +377,8 @@
             const ids=(s.court_pros&&s.court_pros[c])||[];
             const chips=ids.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(String(p.name).split(' ')[0])}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''}).join('') || (s.coaches?`<span class="ctp" style="background:#64748b">${esc(s.coaches)}</span>`:'<span class="ctnone">—</span>');
             const prog = (s.type==='private'?'🎾 ':'')+esc(s.program);
-            return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${prog}</div><div class="ctpros">${chips}</div></div>`;
+            const del = canEdit ? `<button onclick="removeSlot(${s.id})" title="Remove this slot" style="float:right;background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;line-height:1;padding:0 0 0 4px">🗑</button>` : '';
+            return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${del}${prog}</div><div class="ctpros">${chips}</div></div>`;
           }).join('')+'</td>';
         }
         html+='</tr>';
@@ -380,13 +456,65 @@
       if(await put(id,body)){ renderBoard(); }
     }
 
-    async function addSlot(){
-      const body = { day:activeDay, program:'New slot', category:'other', start:'09:00', end:'10:00', time_label:'9–10 AM' };
+    // ── Guided add-a-slot dialog ──
+    let addType = 'class';
+    function addSlot(){ openAddSlot(); }   // + Add a slot button
+    function openAddSlot(){
+      addType = 'class';
+      document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type==='class'));
+      document.getElementById('m-prog-field').style.display='';
+      document.getElementById('m-prog').value='';
+      // Day dropdown seeded to the day you're viewing
+      const daySel=document.getElementById('m-day');
+      daySel.innerHTML=DAYS.map(d=>`<option value="${d}" ${d===activeDay?'selected':''}>${DAY_FULL[d]}</option>`).join('');
+      document.getElementById('m-cat').value='junior';
+      document.getElementById('m-start').value='16:00';
+      document.getElementById('m-end').value='17:00';
+      document.querySelectorAll('#m-courts .mcourt').forEach(b=>b.classList.remove('on'));
+      document.getElementById('addModal').classList.add('show');
+    }
+    function closeAddSlot(){ document.getElementById('addModal').classList.remove('show'); }
+    function setSlotType(t){
+      addType=t;
+      document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type===t));
+      // A private lesson has no program name — hide it and label the slot "Private lesson".
+      const pf=document.getElementById('m-prog-field');
+      pf.style.display = t==='private' ? 'none' : '';
+    }
+    function toggleMCourt(btn){ btn.classList.toggle('on'); }
+    // "16:00","17:00" → "4–5 PM"; drops the meridiem on the start when it matches the end.
+    function fmtTimeLabel(start,end){
+      const part=t=>{ const [h,m]=String(t).split(':').map(Number); let hh=h%12; if(hh===0)hh=12; return m?`${hh}:${String(m).padStart(2,'0')}`:`${hh}`; };
+      const ap=t=>(Number(String(t).split(':')[0])<12?'AM':'PM');
+      const sAP=ap(start), eAP=ap(end);
+      return `${part(start)}${sAP!==eAP?' '+sAP:''}–${part(end)} ${eAP}`;
+    }
+    async function submitAddSlot(){
+      const start=document.getElementById('m-start').value||'16:00';
+      const end=document.getElementById('m-end').value||'17:00';
+      if(end<=start){ toast('End time must be after start'); return; }
+      const courts=[...document.querySelectorAll('#m-courts .mcourt.on')].map(b=>b.dataset.court);
+      const progInput=document.getElementById('m-prog').value.trim();
+      const body = {
+        type: addType,
+        day: document.getElementById('m-day').value,
+        category: document.getElementById('m-cat').value,
+        start, end,
+        time_label: fmtTimeLabel(start,end),
+        program: addType==='private' ? (progInput||'Private lesson') : (progInput||'New class'),
+        courts,
+      };
       const r = await fetch('/api/pro-schedule/slots', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if (!r.ok){ toast('Add failed'); return; }
-      await loadSlots(); renderTabs(); toast('Slot added — edit it below');
+      closeAddSlot();
+      activeDay = body.day;
+      await loadSlots(); renderTabs();
+      toast(courts.length ? 'Slot added — drag pros onto the courts' : 'Slot added — pick a court, then drag pros in');
     }
     async function removeSlot(id){
+      const s = slots.find(x=>x.id===id);
+      const label = s ? `${s.program} (${DAY_FULL[s.day]} ${s.time_label||s.start})` : 'this slot';
+      if (!confirm(`Remove ${label}? This takes it off the board.`)) return;
       const r = await fetch('/api/pro-schedule/slots/'+id, { method:'DELETE' });
       if (!r.ok){ toast('Remove failed'); return; }
       slots = slots.filter(s=>s.id!==id); renderTabs(); renderBoard(); toast('Slot removed');
