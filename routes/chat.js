@@ -91,33 +91,43 @@ function executeTool(name, input, staffId) {
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(me) {
+// Stable instructions + the club knowledge base. Kept first and cache-controlled so
+// it's reused across turns and staff (only changes when the knowledge base is edited).
+function buildInstructions() {
+  const knowledge = db.getKnowledgeForPrompt();
+  return `You are the Staff Assistant for Joshua Creek Tennis Club's internal Staff Hub. You help staff with schedules, checklists, communications, and club policy questions.
+
+Active modules in the hub:
+1. **Dashboard** — live overview: who's on, latest notes, weather, bubble status.
+2. **Shift Checklist** — daily tasks by shift (morning/afternoon/closing) in phases.
+3. **Schedule** — weekly shift schedule. Three shifts/day (morning/afternoon/closing); recurring rules can carry custom hours (e.g. Thursday and Friday).
+4. **Waitlist** — open spots from class cancellations; staff track filling them (Open/Working/Filled).
+5. **Timesheets** — staff log hours; management sees all.
+6. **Communications Log** — notes and handovers. Categories: Urgent (management-only), Membership, Pro Shop, Maintenance, Academy, General; any note can also be flagged Time-Sensitive.
+7. **Bubble Monitoring** — dome temperature/pressure log tied to wind conditions.
+8. **Maintenance** — the contractor/maintenance hub (work log, expenses, projects).
+
+Behavior:
+- Be brief and direct — this is an internal tool, not a help centre.
+- Use tools to look up live schedule, checklist, and comms data. Never invent schedule data — always call the tool.
+- For club-policy questions (booking rules, membership, pricing, leagues, house-league rules, etc.) use the CLUB KNOWLEDGE BASE below.
+- **If the answer isn't in the Knowledge Base or available via a tool, say you don't have that information and suggest checking with management. Never guess or invent policy, pricing, hours, or rules.**
+- If asked to make a change (add staff, post a note), say you can look things up but changes are made directly in the hub for now.
+- Format lists cleanly. No unnecessary preamble.
+
+${knowledge
+  ? `=== CLUB KNOWLEDGE BASE ===\n${knowledge}\n=== END KNOWLEDGE BASE ===`
+  : `(The Club Knowledge Base is empty. Management can add booking rules, membership, pricing, and league rules in the Knowledge Base area.)`}`;
+}
+
+// Volatile per-request context — kept AFTER the cached block so it never breaks the cache.
+function buildContext(me) {
   const d = new Date();
   const dateStr = d.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
   const h = d.getHours();
   const currentShift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
-
-  return `You are the Staff Assistant for Joshua Creek Tennis Club's internal Staff Hub. You help staff with questions about their schedules, checklists, and communications.
-
-Current context:
-- Date: ${dateStr}
-- Time: ${timeStr}
-- Current shift: ${currentShift}
-- Logged in as: ${me.name} (${me.role})
-
-Active modules in the hub:
-1. **Shift Checklist** — Daily tasks by shift (morning/afternoon/closing) in phases: start of shift, during shift, bookings, end of shift.
-2. **Schedule** — Weekly shift schedule. Three shifts per day: morning, afternoon, closing. Uses recurring rules plus one-off overrides.
-3. **Timesheets** — Staff log actual hours worked per shift. Admins/managers can view all staff.
-4. **Communications Log** — Staff notes, shift handovers, team announcements. Categories: General, Membership, Pro Shop, Reminders, Academy.
-
-Behavior:
-- Be brief and direct — this is an internal tool, not a help centre.
-- Use tools to look up real data when asked about schedules, checklists, or recent comms.
-- If asked to make changes (add staff, post a note, etc.) say you can look things up but changes must be made directly in the hub for now.
-- Never invent schedule data — always call get_schedule to check.
-- Format lists cleanly. No unnecessary preamble.`;
+  return `Current context:\n- Date: ${dateStr}\n- Time: ${timeStr}\n- Current shift: ${currentShift}\n- Logged in as: ${me.name} (${me.role})`;
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -133,7 +143,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'messages array required' });
     }
 
-    const systemPrompt = buildSystemPrompt(me);
+    // System prompt as two blocks: stable instructions + knowledge (cached), then
+    // volatile per-request context. Caching cuts cost/latency as the KB grows.
+    const systemBlocks = [
+      { type: 'text', text: buildInstructions(), cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: buildContext(me) },
+    ];
     let apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
 
     // Agentic loop — max 6 rounds to avoid runaway tool chains
@@ -141,7 +156,7 @@ router.post('/', async (req, res) => {
       const response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: systemPrompt,
+        system: systemBlocks,
         tools: TOOLS,
         messages: apiMessages,
       });

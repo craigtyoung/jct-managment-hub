@@ -380,6 +380,14 @@ if (!Array.isArray(_data.waitlist_updates)) {
   save();
 }
 
+// Migration: knowledge base — club docs (rules, pricing, membership, FAQs) the AI
+// assistant reads so it can answer staff questions accurately.
+if (!Array.isArray(_data.knowledge_docs)) {
+  _data._seq.knowledge_docs = 0;
+  _data.knowledge_docs = [];
+  save();
+}
+
 // Migration: add checklist tables to existing data files
 if (!Array.isArray(_data.checklist_items)) {
   _data._seq.checklist_items = CHECKLIST_SEED.length;
@@ -1627,6 +1635,70 @@ function deleteWaitlistSpot(id) {
   return true;
 }
 
+// ─── Knowledge base (feeds the AI assistant) ───────────────────────────────────
+
+function getKnowledgeDocs() {
+  return (_data.knowledge_docs || [])
+    .slice()
+    .sort((a, b) => (a.category || '').localeCompare(b.category || '') || (a.title || '').localeCompare(b.title || ''))
+    .map(d => {
+      const u = d.updated_by ? (getStaffById(d.updated_by) || {}) : null;
+      return { ...d, updated_by_name: u ? u.name : null };
+    });
+}
+
+// Assembles every doc into one block for the assistant's system prompt.
+function getKnowledgeForPrompt() {
+  const docs = (_data.knowledge_docs || []);
+  if (!docs.length) return '';
+  return docs
+    .slice()
+    .sort((a, b) => (a.category || '').localeCompare(b.category || '') || (a.title || '').localeCompare(b.title || ''))
+    .map(d => {
+      const head = `## ${d.title}${d.category ? ` [${d.category}]` : ''}`;
+      const src = d.source_type === 'url' && d.url ? `\n(Source: ${d.url})` : '';
+      return `${head}${src}\n${d.body || ''}`;
+    })
+    .join('\n\n---\n\n');
+}
+
+function createKnowledgeDoc({ title, category, source_type, url, body, staffId }) {
+  const id = nextId('knowledge_docs');
+  _data.knowledge_docs.push({
+    id,
+    title: String(title || '').slice(0, 200),
+    category: String(category || '').slice(0, 60),
+    source_type: source_type === 'url' ? 'url' : 'text',
+    url: url ? String(url).slice(0, 2000) : null,
+    body: String(body || '').slice(0, 100000),
+    created_by: parseInt(staffId),
+    created_at: now(),
+    updated_by: parseInt(staffId),
+    updated_at: now(),
+  });
+  save();
+  return id;
+}
+
+function updateKnowledgeDoc(id, { title, category, url, body, staffId }) {
+  const d = _data.knowledge_docs.find(x => x.id === parseInt(id));
+  if (!d) return null;
+  if (title !== undefined) d.title = String(title).slice(0, 200);
+  if (category !== undefined) d.category = String(category).slice(0, 60);
+  if (url !== undefined) d.url = url ? String(url).slice(0, 2000) : null;
+  if (body !== undefined) d.body = String(body).slice(0, 100000);
+  d.updated_by = parseInt(staffId);
+  d.updated_at = now();
+  save();
+  return d;
+}
+
+function deleteKnowledgeDoc(id) {
+  _data.knowledge_docs = _data.knowledge_docs.filter(d => d.id !== parseInt(id));
+  save();
+  return true;
+}
+
 // ─── Bubble (temperature / pressure) readings ──────────────────────────────────
 
 function getBubbleReadings(limit = 50) {
@@ -2406,6 +2478,11 @@ module.exports = {
   setWaitlistStatus,
   addWaitlistUpdate,
   deleteWaitlistSpot,
+  getKnowledgeDocs,
+  getKnowledgeForPrompt,
+  createKnowledgeDoc,
+  updateKnowledgeDoc,
+  deleteKnowledgeDoc,
   getAllStaff,
   getStaffById,
   getEffectiveStaffId,
