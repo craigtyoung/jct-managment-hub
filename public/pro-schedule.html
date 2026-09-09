@@ -237,7 +237,7 @@
       <div class="viewtoggle">
         <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
         <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
-        <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Calendar</button>
+        <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Full view</button>
       </div>
     </div>
     <div class="sched-cols">
@@ -392,10 +392,9 @@
 
     function renderTabs(){
       const wrap=document.getElementById('daytabs');
-      wrap.innerHTML = DAYS.map(d=>{
-        const n = slots.filter(s=>s.day===d).length;
-        return `<button class="daytab ${d===activeDay?'on':''}" onclick="setDay('${d}')">${DAY_FULL[d]}<span class="n">${n}</span></button>`;
-      }).join('');
+      wrap.innerHTML = DAYS.map(d=>
+        `<button class="daytab ${d===activeDay?'on':''}" onclick="setDay('${d}')">${DAY_FULL[d]}</button>`
+      ).join('');
     }
     function setDay(d){ activeDay=d; renderTabs(); renderBoard(); }
 
