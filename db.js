@@ -503,6 +503,9 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
 // Gated by a flag so edits/deletions survive reboots.
 if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
 if (!_data._migrations) _data._migrations = {};
+// Declared here (not with the staff helpers below) so load-time migrations can add pros.
+const STAFF_ROLES = ['admin', 'manager', 'staff', 'pro', 'contractor'];
+const STAFF_PALETTE = ['#2c5c9c', '#0d9488', '#8b5cf6', '#f59e0b', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777'];
 if (!_data._migrations.proSchedule2026) {
   const DAYMAP = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
   function parseDayTime(dt) {
@@ -768,6 +771,163 @@ if (!_data._migrations.defaultPwNormalize2026v1) {
   _data._migrations.defaultPwNormalize2026v1 = true;
   save();
   console.log('Normalized default password to jct2026 for ' + reset + ' not-yet-logged-in account(s).');
+}
+
+// Migration: import the 2026/27 indoor pro schedule from the season court sheet.
+// (1) Ensure every teaching pro named on the sheet exists as a role 'pro' account.
+// (2) Soft-deactivate the old (last-year) pro-schedule slots — recoverable, never deleted.
+// (3) Seed the real group classes for all 7 days with court + pro assignments read from
+//     the sheet. Private lessons and one-off fitness micro-blocks are intentionally left
+//     out (Victor adds those live). Every slot is flagged for verification.
+if (!_data._migrations.proScheduleImport2627v1 && Array.isArray(_data.pro_schedule_slots)) {
+  // Rename a bare "Daniel" to "Daniel G" (the sheet distinguishes Daniel G from Daniel B).
+  const bareDaniel = (_data.staff || []).find(s => String(s.name).trim().toLowerCase() === 'daniel');
+  if (bareDaniel) bareDaniel.name = 'Daniel G';
+  // Ensure these pros exist (by exact name, case-insensitive). Mike = "Donski" on the sheet.
+  // Create directly (not addCoachAccount, which splits "Daniel B" into first/last and would
+  // store the display name as just "Daniel"). Here name holds the full label so it renders
+  // in the rail and resolves in the assignment map below.
+  const NEED_PROS = ['Martin','Nemanja','Roman','Daniel G','Daniel B','David','Mike','Katia','Angie','Sylvia','Nino','Jay','Kevin','Matthew'];
+  for (const nm of NEED_PROS) {
+    const exists = (_data.staff || []).some(s => String(s.name).trim().toLowerCase() === nm.toLowerCase());
+    if (!exists) {
+      const id = nextId('staff');
+      _data.staff.push({
+        id, name: nm, last_name: '', role: 'pro', is_pro: true,
+        color: STAFF_PALETTE[(id - 1) % STAFF_PALETTE.length],
+        password: bcrypt.hashSync('jct2026', 10), must_set_password: true,
+      });
+    }
+  }
+  const ALIAS = { donski: 'mike' };
+  const resolve = (name) => {
+    const t = ALIAS[String(name).trim().toLowerCase()] || String(name).trim().toLowerCase();
+    const m = (_data.staff || []).find(s => String(s.name).trim().toLowerCase() === t);
+    return m ? m.id : null;
+  };
+  const CAT = { a: 'adult', j: 'junior', p: 'performance' };
+  // [day, start24, end24, timeLabel, program, catCode, "courts space-sep", "pros comma-sep"]
+  const SLOTS = [
+    // MONDAY
+    ['Mon','09:30','11:00','9:30–11:00 AM','Cardio Tennis','a','1','Martin'],
+    ['Mon','11:00','12:30','11:00–12:30 PM','Adult Introductory','a','1','Daniel G'],
+    ['Mon','11:00','12:30','11:00–12:30 PM','Adult Intermediate','a','2','Martin'],
+    ['Mon','14:30','16:30','2:30–4:30 PM','Performance Program (Afternoon)','p','1 2 3 4 5','David,Roman,Nemanja,Mike,Martin'],
+    ['Mon','16:30','18:00','4:30–6:00 PM','U9','j','1','David'],
+    ['Mon','16:30','18:00','4:30–6:00 PM','National Transition','j','3','Nemanja'],
+    ['Mon','16:30','17:30','4:30–5:30 PM','Bronze (Rising Stars)','j','6','Katia,Angie,Sylvia'],
+    ['Mon','17:30','18:30','5:30–6:30 PM','Future Stars','j','6','Katia,Angie,Sylvia'],
+    ['Mon','18:00','19:30','6:00–7:30 PM','U13','j','1','Daniel G'],
+    ['Mon','18:00','19:30','6:00–7:30 PM','Adult Intermediate','a','5','Martin'],
+    ['Mon','18:30','19:30','6:30–7:30 PM','Future Stars Plus','j','6','Katia,Angie,Sylvia'],
+    ['Mon','19:30','21:00','7:30–9:00 PM',"Men's House League",'p','1 2 3 4','Martin,Nemanja,Roman,Daniel B'],
+    // TUESDAY
+    ['Tue','09:30','11:00','9:30–11:00 AM','Adult Intermediate','a','1 2','Daniel B,Jay'],
+    ['Tue','11:00','12:30','11:00–12:30 PM','Adult Intermediate Plus','a','1 2','Daniel B,Jay'],
+    ['Tue','14:30','16:30','2:30–4:30 PM','Performance Program (Afternoon)','p','1 2','Martin,David'],
+    ['Tue','16:30','18:00','4:30–6:00 PM','U10','j','1','Nemanja'],
+    ['Tue','16:30','18:00','4:30–6:00 PM','Gold','j','5','Kevin'],
+    ['Tue','16:30','17:30','4:30–5:30 PM','Future Stars','j','6','Nino,Matthew,Sylvia'],
+    ['Tue','18:00','19:30','6:00–7:30 PM','U13','j','1','Roman'],
+    ['Tue','18:00','19:30','6:00–7:30 PM','National Transition B','j','5','Daniel G'],
+    ['Tue','19:30','21:00','7:30–9:00 PM','Advanced (Invitation Only)','a','4','Matthew'],
+    ['Tue','19:30','21:00','7:30–9:00 PM','Adult Intermediate Plus','a','6','Roman'],
+    // WEDNESDAY
+    ['Wed','09:00','10:30','9:00–10:30 AM','Adult Intermediate','a','1 2','Martin,Jay'],
+    ['Wed','10:30','12:00','10:30–12:00 PM','Adult Intermediate','a','1','Martin'],
+    ['Wed','10:30','12:00','10:30–12:00 PM','Adult Introductory','a','2','Jay'],
+    ['Wed','16:30','18:00','4:30–6:00 PM','U9','j','1','Mike'],
+    ['Wed','16:30','18:00','4:30–6:00 PM','National Transition','j','3','Nemanja'],
+    ['Wed','16:30','17:30','4:30–5:30 PM','Bronze (Rising Stars)','j','6','Katia,Angie,Nino,Sylvia'],
+    ['Wed','17:30','18:30','5:30–6:30 PM','Bronze (Rising Stars)','j','6','Katia,Angie,Nino,Sylvia'],
+    ['Wed','18:00','19:30','6:00–7:30 PM','Gold','j','1','Daniel G'],
+    ['Wed','18:00','19:30','6:00–7:30 PM','U13','j','2','Roman'],
+    ['Wed','18:30','19:30','6:30–7:30 PM','Future Stars Plus','j','6','Katia,Angie,Nino,Sylvia'],
+    ['Wed','19:30','21:00','7:30–9:00 PM','Ladies House League','p','4','Kevin'],
+    // THURSDAY
+    ['Thu','09:30','11:00','9:30–11:00 AM','Adult Intermediate Plus','a','1','Roman'],
+    ['Thu','09:30','11:00','9:30–11:00 AM',"Parkinson's Program",'p','5','Jay'],
+    ['Thu','11:00','12:30','11:00–12:30 PM','Cardio Tennis','a','1','Roman'],
+    ['Thu','16:30','18:00','4:30–6:00 PM','U10','j','1','Martin'],
+    ['Thu','16:30','18:00','4:30–6:00 PM','National Transition','j','4','Nemanja'],
+    ['Thu','18:00','19:30','6:00–7:30 PM','U13','j','1','Roman'],
+    ['Thu','18:00','19:30','6:00–7:30 PM','National Transition B','j','5','Nemanja'],
+    ['Thu','19:30','20:30','7:30–8:30 PM','Adult Intermediate','a','1','Mike'],
+    ['Thu','20:30','21:30','8:30–9:30 PM','Adult Introductory','a','1','Jay'],
+    ['Thu','20:30','21:30','8:30–9:30 PM','Cardio Tennis','a','2','Matthew'],
+    // FRIDAY
+    ['Fri','09:00','10:30','9:00–10:30 AM','Adult Introductory','a','1','Daniel G'],
+    ['Fri','09:00','10:30','9:00–10:30 AM','Adult Intermediate','a','2','Daniel B'],
+    ['Fri','10:30','12:00','10:30–12:00 PM','Adult Intermediate','a','1 2','Daniel G,Daniel B'],
+    ['Fri','12:00','13:30','12:00–1:30 PM','Adult Intermediate Plus','a','1','Daniel G'],
+    ['Fri','16:30','18:00','4:30–6:00 PM','U10','j','1','Nemanja'],
+    ['Fri','16:30','17:30','4:30–5:30 PM','Silver (Shooting Stars)','j','5','Matthew'],
+    ['Fri','16:30','17:30','4:30–5:30 PM','Silver (Shooting Stars)','j','6','Katia'],
+    ['Fri','17:30','18:30','5:30–6:30 PM','Bronze (Rising Stars)','j','6','Matthew,Katia'],
+    ['Fri','18:00','19:30','6:00–7:30 PM','U9 Performance','j','1','Daniel G'],
+    ['Fri','18:00','19:30','6:00–7:30 PM','National Transition B','j','3','Kevin'],
+    ['Fri','18:00','19:30','6:00–7:30 PM','Adult Intermediate Plus','a','5','Roman'],
+    ['Fri','18:30','19:30','6:30–7:30 PM','Silver (Shooting Stars)','j','6','Katia'],
+    ['Fri','19:30','21:00','7:30–9:00 PM','Round Robin','p','2','Daniel G'],
+    // SATURDAY
+    ['Sat','07:00','09:00','7:00–9:00 AM','National Program','p','1 2 3 4','Mike,Kevin,Daniel B,Nemanja'],
+    ['Sat','09:00','10:00','9:00–10:00 AM','Adult Introductory','a','1','Daniel G'],
+    ['Sat','09:00','10:00','9:00–10:00 AM','Future Stars','j','6','Katia,Angie'],
+    ['Sat','09:00','10:00','9:00–10:00 AM','Bronze (Rising Stars)','j','6','Nino,Sylvia'],
+    ['Sat','10:00','11:00','10:00–11:00 AM','Bronze (Rising Stars)','j','5','Katia,Angie'],
+    ['Sat','10:00','11:00','10:00–11:00 AM','Adult Intermediate','a','3','Daniel G'],
+    ['Sat','11:00','12:00','11:00–12:00 PM','Silver (Shooting Stars)','j','3','Jay'],
+    ['Sat','11:00','12:00','11:00–12:00 PM','Silver (Shooting Stars)','j','4','Katia'],
+    ['Sat','11:00','12:00','11:00–12:00 PM','Silver (Shooting Stars)','j','5','Angie'],
+    ['Sat','12:00','13:00','12:00–1:00 PM','Bronze (Rising Stars)','j','3','Jay'],
+    ['Sat','12:00','13:00','12:00–1:00 PM','Adult Intermediate','a','4','Daniel G'],
+    ['Sat','12:00','13:00','12:00–1:00 PM','Silver (Shooting Stars)','j','5','Jay'],
+    ['Sat','12:00','13:00','12:00–1:00 PM','Silver (Shooting Stars)','j','6','Katia'],
+    ['Sat','13:00','14:30','1:00–2:30 PM','Gold','j','3','Angie'],
+    ['Sat','14:30','16:00','2:30–4:00 PM','Adult Intermediate Plus','a','5','Jay'],
+    // SUNDAY
+    ['Sun','09:00','10:00','9:00–10:00 AM','Silver (Shooting Stars)','j','5','Jay'],
+    ['Sun','09:00','10:00','9:00–10:00 AM','Future Stars','j','6','Nino'],
+    ['Sun','10:00','11:00','10:00–11:00 AM','Adult Introductory','a','5','Jay'],
+    ['Sun','10:00','11:00','10:00–11:00 AM','Bronze (Rising Stars)','j','6','Nino,Katia'],
+    ['Sun','11:00','12:00','11:00–12:00 PM','Bronze (Rising Stars)','j','5','Jay'],
+    ['Sun','11:00','12:00','11:00–12:00 PM','Adult Intermediate','a','6','Jay'],
+    ['Sun','12:00','13:00','12:00–1:00 PM','Silver (Shooting Stars)','j','5','Katia'],
+    ['Sun','13:00','14:00','1:00–2:00 PM','Silver (Shooting Stars)','j','5','Matthew'],
+    ['Sun','13:00','14:00','1:00–2:00 PM','Adult Intermediate','a','6','Jay'],
+    ['Sun','14:00','16:00','2:00–4:00 PM','National Transition B','j','1','Matthew,Kevin'],
+    ['Sun','16:00','17:30','4:00–5:30 PM','U10 Performance','j','3','Matthew,Kevin'],
+  ];
+  // Soft-deactivate the old board (recoverable).
+  let deactivated = 0;
+  for (const s of _data.pro_schedule_slots) { if (s.active !== false) { s.active = false; deactivated++; } }
+  // Insert the new slots.
+  for (const row of SLOTS) {
+    const [day, start, end, label, program, catCode, courtsStr, prosStr] = row;
+    const courts = String(courtsStr).split(/\s+/).filter(Boolean);
+    const proIds = String(prosStr).split(',').map(x => resolve(x.trim())).filter(Boolean);
+    // Build the per-court map: one pro per court when counts line up, else all on court 1.
+    const court_pros = {};
+    if (courts.length > 1 && proIds.length === courts.length) {
+      courts.forEach((c, i) => { court_pros[c] = [proIds[i]]; });
+    } else if (courts.length) {
+      court_pros[courts[0]] = proIds.slice();
+    }
+    _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+    _data.pro_schedule_slots.push({
+      id: _data._seq.pro_schedule_slots,
+      class_id: null, type: 'class',
+      day, start, end, time_label: label,
+      program, category: CAT[catCode] || 'junior',
+      court: null, courts: courts.slice(), court_pros,
+      capacity: null, coaches: '',
+      pro_ids: [...new Set(proIds)],
+      note: 'Imported from 26/27 sheet — verify court & pro', active: true,
+    });
+  }
+  _data._migrations.proScheduleImport2627v1 = true;
+  save();
+  console.log('Imported 26/27 pro schedule: ' + SLOTS.length + ' slots added, ' + deactivated + ' old slots deactivated.');
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -2280,8 +2440,8 @@ function updateStaffPay(staffId, job, f, actingId) {
 }
 
 // ── Staff directory (manager-only: full profiles incl. last name + contact) ──
-const STAFF_ROLES = ['admin', 'manager', 'staff', 'pro', 'contractor'];
-const STAFF_PALETTE = ['#2c5c9c', '#0d9488', '#8b5cf6', '#f59e0b', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777'];
+// STAFF_ROLES / STAFF_PALETTE are declared earlier (near the seed block) so the
+// load-time migrations can call addCoachAccount before this point in the file.
 function _dirOut(s) {
   return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
     badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '',
