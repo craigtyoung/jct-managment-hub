@@ -149,6 +149,8 @@
     .cf-type-sel.payg{background:rgba(217,119,6,0.07);color:#78350f;border-color:rgba(217,119,6,0.22);}
     .cf-court-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text);background:var(--canvas);cursor:pointer;}
     .cf-time-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:var(--canvas);cursor:pointer;}
+    .cf-pro-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:var(--canvas);cursor:pointer;}
+    .cf-table col.col-pro{width:104px;}
     .cf-time-sel:focus{outline:none;border-color:rgba(44,92,156,0.25);}
     .cf-name-input{width:100%;padding:5px 8px;border:1px solid rgba(12,23,56,0.08);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:transparent;}
     .cf-name-input:focus{outline:none;border-color:rgba(44,92,156,0.25);background:var(--surface);}
@@ -375,6 +377,10 @@
       <input type="number" class="daily-float" id="opening-float" value="100" min="0" step="0.01" oninput="onInput()">
     </div>
     <div class="daily-cell">
+      <span class="daily-label">Closing Float</span>
+      <input type="number" class="daily-float" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
+    </div>
+    <div class="daily-cell">
       <span class="daily-label">Pro Shop</span>
       <span class="daily-val" id="daily-ps">$0.00</span>
     </div>
@@ -389,10 +395,6 @@
     <div class="daily-cell main">
       <span class="daily-label">Total Daily Sales</span>
       <span class="daily-val" id="daily-total">$0.00</span>
-    </div>
-    <div class="daily-cell">
-      <span class="daily-label">Closing Float</span>
-      <input type="number" class="daily-float" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
     </div>
     </div>
   </div>
@@ -416,6 +418,7 @@
     let currentDate = '';
     let editUnlocked = false; // wrong-day guard: non-today sheets start locked
     let saveTimer   = null;
+    let csPros = [];   // teaching pros, for the court-fee instructor dropdown
     let activeShift = 0;
 
     // ── Utilities ──────────────────────────────────────────────────────────────
@@ -479,7 +482,9 @@
       // backward compat: old 'detail' field (combined "time · name") goes to name
       const name  = entry?.name  || (entry?.detail && !entry.time ? entry.detail : '');
       const note  = entry?.note  || '';
+      const pro   = entry?.pro   || '';
       const initAmt = entry?.amount != null ? entry.amount : '';   // default rows start empty; staff enter amounts
+      const proOpts = csPros.map(p => `<option value="${String(p.name).replace(/"/g,'&quot;')}"${p.name===pro?' selected':''}>${p.name}</option>`).join('');
       const timeOpts = TIME_SLOTS.map(t => `<option value="${t}"${t===time?' selected':''}>` + t + `</option>`).join('');
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -495,6 +500,7 @@
         </select></td>
         <td><select class="cf-time-sel"><option value="">Time</option>${timeOpts}</select></td>
         <td><input type="text" class="cf-name-input" placeholder="Name" value="${name.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
+        <td><select class="cf-pro-sel" onchange="onInput();"><option value="">—</option>${proOpts}</select></td>
         <td><input type="text" class="cf-note-input" placeholder="Note" value="${note.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
         <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
         <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
@@ -509,6 +515,7 @@
         court:  tr.querySelector('.cf-court-sel')?.value || '',
         time:   tr.querySelector('.cf-time-sel')?.value  || '',
         name:   tr.querySelector('.cf-name-input')?.value.trim() || '',
+        pro:    tr.querySelector('.cf-pro-sel')?.value || '',
         note:   tr.querySelector('.cf-note-input')?.value.trim() || '',
         amount: (v => v !== '' ? parseFloat(v) || null : null)(tr.querySelector('.cf-row-amt')?.value ?? ''),
       }));
@@ -585,10 +592,10 @@
           <div class="cf-table-wrap">
             <table class="cf-table">
               <colgroup>
-                <col class="col-type"><col class="col-court"><col class="col-time"><col class="col-name"><col class="col-note"><col class="col-amt"><col class="col-del">
+                <col class="col-type"><col class="col-court"><col class="col-time"><col class="col-name"><col class="col-pro"><col class="col-note"><col class="col-amt"><col class="col-del">
               </colgroup>
               <thead><tr>
-                <th>Type</th><th>Court</th><th>Time</th><th>Name</th><th>Note</th>
+                <th>Type</th><th>Court</th><th>Time</th><th>Name</th><th>Pro</th><th>Note</th>
                 <th style="text-align:right;padding-right:8px">Amount</th><th></th>
               </tr></thead>
               <tbody id="s${si}-cf-tbody"></tbody>
@@ -1137,6 +1144,9 @@
       if (getEl('nav-name')) getEl('nav-name').textContent = me.name;
       if (getEl('nav-role')) getEl('nav-role').textContent = me.role;
       if (me.is_admin && getEl('admin-nav-group')) getEl('admin-nav-group').style.display = '';
+
+      // Teaching pros for the court-fee instructor dropdown (non-fatal)
+      try { csPros = await (await fetch('/api/pro-schedule/pros')).json(); } catch (e) { csPros = []; }
 
       // Build panels
       buildTabs();
