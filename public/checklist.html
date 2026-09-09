@@ -853,8 +853,16 @@
       currentDate = today();
       document.getElementById('date-picker').value = currentDate;
 
-      // Auto-select shift: prefer schedule assignment for this user, fall back to time of day
+      // Render the checklist immediately with the time-of-day shift, then refine to the
+      // scheduled shift in the background — so a slow schedule fetch never leaves the page
+      // blank (the old "have to click refresh" symptom).
       currentShift = defaultShift();
+      const setActiveTab = () => document.querySelectorAll('.shift-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.shift === currentShift));
+      setActiveTab();
+      load();
+      connectSSE();
+
       try {
         const [mRes, aRes, cRes] = await Promise.all([
           fetch(`/api/schedule/shift?date=${currentDate}&shift=morning`),
@@ -868,15 +876,8 @@
           { shift: 'closing',   assigned: closing },
         ];
         const myShift = allShifts.find(s => s.assigned.some(a => a.staff_id === me.id));
-        if (myShift) currentShift = myShift.shift;
+        if (myShift && myShift.shift !== currentShift) { currentShift = myShift.shift; setActiveTab(); load(); }
       } catch(e) { /* keep time-of-day default */ }
-
-      document.querySelectorAll('.shift-tab').forEach(t =>
-        t.classList.toggle('active', t.dataset.shift === currentShift)
-      );
-
-      load();
-      connectSSE();
     }
 
     init();
