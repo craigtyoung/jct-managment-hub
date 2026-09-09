@@ -1,5 +1,6 @@
 const express = require('express');
 const db      = require('../db');
+const sse     = require('../sse');
 const router  = express.Router();
 
 const SHIFT_LABELS = ['Morning', 'Afternoon', 'Closing', 'Extended'];
@@ -68,6 +69,7 @@ router.post('/', (req, res) => {
     shifts,
     updatedBy: req.session.staffId,
   });
+  try { sse.broadcast('cash-update'); } catch (e) {}   // push so other open cash sheets refresh
   res.json(result);
 });
 
