@@ -81,6 +81,8 @@
     .date-btn:hover{border-color:rgba(44,92,156,0.3);color:var(--blue);}
     .date-label{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:var(--text);}
     input[type="date"]#date-picker{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--surface);cursor:pointer;}
+    #date-picker.is-today{border-color:var(--blue);background:rgba(44,92,156,0.10);font-weight:700;box-shadow:0 0 0 2px rgba(44,92,156,0.12);}
+    #date-picker.off-today{opacity:0.55;}
     .today-btn{padding:5px 12px;border-radius:100px;background:none;border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all 0.15s;}
     .today-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
 
@@ -213,7 +215,7 @@
     .daily-bar.collapsed .daily-chev{transform:rotate(-90deg);}
     .daily-cells{flex:1;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(78px,1fr);align-items:start;gap:20px;overflow-x:auto;}
     .daily-bar.collapsed .daily-cells{display:none;}
-    .daily-cell{display:flex;flex-direction:column;gap:5px;min-width:0;}
+    .daily-cell{display:grid;grid-template-rows:12px 26px;gap:5px;min-width:0;}
     .daily-label{font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(177,201,251,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:12px;line-height:12px;}
     .daily-val{font-size:0.9rem;font-weight:700;color:#ffffff;height:26px;display:flex;align-items:center;}
     .daily-cell.main .daily-val{font-size:1rem;color:#fbbf24;}
@@ -441,11 +443,6 @@
 
     function onCfTypeChange(sel, si) {
       sel.className = 'cf-type-sel ' + sel.value;
-      const amtEl = sel.closest('tr').querySelector('.cf-row-amt');
-      if (amtEl && !amtEl.value) {
-        const defaults = { guest: 25, payg: 25 };
-        if (defaults[sel.value] != null) amtEl.value = defaults[sel.value];
-      }
       recalcShift(si);
       onInput();
     }
@@ -454,7 +451,8 @@
       return el ? el.value.trim() : '';
     }
     const COURTS = ['','1','2','3','4','5','6','in'];
-    const CF_DEFAULTS = { guest: 25, payg: 25 };
+    const CF_DEFAULTS = {};   // (retired — default court-fee rows now start empty)
+    const SAMPLE_DATE = '2000-01-01';   // dedicated test sheet, isolated from real operating days
 
     const TIME_SLOTS = (() => {
       const s = [];
@@ -478,7 +476,7 @@
       // backward compat: old 'detail' field (combined "time · name") goes to name
       const name  = entry?.name  || (entry?.detail && !entry.time ? entry.detail : '');
       const note  = entry?.note  || '';
-      const initAmt = entry?.amount != null ? entry.amount : (CF_DEFAULTS[type] ?? '');
+      const initAmt = entry?.amount != null ? entry.amount : '';   // default rows start empty; staff enter amounts
       const timeOpts = TIME_SLOTS.map(t => `<option value="${t}"${t===time?' selected':''}>` + t + `</option>`).join('');
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -976,13 +974,22 @@
     function applyDateGuard() {
       const today = new Date().toISOString().slice(0, 10);
       const isToday = currentDate === today;
-      const locked = !isToday && !editUnlocked;
+      const isSample = currentDate === SAMPLE_DATE;
+      const locked = !isToday && !isSample && !editUnlocked;
       document.querySelectorAll('.shift-panel input, .shift-panel select, .shift-panel button, #opening-float, #closing-float')
         .forEach(el => { el.disabled = locked; });
+      // Highlight the date field when you're on today; gray it when you're not.
+      const dp = getEl('date-picker');
+      if (dp) { dp.classList.toggle('is-today', isToday); dp.classList.toggle('off-today', !isToday); }
       const banner = getEl('date-guard');
       if (!banner) return;
       if (isToday) { banner.style.display = 'none'; return; }
       banner.style.display = 'flex';
+      if (isSample) {
+        getEl('date-guard-text').innerHTML = `🧪 <strong>Sample sheet</strong> — test data only, not a real day. Click <strong>Today</strong> to get back to the live sheet.`;
+        getEl('date-guard-btn').style.display = 'none';
+        return;
+      }
       const d = new Date(currentDate + 'T12:00:00');
       const label = d.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
       const canOverride = !!(me && me.is_management);
@@ -1047,9 +1054,14 @@
       window.location.href = `/api/cash-summary/export?date=${currentDate}`;
     }
 
-    // Dev/test helper: drop realistic numbers into the Morning shift and recalc, so you can
-    // see the totals + Daily Summary working. Ephemeral — it does NOT auto-save (no onInput).
-    function fillSample() {
+    // Dev/test helper: switch to the dedicated Sample sheet (a fixed test date, NOT today),
+    // drop realistic numbers into the Morning shift, and save them there — so real operating
+    // days are never touched. Click "Today" to return to the live sheet.
+    async function fillSample() {
+      currentDate = SAMPLE_DATE;
+      editUnlocked = true;
+      history.replaceState({}, '', `?date=${SAMPLE_DATE}`);
+      await load();
       showShift(0);
       const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
       set('#s0-staff', 'Sample Staff');
@@ -1067,6 +1079,7 @@
       set('input[data-si="0"][data-item="snacks"][data-idx="0"]', 6);
       set('#s0-till-100', 1); set('#s0-till-20', 5); set('#s0-till-10', 3); set('#s0-till-5', 4); set('#s0-till-1', 12);
       recalcShift(0);
+      onInput();   // persist to the Sample sheet (SAMPLE_DATE), never to a real day
     }
 
     // ── Auth / Nav ──────────────────────────────────────────────────────────────
