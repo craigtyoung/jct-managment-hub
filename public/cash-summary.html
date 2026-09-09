@@ -341,7 +341,6 @@
     <div id="shift-0" class="shift-panel"></div>
     <div id="shift-1" class="shift-panel"></div>
     <div id="shift-2" class="shift-panel"></div>
-    <div id="shift-3" class="shift-panel"></div>
   </main>
 
   <!-- Daily Totals Bar -->
@@ -373,7 +372,7 @@
   </div>
 
   <script>
-    const SHIFT_LABELS = ['Morning', 'Afternoon', 'Closing', 'Extended'];
+    const SHIFT_LABELS = ['Morning', 'Afternoon', 'Closing'];
     const DENOM = [
       { key:'100', val:100,  label:'$100'  },
       { key:'50',  val:50,   label:'$50'   },
@@ -772,7 +771,7 @@
 
     function recalcDaily() {
       let ps = 0, cf = 0, ds = 0;
-      for (let si = 0; si < 4; si++) {
+      for (let si = 0; si < SHIFT_LABELS.length; si++) {
         ps += parseFloat(getEl(`s${si}-ps-sub`)?.textContent?.replace('$','') || '0') || 0;
         cf += parseFloat(getEl(`s${si}-cf-sub`)?.textContent?.replace('$','') || '0') || 0;
         ds += parseFloat(getEl(`s${si}-ds-sub`)?.textContent?.replace('$','') || '0') || 0;
@@ -814,7 +813,7 @@
         date:          currentDate,
         opening_float: n(getEl('opening-float')?.value),
         closing_float: getEl('closing-float')?.value !== '' ? n(getEl('closing-float')?.value) : null,
-        shifts:        [0,1,2,3].map(si => collectShift(si)),
+        shifts:        SHIFT_LABELS.map((_, si) => collectShift(si)),
       };
     }
 
@@ -978,7 +977,7 @@
         getEl('opening-float').value = summary.opening_float ?? 100;
         getEl('closing-float').value = summary.closing_float != null ? summary.closing_float : '';
 
-        for (let si = 0; si < 4; si++) {
+        for (let si = 0; si < SHIFT_LABELS.length; si++) {
           renderShift(si, summary.shifts?.[si]);
         }
         applyDateGuard();
@@ -1033,7 +1032,7 @@
 
       // Build panels
       buildTabs();
-      for (let si = 0; si < 4; si++) {
+      for (let si = 0; si < SHIFT_LABELS.length; si++) {
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
       showShift(0);
