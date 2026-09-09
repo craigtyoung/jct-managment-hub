@@ -379,6 +379,11 @@ if (!Array.isArray(_data.waitlist_updates)) {
   _data.waitlist_updates = [];
   save();
 }
+if (!Array.isArray(_data.string_logs)) {
+  _data._seq.string_logs = 0;
+  _data.string_logs = [];
+  save();
+}
 
 // Migration: knowledge base — club docs (rules, pricing, membership, FAQs) the AI
 // assistant reads so it can answer staff questions accurately.
@@ -1811,6 +1816,59 @@ function deleteWaitlistSpot(id) {
   return true;
 }
 
+// ─── Pro Shop: String Log (rackets strung — counts only, no pay/rates) ─────────
+function getStringLogs() {
+  const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
+  return (_data.string_logs || []).filter(l => l.active !== false)
+    .slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id)
+    .map(l => ({ ...l, strung_by_name: nameById[l.strung_by] || '—' }));
+}
+function addStringLog({ date, member, string, tension, strung_by }) {
+  if (!Array.isArray(_data.string_logs)) { _data.string_logs = []; _data._seq.string_logs = 0; }
+  const id = nextId('string_logs');
+  _data.string_logs.push({
+    id,
+    date: (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : now().slice(0, 10),
+    member: String(member || '').slice(0, 120),
+    string: String(string || '').slice(0, 80),
+    tension: String(tension || '').slice(0, 40),
+    strung_by: parseInt(strung_by) || null,
+    paid: false,
+    active: true,
+    created_at: now(),
+  });
+  save();
+  return id;
+}
+function updateStringLog(id, f) {
+  const l = (_data.string_logs || []).find(x => x.id === parseInt(id));
+  if (!l) return null;
+  if (f.paid !== undefined) l.paid = !!f.paid;
+  if (f.date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(f.date)) l.date = f.date;
+  if (f.member !== undefined) l.member = String(f.member).slice(0, 120);
+  if (f.string !== undefined) l.string = String(f.string).slice(0, 80);
+  if (f.tension !== undefined) l.tension = String(f.tension).slice(0, 40);
+  if (f.strung_by !== undefined) l.strung_by = parseInt(f.strung_by) || null;
+  save();
+  return l;
+}
+function deleteStringLog(id) {
+  const l = (_data.string_logs || []).find(x => x.id === parseInt(id));
+  if (!l) return false;
+  l.active = false; save(); return true;   // soft-delete, recoverable
+}
+function getStringCounts() {
+  const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
+  const map = {};
+  (_data.string_logs || []).filter(l => l.active !== false).forEach(l => {
+    if (l.strung_by == null) return;
+    const k = l.strung_by;
+    map[k] = map[k] || { staff_id: k, name: nameById[k] || '—', total: 0, unpaid: 0 };
+    map[k].total++; if (!l.paid) map[k].unpaid++;
+  });
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
 // ─── Knowledge base (feeds the AI assistant) ───────────────────────────────────
 
 function getKnowledgeDocs() {
@@ -2710,6 +2768,11 @@ module.exports = {
   setWaitlistStatus,
   addWaitlistUpdate,
   deleteWaitlistSpot,
+  getStringLogs,
+  addStringLog,
+  updateStringLog,
+  deleteStringLog,
+  getStringCounts,
   getKnowledgeDocs,
   getKnowledgeForPrompt,
   createKnowledgeDoc,

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro Shop · JCT</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root{
+      --bg:#f4f6fa; --surface:#ffffff; --border:#e4e8f0; --border2:#d4dae6;
+      --text:#0c1738; --text-2:#3b4a63; --text-3:#8a97ad; --canvas:#f8fafc;
+      --navy:#0c1738; --blue:#2c5c9c; --green:#16a34a; --amber:#d97706;
+      --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-body);background:var(--bg);color:var(--text);padding:0 0 60px;}
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+    .qnav-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+    .qnav{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;text-decoration:none;color:var(--text-2);font-size:13px;font-weight:600;border:1px solid transparent;cursor:pointer;background:none;font-family:inherit;}
+    .qnav:hover{background:#eef2f8;color:var(--text);}
+    .qnav.qnav-active{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .ts-right{display:flex;align-items:center;gap:10px;}
+    .ts-clock{font-size:13px;color:var(--text);} .ts-date{font-size:11px;color:var(--text-3);}
+    .ts-signout{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-3);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+    .ts-signout:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);}
+
+    .wrap{max-width:1000px;margin:0 auto;padding:20px;}
+    .page-head{margin-bottom:6px;}
+    .page-head h1{font-size:20px;font-weight:800;letter-spacing:-0.01em;}
+    .page-sub{color:var(--text-2);font-size:13px;margin-bottom:18px;}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;}
+
+    /* Stringer summary chips */
+    .counts{display:flex;flex-wrap:wrap;gap:10px;}
+    .count-chip{display:flex;flex-direction:column;gap:2px;min-width:130px;padding:10px 14px;border:1px solid var(--border);border-radius:11px;background:var(--canvas);}
+    .count-name{font-size:13px;font-weight:700;}
+    .count-nums{display:flex;gap:14px;align-items:baseline;margin-top:2px;}
+    .count-total{font-size:22px;font-weight:800;color:var(--navy);line-height:1;}
+    .count-total .lbl{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin-left:4px;}
+    .count-unpaid{font-size:12px;font-weight:700;color:var(--amber);}
+    .count-unpaid.zero{color:var(--green);}
+
+    /* Add form */
+    .add-grid{display:grid;grid-template-columns:130px 1.4fr 1.2fr 90px 1.1fr auto;gap:8px;align-items:end;}
+    .fld{display:flex;flex-direction:column;gap:4px;min-width:0;}
+    .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+    .fld input,.fld select{font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);width:100%;}
+    .btn-add{padding:9px 16px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+    .btn-add:hover{background:var(--blue);border-color:var(--blue);}
+    @media(max-width:760px){ .add-grid{grid-template-columns:1fr 1fr;} .add-grid .btn-add{grid-column:1 / -1;} }
+
+    /* Log table */
+    .tbl-wrap{overflow-x:auto;}
+    table.log{border-collapse:collapse;width:100%;min-width:640px;}
+    table.log th{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+    table.log td{font-size:13px;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    table.log tr:last-child td{border-bottom:none;}
+    .paid-btn{padding:4px 12px;border-radius:100px;border:1px solid var(--border2);background:var(--canvas);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;color:var(--amber);}
+    .paid-btn.paid{background:rgba(22,163,74,0.10);border-color:rgba(22,163,74,0.35);color:var(--green);}
+    .del-btn{background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px;}
+    .del-btn:hover{background:rgba(220,38,38,0.08);}
+    .empty{padding:28px;text-align:center;color:var(--text-3);font-size:13px;}
+    .who{display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+    .who .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  </style>
+</head>
+<body>
+  <div class="topstrip">
+    <div class="qnav-row">
+      <a href="/hub.html" class="qnav" title="Dashboard"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg><span>Dashboard</span></a>
+      <a href="/pro-schedule.html" class="qnav" title="Court Schedule"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Court Schedule</span></a>
+      <a href="/cash-summary.html" class="qnav" title="Cash Summary"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg><span>Cash</span></a>
+      <span class="qnav qnav-active" title="Pro Shop"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Pro Shop</span></span>
+    </div>
+    <div class="ts-right">
+      <div style="text-align:right"><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
+      <button class="ts-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="page-head"><h1>Pro Shop</h1></div>
+    <div class="page-sub">String Log — record every racket strung. Counts only; pay is handled by payroll.</div>
+
+    <!-- Stringer totals -->
+    <div class="card">
+      <div class="card-title">Rackets strung</div>
+      <div class="counts" id="counts"><div class="empty" style="padding:8px 0">No strings logged yet.</div></div>
+    </div>
+
+    <!-- Add a string -->
+    <div class="card">
+      <div class="card-title">Log a string</div>
+      <div class="add-grid">
+        <div class="fld"><label>Date</label><input type="date" id="f-date"></div>
+        <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name"></div>
+        <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU"></div>
+        <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55"></div>
+        <div class="fld"><label>Strung by</label><select id="f-by"></select></div>
+        <button class="btn-add" onclick="addString()">Add</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <div class="card-title">Log</div>
+      <div class="tbl-wrap">
+        <table class="log">
+          <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Strung by</th><th>Paid?</th><th></th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let me=null, canDelete=false, staff=[];
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+    async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}location.href='/login.html';}
+    function tick(){const n=new Date();const c=document.getElementById('clock'),d=document.getElementById('dateline');if(c)c.textContent=n.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});if(d)d.textContent=n.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    tick(); setInterval(tick,30000);
+
+    async function init(){
+      try{ const r=await fetch('/api/me'); if(!r.ok){location.href='/login.html';return;} me=await r.json(); }
+      catch(e){ location.href='/login.html'; return; }
+      canDelete = me.role==='admin' || me.role==='manager';
+      try{ staff=await (await fetch('/api/proshop/staff')).json(); }catch(e){ staff=[]; }
+      const by=document.getElementById('f-by');
+      by.innerHTML='<option value="">— select —</option>'+staff.map(s=>`<option value="${s.id}"${s.id===me.id?' selected':''}>${esc(s.name)}</option>`).join('');
+      document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+      await loadAll();
+    }
+    window.onLiveUpdate = loadAll;
+
+    async function loadAll(){ await Promise.all([loadCounts(), loadLog()]); }
+
+    async function loadCounts(){
+      let rows=[]; try{ rows=await (await fetch('/api/proshop/strings/counts')).json(); }catch(e){}
+      const el=document.getElementById('counts');
+      if(!rows.length){ el.innerHTML='<div class="empty" style="padding:8px 0">No strings logged yet.</div>'; return; }
+      el.innerHTML=rows.map(r=>`<div class="count-chip">
+        <span class="count-name">${esc(r.name)}</span>
+        <div class="count-nums">
+          <span class="count-total">${r.total}<span class="lbl">strung</span></span>
+          <span class="count-unpaid ${r.unpaid?'':'zero'}">${r.unpaid} unpaid</span>
+        </div></div>`).join('');
+    }
+
+    async function loadLog(){
+      let rows=[]; try{ rows=await (await fetch('/api/proshop/strings')).json(); }catch(e){}
+      const body=document.getElementById('log-body');
+      if(!rows.length){ body.innerHTML='<tr><td colspan="7" class="empty">No strings logged yet. Add the first one above.</td></tr>'; return; }
+      body.innerHTML=rows.map(r=>`<tr>
+        <td>${esc(fmtDate(r.date))}</td>
+        <td>${esc(r.member)||'<span style="color:var(--text-3)">—</span>'}</td>
+        <td>${esc(r.string)||'<span style="color:var(--text-3)">—</span>'}</td>
+        <td>${esc(r.tension)||'<span style="color:var(--text-3)">—</span>'}</td>
+        <td><span class="who"><span class="dot"></span>${esc(r.strung_by_name)}</span></td>
+        <td><button class="paid-btn ${r.paid?'paid':''}" onclick="togglePaid(${r.id},${r.paid?'true':'false'})">${r.paid?'Paid ✓':'Unpaid'}</button></td>
+        <td>${canDelete?`<button class="del-btn" title="Remove" onclick="removeString(${r.id})">🗑</button>`:''}</td>
+      </tr>`).join('');
+    }
+    function fmtDate(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }catch(e){ return iso||''; } }
+
+    async function addString(){
+      const strung_by=document.getElementById('f-by').value;
+      if(!strung_by){ toast('Pick who strung it'); return; }
+      const body={
+        date:document.getElementById('f-date').value,
+        member:document.getElementById('f-member').value.trim(),
+        string:document.getElementById('f-string').value.trim(),
+        tension:document.getElementById('f-tension').value.trim(),
+        strung_by,
+      };
+      const r=await fetch('/api/proshop/strings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok){ toast('Could not save'); return; }
+      document.getElementById('f-member').value='';
+      document.getElementById('f-string').value='';
+      document.getElementById('f-tension').value='';
+      await loadAll(); toast('Logged');
+    }
+    async function togglePaid(id, paid){
+      const r=await fetch('/api/proshop/strings/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({paid:!paid})});
+      if(r.ok) loadAll();
+    }
+    async function removeString(id){
+      if(!confirm('Remove this string log entry?')) return;
+      const r=await fetch('/api/proshop/strings/'+id,{method:'DELETE'});
+      if(r.ok){ loadAll(); toast('Removed'); }
+    }
+
+    init();
+  </script>
+  <script src="/live-sync.js"></script>
+  <script src="/app-version.js"></script>
+  <script src="/chat-widget.js"></script>
+</body>
+</html>
