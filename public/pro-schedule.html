@@ -62,8 +62,9 @@
     .vtbtn { padding:7px 16px; border:none; background:transparent; font-family:inherit; font-size:13px; font-weight:700; color:var(--blue); cursor:pointer; }
     .vtbtn.on { background:var(--blue); color:#fff; }
     /* Header row: day tabs on the left, view toggle pinned top-right */
-    .sched-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
-    .sched-head > #daytabs { display:flex; flex-wrap:wrap; gap:6px; flex:1; margin-bottom:0; }
+    .sched-head { display:flex; align-items:center; justify-content:center; position:relative; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .sched-head #seasontoggle { position:absolute; right:0; top:50%; transform:translateY(-50%); }
+    @media (max-width:640px){ .sched-head #seasontoggle { position:static; transform:none; } }
 
     /* Multi-court picker */
     .courts-pick { display:inline-flex; gap:4px; }
@@ -246,19 +247,17 @@
     <div class="lead">The weekly court schedule — classes, lessons and programs across all six courts. <b>Management sets the schedule</b>; pros and staff can view it. Repeats through the season.</div>
     <div id="roview" class="roview">👀 View only — management sets the schedule.</div>
     <div class="sched-head">
-      <div id="daytabs" class="daytop"></div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-        <div class="viewtoggle" id="seasontoggle" title="Which season's weekly schedule you're viewing">
-          <button id="ss-indoor" class="vtbtn on" onclick="setSeason('indoor')">Indoor</button>
-          <button id="ss-outdoor" class="vtbtn" onclick="setSeason('outdoor')">Outdoor</button>
-        </div>
-        <div class="viewtoggle">
-          <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
-          <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
-          <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Full view</button>
-        </div>
+      <div class="viewtoggle">
+        <button id="vt-cal" class="vtbtn on" onclick="setView('cal')">Full view</button>
+        <button id="vt-list" class="vtbtn" onclick="setView('list')">Classes</button>
+        <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Lesson Summary</button>
+      </div>
+      <div class="viewtoggle" id="seasontoggle" title="Which season's weekly schedule you're viewing">
+        <button id="ss-indoor" class="vtbtn on" onclick="setSeason('indoor')">Indoor</button>
+        <button id="ss-outdoor" class="vtbtn" onclick="setSeason('outdoor')">Outdoor</button>
       </div>
     </div>
+    <div id="daytabs" class="daytop"></div>
     <div class="sched-cols">
       <aside id="prorail" class="prorail prorail-left" style="display:none"></aside>
       <div class="sched-body">
@@ -354,7 +353,7 @@
   <script>
     const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const DAY_FULL = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
-    let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon', view = 'list';
+    let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon', view = 'cal';
     let classCatalog = [];   // program names from the academy catalog, for the add-slot dropdown
     let activeSeason = 'indoor';   // which season's weekly template is shown (indoor | outdoor)
     const KIND_DEFAULTS = { class:'', private:'Private lesson', general:'General booking', reserved:'Reserved', roundrobin:'Round Robin', houseleague:'House League' };
@@ -453,7 +452,7 @@
     function renderTabs(){
       const wrap=document.getElementById('daytabs');
       wrap.innerHTML = DAYS.map(d=>
-        `<button class="daytab ${d===activeDay?'on':''}" onclick="setDay('${d}')">${DAY_FULL[d]}</button>`
+        `<button class="daytab ${d===activeDay?'on':''}" onclick="setDay('${d}')">${d}</button>`
       ).join('');
     }
     function setDay(d){ activeDay=d; renderTabs(); renderBoard(); }
