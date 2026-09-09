@@ -125,6 +125,9 @@
     .cat-inputs{display:flex;gap:4px;flex-wrap:wrap;}
     .amt-wrap{display:flex;flex-direction:column;gap:2px;}
     .amt-input{width:68px;padding:5px 7px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:13px;color:var(--text);text-align:right;background:var(--canvas);}
+    .amt-hidden{display:none!important;}
+    .cat-add{width:26px;height:28px;padding:0;border:1px dashed var(--border);border-radius:7px;background:transparent;color:var(--text-3);font-size:16px;line-height:1;cursor:pointer;align-self:center;}
+    .cat-add:hover{border-color:rgba(44,92,156,0.45);color:var(--blue);}
     .amt-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
     .detail-input{width:68px;padding:3px 6px;border:1px solid rgba(12,23,56,0.06);border-radius:5px;font-size:10px;color:var(--text-2);background:transparent;}
     .detail-input:focus{outline:none;border-color:rgba(44,92,156,0.25);}
@@ -208,12 +211,13 @@
     .daily-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#fff;white-space:nowrap;}
     .daily-chev{width:13px;height:13px;color:rgba(177,201,251,0.75);transition:transform 0.2s;flex-shrink:0;}
     .daily-bar.collapsed .daily-chev{transform:rotate(-90deg);}
-    .daily-cells{flex:1;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(78px,1fr);align-items:center;gap:20px;overflow-x:auto;}
+    .daily-cells{flex:1;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(78px,1fr);align-items:start;gap:20px;overflow-x:auto;}
     .daily-bar.collapsed .daily-cells{display:none;}
-    .daily-cell{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;}
-    .daily-label{font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(177,201,251,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;}
-    .daily-val{font-size:0.9rem;font-weight:700;color:#ffffff;line-height:1;height:26px;display:flex;align-items:center;}
+    .daily-cell{display:flex;flex-direction:column;gap:5px;min-width:0;}
+    .daily-label{font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(177,201,251,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:12px;line-height:12px;}
+    .daily-val{font-size:0.9rem;font-weight:700;color:#ffffff;height:26px;display:flex;align-items:center;}
     .daily-cell.main .daily-val{font-size:1rem;color:#fbbf24;}
+    .daily-cell .daily-float{box-sizing:border-box;height:26px;margin:0;}
 
     @media(max-width:768px){
       .spine,.sidenav{display:none;}
@@ -333,6 +337,7 @@
           <button class="ctx-arrow" onclick="shiftDate(1)" title="Next day"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
         <button class="today-btn" onclick="goToday()">Today</button>
+        <button class="export-btn mgmt-only" onclick="fillSample()" title="Fill this sheet with test numbers to check the totals (nothing saves until you edit a field)" style="background:transparent;border:1px solid var(--border);color:var(--text-2)">Sample data</button>
         <button class="export-btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </div>
@@ -512,18 +517,21 @@
 
     function buildShiftPanel(si) {
       const label = SHIFT_LABELS[si];
-      const a = (item, idx, field) => {
+      const DEFAULT_VISIBLE = 3;   // fields shown per category before you hit "+"
+      const a = (item, idx, field, hidden) => {
         const dfAttr = field ? `data-field="${field}"` : '';
         const unit = UNIT_PRICES[item];
         const unitAttr = unit ? `data-unit="${unit}"` : '';
-        return `<input type="number" class="amt-input" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} ${unitAttr} min="0" step="${unit?1:0.01}" placeholder="${unit?'qty':'—'}" oninput="recalcShift(${si});onInput();">`;
+        const cls = 'amt-input' + (field ? '' : (' field-slot' + (hidden ? ' amt-hidden' : '')));
+        return `<input type="number" class="${cls}" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} ${unitAttr} min="0" step="${unit?1:0.01}" placeholder="${unit?'qty':'—'}" oninput="recalcShift(${si});onInput();">`;
       };
       const d = (item, idx, field) =>
         `<input type="text" class="detail-input" data-si="${si}" data-item="${item}" data-idx="${idx}" data-field="${field}" placeholder="${field === 'member' ? 'Member' : 'Time/Court'}" oninput="onInput();">`;
-      const amts5 = (item) => SLOTS.map(i => a(item, i)).join('');
+      const addBtn = (item) => `<button type="button" class="cat-add" onclick="addField(${si},'${item}')" title="Add another">+</button>`;
+      const amts5 = (item) => SLOTS.map(i => a(item, i, null, i >= DEFAULT_VISIBLE)).join('') + addBtn(item);
       const amtsWithMember = (item) => SLOTS.map(i =>
-        `<div class="amt-wrap">${a(item,i,'amount')}${d(item,i,'member')}</div>`
-      ).join('');
+        `<div class="amt-wrap field-slot${i >= DEFAULT_VISIBLE ? ' amt-hidden' : ''}">${a(item,i,'amount')}${d(item,i,'member')}</div>`
+      ).join('') + addBtn(item);
 
       return `
         <!-- Staff Name -->
@@ -670,6 +678,27 @@
           </div>
         </div>
       `;
+    }
+
+    // Reveal one more (hidden) entry field in a category.
+    function addField(si, item) {
+      let hid = document.querySelector(`input.field-slot.amt-hidden[data-si="${si}"][data-item="${item}"]`);
+      if (!hid) {
+        for (const w of document.querySelectorAll('.amt-wrap.field-slot.amt-hidden')) {
+          if (w.querySelector(`[data-si="${si}"][data-item="${item}"]`)) { hid = w; break; }
+        }
+      }
+      if (hid) hid.classList.remove('amt-hidden');
+    }
+    // After loading saved data, un-hide any entry slot that received a value.
+    function revealFilledFields(si) {
+      document.querySelectorAll(`#shift-${si} input.field-slot.amt-hidden`).forEach(inp => {
+        if (inp.value !== '' && inp.value != null) inp.classList.remove('amt-hidden');
+      });
+      document.querySelectorAll(`#shift-${si} .amt-wrap.field-slot.amt-hidden`).forEach(w => {
+        const inp = w.querySelector('input[data-field="amount"]');
+        if (inp && inp.value !== '' && inp.value != null) w.classList.remove('amt-hidden');
+      });
     }
 
     // ── Build Tab Bar ──────────────────────────────────────────────────────────
@@ -899,6 +928,7 @@
         if (el && v != null) el.value = v;
       });
 
+      revealFilledFields(si);
       recalcShift(si);
     }
 
@@ -1015,6 +1045,28 @@
 
     function exportCSV() {
       window.location.href = `/api/cash-summary/export?date=${currentDate}`;
+    }
+
+    // Dev/test helper: drop realistic numbers into the Morning shift and recalc, so you can
+    // see the totals + Daily Summary working. Ephemeral — it does NOT auto-save (no onInput).
+    function fillSample() {
+      showShift(0);
+      const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
+      set('#s0-staff', 'Sample Staff');
+      set('input[data-si="0"][data-item="tennis_balls"][data-idx="0"]', 42);
+      set('input[data-si="0"][data-item="tennis_balls"][data-idx="1"]', 18);
+      set('input[data-si="0"][data-item="accessories"][data-idx="0"]', 25);
+      set('input[data-si="0"][data-item="grips"][data-idx="0"]', 12);
+      set('input[data-si="0"][data-item="stringing"][data-idx="0"][data-field="amount"]', 35);
+      set('input[data-si="0"][data-item="stringing"][data-idx="0"][data-field="member"]', 'J. Smith');
+      const cfAmts = document.querySelectorAll('#s0-cf-tbody .cf-row-amt');
+      if (cfAmts[0]) cfAmts[0].value = 60;   // lesson
+      if (cfAmts[1]) cfAmts[1].value = 25;   // guest
+      if (cfAmts[2]) cfAmts[2].value = 25;   // pay-as-you-go
+      set('input[data-si="0"][data-item="drinks"][data-idx="0"]', 9);
+      set('input[data-si="0"][data-item="snacks"][data-idx="0"]', 6);
+      set('#s0-till-100', 1); set('#s0-till-20', 5); set('#s0-till-10', 3); set('#s0-till-5', 4); set('#s0-till-1', 12);
+      recalcShift(0);
     }
 
     // ── Auth / Nav ──────────────────────────────────────────────────────────────
