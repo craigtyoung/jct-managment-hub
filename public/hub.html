@@ -700,8 +700,8 @@
 
     /* ── Assistant button (slim, professional; opens the AI chat) ── */
     .assistant-slim {
-      display: inline-flex; align-items: center; gap: 10px;
-      margin: 0 0 26px; padding: 9px 16px 9px 11px;
+      display: flex; width: 100%; align-items: center; gap: 10px;
+      margin: 0 0 26px; padding: 11px 16px 11px 13px;
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       cursor: pointer; font-family: var(--font-body); font-size: 13.5px; font-weight: 500; color: var(--text-2);
       box-shadow: 0 1px 3px rgba(12,23,56,0.05); transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
@@ -712,6 +712,9 @@
     .assistant-slim strong { font-weight: 600; color: var(--text); }
     .assistant-slim .as-hint { color: var(--text-3); font-weight: 400; }
     @media (max-width: 560px) { .assistant-slim .as-hint { display: none; } }
+    /* Small avatars under a stat (e.g. who's On Shift Now) */
+    .stat-av { display: flex; gap: 5px; margin-top: 9px; }
+    .stat-av .sa { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
 
     /* ─────────────────────────────────────────────
        LIGHT NAV THEME (premium clean) — prototype
@@ -1129,6 +1132,7 @@
         <div class="stat-label">On Shift Now</div>
         <div class="stat-value" id="sc-shift-val">—</div>
         <div class="stat-sub" id="sc-shift-sub">Loading…</div>
+        <div class="stat-av" id="sc-shift-av"></div>
       </div>
       <div class="stat-card live">
         <span class="stat-live-dot"></span>
@@ -1713,7 +1717,6 @@
       if (!rows.length) { wrap.innerHTML = '<div class="bub-empty">No readings yet — <a href="/bubble.html" style="color:var(--blue)">log the first one</a>.</div>'; return; }
       wrap.innerHTML = rows.map(r => `
         <div class="bub-row">
-          <div class="bub-av" data-av="${r.staff_id}" data-name="${esc(r.staff_name||'?')}" data-color="${r.staff_color||'#666'}"></div>
           <div class="bub-metrics">
             <div class="bub-m"><span class="v">${r.temperature != null ? esc(r.temperature) : '—'}</span><span class="l">Temp</span></div>
             <div class="bub-m"><span class="v">${r.pressure != null ? esc(r.pressure) : '—'}</span><span class="l">Press</span></div>
@@ -1848,6 +1851,11 @@
           scs.textContent = assigned.length
             ? `${shiftLabel} · ${assigned.map(a => (a.staff_name || '').split(' ')[0]).join(', ')}`
             : `${shiftLabel} · none assigned`;
+          const av = document.getElementById('sc-shift-av');
+          if (av) {
+            av.innerHTML = assigned.slice(0,5).map(a => `<span class="sa" data-av="${a.staff_id||''}" data-name="${esc(a.staff_name||'?')}" data-color="${a.staff_color||'#2c5c9c'}"></span>`).join('');
+            av.querySelectorAll('[data-av]').forEach(el => staffAvatar(el, el.dataset.av, el.dataset.name, el.dataset.color));
+          }
         }
       } catch(e) {}
 
