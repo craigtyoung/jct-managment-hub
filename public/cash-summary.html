@@ -418,7 +418,7 @@
     // Summary storage is a flexible blob, so raising these is safe and preserves
     // existing shorter data (extra slots just start empty).
     const N_SLOT = 8;   // pro-shop / drinks / snacks line slots
-    const N_SLIP = 24;  // card slip slots
+    const N_SLIP = 20;  // card slip slots (kept lean; "+ add" as needed)
     const SLOTS = Array.from({ length: N_SLOT }, function (_, i) { return i; });
     const SLIPS = Array.from({ length: N_SLIP }, function (_, i) { return i; });
 
@@ -1002,6 +1002,7 @@
           recalcShift(si);
         }
         applyDateGuard();
+        adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
       } catch (e) {
         setSaveStatus('', 'Load error');
@@ -1039,7 +1040,14 @@
       const b = getEl('daily-bar'); if (!b) return;
       const collapsed = b.classList.toggle('collapsed');
       try { localStorage.setItem('jct-daily-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+      adjustBottomPadding();
     }
+    // Keep page content clear of the fixed Daily Summary bar, whatever height it wraps to.
+    function adjustBottomPadding() {
+      const bar = getEl('daily-bar'); const main = document.querySelector('.main');
+      if (bar && main) main.style.paddingBottom = (bar.offsetHeight + 28) + 'px';
+    }
+    window.addEventListener('resize', adjustBottomPadding);
 
     async function init() {
       try { if (localStorage.getItem('jct-daily-collapsed') === '1') getEl('daily-bar')?.classList.add('collapsed'); } catch (e) {}
