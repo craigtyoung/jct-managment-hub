@@ -177,6 +177,10 @@
     .btn-primary { padding:9px 18px; border:1px solid var(--navy); background:var(--navy); border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
     .btn-primary:hover { background:var(--blue); border-color:var(--blue); }
     .mhint { font-size:12px; color:var(--text3); }
+    /* Subtle, compact season toggle (kept small so it doesn't dominate the header) */
+    #seasontoggle { box-shadow:none; background:var(--surface); border-color:var(--border2); }
+    #seasontoggle .vtbtn { padding:4px 10px; font-size:11px; color:var(--text3); }
+    #seasontoggle .vtbtn.on { background:var(--border2); color:var(--text); }
 
     /* Full calendar grid — fixed 6am–11pm time axis × 6 courts, classes as spanning blocks */
     .calwrap { overflow-x:auto; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
@@ -299,8 +303,13 @@
           </div>
         </div>
         <div class="mrow">
-          <div class="mfield"><label>Start</label><input type="time" id="m-start" value="16:00" step="900" /></div>
-          <div class="mfield"><label>End</label><input type="time" id="m-end" value="17:00" step="900" /></div>
+          <div class="mfield"><label>Start</label><select id="m-start"></select></div>
+          <div class="mfield"><label>Length</label><select id="m-dur">
+            <option value="30">30 min</option>
+            <option value="60" selected>1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+          </select></div>
         </div>
         <div class="mfield">
           <label>Court(s)</label>
@@ -319,6 +328,24 @@
         <button class="btn-ghost" onclick="closeAddSlot()">Cancel</button>
         <button class="btn-primary" onclick="submitAddSlot()">Add slot</button>
       </div>
+    </div>
+  </div>
+
+  <!-- In-app confirm (replaces the browser confirm popup) -->
+  <div id="confirmModal" class="modal-overlay" onclick="if(event.target===this)closeConfirm()">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head"><h2 id="confirmTitle">Remove slot</h2><button class="modal-x" onclick="closeConfirm()" title="Cancel">×</button></div>
+      <div class="modal-body"><p id="confirmMsg" style="font-size:14px; color:var(--text2); line-height:1.45; margin:0"></p></div>
+      <div class="modal-foot"><button class="btn-ghost" onclick="closeConfirm()">Cancel</button><button class="btn-primary" style="background:#dc2626; border-color:#dc2626" onclick="_confirmRun()">Remove</button></div>
+    </div>
+  </div>
+
+  <!-- In-app confirm (system modal, not the browser popup) -->
+  <div id="confirmModal" class="modal-overlay" onclick="if(event.target===this)closeConfirm()">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head"><h2 id="confirmTitle">Remove slot</h2><button class="modal-x" onclick="closeConfirm()" title="Cancel">×</button></div>
+      <div class="modal-body"><p id="confirmMsg" style="font-size:14px; color:var(--text2); line-height:1.45; margin:0"></p></div>
+      <div class="modal-foot"><button class="btn-ghost" onclick="closeConfirm()">Cancel</button><button class="btn-primary" style="background:#dc2626; border-color:#dc2626" onclick="_confirmRun()">Remove</button></div>
     </div>
   </div>
 
@@ -633,20 +660,30 @@
       const daySel=document.getElementById('m-day');
       daySel.innerHTML=DAYS.map(d=>`<option value="${d}" ${d===activeDay?'selected':''}>${DAY_FULL[d]}</option>`).join('');
       document.getElementById('m-cat').value='junior';
+      buildStartOptions();
       document.getElementById('m-start').value='16:00';
-      document.getElementById('m-end').value='17:00';
+      document.getElementById('m-dur').value='60';
       document.querySelectorAll('#m-courts .mcourt').forEach(b=>b.classList.remove('on'));
       // Prefill from a calendar click: seed the clicked court + time (default 1-hour block)
       if(prefill){
-        if(prefill.startMin!=null){
-          document.getElementById('m-start').value=minToHM(prefill.startMin);
-          document.getElementById('m-end').value=minToHM(Math.min(CAL_END, prefill.startMin+60));
-        }
+        if(prefill.startMin!=null){ document.getElementById('m-start').value=minToHM(prefill.startMin); document.getElementById('m-dur').value='60'; }
         if(prefill.court){ document.querySelectorAll('#m-courts .mcourt').forEach(b=>b.classList.toggle('on', b.dataset.court===String(prefill.court))); }
       }
       document.getElementById('addModal').classList.add('show');
     }
     function closeAddSlot(){ document.getElementById('addModal').classList.remove('show'); }
+    // Start-time dropdown: every 30 min from 6:00 AM to 10:30 PM, value in 24h HH:MM.
+    function buildStartOptions(){
+      const sel=document.getElementById('m-start'); if(!sel) return;
+      let html='';
+      for(let m=360;m<=1350;m+=30){ const h=Math.floor(m/60), hh=h%12||12, ap=h<12?'AM':'PM'; html+=`<option value="${minToHM(m)}">${hh}:${String(m%60).padStart(2,'0')} ${ap}</option>`; }
+      sel.innerHTML=html;
+    }
+    // In-app confirm (replaces the browser confirm popup)
+    let _confirmCb=null;
+    function askConfirm(msg, cb){ document.getElementById('confirmMsg').textContent=msg; _confirmCb=cb; document.getElementById('confirmModal').classList.add('show'); }
+    function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); _confirmCb=null; }
+    function _confirmRun(){ const cb=_confirmCb; closeConfirm(); if(cb) cb(); }
     // Build the class dropdown: academy catalog + any program already on the schedule
     // (deduped, alpha), a leading placeholder, and a trailing "Other" for one-offs.
     function buildProgOptions(){
@@ -685,8 +722,10 @@
     }
     async function submitAddSlot(){
       const start=document.getElementById('m-start').value||'16:00';
-      const end=document.getElementById('m-end').value||'17:00';
-      if(end<=start){ toast('End time must be after start'); return; }
+      const dur=parseInt(document.getElementById('m-dur').value,10)||60;
+      const endMin=hmToMin(start)+dur;
+      if(endMin>1380){ toast('That runs past 11 PM — pick an earlier start or a shorter length'); return; }
+      const end=minToHM(endMin);
       const courts=[...document.querySelectorAll('#m-courts .mcourt.on')].map(b=>b.dataset.court);
       let program;
       if (addKind==='class') {
@@ -714,13 +753,14 @@
       await loadSlots(); renderTabs();
       toast(courts.length ? 'Added — drag pros onto the courts' : 'Added — pick a court, then drag pros in');
     }
-    async function removeSlot(id){
+    function removeSlot(id){
       const s = slots.find(x=>x.id===id);
       const label = s ? `${s.program} (${DAY_FULL[s.day]} ${s.time_label||s.start})` : 'this slot';
-      if (!confirm(`Remove ${label}? This takes it off the board.`)) return;
-      const r = await fetch('/api/pro-schedule/slots/'+id, { method:'DELETE' });
-      if (!r.ok){ toast('Remove failed'); return; }
-      slots = slots.filter(s=>s.id!==id); renderTabs(); renderBoard(); toast('Slot removed');
+      askConfirm(`Remove ${label}? This takes it off the board.`, async ()=>{
+        const r = await fetch('/api/pro-schedule/slots/'+id, { method:'DELETE' });
+        if (!r.ok){ toast('Remove failed'); return; }
+        slots = slots.filter(x=>x.id!==id); renderTabs(); renderBoard(); toast('Slot removed');
+      });
     }
 
     init();
