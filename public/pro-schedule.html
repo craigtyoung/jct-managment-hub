@@ -177,6 +177,39 @@
     .btn-primary { padding:9px 18px; border:1px solid var(--navy); background:var(--navy); border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
     .btn-primary:hover { background:var(--blue); border-color:var(--blue); }
     .mhint { font-size:12px; color:var(--text3); }
+
+    /* Full calendar grid — fixed 6am–11pm time axis × 6 courts, classes as spanning blocks */
+    .calwrap { overflow-x:auto; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+    .calgrid { display:flex; min-width:660px; }
+    .cal-gutter { flex:0 0 52px; }
+    .cal-gutter .cal-spacer { height:34px; }
+    .cal-gutter .cal-hour { height:84px; font-size:11px; font-weight:700; color:var(--text3); text-align:right; padding-right:8px; box-sizing:border-box; }
+    .cal-gutter .cal-hour span { display:block; transform:translateY(-8px); }
+    .cal-col { flex:1 1 0; min-width:98px; border-left:1px solid var(--border); }
+    .cal-colhead { height:34px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; background:var(--navy); position:sticky; top:0; z-index:6; }
+    .cal-body { position:relative;
+      background-image:
+        repeating-linear-gradient(to bottom, transparent 0, transparent 83px, var(--border2) 83px, var(--border2) 84px),
+        repeating-linear-gradient(to bottom, transparent 0, transparent 41px, var(--border) 41px, var(--border) 42px);
+    }
+    .cal-cell { position:absolute; left:0; right:0; cursor:copy; }
+    .cal-cell.drop-hot { background:rgba(44,92,156,0.14); }
+    .cal-block { position:absolute; border-radius:7px; padding:3px 6px; overflow:hidden; box-sizing:border-box;
+      box-shadow:0 1px 3px rgba(12,23,56,0.12); border-left:3px solid var(--blue); background:rgba(44,92,156,0.10); }
+    .cal-block.movable { cursor:grab; }
+    .cal-block.movable:active { cursor:grabbing; }
+    .cal-block.cat-j { border-left-color:var(--blue); background:rgba(44,92,156,0.10); }
+    .cal-block.cat-a { border-left-color:var(--green); background:rgba(22,163,74,0.10); }
+    .cal-block.cat-o { border-left-color:#94a3b8; background:rgba(148,163,184,0.14); }
+    .cal-block.drop-hot { outline:2px solid var(--blue); outline-offset:-2px; }
+    .cal-prog { font-size:11px; font-weight:700; line-height:1.15; color:var(--text); }
+    .cal-time { font-size:9.5px; color:var(--text2); margin-top:1px; }
+    .cal-pros { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
+    .cal-pchip { font-size:9px; font-weight:700; color:#fff; padding:1px 5px; border-radius:100px; }
+    .cal-del { position:absolute; top:2px; right:3px; background:rgba(255,255,255,0.65); border:none; color:#dc2626; cursor:pointer; font-size:10px; line-height:1; border-radius:4px; padding:1px 2px; }
+    .cal-legend { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--text3); }
+    .cal-legend .lg { display:inline-flex; align-items:center; gap:5px; }
+    .cal-legend .sw { width:11px; height:11px; border-radius:3px; }
   </style>
 </head>
 <body>
@@ -204,6 +237,7 @@
       <div class="viewtoggle">
         <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
         <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
+        <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Calendar</button>
       </div>
     </div>
     <div class="sched-cols">
@@ -343,8 +377,8 @@
     }
 
     // ── Drag-and-drop ──
-    let dragProId=null;
-    function dragPro(e,id){ dragProId=id; try{ e.dataTransfer.setData('text/plain',String(id)); e.dataTransfer.effectAllowed='copy'; }catch(_){ } if(e.currentTarget.classList) e.currentTarget.classList.add('dragging'); }
+    let dragProId=null, dragSlotId=null;
+    function dragPro(e,id){ dragProId=id; dragSlotId=null; try{ e.dataTransfer.setData('text/plain',String(id)); e.dataTransfer.effectAllowed='copy'; }catch(_){ } if(e.currentTarget.classList) e.currentTarget.classList.add('dragging'); }
     function dragEnd(e){ if(e.currentTarget.classList) e.currentTarget.classList.remove('dragging'); dragProId=null; }
     function dzOver(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='copy'; }catch(_){ } e.currentTarget.classList.add('drop-hot'); }
     function dzLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
@@ -365,8 +399,8 @@
     }
     function setDay(d){ activeDay=d; renderTabs(); renderBoard(); }
 
-    function renderBoard(){ if(view==='grid') renderCourtTimeBoard(); else renderListBoard(); }
-    function setView(v){ view=v; document.getElementById('vt-list').classList.toggle('on',v==='list'); document.getElementById('vt-grid').classList.toggle('on',v==='grid'); renderBoard(); }
+    function renderBoard(){ if(view==='grid') renderCourtTimeBoard(); else if(view==='cal') renderCalendar(); else renderListBoard(); }
+    function setView(v){ view=v; ['list','grid','cal'].forEach(x=>{ const b=document.getElementById('vt-'+x); if(b) b.classList.toggle('on',v===x); }); renderBoard(); }
     function renderListBoard(){
       const board=document.getElementById('board');
       const list = slots.filter(s=>s.day===activeDay);
@@ -401,6 +435,88 @@
       if(noCourt.length){ html+='<div class="unassigned"><b>No court assigned yet:</b> '+noCourt.map(s=>esc(s.program)+' <span style="color:var(--text3)">('+esc(s.time_label||s.start)+')</span>').join(' · ')+'</div>'; }
       board.innerHTML=html;
     }
+
+    // ── Full calendar view: fixed 6am–11pm × 6-court grid, classes as spanning blocks ──
+    const CAL_START=360, CAL_END=1380, CAL_STEP=30, CAL_ROWH=42;
+    const CAL_ROWS=(CAL_END-CAL_START)/CAL_STEP;
+    function hmToMin(t){ const [h,m]=String(t).split(':').map(Number); return h*60+(m||0); }
+    function minToHM(m){ m=Math.max(0,Math.round(m)); return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+    function renderCalendar(){
+      const board=document.getElementById('board');
+      const COURTS=['1','2','3','4','5','6'];
+      const list=slots.filter(s=>s.day===activeDay);
+      if(!list.length){ board.innerHTML=`<div class="empty">No classes for ${DAY_FULL[activeDay]} yet${canEdit?' — click a time on any court to add one.':'.'}</div>`; return; }
+      const catAb=c=>c==='junior'?'j':c==='adult'?'a':'o';
+      const bodyH=CAL_ROWS*CAL_ROWH;
+      // time gutter
+      let gutter='<div class="cal-gutter"><div class="cal-spacer"></div>';
+      for(let h=6;h<23;h++){ const lab=h<12?h+' AM':(h===12?'12 PM':(h-12)+' PM'); gutter+=`<div class="cal-hour"><span>${lab}</span></div>`; }
+      gutter+='</div>';
+      // court columns
+      let colsHtml='';
+      for(const c of COURTS){
+        let items=[];
+        list.forEach(s=>{ if((s.courts||[]).includes(c)) items.push({ s, a:hmToMin(s.start), b:hmToMin(s.end) }); });
+        items.sort((x,y)=> x.a-y.a || x.b-y.b);
+        // greedy lane assignment (side-by-side for overlaps)
+        const laneEnd=[];
+        items.forEach(it=>{ let lane=0; while(lane<laneEnd.length && laneEnd[lane]>it.a) lane++; it.lane=lane; laneEnd[lane]=it.b; });
+        // cluster overlapping blocks so width divides only within a collision group
+        const assignCols=cl=>{ const n=Math.max(...cl.map(x=>x.lane))+1; cl.forEach(x=>x.cols=n); };
+        let cur=[], curEnd=-1;
+        items.forEach(it=>{ if(cur.length && it.a>=curEnd){ assignCols(cur); cur=[]; curEnd=-1; } cur.push(it); curEnd=Math.max(curEnd,it.b); });
+        if(cur.length) assignCols(cur);
+        // background click/drop cells (empty = add; also the drop target when moving a class)
+        let cells='';
+        if(canEdit){ for(let r=0;r<CAL_ROWS;r++){ const min=CAL_START+r*CAL_STEP; cells+=`<div class="cal-cell" data-court="${c}" data-min="${min}" style="top:${r*CAL_ROWH}px;height:${CAL_ROWH}px" onclick="openAddSlotAt('${c}',${min})" ondragover="calCellOver(event)" ondragleave="calCellLeave(event)" ondrop="calCellDrop(event,'${c}',${min})"></div>`; } }
+        // class blocks
+        let blocks='';
+        items.forEach(it=>{
+          const s=it.s;
+          const top=Math.max(0,(it.a-CAL_START)/CAL_STEP*CAL_ROWH);
+          const hgt=Math.max(18,(Math.min(it.b,CAL_END)-Math.max(it.a,CAL_START))/CAL_STEP*CAL_ROWH-3);
+          const w=100/(it.cols||1), left=(it.lane||0)*w;
+          const ids=(s.court_pros&&s.court_pros[c])||[];
+          const prochips=ids.map(id=>{const p=proById(id);return p?`<span class="cal-pchip" style="background:${p.color||'#2c5c9c'}">${esc(String(p.name).split(' ')[0])}</span>`:''}).join('');
+          const movable=canEdit && (s.courts||[]).length===1;
+          const del=canEdit?`<button class="cal-del" onclick="event.stopPropagation();removeSlot(${s.id})" title="Remove">🗑</button>`:'';
+          blocks+=`<div class="cal-block cat-${catAb(s.category)}${movable?' movable':''}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)"`
+            +(movable?` draggable="true" ondragstart="calBlockDrag(event,${s.id})" ondragend="calBlockDragEnd(event)"`:'')
+            +` ondragover="calBlockOver(event)" ondragleave="calBlockLeave(event)" ondrop="calBlockDrop(event,${s.id},'${c}')" title="${esc(s.program)} · ${esc(s.time_label||'')}${movable?' — drag to move':''}">`
+            +`${del}<div class="cal-prog">${s.type==='private'?'🎾 ':''}${esc(s.program)}</div>`
+            +`<div class="cal-time">${esc(s.time_label||(s.start+'–'+s.end))}</div>`
+            +(prochips?`<div class="cal-pros">${prochips}</div>`:'')
+            +`</div>`;
+        });
+        colsHtml+=`<div class="cal-col"><div class="cal-colhead">Court ${c}</div><div class="cal-body" style="height:${bodyH}px">${cells}${blocks}</div></div>`;
+      }
+      let html=`<div class="calwrap"><div class="calgrid">${gutter}${colsHtml}</div></div>`;
+      html+=`<div class="cal-legend"><span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Junior</span><span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Adult</span><span class="lg"><span class="sw" style="background:rgba(148,163,184,0.7)"></span>Other</span>`
+        +(canEdit?`<span style="margin-left:auto">Click an empty slot to add · drag a single-court class to move it · drop a pro onto a class to assign</span>`:'')+`</div>`;
+      const noCourt=list.filter(s=>!(s.courts&&s.courts.length));
+      if(noCourt.length){ html+='<div class="unassigned"><b>No court yet:</b> '+noCourt.map(s=>esc(s.program)+' <span style="color:var(--text3)">('+esc(s.time_label||s.start)+')</span>').join(' · ')+'</div>'; }
+      board.innerHTML=html;
+    }
+    // Calendar interactions
+    function calCellOver(e){ if(dragSlotId==null) return; e.preventDefault(); e.currentTarget.classList.add('drop-hot'); }
+    function calCellLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
+    function calCellDrop(e,court,min){ e.preventDefault(); e.currentTarget.classList.remove('drop-hot'); if(dragSlotId!=null){ moveSlot(dragSlotId, court, min); } }
+    function calBlockDrag(e,id){ dragSlotId=id; dragProId=null; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','slot:'+id); }catch(_){ } }
+    function calBlockDragEnd(e){ dragSlotId=null; }
+    function calBlockOver(e){ if(dragProId==null) return; e.preventDefault(); e.currentTarget.classList.add('drop-hot'); }   // only a pro-drop highlights a block
+    function calBlockLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
+    function calBlockDrop(e,slotId,court){ e.currentTarget.classList.remove('drop-hot'); if(dragProId!=null){ e.preventDefault(); assignToCourt(slotId, court, dragProId); } }
+    async function moveSlot(slotId, court, startMin){
+      const s=slots.find(x=>x.id===slotId); if(!s) return;
+      const dur=hmToMin(s.end)-hmToMin(s.start);
+      let ns=startMin, ne=startMin+dur;
+      if(ne>CAL_END){ ne=CAL_END; ns=CAL_END-dur; }
+      const start=minToHM(ns), end=minToHM(ne);
+      const allPros=[...new Set(Object.values(s.court_pros||{}).flat())];
+      const court_pros = allPros.length ? { [court]: allPros } : {};
+      if(await put(slotId,{ start, end, time_label:fmtTimeLabel(start,end), courts:[court], court_pros })){ renderBoard(); toast('Moved'); }
+    }
+    function openAddSlotAt(court, startMin){ openAddSlot({ court, startMin }); }
 
     function renderSlot(s){
       const courts = s.courts || [];
@@ -472,7 +588,7 @@
     // ── Guided add-a-slot dialog ──
     let addType = 'class';
     function addSlot(){ openAddSlot(); }   // + Add a slot button
-    function openAddSlot(){
+    function openAddSlot(prefill){
       addType = 'class';
       document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type==='class'));
       document.getElementById('m-prog-field').style.display='';
@@ -484,6 +600,14 @@
       document.getElementById('m-start').value='16:00';
       document.getElementById('m-end').value='17:00';
       document.querySelectorAll('#m-courts .mcourt').forEach(b=>b.classList.remove('on'));
+      // Prefill from a calendar click: seed the clicked court + time (default 1-hour block)
+      if(prefill){
+        if(prefill.startMin!=null){
+          document.getElementById('m-start').value=minToHM(prefill.startMin);
+          document.getElementById('m-end').value=minToHM(Math.min(CAL_END, prefill.startMin+60));
+        }
+        if(prefill.court){ document.querySelectorAll('#m-courts .mcourt').forEach(b=>b.classList.toggle('on', b.dataset.court===String(prefill.court))); }
+      }
       document.getElementById('addModal').classList.add('show');
     }
     function closeAddSlot(){ document.getElementById('addModal').classList.remove('show'); }
