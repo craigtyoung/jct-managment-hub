@@ -560,8 +560,9 @@
     }
 
     async function load() {
-      document.getElementById('checklist-body').innerHTML =
-        '<div class="empty-state"><p>Loading…</p></div>';
+      const y = window.scrollY;                       // remember where you are
+      const body = document.getElementById('checklist-body');
+      if (!body.dataset.loaded) body.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';  // only flash on first load
       loadAssignment();
       try {
         const res = await fetch(`/api/checklist?shift=${currentShift}&date=${currentDate}`);
@@ -570,9 +571,10 @@
         const items = await res.json();
         render(items);
         updateProgress(items);
+        body.dataset.loaded = '1';
+        window.scrollTo(0, y);                         // keep your place when checking items off
       } catch (e) {
-        document.getElementById('checklist-body').innerHTML =
-          '<div class="empty-state"><p>Failed to load checklist.</p></div>';
+        body.innerHTML = '<div class="empty-state"><p>Failed to load checklist.</p></div>';
       }
     }
 
