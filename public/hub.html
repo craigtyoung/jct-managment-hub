@@ -1143,10 +1143,10 @@
       </div>
       <div class="stat-card live">
         <span class="stat-live-dot"></span>
-        <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-        <div class="stat-label">Team Notes</div>
-        <div class="stat-value" id="sc-notes-val">—</div>
-        <div class="stat-sub" id="sc-notes-sub">Loading…</div>
+        <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="stat-label">Next on Court</div>
+        <div class="stat-value" id="sc-next-val">—</div>
+        <div class="stat-sub" id="sc-next-sub">Loading…</div>
       </div>
       <div class="stat-card live">
         <span class="stat-live-dot"></span>
@@ -1613,6 +1613,7 @@
     }
     updateClock();
     setInterval(updateClock, 1000);
+    setInterval(renderNextOnCourt, 60000);   // refresh the "Next on Court" countdown each minute
 
     // ── Greeting ───────────────────────────────────────────────
     function setGreeting(name) {
@@ -1675,6 +1676,37 @@
         ? d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true })
         : d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
     }
+    // ── Next on Court (dashboard widget: next upcoming class from the court schedule) ──
+    let __courtSlots = [];
+    async function loadCourtSlots() {
+      try { const r = await fetch('/api/pro-schedule/slots'); __courtSlots = r.ok ? await r.json() : []; }
+      catch (e) { __courtSlots = []; }
+      renderNextOnCourt();
+    }
+    function renderNextOnCourt() {
+      const valEl = document.getElementById('sc-next-val');
+      const subEl = document.getElementById('sc-next-sub');
+      if (!valEl || !subEl) return;
+      const CODES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const now = new Date();
+      const dayCode = CODES[now.getDay()];
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const toMin = t => { const [h,m] = String(t||'0:0').split(':').map(Number); return (h||0)*60 + (m||0); };
+      const todays = (__courtSlots || [])
+        .filter(s => s.day === dayCode && (s.season || 'indoor') === 'indoor' && toMin(s.end) > nowMin)
+        .sort((a,b) => toMin(a.start) - toMin(b.start));
+      if (!todays.length) { valEl.textContent = '—'; valEl.className = 'stat-value'; subEl.textContent = 'No more classes today'; return; }
+      const s = todays[0];
+      const startMin = toMin(s.start);
+      const running = startMin <= nowMin;
+      const fmt = m => { let h = Math.floor(m/60), mm = m%60, ap = h<12?'AM':'PM'; h = h%12||12; return mm ? `${h}:${String(mm).padStart(2,'0')} ${ap}` : `${h} ${ap}`; };
+      valEl.textContent = fmt(startMin);
+      valEl.className = 'stat-value ' + (running ? 'accent-green' : 'accent-blue');
+      const mins = startMin - nowMin;
+      const when = running ? 'on now' : (mins < 60 ? `in ${mins} min` : `in ${Math.floor(mins/60)}h ${mins%60}m`);
+      subEl.textContent = `${s.program || 'Class'} · ${when}`;
+    }
+
     async function loadBubble() {
       try {
         const r = await fetch('/api/bubble?limit=3');
@@ -1797,6 +1829,7 @@
       renderContacts();
       loadBubble();
       loadBubbleRec();
+      loadCourtSlots();
 
       // Checklist progress tile + stat card
       try {
@@ -1879,17 +1912,10 @@
         }
       } catch(e) {}
 
-      // Unread comms + Team Notes stat card
+      // Unread comms badge (the stat card that used to show this is now "Next on Court")
       try {
         const unreadRes = await fetch('/api/messages/unread-count');
         const { count } = await unreadRes.json();
-        const scv = document.getElementById('sc-notes-val');
-        const scs = document.getElementById('sc-notes-sub');
-        if (scv) {
-          scv.textContent = count;
-          scv.className = 'stat-value ' + (count > 0 ? 'accent-blue' : 'accent-green');
-          scs.textContent = count > 0 ? (count === 1 ? 'unread note' : 'unread notes') : 'all caught up';
-        }
         if (count > 0) {
           const tileBadge = document.getElementById('comms-tile-badge');
           tileBadge.textContent = `${count} new`;
