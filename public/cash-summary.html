@@ -197,6 +197,8 @@
     .till-total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:rgba(12,23,56,0.04);font-size:12px;}
     .till-total-label{font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-size:11px;}
     .till-total-val{font-size:14px;font-weight:700;color:var(--text);}
+    .denom-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+    body .main{padding-bottom:104px;}   /* clear the fixed Daily Summary bar so totals aren't hidden */
 
     /* Daily Summary bar */
     .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:7px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
@@ -411,7 +413,7 @@
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const getEl   = id => document.getElementById(id);
 
-    const UNIT_PRICES = { tennis_balls: 6 };
+    const UNIT_PRICES = {};   // tennis balls now entered as a plain dollar amount, like the other items
     // Slot counts — more room per Craig's Sep 3 request (especially slips). Cash
     // Summary storage is a flexible blob, so raising these is safe and preserves
     // existing shorter data (extra slots just start empty).
@@ -535,7 +537,7 @@
             <span class="section-total-val" id="s${si}-ps-total">$0.00</span>
           </div>
           <div class="cat-row">
-            <span class="cat-label">Tennis Balls<br><span class="unit-hint">$6 / unit</span></span>
+            <span class="cat-label">Tennis Balls</span>
             <div class="cat-inputs">${amts5('tennis_balls')}</div>
             <span class="cat-row-total" id="s${si}-tb-total">$0.00</span>
           </div>
@@ -631,12 +633,14 @@
           <div class="till-grid">
             <div>
               <div class="till-col-head">Cash — Denominations</div>
+              <div class="denom-cols">
               ${DENOM.map(d => `
                 <div class="till-denom-row">
                   <span class="till-denom-label">${d.label}</span>
                   <input type="number" class="till-units-input" id="s${si}-till-${d.key}" min="0" step="1" placeholder="0" oninput="recalcShift(${si});onInput();">
                   <span class="till-denom-amt" id="s${si}-till-${d.key}-amt">$0.00</span>
                 </div>`).join('')}
+              </div>
               <div class="till-sub">
                 <span class="till-sub-label">Cash Sub-Total</span>
                 <span class="till-sub-val" id="s${si}-cash-sub">$0.00</span>
