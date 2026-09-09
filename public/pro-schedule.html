@@ -201,6 +201,15 @@
     .cal-block.cat-j { border-left-color:var(--blue); background:rgba(44,92,156,0.10); }
     .cal-block.cat-a { border-left-color:var(--green); background:rgba(22,163,74,0.10); }
     .cal-block.cat-o { border-left-color:#94a3b8; background:rgba(148,163,184,0.14); }
+    .cal-block.kind-private { border-left-color:#0891b2; background:rgba(8,145,178,0.10); }
+    .cal-block.kind-general { border-left-color:#64748b; background:rgba(100,116,139,0.12); }
+    .cal-block.kind-reserved { border-left-color:#d97706; background:rgba(217,119,6,0.12); }
+    .cal-block.kind-rr { border-left-color:#7c3aed; background:rgba(124,58,237,0.12); }
+    .cal-block.kind-hl { border-left-color:#db2777; background:rgba(219,39,119,0.12); }
+    /* kind pill (list view) */
+    .kpill { font-size:9.5px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; padding:2px 7px; border-radius:100px; color:#fff; }
+    .kpill.kind-private { background:#0891b2; } .kpill.kind-general { background:#64748b; }
+    .kpill.kind-reserved { background:#d97706; } .kpill.kind-rr { background:#7c3aed; } .kpill.kind-hl { background:#db2777; }
     .cal-block.drop-hot { outline:2px solid var(--blue); outline-offset:-2px; }
     .cal-prog { font-size:11px; font-weight:700; line-height:1.15; color:var(--text); }
     .cal-time { font-size:9.5px; color:var(--text2); margin-top:1px; }
@@ -234,10 +243,16 @@
     <div id="roview" class="roview">👀 View only — management sets the schedule.</div>
     <div class="sched-head">
       <div id="daytabs" class="daytop"></div>
-      <div class="viewtoggle">
-        <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
-        <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
-        <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Full view</button>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+        <div class="viewtoggle" id="seasontoggle" title="Which season's weekly schedule you're viewing">
+          <button id="ss-indoor" class="vtbtn on" onclick="setSeason('indoor')">Indoor</button>
+          <button id="ss-outdoor" class="vtbtn" onclick="setSeason('outdoor')">Outdoor</button>
+        </div>
+        <div class="viewtoggle">
+          <button id="vt-list" class="vtbtn on" onclick="setView('list')">By class</button>
+          <button id="vt-grid" class="vtbtn" onclick="setView('grid')">Court × Time</button>
+          <button id="vt-cal" class="vtbtn" onclick="setView('cal')">Full view</button>
+        </div>
       </div>
     </div>
     <div class="sched-cols">
@@ -259,15 +274,23 @@
       <div class="modal-body">
         <div class="mfield">
           <label>Type</label>
-          <div class="seg" id="m-type">
-            <button type="button" class="segbtn on" data-type="class" onclick="setSlotType('class')">Class</button>
-            <button type="button" class="segbtn" data-type="private" onclick="setSlotType('private')">Private lesson</button>
-          </div>
+          <select id="m-kind" onchange="onKindChange()">
+            <option value="class">Class / lesson</option>
+            <option value="private">Private lesson</option>
+            <option value="general">General booking</option>
+            <option value="reserved">Pre-reserved</option>
+            <option value="roundrobin">Round Robin</option>
+            <option value="houseleague">House League</option>
+          </select>
         </div>
         <div class="mfield" id="m-prog-field">
           <label id="m-prog-label">Class</label>
           <select id="m-prog-select" onchange="onProgSelect()"></select>
           <input type="text" id="m-prog-custom" placeholder="Type a class name" style="display:none; margin-top:6px" />
+        </div>
+        <div class="mfield" id="m-label-field" style="display:none">
+          <label>Label <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(optional)</span></label>
+          <input type="text" id="m-kind-label" placeholder="e.g. Men's House League" />
         </div>
         <div class="mrow">
           <div class="mfield"><label>Day</label><select id="m-day"></select></div>
@@ -306,6 +329,12 @@
     const DAY_FULL = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
     let me = null, canEdit = false, pros = [], slots = [], activeDay = 'Mon', view = 'list';
     let classCatalog = [];   // program names from the academy catalog, for the add-slot dropdown
+    let activeSeason = 'indoor';   // which season's weekly template is shown (indoor | outdoor)
+    const KIND_DEFAULTS = { class:'', private:'Private lesson', general:'General booking', reserved:'Reserved', roundrobin:'Round Robin', houseleague:'House League' };
+    const KIND_CSS = { private:'kind-private', general:'kind-general', reserved:'kind-reserved', roundrobin:'kind-rr', houseleague:'kind-hl' };
+    const KIND_LABEL = { private:'Private', general:'General', reserved:'Reserved', roundrobin:'Round Robin', houseleague:'House League' };
+    function daySlots(){ return slots.filter(s=>s.day===activeDay && (s.season||'indoor')===activeSeason); }
+    function blockClass(s){ const k=s.kind||(s.type==='private'?'private':'class'); return (k!=='class' && KIND_CSS[k]) ? KIND_CSS[k] : ('cat-'+(s.category==='junior'?'j':s.category==='adult'?'a':'o')); }
 
     function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000); }
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -326,6 +355,10 @@
       canEdit = me.role==='admin' || me.role==='manager';
       if (!canEdit) document.getElementById('roview').style.display='block';
       if (canEdit) document.getElementById('addbtn').style.display='block';
+      // restore the season the user was last viewing
+      try { if(localStorage.getItem('jct-court-season')==='outdoor') activeSeason='outdoor'; }catch(_){ }
+      const _si=document.getElementById('ss-indoor'), _so=document.getElementById('ss-outdoor');
+      if(_si) _si.classList.toggle('on',activeSeason==='indoor'); if(_so) _so.classList.toggle('on',activeSeason==='outdoor');
       // default to today if it's a weekday we have
       const jsDay = new Date().getDay(); // 0=Sun..6=Sat
       activeDay = DAYS[(jsDay+6)%7] || 'Mon';
@@ -400,16 +433,19 @@
 
     function renderBoard(){ if(view==='grid') renderCourtTimeBoard(); else if(view==='cal') renderCalendar(); else renderListBoard(); }
     function setView(v){ view=v; ['list','grid','cal'].forEach(x=>{ const b=document.getElementById('vt-'+x); if(b) b.classList.toggle('on',v===x); }); renderBoard(); }
+    function setSeason(s){ activeSeason = (s==='outdoor'?'outdoor':'indoor'); try{ localStorage.setItem('jct-court-season',activeSeason); }catch(_){ }
+      const i=document.getElementById('ss-indoor'), o=document.getElementById('ss-outdoor'); if(i)i.classList.toggle('on',activeSeason==='indoor'); if(o)o.classList.toggle('on',activeSeason==='outdoor');
+      renderBoard(); }
     function renderListBoard(){
       const board=document.getElementById('board');
-      const list = slots.filter(s=>s.day===activeDay);
-      if (!list.length){ board.innerHTML='<div class="empty">No classes for '+DAY_FULL[activeDay]+' yet.</div>'; return; }
+      const list = daySlots();
+      if (!list.length){ board.innerHTML='<div class="empty">Nothing on '+DAY_FULL[activeDay]+' ('+activeSeason+') yet.</div>'; return; }
       board.innerHTML = list.map(renderSlot).join('');
     }
     function renderCourtTimeBoard(){
       const board=document.getElementById('board');
-      const list = slots.filter(s=>s.day===activeDay);
-      if(!list.length){ board.innerHTML='<div class="empty">No classes for '+DAY_FULL[activeDay]+' yet.</div>'; return; }
+      const list = daySlots();
+      if(!list.length){ board.innerHTML='<div class="empty">Nothing on '+DAY_FULL[activeDay]+' ('+activeSeason+') yet.</div>'; return; }
       const COURTS=['1','2','3','4','5','6'];
       const key=s=>s.start+'-'+s.end;
       const times=[...new Map(list.map(s=>[key(s),{start:s.start,end:s.end,label:s.time_label||(s.start+'–'+s.end)}])).values()].sort((a,b)=>a.start.localeCompare(b.start));
@@ -443,8 +479,8 @@
     function renderCalendar(){
       const board=document.getElementById('board');
       const COURTS=['1','2','3','4','5','6'];
-      const list=slots.filter(s=>s.day===activeDay);
-      if(!list.length){ board.innerHTML=`<div class="empty">No classes for ${DAY_FULL[activeDay]} yet${canEdit?' — click a time on any court to add one.':'.'}</div>`; return; }
+      const list=daySlots();
+      if(!list.length){ board.innerHTML=`<div class="empty">Nothing on ${DAY_FULL[activeDay]} (${activeSeason}) yet${canEdit?' — click a time on any court to add one.':'.'}</div>`; return; }
       const catAb=c=>c==='junior'?'j':c==='adult'?'a':'o';
       const bodyH=CAL_ROWS*CAL_ROWH;
       // time gutter
@@ -479,7 +515,7 @@
           const prochips=ids.map(id=>{const p=proById(id);return p?`<span class="cal-pchip" style="background:${p.color||'#2c5c9c'}">${esc(String(p.name).split(' ')[0])}</span>`:''}).join('');
           const movable=canEdit && (s.courts||[]).length===1;
           const del=canEdit?`<button class="cal-del" onclick="event.stopPropagation();removeSlot(${s.id})" title="Remove">🗑</button>`:'';
-          blocks+=`<div class="cal-block cat-${catAb(s.category)}${movable?' movable':''}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)"`
+          blocks+=`<div class="cal-block ${blockClass(s)}${movable?' movable':''}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)"`
             +(movable?` draggable="true" ondragstart="calBlockDrag(event,${s.id})" ondragend="calBlockDragEnd(event)"`:'')
             +` ondragover="calBlockOver(event)" ondragleave="calBlockLeave(event)" ondrop="calBlockDrop(event,${s.id},'${c}')" title="${esc(s.program)} · ${esc(s.time_label||'')}${movable?' — drag to move':''}">`
             +`${del}<div class="cal-prog">${s.type==='private'?'🎾 ':''}${esc(s.program)}</div>`
@@ -543,7 +579,7 @@
         <div class="slot-top">
           <span class="slot-time">${esc(s.time_label || (s.start+'–'+s.end))}</span>
           <span class="slot-prog">${esc(s.program)}</span>
-          ${s.type==='private'?'<span style="font-size:10px;font-weight:700;color:#2c5c9c;background:rgba(44,92,156,0.12);padding:1px 8px;border-radius:100px">PRIVATE</span>':''}
+          ${(s.kind && s.kind!=='class')?`<span class="kpill ${KIND_CSS[s.kind]||''}">${esc(KIND_LABEL[s.kind]||s.kind)}</span>`:''}
           ${s.coaches?`<span style="font-size:12.5px;color:#4a6080;font-weight:600">· ${esc(s.coaches)}</span>`:''}
           <span class="cat ${catClass(s.category)}">${esc(s.category||'')}</span>
           ${s.note?`<span class="field" title="note">· ${esc(s.note)}</span>`:''}
@@ -585,12 +621,13 @@
     }
 
     // ── Guided add-a-slot dialog ──
-    let addType = 'class';
+    let addKind = 'class';
     function addSlot(){ openAddSlot(); }   // + Add a slot button
     function openAddSlot(prefill){
-      addType = 'class';
-      document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type==='class'));
-      document.getElementById('m-prog-field').style.display='';
+      addKind = 'class';
+      document.getElementById('m-kind').value='class';
+      document.getElementById('m-kind-label').value='';
+      applyKindVisibility();
       buildProgOptions();
       // Day dropdown seeded to the day you're viewing
       const daySel=document.getElementById('m-day');
@@ -630,12 +667,13 @@
       custom.style.display = isCustom ? '' : 'none';
       if (isCustom) custom.focus();
     }
-    function setSlotType(t){
-      addType=t;
-      document.querySelectorAll('#m-type .segbtn').forEach(b=>b.classList.toggle('on', b.dataset.type===t));
-      // A private lesson has no program name — hide it and label the slot "Private lesson".
-      const pf=document.getElementById('m-prog-field');
-      pf.style.display = t==='private' ? 'none' : '';
+    function onKindChange(){ addKind=document.getElementById('m-kind').value; applyKindVisibility(); }
+    // Class uses the academy-catalog dropdown; every other kind uses an optional free-text label.
+    function applyKindVisibility(){
+      const isClass = addKind==='class';
+      document.getElementById('m-prog-field').style.display = isClass?'':'none';
+      const lf=document.getElementById('m-label-field'); if(lf) lf.style.display = isClass?'none':'';
+      if(!isClass){ const inp=document.getElementById('m-kind-label'); if(inp) inp.placeholder = 'e.g. '+(KIND_DEFAULTS[addKind]||'Label'); }
     }
     function toggleMCourt(btn){ btn.classList.toggle('on'); }
     // "16:00","17:00" → "4–5 PM"; drops the meridiem on the start when it matches the end.
@@ -651,28 +689,30 @@
       if(end<=start){ toast('End time must be after start'); return; }
       const courts=[...document.querySelectorAll('#m-courts .mcourt.on')].map(b=>b.dataset.court);
       let program;
-      if (addType==='private') {
-        program = 'Private lesson';
-      } else {
+      if (addKind==='class') {
         const sel = document.getElementById('m-prog-select').value;
         program = sel==='__custom__' ? document.getElementById('m-prog-custom').value.trim() : sel;
         if (!program){ toast('Pick a class, or choose Other to type one'); return; }
+      } else {
+        program = document.getElementById('m-kind-label').value.trim() || KIND_DEFAULTS[addKind] || 'Booking';
       }
       const body = {
-        type: addType,
+        kind: addKind,
+        type: addKind==='private' ? 'private' : 'class',
         day: document.getElementById('m-day').value,
         category: document.getElementById('m-cat').value,
         start, end,
         time_label: fmtTimeLabel(start,end),
         program,
         courts,
+        season: activeSeason,
       };
       const r = await fetch('/api/pro-schedule/slots', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if (!r.ok){ toast('Add failed'); return; }
       closeAddSlot();
       activeDay = body.day;
       await loadSlots(); renderTabs();
-      toast(courts.length ? 'Slot added — drag pros onto the courts' : 'Slot added — pick a court, then drag pros in');
+      toast(courts.length ? 'Added — drag pros onto the courts' : 'Added — pick a court, then drag pros in');
     }
     async function removeSlot(id){
       const s = slots.find(x=>x.id===id);

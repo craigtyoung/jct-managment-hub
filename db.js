@@ -2521,6 +2521,11 @@ function getSubscriptionsForStaff(staffIds) {
 const _SLOT_DAY_ORDER = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
 const _SLOT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+// Booking kinds on the court schedule. 'class' carries a program/level; the rest are
+// court uses that don't. Defaults keep older records (which only had type) valid.
+const PRO_KINDS = ['class', 'private', 'general', 'reserved', 'roundrobin', 'houseleague'];
+const PRO_SEASONS = ['indoor', 'outdoor'];
+
 function getProScheduleSlots(day) {
   let list = (_data.pro_schedule_slots || []).filter(s => s.active !== false);
   if (day) list = list.filter(s => s.day === day);
@@ -2531,6 +2536,8 @@ function getProScheduleSlots(day) {
   ).map(s => ({
     ...s,
     type: s.type === 'private' ? 'private' : 'class',
+    kind: PRO_KINDS.includes(s.kind) ? s.kind : (s.type === 'private' ? 'private' : 'class'),
+    season: PRO_SEASONS.includes(s.season) ? s.season : 'indoor',
     coaches: s.coaches || '',
     courts: Array.isArray(s.courts) ? s.courts : (s.court ? [String(s.court)] : []),
     court_pros: (s.court_pros && typeof s.court_pros === 'object') ? s.court_pros : {},
@@ -2552,10 +2559,13 @@ function addProScheduleSlot(f) {
   const pro_ids = Array.isArray(f.pro_ids)
     ? f.pro_ids.map(Number).filter(n => !isNaN(n))
     : [...new Set(Object.values(court_pros).flat())];
+  const kind = PRO_KINDS.includes(f.kind) ? f.kind : (f.type === 'private' ? 'private' : 'class');
   const s = {
     id: _data._seq.pro_schedule_slots,
     class_id: f.class_id || null,
-    type: f.type === 'private' ? 'private' : 'class',
+    type: kind === 'private' ? 'private' : 'class',
+    kind,
+    season: PRO_SEASONS.includes(f.season) ? f.season : 'indoor',
     coaches: String(f.coaches || '').slice(0, 200),
     day: _SLOT_DAYS.includes(f.day) ? f.day : 'Mon',
     start: String(f.start || '09:00').slice(0, 5),
@@ -2604,6 +2614,8 @@ function updateProScheduleSlot(id, f) {
   if (f.category !== undefined) s.category = String(f.category).slice(0, 20);
   if (f.note !== undefined) s.note = String(f.note).slice(0, 120);
   if (f.type !== undefined) s.type = f.type === 'private' ? 'private' : 'class';
+  if (f.kind !== undefined && PRO_KINDS.includes(f.kind)) { s.kind = f.kind; s.type = f.kind === 'private' ? 'private' : 'class'; }
+  if (f.season !== undefined && PRO_SEASONS.includes(f.season)) s.season = f.season;
   if (f.coaches !== undefined) s.coaches = String(f.coaches).slice(0, 200);
   if (f.active !== undefined) s.active = !!f.active;
   save();
