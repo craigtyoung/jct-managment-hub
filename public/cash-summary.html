@@ -189,7 +189,9 @@
     .till-sub{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--border);font-size:12px;}
     .till-sub-label{font-weight:600;color:var(--text-2);}
     .till-sub-val{font-weight:700;color:var(--text);}
-    .slips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:5px;}
+    .slips-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+    @media(max-width:900px){.slips-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+    @media(max-width:560px){.slips-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
     .slip-row{display:flex;align-items:center;gap:6px;}
     .slip-label{font-size:11px;color:var(--text-3);min-width:38px;}
     .slip-input{width:80px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);text-align:right;font-family:var(--font-body);background:var(--canvas);}
@@ -200,18 +202,18 @@
     .denom-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
     body .main{padding-bottom:104px;}   /* clear the fixed Daily Summary bar so totals aren't hidden */
 
-    /* Daily Summary bar */
-    .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:7px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
-    .daily-head{display:flex;align-items:center;gap:7px;background:transparent;border:none;cursor:pointer;padding:2px 0;flex-shrink:0;}
+    /* Daily Summary bar — single aligned row; collapse hides the whole cell strip */
+    .daily-bar{position:fixed;bottom:0;left:var(--total-nav);right:0;background:var(--navy);padding:8px 24px;display:flex;align-items:center;gap:20px;z-index:50;border-top:1px solid rgba(177,201,251,0.1);}
+    .daily-head{display:flex;align-items:center;gap:7px;background:transparent;border:none;cursor:pointer;padding:0;flex-shrink:0;}
     .daily-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#fff;white-space:nowrap;}
     .daily-chev{width:13px;height:13px;color:rgba(177,201,251,0.75);transition:transform 0.2s;flex-shrink:0;}
     .daily-bar.collapsed .daily-chev{transform:rotate(-90deg);}
-    .daily-cells{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;flex:1;min-width:0;}
-    .daily-bar.collapsed .daily-cells .daily-cell:not(.main){display:none;}
-    .daily-cell{display:flex;flex-direction:column;gap:3px;justify-content:center;min-width:84px;flex:1;}
-    .daily-label{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(177,201,251,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:11px;line-height:11px;}
-    .daily-val{font-size:0.88rem;font-weight:700;color:#ffffff;height:26px;display:flex;align-items:center;}
-    .daily-cell.main .daily-val{font-size:0.95rem;color:#fbbf24;}
+    .daily-cells{flex:1;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(78px,1fr);align-items:center;gap:20px;overflow-x:auto;}
+    .daily-bar.collapsed .daily-cells{display:none;}
+    .daily-cell{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;}
+    .daily-label{font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(177,201,251,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1;}
+    .daily-val{font-size:0.9rem;font-weight:700;color:#ffffff;line-height:1;height:26px;display:flex;align-items:center;}
+    .daily-cell.main .daily-val{font-size:1rem;color:#fbbf24;}
 
     @media(max-width:768px){
       .spine,.sidenav{display:none;}
@@ -1048,6 +1050,7 @@
       if (bar && main) main.style.paddingBottom = (bar.offsetHeight + 28) + 'px';
     }
     window.addEventListener('resize', adjustBottomPadding);
+    window.addEventListener('load', () => setTimeout(adjustBottomPadding, 60));   // recompute once layout has settled
 
     async function init() {
       try { if (localStorage.getItem('jct-daily-collapsed') === '1') getEl('daily-bar')?.classList.add('collapsed'); } catch (e) {}
