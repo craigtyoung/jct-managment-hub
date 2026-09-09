@@ -839,7 +839,7 @@
     }
 
     function renderShift(si, shift) {
-      if (!shift) return;
+      shift = shift || {};   // no data for this date/shift → render a cleared panel, not the last date's values
 
       const staffEl = getEl(`s${si}-staff`);
       if (staffEl) staffEl.value = shift.staff_name || '';
@@ -993,7 +993,9 @@
         getEl('closing-float').value = summary.closing_float != null ? summary.closing_float : '';
 
         for (let si = 0; si < SHIFT_LABELS.length; si++) {
+          getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);   // fresh panel each load — never carry the previous date's entries
           renderShift(si, summary.shifts?.[si]);
+          recalcShift(si);
         }
         applyDateGuard();
         setSaveStatus('saved', 'Loaded');
