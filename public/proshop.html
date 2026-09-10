@@ -99,17 +99,17 @@
     <!-- Add a string -->
     <div class="card">
       <div class="card-title">Log a string</div>
-      <!-- Hidden dummy fields: Chrome fills these instead of the real form fields -->
-      <div style="display:none;position:absolute"><input type="text" name="fakeuser" tabindex="-1"><input type="password" name="fakepw" tabindex="-1"></div>
+      <form autocomplete="off" onsubmit="return false;">
       <div class="add-grid">
-        <div class="fld"><label>Date</label><input type="date" id="f-date"></div>
-        <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name" autocomplete="new-password"></div>
-        <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU" autocomplete="new-password"></div>
-        <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55" autocomplete="new-password"></div>
-        <div class="fld"><label>Taken in by</label><select id="f-taken"></select></div>
-        <div class="fld"><label>Strung by</label><select id="f-by"></select></div>
+        <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
+        <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name" autocomplete="off"></div>
+        <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU" autocomplete="off"></div>
+        <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55" autocomplete="off" name="tension_lbs"></div>
+        <div class="fld"><label>Taken in by</label><select id="f-taken" autocomplete="off"></select></div>
+        <div class="fld"><label>Strung by</label><select id="f-by" autocomplete="off"></select></div>
         <button class="btn-add" onclick="addString()">Add</button>
       </div>
+      </form>
       <div style="margin-top:9px;display:flex;align-items:center;gap:8px;">
         <input type="checkbox" id="f-own-string" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;">
         <label for="f-own-string" style="font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;">Member providing own string (labour only)</label>
