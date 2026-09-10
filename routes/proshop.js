@@ -22,9 +22,9 @@ router.get('/strings', (req, res) => res.json(db.getStringLogs()));
 router.get('/strings/counts', (req, res) => res.json(db.getStringCounts()));
 
 router.post('/strings', (req, res) => {
-  const { date, member, string, tension, strung_by, taken_in_by } = req.body;
+  const { date, member, string, tension, strung_by, taken_in_by, string_source } = req.body;
   if (!strung_by) return res.status(400).json({ error: 'Strung by is required' });
-  const id = db.addStringLog({ date, member, string, tension, strung_by, taken_in_by });
+  const id = db.addStringLog({ date, member, string, tension, strung_by, taken_in_by, string_source });
   sse.broadcast('update');
   res.json({ ok: true, id });
 });
