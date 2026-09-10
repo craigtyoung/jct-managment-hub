@@ -106,8 +106,21 @@ router.post('/:id/read', (req, res) => {
 router.post('/:id/reply', (req, res) => {
   const { content } = req.body;
   if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
-  if (!db.getMessage(req.params.id)) return res.status(404).json({ error: 'Message not found' });
+  const msg = db.getMessage(req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
   db.createReply({ messageId: req.params.id, staffId: req.actingStaffId, content: content.trim() });
+  // Notify the original author when someone else replies to their note (push).
+  try {
+    if (msg.staff_id && msg.staff_id !== req.actingStaffId) {
+      const replier = db.getStaffById(req.actingStaffId);
+      push.sendToStaff([msg.staff_id], {
+        title: (replier ? replier.name : 'Someone') + ' replied to your note',
+        body: content.trim().slice(0, 140),
+        url: '/comms.html',
+        tag: 'jct-comms-reply-' + req.params.id,
+      });
+    }
+  } catch (e) { console.error('reply push failed:', e.message); }
   sse.broadcast('update');
   res.json({ ok: true });
 });

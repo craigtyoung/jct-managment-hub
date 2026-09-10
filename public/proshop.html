@@ -43,7 +43,7 @@
     .count-unpaid.zero{color:var(--green);}
 
     /* Add form */
-    .add-grid{display:grid;grid-template-columns:130px 1.4fr 1.2fr 90px 1.1fr auto;gap:8px;align-items:end;}
+    .add-grid{display:grid;grid-template-columns:118px 1.2fr 1.1fr 74px 1fr 1fr auto;gap:8px;align-items:end;}
     .fld{display:flex;flex-direction:column;gap:4px;min-width:0;}
     .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
     .fld input,.fld select{font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);width:100%;}
@@ -100,6 +100,7 @@
         <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name"></div>
         <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU"></div>
         <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55"></div>
+        <div class="fld"><label>Taken in by</label><select id="f-taken"></select></div>
         <div class="fld"><label>Strung by</label><select id="f-by"></select></div>
         <button class="btn-add" onclick="addString()">Add</button>
       </div>
@@ -110,8 +111,8 @@
       <div class="card-title">Log</div>
       <div class="tbl-wrap">
         <table class="log">
-          <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Strung by</th><th>Paid?</th><th></th></tr></thead>
-          <tbody id="log-body"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Taken in</th><th>Strung by</th><th>Paid?</th><th></th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -121,6 +122,7 @@
 
   <script>
     let me=null, canDelete=false, staff=[];
+    const STRINGERS = ['Lily','Matthew'];   // only these staff can be the "Strung by"
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
     async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}location.href='/login.html';}
@@ -132,8 +134,10 @@
       catch(e){ location.href='/login.html'; return; }
       canDelete = me.role==='admin' || me.role==='manager';
       try{ staff=await (await fetch('/api/proshop/staff')).json(); }catch(e){ staff=[]; }
-      const by=document.getElementById('f-by');
-      by.innerHTML='<option value="">— select —</option>'+staff.map(s=>`<option value="${s.id}"${s.id===me.id?' selected':''}>${esc(s.name)}</option>`).join('');
+      const optList=(list,selId)=>'<option value="">— select —</option>'+list.map(s=>`<option value="${s.id}"${s.id===selId?' selected':''}>${esc(s.name)}</option>`).join('');
+      document.getElementById('f-taken').innerHTML=optList(staff, me.id);   // who received the racket — any staff
+      const stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name).toLowerCase().startsWith(n.toLowerCase())));
+      document.getElementById('f-by').innerHTML=optList(stringers, me.id);   // who strung it — Lily / Matthew only
       document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
       await loadAll();
     }
@@ -156,12 +160,13 @@
     async function loadLog(){
       let rows=[]; try{ rows=await (await fetch('/api/proshop/strings')).json(); }catch(e){}
       const body=document.getElementById('log-body');
-      if(!rows.length){ body.innerHTML='<tr><td colspan="7" class="empty">No strings logged yet. Add the first one above.</td></tr>'; return; }
+      if(!rows.length){ body.innerHTML='<tr><td colspan="8" class="empty">No strings logged yet. Add the first one above.</td></tr>'; return; }
       body.innerHTML=rows.map(r=>`<tr>
         <td>${esc(fmtDate(r.date))}</td>
         <td>${esc(r.member)||'<span style="color:var(--text-3)">—</span>'}</td>
         <td>${esc(r.string)||'<span style="color:var(--text-3)">—</span>'}</td>
         <td>${esc(r.tension)||'<span style="color:var(--text-3)">—</span>'}</td>
+        <td>${r.taken_in_by_name?esc(r.taken_in_by_name):'<span style="color:var(--text-3)">—</span>'}</td>
         <td><span class="who"><span class="dot"></span>${esc(r.strung_by_name)}</span></td>
         <td><button class="paid-btn ${r.paid?'paid':''}" onclick="togglePaid(${r.id},${r.paid?'true':'false'})">${r.paid?'Paid ✓':'Unpaid'}</button></td>
         <td>${canDelete?`<button class="del-btn" title="Remove" onclick="removeString(${r.id})">🗑</button>`:''}</td>
@@ -177,6 +182,7 @@
         member:document.getElementById('f-member').value.trim(),
         string:document.getElementById('f-string').value.trim(),
         tension:document.getElementById('f-tension').value.trim(),
+        taken_in_by:document.getElementById('f-taken').value,
         strung_by,
       };
       const r=await fetch('/api/proshop/strings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});

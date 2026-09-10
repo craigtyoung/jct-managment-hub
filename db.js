@@ -1821,9 +1821,9 @@ function getStringLogs() {
   const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
   return (_data.string_logs || []).filter(l => l.active !== false)
     .slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id)
-    .map(l => ({ ...l, strung_by_name: nameById[l.strung_by] || '—' }));
+    .map(l => ({ ...l, strung_by_name: nameById[l.strung_by] || '—', taken_in_by_name: nameById[l.taken_in_by] || '' }));
 }
-function addStringLog({ date, member, string, tension, strung_by }) {
+function addStringLog({ date, member, string, tension, strung_by, taken_in_by }) {
   if (!Array.isArray(_data.string_logs)) { _data.string_logs = []; _data._seq.string_logs = 0; }
   const id = nextId('string_logs');
   _data.string_logs.push({
@@ -1833,6 +1833,7 @@ function addStringLog({ date, member, string, tension, strung_by }) {
     string: String(string || '').slice(0, 80),
     tension: String(tension || '').slice(0, 40),
     strung_by: parseInt(strung_by) || null,
+    taken_in_by: parseInt(taken_in_by) || null,
     paid: false,
     active: true,
     created_at: now(),
@@ -1849,6 +1850,7 @@ function updateStringLog(id, f) {
   if (f.string !== undefined) l.string = String(f.string).slice(0, 80);
   if (f.tension !== undefined) l.tension = String(f.tension).slice(0, 40);
   if (f.strung_by !== undefined) l.strung_by = parseInt(f.strung_by) || null;
+  if (f.taken_in_by !== undefined) l.taken_in_by = parseInt(f.taken_in_by) || null;
   save();
   return l;
 }
