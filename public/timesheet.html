@@ -526,26 +526,31 @@
 
       const canConfirmThisRow = isAdmin || (row.staff_id === me.id);
 
+      const canEditTimes = isAdmin || (isConfirmed && row.staff_id === me.id);
+      const noteText = esc(row.notes || '');
+
       let statusHtml = '';
       if (isOverride) {
         statusHtml = `<span class="shift-status-override">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
+        if (row.notes) statusHtml += `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(row.notes)}</span>`;
       } else if (isConfirmed) {
         statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
       } else {
         statusHtml = `<span class="shift-status-pending">Not confirmed</span>`;
       }
 
-      const editBtn = isAdmin && isConfirmed
+      const editBtn = canEditTimes
         ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
         : '';
 
-      const overrideForm = isAdmin ? `
+      const overrideForm = canEditTimes ? `
         <div class="override-form" id="override-${key}">
           <span class="ov-label">Start</span>
           <input type="time" class="time-input" id="ov-start-${key}" value="${row.actual_start || row.scheduled_start || ''}">
           <span class="sep">–</span>
           <span class="ov-label" style="width:30px">End</span>
           <input type="time" class="time-input" id="ov-end-${key}" value="${row.actual_end || row.scheduled_end || ''}">
+          <input type="text" class="time-input" id="ov-note-${key}" value="${noteText}" placeholder="Reason (optional)" style="width:180px;flex:1" autocomplete="off">
           <button class="ov-save-btn" onclick="saveOverride('${key}', ${row.staff_id}, '${row.date}', '${row.shift}')">Save</button>
           <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
         </div>` : '';
@@ -616,12 +621,13 @@
     async function saveOverride(key, staffId, date, shift) {
       const start = document.getElementById(`ov-start-${key}`)?.value;
       const end   = document.getElementById(`ov-end-${key}`)?.value;
+      const note  = document.getElementById(`ov-note-${key}`)?.value.trim() || '';
       if (!start || !end) { alert('Enter both start and end times.'); return; }
       try {
         await fetch('/api/timesheet/entry', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end }),
+          body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end, notes: note }),
         });
         await load();
       } catch(e) { alert('Failed to save.'); }
