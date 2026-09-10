@@ -43,11 +43,13 @@ router.post('/complete', (req, res) => {
   res.json({ ok: true });
 });
 
-// DELETE completion — admin only (reset)
+// DELETE completion — any staff can uncheck today; admin-only for past dates
 router.delete('/complete', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || staff.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  if (!staff) return res.status(403).json({ error: 'Not authorised' });
   const { item_id, shift, date } = req.body;
+  const today = new Date().toISOString().slice(0, 10);
+  if (date !== today && staff.role !== 'admin') return res.status(403).json({ error: 'Admin only for past dates' });
   db.resetChecklistItem({ itemId: item_id, shift, date });
   sse.broadcast('checklist-update');
   res.json({ ok: true });
