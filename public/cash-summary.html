@@ -115,10 +115,13 @@
     .section-total-val{font-size:13px;font-weight:600;letter-spacing:0;}
 
     /* ── Staff row ── */
-    .staff-row{display:flex;align-items:center;gap:12px;padding:12px 18px 10px;border-bottom:1px solid var(--border);}
+    .staff-row{display:flex;align-items:center;gap:10px;padding:12px 18px 10px;border-bottom:1px solid var(--border);}
     .staff-row label{font-size:12px;font-weight:600;color:var(--text-2);flex-shrink:0;}
-    .staff-input{flex:1;max-width:260px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);}
+    .staff-avatars{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+    .cs-av{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;overflow:hidden;}
+    .staff-input{flex:1;max-width:240px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);}
     .staff-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
+    .staff-none{font-size:11px;color:var(--text-3);font-style:italic;}
 
     /* ── Category Rows ── */
     .cat-row{display:grid;grid-template-columns:130px 1fr 64px;align-items:start;padding:7px 18px;border-bottom:1px solid rgba(12,23,56,0.04);}
@@ -610,7 +613,7 @@
         <!-- Staff Name -->
         <div class="cs-card">
           <div class="staff-row">
-            <label>Staff Name</label>
+            <div class="staff-avatars" id="s${si}-avatars"></div>
             <input type="text" class="staff-input" id="s${si}-staff" placeholder="Enter name" oninput="onInput()">
           </div>
 
@@ -1144,6 +1147,44 @@
       changeDate(new Date().toISOString().slice(0, 10));
     }
 
+    // ── Schedule staff integration ─────────────────────────────────────────────
+
+    const SHIFT_KEYS = ['morning', 'afternoon', 'closing'];
+
+    async function loadScheduleStaff(date, savedShifts) {
+      await Promise.all(SHIFT_KEYS.map(async (shiftKey, si) => {
+        try {
+          const res = await fetch(`/api/schedule/shift?date=${date}&shift=${shiftKey}`);
+          if (!res.ok) return;
+          const staff = await res.json();
+          if (!Array.isArray(staff)) return;
+
+          // Render avatars regardless (shows who's scheduled even if name was overridden)
+          const container = document.getElementById(`s${si}-avatars`);
+          if (container) {
+            if (staff.length) {
+              container.innerHTML = staff.map(s =>
+                `<div id="cs-av-${si}-${s.id}" class="cs-av" style="background:${s.color||'#ddd'}22;color:${s.color||'#666'}" title="${s.name||''}">${(s.name||'?').slice(0,2).toUpperCase()}</div>`
+              ).join('');
+              staff.forEach(s => {
+                const el = document.getElementById(`cs-av-${si}-${s.id}`);
+                if (el) staffAvatar(el, s.id, s.name, s.color);
+              });
+            } else {
+              container.innerHTML = '<span class="staff-none">No one scheduled</span>';
+            }
+          }
+
+          // Pre-fill name only if the saved data has no staff name for this shift
+          const savedName = (savedShifts?.[si]?.staff_name || '').trim();
+          const nameEl = document.getElementById(`s${si}-staff`);
+          if (nameEl && !savedName && staff.length) {
+            nameEl.value = staff.map(s => s.name).join(' · ');
+          }
+        } catch (e) {}
+      }));
+    }
+
     // ── Load ───────────────────────────────────────────────────────────────────
 
     async function load() {
@@ -1171,6 +1212,7 @@
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
+        loadScheduleStaff(currentDate, summary.shifts);
       } catch (e) {
         setSaveStatus('', 'Load error');
       }
