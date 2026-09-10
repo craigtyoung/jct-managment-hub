@@ -226,9 +226,8 @@
     .sdw-total-row .sdw-val{font-size:1.3rem;color:#fbbf24;}
     .sdw-float{border:1px solid rgba(177,201,251,0.18);border-radius:8px;padding:6px 10px;font-family:var(--font-body);font-size:13px;color:#f0f4ff;background:rgba(177,201,251,0.07);width:110px;text-align:right;}
     .sdw-float:focus{outline:none;border-color:rgba(177,201,251,0.40);}
-    #summary-toggle{position:fixed;right:0;top:72px;z-index:140;display:flex;align-items:center;gap:7px;padding:10px 16px 10px 14px;background:var(--navy);border:none;border-radius:12px 0 0 12px;color:#f0f4ff;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;box-shadow:-2px 2px 16px rgba(0,0,0,0.28);transition:background 0.15s;letter-spacing:0.03em;}
-    #summary-toggle:hover{background:var(--blue);}
-    @media(max-width:820px){#summary-toggle{top:64px;}}
+    .sdw-tab-btn{margin-left:auto;padding:6px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--text-2);transition:all 0.18s;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;opacity:0.8;}
+    .sdw-tab-btn:hover{background:rgba(44,92,156,0.06);color:var(--blue);opacity:1;}
     .sdw-section{margin:14px 0 4px;padding-bottom:4px;border-bottom:1px solid rgba(177,201,251,0.12);font-size:9px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(177,201,251,0.45);}
     .sdw-sub{display:flex;justify-content:space-between;align-items:center;padding:3px 0 3px 10px;}
     .sdw-sub .sdw-label{font-size:11px;color:rgba(177,201,251,0.55);font-weight:500;}
@@ -376,11 +375,6 @@
     <div id="shift-2" class="shift-panel"></div>
   </main>
 
-  <!-- Summary toggle button -->
-  <button id="summary-toggle" onclick="openSummary()" title="Daily Summary">
-    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 0-2-2z"/></svg>
-    Summary
-  </button>
 
   <!-- Summary backdrop -->
   <div id="summary-backdrop" onclick="closeSummary()"></div>
@@ -789,7 +783,11 @@
           ${label}
           <span class="tab-total" id="tab-total-${si}">$0.00</span>
         </button>`
-      ).join('');
+      ).join('') +
+      `<button class="sdw-tab-btn" onclick="openSummary()" title="Daily Summary">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 0-2-2z"/></svg>
+        Summary
+      </button>`;
     }
 
     function showShift(si) {
