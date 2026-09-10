@@ -1300,7 +1300,7 @@
                   <textarea class="reply-input" rows="2" placeholder="Write a reply..." id="reply-txt-${msg.id}"></textarea>
                   <div style="display:flex;flex-direction:column;gap:5px">
                     <button class="btn btn-indigo btn-sm" onclick="postReply(${msg.id})">Send</button>
-                    <button class="emoji-btn" type="button" onclick="toggleEmojiPickerFor('reply-txt-${msg.id}',this)" title="Emoji" style="padding:5px 8px;font-size:14px;">😊</button>
+                    <button class="emoji-btn" type="button" onclick="event.stopPropagation();toggleEmojiPickerFor('reply-txt-${msg.id}',this)" title="Emoji" style="padding:5px 8px;font-size:14px;">😊</button>
                     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reply-box-${msg.id}').style.display='none'">Cancel</button>
                   </div>
                 </div>
