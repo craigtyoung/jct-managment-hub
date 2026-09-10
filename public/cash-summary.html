@@ -226,9 +226,16 @@
     .sdw-total-row .sdw-val{font-size:1.3rem;color:#fbbf24;}
     .sdw-float{border:1px solid rgba(177,201,251,0.18);border-radius:8px;padding:6px 10px;font-family:var(--font-body);font-size:13px;color:#f0f4ff;background:rgba(177,201,251,0.07);width:110px;text-align:right;}
     .sdw-float:focus{outline:none;border-color:rgba(177,201,251,0.40);}
-    #summary-toggle{position:fixed;right:0;bottom:28px;z-index:140;display:flex;align-items:center;gap:7px;padding:10px 16px 10px 14px;background:var(--navy);border:none;border-radius:12px 0 0 12px;color:#f0f4ff;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;box-shadow:-2px 2px 16px rgba(0,0,0,0.28);transition:background 0.15s;letter-spacing:0.03em;}
+    #summary-toggle{position:fixed;right:0;top:72px;z-index:140;display:flex;align-items:center;gap:7px;padding:10px 16px 10px 14px;background:var(--navy);border:none;border-radius:12px 0 0 12px;color:#f0f4ff;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;box-shadow:-2px 2px 16px rgba(0,0,0,0.28);transition:background 0.15s;letter-spacing:0.03em;}
     #summary-toggle:hover{background:var(--blue);}
-    @media(max-width:820px){#summary-toggle{bottom:70px;}}
+    @media(max-width:820px){#summary-toggle{top:64px;}}
+    .sdw-section{margin:14px 0 4px;padding-bottom:4px;border-bottom:1px solid rgba(177,201,251,0.12);font-size:9px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(177,201,251,0.45);}
+    .sdw-sub{display:flex;justify-content:space-between;align-items:center;padding:3px 0 3px 10px;}
+    .sdw-sub .sdw-label{font-size:11px;color:rgba(177,201,251,0.55);font-weight:500;}
+    .sdw-sub .sdw-val{font-size:11px;color:rgba(177,201,251,0.70);}
+    .sdw-cat-total{display:flex;justify-content:space-between;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(177,201,251,0.08);}
+    .sdw-cat-total .sdw-label{font-size:12px;font-weight:600;color:rgba(177,201,251,0.80);}
+    .sdw-cat-total .sdw-val{font-size:12px;font-weight:600;color:#b1c9fb;}
 
     @media(max-width:768px){
       .spine,.sidenav{display:none;}
@@ -394,17 +401,68 @@
         <input type="number" class="sdw-float" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
       </div>
       <div class="sdw-row">
-        <span class="sdw-label">Pro Shop</span>
+        <span class="sdw-label">Final Till Count</span>
+        <span class="sdw-val" id="daily-till">$0.00</span>
+      </div>
+
+      <div class="sdw-section">Pro Shop</div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Tennis Balls</span>
+        <span class="sdw-val" id="daily-tb">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Stringing</span>
+        <span class="sdw-val" id="daily-str">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Accessories</span>
+        <span class="sdw-val" id="daily-acc">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Racquet Sales</span>
+        <span class="sdw-val" id="daily-rs">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Grips</span>
+        <span class="sdw-val" id="daily-grips">$0.00</span>
+      </div>
+      <div class="sdw-cat-total">
+        <span class="sdw-label">Pro Shop Total</span>
         <span class="sdw-val" id="daily-ps">$0.00</span>
       </div>
-      <div class="sdw-row">
-        <span class="sdw-label">Guest Income</span>
+
+      <div class="sdw-section">Court Fees</div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Lessons</span>
+        <span class="sdw-val" id="daily-pl">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Guests</span>
+        <span class="sdw-val" id="daily-g">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">PAYG</span>
+        <span class="sdw-val" id="daily-py">$0.00</span>
+      </div>
+      <div class="sdw-cat-total">
+        <span class="sdw-label">Court Fees Total</span>
         <span class="sdw-val" id="daily-cf">$0.00</span>
       </div>
-      <div class="sdw-row">
-        <span class="sdw-label">Drinks &amp; Snacks</span>
+
+      <div class="sdw-section">Drinks &amp; Snacks</div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Drinks</span>
+        <span class="sdw-val" id="daily-drinks">$0.00</span>
+      </div>
+      <div class="sdw-sub">
+        <span class="sdw-label">Snacks</span>
+        <span class="sdw-val" id="daily-snacks">$0.00</span>
+      </div>
+      <div class="sdw-cat-total">
+        <span class="sdw-label">D&amp;S Total</span>
         <span class="sdw-val" id="daily-ds">$0.00</span>
       </div>
+
       <div class="sdw-total-row">
         <span class="sdw-label">Total Daily Sales</span>
         <span class="sdw-val" id="daily-total">$0.00</span>
@@ -838,16 +896,47 @@
     }
 
     function recalcDaily() {
+      const sumId = id => parseFloat(getEl(id)?.textContent?.replace('$','') || '0') || 0;
       let ps = 0, cf = 0, ds = 0;
+      let tb = 0, str = 0, acc = 0, rs = 0, grips = 0;
+      let pl = 0, g = 0, py = 0;
+      let drinks = 0, snacks = 0;
       for (let si = 0; si < SHIFT_LABELS.length; si++) {
-        ps += parseFloat(getEl(`s${si}-ps-sub`)?.textContent?.replace('$','') || '0') || 0;
-        cf += parseFloat(getEl(`s${si}-cf-sub`)?.textContent?.replace('$','') || '0') || 0;
-        ds += parseFloat(getEl(`s${si}-ds-sub`)?.textContent?.replace('$','') || '0') || 0;
+        ps    += sumId(`s${si}-ps-sub`);
+        cf    += sumId(`s${si}-cf-sub`);
+        ds    += sumId(`s${si}-ds-sub`);
+        tb    += sumId(`s${si}-tb-total`);
+        str   += sumId(`s${si}-str-total`);
+        acc   += sumId(`s${si}-acc-total`);
+        rs    += sumId(`s${si}-rs-total`);
+        grips += sumId(`s${si}-grips-total`);
+        pl    += sumId(`s${si}-pl-total`);
+        g     += sumId(`s${si}-g-total`);
+        py    += sumId(`s${si}-py-total`);
+        drinks += sumId(`s${si}-drinks-total`);
+        snacks += sumId(`s${si}-snacks-total`);
       }
+      // Pro Shop breakdown
+      setText('daily-tb',    fmt(tb));
+      setText('daily-str',   fmt(str));
+      setText('daily-acc',   fmt(acc));
+      setText('daily-rs',    fmt(rs));
+      setText('daily-grips', fmt(grips));
       setText('daily-ps',    fmt(ps));
-      setText('daily-cf',    fmt(cf));
-      setText('daily-ds',    fmt(ds));
+      // Court Fees breakdown
+      setText('daily-pl', fmt(pl));
+      setText('daily-g',  fmt(g));
+      setText('daily-py', fmt(py));
+      setText('daily-cf', fmt(cf));
+      // Drinks breakdown
+      setText('daily-drinks', fmt(drinks));
+      setText('daily-snacks', fmt(snacks));
+      setText('daily-ds',     fmt(ds));
+      // Grand total
       setText('daily-total', fmt(ps + cf + ds));
+      // Final till count — closing shift (si=2) till grand
+      const tillEl = getEl('s2-till-grand');
+      setText('daily-till', tillEl ? tillEl.textContent : '$0.00');
     }
 
     // ── Data Collection ────────────────────────────────────────────────────────
