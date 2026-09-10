@@ -65,7 +65,7 @@ router.get('/week', (req, res) => {
     };
   });
 
-  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start) });
+  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end) });
 });
 
 // PUT upsert a timesheet entry

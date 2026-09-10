@@ -1857,10 +1857,12 @@ function deleteStringLog(id) {
   if (!l) return false;
   l.active = false; save(); return true;   // soft-delete, recoverable
 }
-function getStringCounts() {
+function getStringCounts(start, end) {
   const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
   const map = {};
-  (_data.string_logs || []).filter(l => l.active !== false).forEach(l => {
+  (_data.string_logs || []).filter(l => l.active !== false)
+    .filter(l => (!start || String(l.date) >= start) && (!end || String(l.date) <= end))
+    .forEach(l => {
     if (l.strung_by == null) return;
     const k = l.strung_by;
     map[k] = map[k] || { staff_id: k, name: nameById[k] || '—', total: 0, unpaid: 0 };

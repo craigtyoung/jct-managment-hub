@@ -342,7 +342,7 @@
     let isAdmin = false;    // admin or manager — can edit any row, see all staff, add expenses
     let canConfirm = false; // all logged-in users — can confirm their own shifts
     let currentStart = '', currentEnd = '';
-    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {};
+    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {};
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -419,6 +419,7 @@
         weekDefaults = data.defaults || {};
         periodExpenses = data.period_expenses || {};
         periodReceipts = data.period_receipts || {};
+        stringByStaff = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
         render();
         if (isAdmin) renderDefaults();
       } catch(e) {
@@ -508,6 +509,7 @@
             <div class="person-head-right">
               <span class="progress-text">${confirmed}/${total} shifts</span>
               ${hoursPill}
+              ${(() => { const sc = stringByStaff[person.id]; return sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung${sc.unpaid ? ` · ${sc.unpaid} unpaid` : ''}</span>` : ''; })()}
             </div>
           </div>
           ${shiftRowsHtml}
