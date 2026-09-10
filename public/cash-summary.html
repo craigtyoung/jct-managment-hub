@@ -1048,7 +1048,25 @@
       saveTimer = setTimeout(doSave, 600); // faster live sync across open screens
     }
 
+    // Flush any pending debounced save immediately (keepalive survives page navigation)
+    function flushSave() {
+      if (!saveTimer) return;
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      try {
+        fetch('/api/cash-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(collectAll()),
+          keepalive: true,
+        });
+      } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+    window.addEventListener('pagehide', flushSave);
+
     async function doSave() {
+      saveTimer = null;
       const payload = collectAll();
       try {
         const res = await fetch('/api/cash-summary', {
