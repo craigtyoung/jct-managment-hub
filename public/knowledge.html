@@ -74,6 +74,33 @@
     .mini:hover{background:#eef2f8;color:var(--text);}
     .mini.danger:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);background:rgba(220,38,38,0.06);}
     .gate{max-width:520px;margin:80px auto;text-align:center;color:var(--text-2);}
+
+    /* KB Chat panel */
+    .kb-chat{background:var(--navy);border-radius:18px;padding:22px 24px;margin-bottom:26px;}
+    .kb-chat-hd{display:flex;align-items:center;gap:9px;margin-bottom:3px;}
+    .kb-chat-title{font-family:var(--font-display);font-size:1.1rem;color:#f0f4ff;font-weight:600;}
+    .kb-chat-badge{font-size:10px;font-weight:700;letter-spacing:0.06em;background:rgba(177,201,251,0.15);color:#b1c9fb;border-radius:100px;padding:2px 9px;}
+    .kb-chat-sub{font-size:12px;color:rgba(177,201,251,0.50);margin-bottom:14px;}
+    .kb-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+    .kb-chip{background:rgba(177,201,251,0.09);border:1px solid rgba(177,201,251,0.18);border-radius:100px;padding:6px 13px;font-size:12px;font-weight:500;color:#b1c9fb;cursor:pointer;transition:all 0.15s;white-space:nowrap;font-family:var(--font-body);}
+    .kb-chip:hover{background:rgba(177,201,251,0.20);color:#e0eaff;border-color:rgba(177,201,251,0.35);}
+    .kb-thread{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;margin-bottom:12px;padding-right:2px;}
+    .kb-thread:empty{display:none;}
+    .kb-thread::-webkit-scrollbar{width:3px;}
+    .kb-thread::-webkit-scrollbar-thumb{background:rgba(177,201,251,0.18);border-radius:3px;}
+    .kb-msg-user{align-self:flex-end;background:var(--blue);color:#fff;border-radius:14px 14px 3px 14px;padding:9px 14px;max-width:85%;font-size:13.5px;line-height:1.5;}
+    .kb-msg-ai{align-self:flex-start;background:rgba(177,201,251,0.09);color:#d8e8ff;border-radius:3px 14px 14px 14px;padding:10px 14px;max-width:90%;font-size:13.5px;line-height:1.6;white-space:pre-wrap;border:1px solid rgba(177,201,251,0.12);}
+    .kb-typing{align-self:flex-start;display:flex;gap:4px;align-items:center;padding:10px 14px;}
+    .kb-dot{width:6px;height:6px;border-radius:50%;background:rgba(177,201,251,0.35);animation:kbp 1.2s infinite;}
+    .kb-dot:nth-child(2){animation-delay:.2s;}.kb-dot:nth-child(3){animation-delay:.4s;}
+    @keyframes kbp{0%,80%,100%{transform:scale(.8);opacity:.4}40%{transform:scale(1.1);opacity:1}}
+    .kb-input-row{display:flex;gap:8px;}
+    .kb-input{flex:1;background:rgba(177,201,251,0.08);border:1.5px solid rgba(177,201,251,0.18);border-radius:10px;padding:10px 14px;color:#f0f4ff;font-family:var(--font-body);font-size:14px;outline:none;}
+    .kb-input:focus{border-color:rgba(177,201,251,0.45);}
+    .kb-input::placeholder{color:rgba(177,201,251,0.30);}
+    .kb-send{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s;white-space:nowrap;}
+    .kb-send:hover{background:#24507f;}
+    .kb-send:disabled{opacity:.5;cursor:default;}
   </style>
 </head>
 <body>
@@ -91,6 +118,30 @@
   </div>
 
   <main class="main">
+
+    <!-- KB Assistant — visible to all staff -->
+    <div id="kb-chat-section" style="display:none">
+      <div class="kb-chat">
+        <div class="kb-chat-hd">
+          <span class="kb-chat-title">Knowledge Assistant</span>
+          <span class="kb-chat-badge">AI</span>
+        </div>
+        <p class="kb-chat-sub">Answers come from the club's knowledge base. Add more docs below to improve accuracy.</p>
+        <div class="kb-chips">
+          <button class="kb-chip" onclick="kbAsk('What are the court booking rules?')">📋 Booking rules</button>
+          <button class="kb-chip" onclick="kbAsk('What are the guest fees?')">💰 Guest fees</button>
+          <button class="kb-chip" onclick="kbAsk('What are the membership options and pricing?')">🎾 Membership</button>
+          <button class="kb-chip" onclick="kbAsk('What are the house league rules?')">🏆 House league</button>
+        </div>
+        <div class="kb-thread" id="kb-thread"></div>
+        <div class="kb-input-row">
+          <input class="kb-input" id="kb-input" type="text" placeholder="Ask anything about JCT…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();kbSend();}">
+          <button class="kb-send" id="kb-send" onclick="kbSend()">Ask</button>
+        </div>
+      </div>
+    </div>
+
     <div id="gate" class="gate" style="display:none">This area is for management only.<br><a href="/hub.html" style="color:var(--blue)">Back to Dashboard</a></div>
     <div id="app" style="display:none">
       <h1>Knowledge Base</h1>
@@ -270,11 +321,68 @@
       me = await r.json();
       const av=document.getElementById('nav-avatar'); if(av){ try{ staffAvatar(av,me.id,me.name,me.color); }catch(e){} }
       updateClock(); setInterval(updateClock,30000);
-      if(!me.is_management){ document.getElementById('gate').style.display='block'; return; }
+      document.getElementById('kb-chat-section').style.display='block';
+      if(!me.is_management){ return; }
       document.getElementById('app').style.display='block';
       load();
     }
     init();
+
+    // ── KB Chat ────────────────────────────────────────────────────────────────
+    let kbHistory = [];
+
+    function kbAsk(q){
+      document.getElementById('kb-input').value = q;
+      kbSend();
+    }
+
+    async function kbSend(){
+      const input = document.getElementById('kb-input');
+      const q = input.value.trim();
+      if(!q) return;
+      input.value = '';
+      const sendBtn = document.getElementById('kb-send');
+      sendBtn.disabled = true;
+
+      const thread = document.getElementById('kb-thread');
+      const userBubble = document.createElement('div');
+      userBubble.className = 'kb-msg-user';
+      userBubble.textContent = q;
+      thread.appendChild(userBubble);
+
+      const typing = document.createElement('div');
+      typing.className = 'kb-typing';
+      typing.innerHTML = '<div class="kb-dot"></div><div class="kb-dot"></div><div class="kb-dot"></div>';
+      thread.appendChild(typing);
+      thread.scrollTop = thread.scrollHeight;
+
+      kbHistory.push({ role:'user', content:q });
+
+      try {
+        const res = await fetch('/api/chat', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ messages: kbHistory }),
+        });
+        const data = await res.json();
+        typing.remove();
+        const reply = data.reply || data.error || 'No response.';
+        kbHistory.push({ role:'assistant', content:reply });
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'kb-msg-ai';
+        aiBubble.textContent = reply;
+        thread.appendChild(aiBubble);
+      } catch(e) {
+        typing.remove();
+        const err = document.createElement('div');
+        err.className = 'kb-msg-ai';
+        err.textContent = 'Could not reach the assistant — try again.';
+        thread.appendChild(err);
+      }
+      thread.scrollTop = thread.scrollHeight;
+      sendBtn.disabled = false;
+      input.focus();
+    }
   </script>
   <script src="/chat-widget.js"></script>
 </body>

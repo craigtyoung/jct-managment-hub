@@ -120,7 +120,7 @@
     .emoji-wrap{position:relative;}
     .emoji-btn{padding:6px 9px;border-radius:9px;border:1px solid var(--input-border);background:transparent;cursor:pointer;font-size:16px;line-height:1;transition:background 0.15s;}
     .emoji-btn:hover{background:rgba(44,92,156,0.08);}
-    .emoji-popover{display:none;position:absolute;bottom:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:500;width:228px;}
+    .emoji-popover{display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:600;width:240px;}
     .emoji-popover.open{display:block;animation:ep-in 0.14s ease-out;}
     @keyframes ep-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     .emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;}
@@ -514,12 +514,7 @@
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 <span id="compose-mic-dot" style="display:none;width:9px;height:9px;border-radius:50%;background:#f87171;animation:pulse-rec 1s infinite"></span>
               </button>
-              <div class="emoji-wrap">
-                <button class="emoji-btn" onclick="toggleEmojiPicker(event)" title="Emoji">😊</button>
-                <div class="emoji-popover" id="emoji-popover">
-                  <div class="emoji-grid" id="emoji-grid"></div>
-                </div>
-              </div>
+              <button class="emoji-btn" onclick="toggleEmojiPickerFor('compose-text',this)" title="Emoji">😊</button>
               <button class="btn btn-ghost btn-sm" onclick="closeCompose()">Cancel</button>
               <button class="btn btn-indigo" onclick="postMessage()">Post Note</button>
             </div>
@@ -1305,6 +1300,7 @@
                   <textarea class="reply-input" rows="2" placeholder="Write a reply..." id="reply-txt-${msg.id}"></textarea>
                   <div style="display:flex;flex-direction:column;gap:5px">
                     <button class="btn btn-indigo btn-sm" onclick="postReply(${msg.id})">Send</button>
+                    <button class="emoji-btn" type="button" onclick="toggleEmojiPickerFor('reply-txt-${msg.id}',this)" title="Emoji" style="padding:5px 8px;font-size:14px;">😊</button>
                     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reply-box-${msg.id}').style.display='none'">Cancel</button>
                   </div>
                 </div>
@@ -1447,12 +1443,14 @@
 
   // ── Emoji picker ────────────────────────────────────────────────────────────
   const EMOJIS = [
-    '👍','👎','✅','❌','⚠️','🔔',
-    '🎾','🏆','💪','🔑','📋','📌',
-    '⏰','📅','🔄','✔️','💯','🚨',
-    '😊','😅','🙏','😬','🔥','⭐',
-    '💰','📞','🏃','👀','🎯','🤝',
+    '😊','😄','😅','😂','🙂','😬','😮','😤','😎','🥺',
+    '👍','👎','✌️','🙏','💪','🤝','👏','🫶','🤙','👋',
+    '🎾','🏆','🏃','🏅','🎯','🎉','🥇','⚡','💨','🔥',
+    '📋','📌','🔑','💰','📅','⏰','🔄','📞','🔔','💡',
+    '✅','❌','⚠️','🚨','✔️','💯','❗','❓','⭐','📣',
+    '☀️','🌧️','❄️','🌊','☕','🌿','🎵','👀','💬','🏠',
   ];
+  let emojiTarget = 'compose-text';
   (function buildEmojiGrid() {
     const grid = document.getElementById('emoji-grid');
     if (!grid) return;
@@ -1460,18 +1458,29 @@
       `<button class="emoji-item" onclick="insertEmoji('${e}')" type="button">${e}</button>`
     ).join('');
   })();
-  function toggleEmojiPicker(e) {
-    e.stopPropagation();
+  function toggleEmojiPickerFor(targetId, btn) {
+    emojiTarget = targetId;
     const pop = document.getElementById('emoji-popover');
     if (!pop) return;
-    pop.classList.toggle('open');
+    const alreadyOpen = pop.classList.contains('open') && pop.dataset.target === targetId;
+    if (alreadyOpen) { pop.classList.remove('open'); return; }
+    const rect = btn.getBoundingClientRect();
+    const popW = 240;
+    let left = rect.right - popW;
+    if (left < 8) left = 8;
+    pop.style.left  = left + 'px';
+    pop.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+    pop.style.top   = 'auto';
+    pop.style.right = 'auto';
+    pop.dataset.target = targetId;
+    pop.classList.add('open');
   }
   function closeEmojiPicker() {
     const pop = document.getElementById('emoji-popover');
-    if (pop) pop.classList.remove('open');
+    if (pop) { pop.classList.remove('open'); delete pop.dataset.target; }
   }
   function insertEmoji(emoji) {
-    const ta = document.getElementById('compose-text');
+    const ta = document.getElementById(emojiTarget);
     if (!ta) return;
     const s = ta.selectionStart, end = ta.selectionEnd;
     ta.value = ta.value.slice(0, s) + emoji + ta.value.slice(end);
@@ -1480,7 +1489,7 @@
     closeEmojiPicker();
   }
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.emoji-wrap')) closeEmojiPicker();
+    if (!e.target.closest('.emoji-wrap') && !e.target.closest('#emoji-popover')) closeEmojiPicker();
   });
 
   // ── Recipient selector ─────────────────────────────────────────────────────
@@ -1599,7 +1608,8 @@
     cell.dataset.orig = cell.innerHTML;
     cell.innerHTML = `
       <textarea id="edit-txt-${id}" class="reply-input" rows="3" style="width:100%;box-sizing:border-box">${esc(msg.content)}</textarea>
-      <div style="display:flex;gap:6px;margin-top:6px">
+      <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+        <button class="emoji-btn" type="button" onclick="event.stopPropagation();toggleEmojiPickerFor('edit-txt-${id}',this)" title="Emoji" style="padding:5px 8px;font-size:14px;">😊</button>
         <button class="btn btn-indigo btn-sm" onclick="event.stopPropagation();saveNote(${id})">Save</button>
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();cancelEditNote(${id})">Cancel</button>
       </div>`;
@@ -1769,6 +1779,11 @@
   initComposeMic();
 </script>
   <script src="/push-client.js"></script>
+  <!-- Shared emoji popover — positioned fixed by toggleEmojiPickerFor() -->
+  <div class="emoji-popover" id="emoji-popover">
+    <div class="emoji-grid" id="emoji-grid"></div>
+  </div>
+
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
   <script src="/app-version.js"></script>
