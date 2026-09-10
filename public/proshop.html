@@ -34,7 +34,9 @@
 
     /* Stringer summary chips */
     .counts{display:flex;flex-wrap:wrap;gap:10px;}
-    .count-chip{display:flex;flex-direction:column;gap:2px;min-width:130px;padding:10px 14px;border:1px solid var(--border);border-radius:11px;background:var(--canvas);}
+    .count-chip{display:flex;flex-direction:row;align-items:center;gap:11px;min-width:158px;padding:10px 14px;border:1px solid var(--border);border-radius:11px;background:var(--canvas);}
+    .ps-av{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;}
+    .chip-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
     .count-name{font-size:13px;font-weight:700;}
     .count-nums{display:flex;gap:14px;align-items:baseline;margin-top:2px;}
     .count-total{font-size:22px;font-weight:800;color:var(--navy);line-height:1;}
@@ -120,6 +122,7 @@
 
   <div id="toast" class="toast"></div>
 
+  <script src="/staff-avatar.js"></script>
   <script>
     let me=null, canDelete=false, staff=[];
     const STRINGERS = ['Lily','Matthew'];   // only these staff can be the "Strung by"
@@ -135,7 +138,8 @@
       canDelete = me.role==='admin' || me.role==='manager';
       try{ staff=await (await fetch('/api/proshop/staff')).json(); }catch(e){ staff=[]; }
       const optList=(list,selId)=>'<option value="">— select —</option>'+list.map(s=>`<option value="${s.id}"${s.id===selId?' selected':''}>${esc(s.name)}</option>`).join('');
-      document.getElementById('f-taken').innerHTML=optList(staff, me.id);   // who received the racket — any staff
+      const adminStaff=staff.filter(s=>!['pro','contractor'].includes(s.role));   // administrative / front-desk only
+      document.getElementById('f-taken').innerHTML=optList(adminStaff, me.id);
       const stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name).toLowerCase().startsWith(n.toLowerCase())));
       document.getElementById('f-by').innerHTML=optList(stringers, me.id);   // who strung it — Lily / Matthew only
       document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
@@ -150,11 +154,15 @@
       const el=document.getElementById('counts');
       if(!rows.length){ el.innerHTML='<div class="empty" style="padding:8px 0">No strings logged yet.</div>'; return; }
       el.innerHTML=rows.map(r=>`<div class="count-chip">
-        <span class="count-name">${esc(r.name)}</span>
-        <div class="count-nums">
-          <span class="count-total">${r.total}<span class="lbl">strung</span></span>
-          <span class="count-unpaid ${r.unpaid?'':'zero'}">${r.unpaid} unpaid</span>
+        <span class="ps-av" data-av="${r.staff_id}" data-name="${esc(r.name)}" data-color="${r.color||'#2c5c9c'}"></span>
+        <div class="chip-info">
+          <span class="count-name">${esc(r.name)}</span>
+          <div class="count-nums">
+            <span class="count-total">${r.total}<span class="lbl">strung</span></span>
+            <span class="count-unpaid ${r.unpaid?'':'zero'}">${r.unpaid} unpaid</span>
+          </div>
         </div></div>`).join('');
+      if(window.staffAvatar) el.querySelectorAll('[data-av]').forEach(a=>staffAvatar(a,a.dataset.av,a.dataset.name,a.dataset.color));
     }
 
     async function loadLog(){

@@ -1860,14 +1860,14 @@ function deleteStringLog(id) {
   l.active = false; save(); return true;   // soft-delete, recoverable
 }
 function getStringCounts(start, end) {
-  const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
+  const nameById = {}, colorById = {}; (_data.staff || []).forEach(s => { nameById[s.id] = s.name; colorById[s.id] = s.color; });
   const map = {};
   (_data.string_logs || []).filter(l => l.active !== false)
     .filter(l => (!start || String(l.date) >= start) && (!end || String(l.date) <= end))
     .forEach(l => {
     if (l.strung_by == null) return;
     const k = l.strung_by;
-    map[k] = map[k] || { staff_id: k, name: nameById[k] || '—', total: 0, unpaid: 0 };
+    map[k] = map[k] || { staff_id: k, name: nameById[k] || '—', color: colorById[k] || '#2c5c9c', total: 0, unpaid: 0 };
     map[k].total++; if (!l.paid) map[k].unpaid++;
   });
   return Object.values(map).sort((a, b) => b.total - a.total);
