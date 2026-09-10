@@ -146,31 +146,38 @@
 
     /* ── Person card footer (expenses) ── */
     .person-footer{
-      padding:12px 20px;border-top:1px solid var(--border);
-      display:flex;align-items:center;gap:14px;
+      padding:14px 20px;border-top:1px solid var(--border);
       background:rgba(248,250,252,0.6);
     }
-    .exp-label{font-size:12px;color:var(--text-2);flex-shrink:0;}
-    .exp-input{
-      width:96px;padding:5px 9px;border-radius:8px;
-      border:1px solid var(--border);font-family:var(--font-body);font-size:13px;
-      color:var(--text);background:var(--surface);text-align:right;
-      transition:border-color 0.15s;
-    }
-    .exp-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
-    .exp-saved{font-size:11px;color:var(--green);font-weight:600;display:none;}
-
-    /* ── Receipt attach ── */
-    .receipt-wrap{display:inline-flex;align-items:center;gap:8px;margin-left:2px;}
-    .receipt-thumb{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);object-fit:cover;cursor:pointer;background:var(--surface);transition:border-color 0.15s;}
-    .receipt-thumb:hover{border-color:rgba(44,92,156,0.35);}
-    .receipt-pdf{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;padding:4px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);transition:border-color 0.15s;}
-    .receipt-pdf:hover{border-color:rgba(44,92,156,0.35);}
-    .receipt-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--blue);background:none;border:1px dashed rgba(44,92,156,0.35);border-radius:8px;padding:5px 10px;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;}
-    .receipt-btn:hover{background:rgba(44,92,156,0.06);border-color:rgba(44,92,156,0.55);}
-    .receipt-btn svg{width:13px;height:13px;}
-    .receipt-replace{font-size:11px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font-body);text-decoration:underline;text-underline-offset:2px;padding:2px 4px;transition:color 0.15s;}
-    .receipt-replace:hover{color:var(--blue);}
+    .exp-footer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .exp-footer-label{font-size:12px;font-weight:600;color:var(--text-2);}
+    .exp-footer-total{font-size:13px;font-weight:700;color:var(--navy);}
+    .exp-add-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--blue);background:none;border:1px dashed rgba(44,92,156,0.35);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;}
+    .exp-add-btn:hover{background:rgba(44,92,156,0.06);border-color:rgba(44,92,156,0.55);}
+    .exp-list{display:flex;flex-direction:column;gap:6px;}
+    .exp-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:var(--surface);border:1px solid var(--border);}
+    .exp-item-date{font-size:11px;color:var(--text-3);white-space:nowrap;min-width:60px;}
+    .exp-item-desc{flex:1;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .exp-item-amt{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;}
+    .exp-item-rcpt{display:inline-flex;align-items:center;}
+    .exp-item-del{background:none;border:none;cursor:pointer;padding:3px;border-radius:6px;color:var(--text-3);line-height:1;transition:color 0.15s,background 0.15s;flex-shrink:0;}
+    .exp-item-del:hover{color:#dc2626;background:rgba(220,38,38,0.06);}
+    .exp-item-del svg{width:14px;height:14px;}
+    /* Add-form */
+    .exp-add-form{display:none;margin-top:8px;padding:12px;border-radius:10px;border:1px solid rgba(44,92,156,0.18);background:rgba(44,92,156,0.03);gap:8px;flex-wrap:wrap;align-items:flex-end;}
+    .exp-add-form.open{display:flex;}
+    .exp-add-form input{padding:6px 9px;border-radius:7px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--surface);}
+    .exp-add-form input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
+    .exp-desc-input{flex:1;min-width:120px;}
+    .exp-amt-input{width:88px;text-align:right;}
+    .exp-date-input{width:130px;}
+    .exp-form-save{padding:6px 15px;border-radius:100px;background:var(--navy);border:none;font-family:var(--font-body);font-size:12px;color:#f0f4ff;cursor:pointer;font-weight:500;transition:background 0.15s;}
+    .exp-form-save:hover{background:var(--blue);}
+    .exp-form-cancel{padding:6px 10px;border-radius:100px;background:none;border:none;font-family:var(--font-body);font-size:12px;color:var(--text-3);cursor:pointer;}
+    /* Receipt (item-level) */
+    .receipt-thumb-sm{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);object-fit:cover;cursor:pointer;}
+    .receipt-pdf-sm{font-size:11px;color:var(--blue);font-weight:600;text-decoration:none;padding:2px 6px;border:1px solid var(--border);border-radius:6px;}
+    .receipt-add-sm{font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--font-body);text-decoration:underline;text-underline-offset:2px;padding:2px 4px;}
 
     /* ── Defaults panel ── */
     .defaults-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-top:24px;}
@@ -342,7 +349,7 @@
     let isAdmin = false;    // admin or manager — can edit any row, see all staff, add expenses
     let canConfirm = false; // all logged-in users — can confirm their own shifts
     let currentStart = '', currentEnd = '';
-    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {};
+    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {}, expenseItemsByStaff = {};
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -420,6 +427,7 @@
         periodExpenses = data.period_expenses || {};
         periodReceipts = data.period_receipts || {};
         stringByStaff = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
+        expenseItemsByStaff = data.expense_items || {};
         render();
         if (isAdmin) renderDefaults();
       } catch(e) {
@@ -480,19 +488,7 @@
 
       const shiftRowsHtml = person.rows.map(r => renderShiftRow(r, person)).join('');
 
-      const expensesRow = isAdmin ? `
-        <div class="person-footer">
-          <span class="exp-label">Expenses this period</span>
-          <input type="number" class="exp-input" id="exp-${person.id}"
-            value="${expenses !== null ? expenses : ''}"
-            min="0" step="0.01" placeholder="$0.00"
-            onblur="saveExpenses(${person.id})"
-            onkeydown="if(event.key==='Enter')this.blur()">
-          <span class="exp-saved" id="exp-saved-${person.id}">Saved ✓</span>
-          ${expenses !== null && expenses > 0 ? `<span style="font-size:12px;color:var(--amber);font-weight:600">$${parseFloat(expenses).toFixed(2)}</span>` : ''}
-          ${renderReceipt(person.id)}
-          <input type="file" id="receipt-file-${person.id}" accept="image/*,application/pdf" style="display:none" onchange="uploadReceipt(${person.id}, this)">
-        </div>` : '';
+      const expensesRow = renderExpensesSection(person);
 
       return `
         <div class="person-card">
@@ -631,63 +627,109 @@
       } catch(e) { alert('Failed to save.'); }
     }
 
-    // ── Expenses per person per period ────────────────────────────
-    async function saveExpenses(staffId) {
-      const input = document.getElementById(`exp-${staffId}`);
-      const saved = document.getElementById(`exp-saved-${staffId}`);
-      if (!input) return;
-      const amount = input.value !== '' ? parseFloat(input.value) : null;
+    // ── Expense line items ────────────────────────────────────────
+
+    function renderExpensesSection(person) {
+      const items = expenseItemsByStaff[person.id] || [];
+      const canSee = isAdmin || person.id === me.id;
+      if (!canSee) return '';
+
+      const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+      const totalStr = total > 0 ? `$${total.toFixed(2)}` : '';
+
+      const itemsHtml = items.map(item => {
+        const isPdf = item.receipt_file && String(item.receipt_file).toLowerCase().endsWith('.pdf');
+        const rcptUrl = `/api/timesheet/expense-items/${item.id}/receipt?t=${Date.now()}`;
+        const rcptHtml = item.receipt_file
+          ? (isPdf
+              ? `<a class="receipt-pdf-sm" href="${esc(rcptUrl)}" target="_blank" rel="noopener" title="View receipt">📄</a>`
+              : `<img class="receipt-thumb-sm" src="${esc(rcptUrl)}" alt="Receipt" title="View receipt" onclick="window.open('${esc(rcptUrl)}','_blank','noopener')">`)
+          : `<button class="receipt-add-sm" onclick="document.getElementById('item-rcpt-${item.id}').click()" title="Add receipt">📎</button>
+             <input type="file" id="item-rcpt-${item.id}" accept="image/*,application/pdf" style="display:none" onchange="uploadItemReceipt(${item.id},this)">`;
+        const canDel = isAdmin || item.submitted_by === me.id || item.staff_id === me.id;
+        const delBtn = canDel
+          ? `<button class="exp-item-del" onclick="deleteExpenseItem(${item.id})" title="Remove">
+               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+             </button>` : '';
+        const d = new Date(item.date + 'T12:00:00');
+        const dateStr = `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}`;
+        return `<div class="exp-item" id="exp-item-${item.id}">
+          <span class="exp-item-date">${dateStr}</span>
+          <span class="exp-item-desc" title="${esc(item.description)}">${esc(item.description)}</span>
+          <span class="exp-item-amt">$${parseFloat(item.amount).toFixed(2)}</span>
+          <span class="exp-item-rcpt">${rcptHtml}</span>
+          ${delBtn}
+        </div>`;
+      }).join('');
+
+      const today = todayStr();
+      const addForm = `
+        <div class="exp-add-form" id="exp-add-form-${person.id}">
+          <input type="date" class="exp-date-input" id="exp-add-date-${person.id}" value="${today}" max="${today}">
+          <input type="text" class="exp-desc-input" id="exp-add-desc-${person.id}" placeholder="Description (e.g. Uniform top)" autocomplete="off">
+          <input type="number" class="exp-amt-input" id="exp-add-amt-${person.id}" placeholder="$0.00" min="0" step="0.01" autocomplete="off">
+          <button class="exp-form-save" onclick="saveExpenseItem(${person.id})">Add</button>
+          <button class="exp-form-cancel" onclick="closeExpenseForm(${person.id})">Cancel</button>
+        </div>`;
+
+      return `
+        <div class="person-footer" id="exp-footer-${person.id}">
+          <div class="exp-footer-head">
+            <span class="exp-footer-label">Expenses this period${totalStr ? '' : ' · none yet'}</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${totalStr ? `<span class="exp-footer-total">${totalStr}</span>` : ''}
+              <button class="exp-add-btn" onclick="openExpenseForm(${person.id})">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add expense
+              </button>
+            </div>
+          </div>
+          ${items.length ? `<div class="exp-list">${itemsHtml}</div>` : ''}
+          ${addForm}
+        </div>`;
+    }
+
+    function openExpenseForm(staffId) {
+      document.getElementById(`exp-add-form-${staffId}`)?.classList.add('open');
+      setTimeout(() => document.getElementById(`exp-add-desc-${staffId}`)?.focus(), 50);
+    }
+    function closeExpenseForm(staffId) {
+      const f = document.getElementById(`exp-add-form-${staffId}`);
+      if (f) { f.classList.remove('open'); }
+    }
+
+    async function saveExpenseItem(staffId) {
+      const date = document.getElementById(`exp-add-date-${staffId}`)?.value;
+      const desc = document.getElementById(`exp-add-desc-${staffId}`)?.value.trim();
+      const amt  = document.getElementById(`exp-add-amt-${staffId}`)?.value;
+      if (!desc) { alert('Please enter a description.'); return; }
+      if (!amt || isNaN(parseFloat(amt)) || parseFloat(amt) <= 0) { alert('Please enter a valid amount.'); return; }
       try {
-        await fetch('/api/timesheet/period-expenses', {
-          method: 'PUT',
+        await fetch('/api/timesheet/expense-items', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ staff_id: staffId, period_start: currentStart, amount }),
+          body: JSON.stringify({ staff_id: staffId, period_start: currentStart, date, description: desc, amount: parseFloat(amt) }),
         });
-        periodExpenses[staffId] = amount;
-        if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
-      } catch(e) { alert('Failed to save expenses.'); }
+        await load();
+      } catch(e) { alert('Failed to save expense.'); }
     }
 
-    // ── Receipt photo per person per period ───────────────────────
-    function receiptUrl(staffId) {
-      return `/api/timesheet/period-expenses/${encodeURIComponent(staffId)}/${encodeURIComponent(currentStart)}/receipt`;
+    async function deleteExpenseItem(itemId) {
+      if (!confirm('Remove this expense item?')) return;
+      try {
+        await fetch(`/api/timesheet/expense-items/${itemId}`, { method: 'DELETE' });
+        await load();
+      } catch(e) { alert('Failed to delete.'); }
     }
 
-    function renderReceipt(staffId) {
-      const filename = periodReceipts[staffId] || null;
-      if (filename) {
-        // cache-bust so a freshly replaced receipt shows the new file
-        const url = `${receiptUrl(staffId)}?t=${Date.now()}`;
-        const isPdf = String(filename).toLowerCase().endsWith('.pdf');
-        const preview = isPdf
-          ? `<a class="receipt-pdf" href="${esc(url)}" target="_blank" rel="noopener">
-               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-               View receipt</a>`
-          : `<img class="receipt-thumb" src="${esc(url)}" alt="Receipt" title="Open receipt"
-               onclick="window.open(receiptUrl(${staffId}), '_blank', 'noopener')">`;
-        return `<span class="receipt-wrap" id="receipt-wrap-${staffId}">
-            ${preview}
-            <button type="button" class="receipt-replace" onclick="document.getElementById('receipt-file-${staffId}').click()">Replace</button>
-          </span>`;
-      }
-      return `<span class="receipt-wrap" id="receipt-wrap-${staffId}">
-          <button type="button" class="receipt-btn" onclick="document.getElementById('receipt-file-${staffId}').click()">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Add receipt
-          </button>
-        </span>`;
-    }
-
-    async function uploadReceipt(staffId, inputEl) {
+    async function uploadItemReceipt(itemId, inputEl) {
       const file = inputEl.files && inputEl.files[0];
       if (!file) return;
       const fd = new FormData();
       fd.append('receipt', file);
       try {
-        const res = await fetch(receiptUrl(staffId), { method: 'POST', body: fd });
+        const res = await fetch(`/api/timesheet/expense-items/${itemId}/receipt`, { method: 'POST', body: fd });
         if (!res.ok) throw new Error('upload failed');
-        const data = await res.json();
-        periodReceipts[staffId] = (data && data.receipt) || file.name;
         await load();
       } catch(e) {
         alert('Failed to upload receipt.');

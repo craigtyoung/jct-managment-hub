@@ -935,6 +935,14 @@ if (!_data._migrations.proScheduleImport2627v1 && Array.isArray(_data.pro_schedu
   console.log('Imported 26/27 pro schedule: ' + SLOTS.length + ' slots added, ' + deactivated + ' old slots deactivated.');
 }
 
+// Migration: expense line items (replaces single period_expenses amount)
+if (!Array.isArray(_data.expense_items)) {
+  if (!_data._seq) _data._seq = {};
+  _data._seq.expense_items = 0;
+  _data.expense_items = [];
+  save();
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nextId(table) {
@@ -1601,6 +1609,61 @@ function getPeriodExpensesForRange(periodStart) {
     if (ps === periodStart) result[parseInt(sid)] = val;
   }
   return result;
+}
+
+// ─── Expense Line Items ───────────────────────────────────────────────────────
+
+function addExpenseItem({ staffId, periodStart, date, description, amount, submittedBy }) {
+  const id = nextId('expense_items');
+  const item = {
+    id,
+    staff_id: staffId,
+    period_start: periodStart,
+    date: date || new Date().toISOString().slice(0, 10),
+    description: String(description || '').trim(),
+    amount: parseFloat(amount) || 0,
+    receipt_file: null,
+    submitted_at: new Date().toISOString(),
+    submitted_by: submittedBy,
+  };
+  if (!Array.isArray(_data.expense_items)) _data.expense_items = [];
+  _data.expense_items.push(item);
+  save();
+  return item;
+}
+
+function getExpenseItemById(id) {
+  return (_data.expense_items || []).find(i => i.id === parseInt(id)) || null;
+}
+
+function getExpenseItemsForPeriod(staffId, periodStart) {
+  return (_data.expense_items || []).filter(i => i.staff_id === staffId && i.period_start === periodStart);
+}
+
+function getExpenseItemsForPeriodAllStaff(periodStart) {
+  const result = {};
+  for (const item of (_data.expense_items || [])) {
+    if (item.period_start !== periodStart) continue;
+    if (!result[item.staff_id]) result[item.staff_id] = [];
+    result[item.staff_id].push(item);
+  }
+  return result;
+}
+
+function deleteExpenseItem(id) {
+  const idx = (_data.expense_items || []).findIndex(i => i.id === parseInt(id));
+  if (idx === -1) return false;
+  _data.expense_items.splice(idx, 1);
+  save();
+  return true;
+}
+
+function setExpenseItemReceipt(id, filename) {
+  const item = getExpenseItemById(id);
+  if (!item) return false;
+  item.receipt_file = filename;
+  save();
+  return true;
 }
 
 // ─── Cash Summary ─────────────────────────────────────────────────────────────
@@ -2867,6 +2930,12 @@ module.exports = {
   getPeriodExpenses,
   setPeriodExpenses,
   getPeriodExpensesForRange,
+  addExpenseItem,
+  getExpenseItemById,
+  getExpenseItemsForPeriod,
+  getExpenseItemsForPeriodAllStaff,
+  deleteExpenseItem,
+  setExpenseItemReceipt,
   getCashSummary,
   upsertCashSummary,
   getCashSummaryRange,

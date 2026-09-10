@@ -26,6 +26,21 @@ const rcptUpload = multer({
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'),
 });
 
+// Multer for per-item receipts
+const itemRcptStorage = multer.diskStorage({
+  destination: (req, file, cb) => { if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true }); cb(null, RECEIPTS_DIR); },
+  filename: (req, file, cb) => {
+    const base = `expense-item-${req.params.itemId}`;
+    RCPT_EXTS.forEach(ext => { try { fs.unlinkSync(path.join(RECEIPTS_DIR, `${base}${ext}`)); } catch (e) {} });
+    cb(null, `${base}${path.extname(file.originalname).toLowerCase() || '.jpg'}`);
+  },
+});
+const itemRcptUpload = multer({
+  storage: itemRcptStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'),
+});
+
 router.use((req, res, next) => {
   req.actingStaffId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
   next();
@@ -65,7 +80,7 @@ router.get('/week', (req, res) => {
     };
   });
 
-  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end) });
+  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start) });
 });
 
 // PUT upsert a timesheet entry
@@ -156,6 +171,81 @@ router.get('/period-expenses/:staffId/:periodStart/receipt', (req, res) => {
   res.status(404).end();
 });
 
+// ── Expense Line Items ────────────────────────────────────────────────────────
+
+// GET expense items for a period (own items; admin sees all staff via ?staff_id=all)
+router.get('/expense-items', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const { period_start, staff_id } = req.query;
+  if (!period_start) return res.status(400).json({ error: 'period_start required' });
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  const targetId = staff_id && isManagement ? parseInt(staff_id) : req.actingStaffId;
+  res.json(db.getExpenseItemsForPeriod(targetId, period_start));
+});
+
+// POST add a new expense item (any staff for own; admin for any)
+router.post('/expense-items', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const { staff_id, period_start, date, description, amount } = req.body;
+  if (!period_start || !description || amount === undefined) {
+    return res.status(400).json({ error: 'period_start, description, amount required' });
+  }
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  const targetId = (staff_id && isManagement) ? parseInt(staff_id) : req.actingStaffId;
+  if (targetId !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const item = db.addExpenseItem({ staffId: targetId, periodStart: period_start, date, description, amount, submittedBy: req.actingStaffId });
+  res.json({ ok: true, item });
+});
+
+// DELETE an expense item (own items; admin any)
+router.delete('/expense-items/:id', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const item = db.getExpenseItemById(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  if (item.staff_id !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  // Delete receipt file if any
+  if (item.receipt_file) {
+    try { fs.unlinkSync(path.join(RECEIPTS_DIR, item.receipt_file)); } catch (e) {}
+  }
+  db.deleteExpenseItem(req.params.id);
+  res.json({ ok: true });
+});
+
+// POST upload receipt for an expense item
+router.post('/expense-items/:itemId/receipt', (req, res, next) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  const item = db.getExpenseItemById(req.params.itemId);
+  if (!acting || !item) return res.status(404).json({ error: 'Not found' });
+  const isManagement = acting && ['admin', 'manager'].includes(acting.role);
+  if (item.staff_id !== req.actingStaffId && !isManagement) return res.status(403).json({ error: 'Not authorised' });
+  next();
+}, itemRcptUpload.single('receipt'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  db.setExpenseItemReceipt(req.params.itemId, req.file.filename);
+  res.json({ ok: true, receipt: req.file.filename });
+});
+
+// GET receipt for an expense item
+router.get('/expense-items/:itemId/receipt', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  const item = db.getExpenseItemById(req.params.itemId);
+  if (!acting || !item) return res.status(404).end();
+  const isManagement = acting && ['admin', 'manager'].includes(acting.role);
+  if (item.staff_id !== req.actingStaffId && !isManagement) return res.status(403).end();
+  if (!item.receipt_file) return res.status(404).end();
+  const p = path.join(RECEIPTS_DIR, item.receipt_file);
+  if (!fs.existsSync(p)) return res.status(404).end();
+  res.sendFile(p);
+});
+
 // GET shift time defaults
 router.get('/defaults', (req, res) => {
   res.json(db.getShiftDefaults());
@@ -211,11 +301,14 @@ router.get('/export', (req, res) => {
     ].map(q).join(','));
   });
   lines.push('');
-  lines.push(['Period Expenses (by staff)'].map(q).join(','));
-  Object.entries(periodExp || {}).forEach(([sid, val]) => {
+  lines.push(['Expense Items'].map(q).join(','));
+  lines.push(['Staff', 'Date', 'Description', 'Amount', 'Receipt'].map(q).join(','));
+  const allItems = db.getExpenseItemsForPeriodAllStaff(start);
+  Object.entries(allItems).forEach(([sid, items]) => {
     const s = db.getStaffById(parseInt(sid));
-    const amt = (val && typeof val === 'object') ? (val.total != null ? val.total : '') : val;
-    lines.push([s ? s.name : sid, amt].map(q).join(','));
+    for (const item of items) {
+      lines.push([s ? s.name : sid, item.date, item.description, parseFloat(item.amount).toFixed(2), item.receipt_file ? 'Yes' : ''].map(q).join(','));
+    }
   });
 
   res.setHeader('Content-Type', 'text/csv');
