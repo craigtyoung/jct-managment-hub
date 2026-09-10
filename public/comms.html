@@ -1451,13 +1451,14 @@
     '☀️','🌧️','❄️','🌊','☕','🌿','🎵','👀','💬','🏠',
   ];
   let emojiTarget = 'compose-text';
-  (function buildEmojiGrid() {
+  function buildEmojiGrid() {
     const grid = document.getElementById('emoji-grid');
     if (!grid) return;
     grid.innerHTML = EMOJIS.map(e =>
       `<button class="emoji-item" onclick="insertEmoji('${e}')" type="button">${e}</button>`
     ).join('');
-  })();
+  }
+  setTimeout(buildEmojiGrid, 0); // defer until #emoji-grid is in the DOM (it's after this script block)
   function toggleEmojiPickerFor(targetId, btn) {
     emojiTarget = targetId;
     const pop = document.getElementById('emoji-popover');
@@ -1489,7 +1490,7 @@
     closeEmojiPicker();
   }
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.emoji-wrap') && !e.target.closest('#emoji-popover')) closeEmojiPicker();
+    if (!e.target.closest('.emoji-btn') && !e.target.closest('#emoji-popover')) closeEmojiPicker();
   });
 
   // ── Recipient selector ─────────────────────────────────────────────────────
