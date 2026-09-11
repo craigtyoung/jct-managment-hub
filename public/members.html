@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Members · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c; --powder:#b1c9fb; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --canvas:#f0f4f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border-nav:rgba(177,201,251,0.07);
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --font:'Inter',system-ui,sans-serif;
+      --nav-w:214px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{padding-left:var(--nav-w);background:var(--canvas);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;}
+
+    /* Sidenav — navy, matches hub */
+    .sidenav{position:fixed;left:0;top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
+    .sidenav::-webkit-scrollbar{width:0;}
+    .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);flex-shrink:0;}
+    .sidenav-brand-name{font-size:1rem;font-weight:600;color:#f0f4ff;line-height:1.2;}
+    .sidenav-brand-tag{font-size:9.5px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(177,201,251,0.36);margin-top:4px;}
+    .sidenav-body{flex:1;padding:8px 0 4px;}
+    .nav-group-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:14px 18px 5px;}
+    .nav-link{display:flex;align-items:center;gap:9px;width:100%;padding:8px 18px 8px 16px;background:none;border:none;cursor:pointer;border-left:2px solid transparent;font-family:var(--font);font-size:13px;font-weight:400;color:rgba(177,201,251,0.55);text-align:left;text-decoration:none;transition:color .15s,background .15s,border-color .15s;}
+    .nav-link:hover{color:rgba(240,244,255,0.88);background:var(--navy-hover);}
+    .nav-link.active{color:var(--powder);border-left-color:var(--powder);background:rgba(177,201,251,0.07);font-weight:500;}
+    .nav-icon{width:15px;height:15px;flex-shrink:0;}
+    .sidenav-foot{flex-shrink:0;padding:12px 14px 18px;border-top:1px solid var(--border-nav);}
+    .sidenav-user{display:flex;align-items:center;gap:9px;padding:6px 4px 10px;}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .sidenav-user-name{font-size:12px;font-weight:500;color:rgba(240,244,255,0.85);line-height:1.2;}
+    .sidenav-user-role{font-size:10px;color:rgba(177,201,251,0.38);text-transform:capitalize;margin-top:1px;}
+    .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font);font-size:11px;color:rgba(177,201,251,0.32);transition:color .15s,border-color .15s;}
+    .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
+
+    /* Topstrip */
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .ts-clock{font-size:13px;font-weight:500;color:var(--text);}
+    .ts-date{font-size:11px;color:var(--text-3);margin-top:2px;}
+
+    /* Main */
+    .main{max-width:960px;margin:0 auto;padding:28px 28px 80px;}
+    .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .page-head h1{font-size:20px;font-weight:800;color:var(--navy);}
+    .page-sub{font-size:13px;color:var(--text-2);margin-bottom:20px;}
+
+    /* Toolbar */
+    .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+    .search-wrap{position:relative;flex:1;min-width:180px;}
+    .search-input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;background:var(--surface);color:var(--text);outline:none;}
+    .search-input:focus{border-color:rgba(44,92,156,0.30);}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;}
+    .btn{padding:9px 16px;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+    .btn-primary:hover{background:var(--blue);border-color:var(--blue);}
+    .btn-ghost{background:var(--surface);color:var(--text-2);border-color:var(--border);}
+    .btn-ghost:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+    .pin-filter{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);font-weight:600;cursor:pointer;}
+
+    /* Stats row */
+    .stats{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;}
+    .stat-num{font-size:22px;font-weight:800;color:var(--navy);}
+    .stat-lbl{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
+
+    /* Table */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    thead th{font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--canvas);}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+    tbody tr:last-child{border-bottom:none;}
+    tbody tr:hover{background:#f8fafc;}
+    td{padding:11px 14px;font-size:13px;vertical-align:middle;}
+    .member-name{font-weight:600;color:var(--navy);}
+    .member-phone{color:var(--text-3);font-size:12px;}
+    .pin-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;}
+    .pin-set{background:rgba(22,163,74,0.08);color:var(--green);}
+    .pin-empty{background:#f3f4f6;color:var(--text-3);}
+    .action-btn{padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);font-family:var(--font);font-size:11px;font-weight:600;color:var(--text-2);cursor:pointer;}
+    .action-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+    .empty-state{padding:40px;text-align:center;color:var(--text-3);font-size:13px;}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--surface);border-radius:18px;padding:28px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.20);}
+    .modal h2{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{display:block;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+    .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;background:var(--canvas);color:var(--text);outline:none;}
+    .field input:focus,.field select:focus{border-color:rgba(44,92,156,0.35);}
+    .modal-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;}
+    .modal-actions .btn{flex:1;}
+
+    @media(max-width:768px){
+      .sidenav{display:none;}
+      body{padding-left:0;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Daily Ops</div>
+      <a href="/hub.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Dashboard</a>
+      <a href="/checklist.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Checklist</a>
+      <a href="/cash-summary.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Cash Summary</a>
+      <a href="/comms.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Communications</a>
+      <div class="nav-group-label">Schedule & Pay</div>
+      <a href="/schedule.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</a>
+      <a href="/timesheet.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Timesheets</a>
+      <div class="nav-group-label">Programs</div>
+      <a href="/members.html" class="nav-link active"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Members</a>
+      <a href="/academy.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Academy</a>
+      <div class="nav-group-label">Pro Shop</div>
+      <a href="/proshop.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Pro Shop</a>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div>
+          <div class="sidenav-user-name" id="nav-name">—</div>
+          <div class="sidenav-user-role" id="nav-role">—</div>
+        </div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Topstrip -->
+  <div class="topstrip">
+    <div style="font-size:13px;font-weight:700;color:var(--text-2);">Members</div>
+    <div style="text-align:right">
+      <div class="ts-clock" id="clock">—</div>
+      <div class="ts-date" id="dateline">—</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Member List</h1>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/checkin.html" class="btn btn-ghost" target="_blank">Open Kiosk ↗</a>
+        <button class="btn btn-primary mgmt-only" onclick="openAddModal()">+ Add Member</button>
+      </div>
+    </div>
+    <div class="page-sub" id="page-sub">Loading…</div>
+
+    <div class="stats" id="stats-row"></div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="search-input" id="search" type="text" placeholder="Search by name or phone…" oninput="filterMembers()">
+      </div>
+      <label class="pin-filter">
+        <input type="checkbox" id="no-pin-filter" onchange="filterMembers()"> No PIN only
+      </label>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th class="mgmt-only">PIN</th>
+            <th>Type</th>
+            <th class="mgmt-only"></th>
+          </tr>
+        </thead>
+        <tbody id="member-tbody"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none">No members match your search.</div>
+    </div>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2 id="modal-title">Add Member</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>First Name</label><input id="m-fn" type="text" autocomplete="off" /></div>
+        <div class="field"><label>Last Name</label><input id="m-ln" type="text" autocomplete="off" /></div>
+      </div>
+      <div class="field"><label>Phone</label><input id="m-phone" type="tel" autocomplete="off" /></div>
+      <div class="field">
+        <label>PIN (4 digits)</label>
+        <input id="m-pin" type="text" maxlength="4" autocomplete="off" placeholder="Leave blank to set later" />
+        <div class="modal-hint">Default: last 4 digits of their phone number.</div>
+      </div>
+      <div class="field">
+        <label>Member Type</label>
+        <select id="m-type">
+          <option value="full">Full</option>
+          <option value="junior">Junior</option>
+          <option value="family">Family</option>
+          <option value="social">Social</option>
+          <option value="limited">Limited</option>
+          <option value="seasonal">Seasonal</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveMember()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/staff-avatar.js"></script>
+  <script>
+    let me = null, allMembers = [], editingId = null;
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    async function doLogout() { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/login.html'; }
+
+    function tick() {
+      const n = new Date(), c = document.getElementById('clock'), d = document.getElementById('dateline');
+      if (c) c.textContent = n.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (d) d.textContent = n.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    tick(); setInterval(tick, 30000);
+
+    async function load() {
+      const r = await fetch('/api/members');
+      if (r.status === 401) { location.href = '/login.html'; return; }
+      allMembers = await r.json();
+
+      const total = allMembers.length;
+      const withPin = allMembers.filter(m => m.pin).length;
+      const noPin = total - withPin;
+
+      document.getElementById('page-sub').textContent = `${total} members loaded.`;
+      document.getElementById('stats-row').innerHTML = `
+        <div class="stat"><div class="stat-num">${total}</div><div class="stat-lbl">Total Members</div></div>
+        <div class="stat"><div class="stat-num">${withPin}</div><div class="stat-lbl">PINs Set</div></div>
+        <div class="stat"><div class="stat-num">${noPin}</div><div class="stat-lbl">No PIN Yet</div></div>
+      `;
+      filterMembers();
+    }
+
+    function filterMembers() {
+      const q = (document.getElementById('search').value || '').toLowerCase().trim();
+      const noPinOnly = document.getElementById('no-pin-filter').checked;
+      const isMgmt = me && (me.role === 'admin' || me.role === 'manager');
+
+      let filtered = allMembers;
+      if (q) filtered = filtered.filter(m =>
+        (m.first_name + ' ' + m.last_name).toLowerCase().includes(q) ||
+        (m.phone || '').includes(q)
+      );
+      if (noPinOnly) filtered = filtered.filter(m => !m.pin);
+
+      const tbody = document.getElementById('member-tbody');
+      if (!filtered.length) {
+        tbody.innerHTML = '';
+        document.getElementById('empty-state').style.display = '';
+        return;
+      }
+      document.getElementById('empty-state').style.display = 'none';
+
+      tbody.innerHTML = filtered.map(m => `
+        <tr>
+          <td><div class="member-name">${esc(m.first_name)} ${esc(m.last_name)}</div></td>
+          <td><span class="member-phone">${esc(m.phone || '—')}</span></td>
+          ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
+          <td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>
+          ${isMgmt ? `<td><button class="action-btn" onclick="openEditModal(${m.id})">Edit / PIN</button></td>` : ''}
+        </tr>
+      `).join('');
+    }
+
+    function openAddModal() {
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'Add Member';
+      document.getElementById('m-fn').value = '';
+      document.getElementById('m-ln').value = '';
+      document.getElementById('m-phone').value = '';
+      document.getElementById('m-pin').value = '';
+      document.getElementById('m-type').value = 'full';
+      document.getElementById('modal').classList.add('open');
+      document.getElementById('m-fn').focus();
+    }
+
+    function openEditModal(id) {
+      const m = allMembers.find(x => x.id === id);
+      if (!m) return;
+      editingId = id;
+      document.getElementById('modal-title').textContent = 'Edit Member';
+      document.getElementById('m-fn').value = m.first_name;
+      document.getElementById('m-ln').value = m.last_name;
+      document.getElementById('m-phone').value = m.phone || '';
+      document.getElementById('m-pin').value = m.pin || '';
+      document.getElementById('m-type').value = m.member_type || 'full';
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+    async function saveMember() {
+      const fn = document.getElementById('m-fn').value.trim();
+      const ln = document.getElementById('m-ln').value.trim();
+      if (!fn || !ln) { alert('First and last name required.'); return; }
+      const body = {
+        first_name: fn, last_name: ln,
+        phone: document.getElementById('m-phone').value.trim(),
+        pin: document.getElementById('m-pin').value.trim(),
+        member_type: document.getElementById('m-type').value,
+      };
+      const url = editingId ? `/api/members/${editingId}` : '/api/members';
+      const r = await fetch(url, { method: editingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) { alert('Save failed.'); return; }
+      closeModal();
+      await load();
+    }
+
+    async function init() {
+      const r = await fetch('/api/me');
+      if (r.status === 401) { location.href = '/login.html'; return; }
+      me = await r.json();
+      const av = document.getElementById('nav-avatar');
+      if (av) { av.textContent = me.name.charAt(0).toUpperCase(); av.style.background = me.color || '#2c5c9c'; av.style.color = '#fff'; }
+      const nn = document.getElementById('nav-name'); if (nn) nn.textContent = me.name;
+      const nr = document.getElementById('nav-role'); if (nr) nr.textContent = me.role;
+      if (!me.is_management) document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
+      await load();
+    }
+    init();
+  </script>
+</body>
+</html>
