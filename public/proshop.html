@@ -70,6 +70,18 @@
     .who-av{width:24px;height:24px;border-radius:50%;overflow:hidden;flex-shrink:0;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
     .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+    /* ProShop two-column layout */
+    .ps-layout{display:flex;align-items:flex-start;gap:20px;}
+    .ps-sidenav{flex-shrink:0;width:154px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 8px;position:sticky;top:66px;}
+    .ps-sidenav-title{font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);padding:6px 8px 4px;}
+    .ps-nav-item{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:8px 10px;border-radius:9px;text-decoration:none;color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;background:none;border:none;font-family:inherit;width:100%;text-align:left;}
+    .ps-nav-item:hover{background:#eef2f8;color:var(--text);}
+    .ps-nav-item.ps-active{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .ps-nav-item.ps-disabled{color:var(--text-3);cursor:default;pointer-events:none;}
+    .ps-soon{font-size:9px;font-weight:700;letter-spacing:0.03em;background:#f3f4f6;color:var(--text-3);border-radius:5px;padding:1px 5px;white-space:nowrap;}
+    .ps-content{flex:1;min-width:0;}
+    @media(max-width:680px){.ps-layout{flex-direction:column;}.ps-sidenav{width:100%;position:static;display:flex;flex-wrap:wrap;gap:4px;padding:8px;}.ps-sidenav-title{display:none;}.ps-nav-item{width:auto;}}
   </style>
 </head>
 <body>
@@ -87,45 +99,66 @@
   </div>
 
   <div class="wrap">
-    <div class="page-head"><h1>Pro Shop</h1></div>
-    <div class="page-sub">String Log — record every racket strung. Counts only; pay is handled by payroll.</div>
+    <div class="ps-layout">
 
-    <!-- Stringer totals -->
-    <div class="card">
-      <div class="card-title">Rackets strung</div>
-      <div class="counts" id="counts"><div class="empty" style="padding:8px 0">No strings logged yet.</div></div>
-    </div>
+      <!-- Sidebar nav -->
+      <nav class="ps-sidenav">
+        <div class="ps-sidenav-title">Pro Shop</div>
+        <button class="ps-nav-item ps-active" onclick="showSection('stringing',this)">Stringing</button>
+        <button class="ps-nav-item ps-disabled">Rackets <span class="ps-soon">soon</span></button>
+        <button class="ps-nav-item ps-disabled">Merchandise <span class="ps-soon">soon</span></button>
+        <button class="ps-nav-item ps-disabled">Supplies <span class="ps-soon">soon</span></button>
+        <button class="ps-nav-item ps-disabled">Drinks &amp; Snacks <span class="ps-soon">soon</span></button>
+      </nav>
 
-    <!-- Add a string -->
-    <div class="card" id="add-card">
-      <div class="card-title">Log a string</div>
-      <form autocomplete="off" onsubmit="return false;">
-      <div class="add-grid">
-        <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
-        <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name" autocomplete="off"></div>
-        <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU" autocomplete="off"></div>
-        <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55" autocomplete="off" name="tension_lbs"></div>
-        <div class="fld"><label>Taken in by</label><select id="f-taken" autocomplete="off"></select></div>
-        <div class="fld"><label>Strung by</label><select id="f-by" autocomplete="off"></select></div>
-        <button class="btn-add" onclick="addString()">Add</button>
-      </div>
-      </form>
-      <div style="margin-top:9px;display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="f-own-string" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;">
-        <label for="f-own-string" style="font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;">Member providing own string (labour only)</label>
-      </div>
-    </div>
+      <!-- Content -->
+      <div class="ps-content">
 
-    <!-- Log -->
-    <div class="card">
-      <div class="card-title">Log</div>
-      <div class="tbl-wrap">
-        <table class="log">
-          <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Taken in</th><th>Strung by</th><th>Paid?</th><th></th></tr></thead>
-          <tbody id="log-body"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
+        <!-- Section: Stringing -->
+        <div id="section-stringing">
+          <div class="page-head"><h1>Stringing</h1></div>
+          <div class="page-sub">Record every racket strung. Counts only; pay is handled by payroll.</div>
+
+          <!-- Stringer totals -->
+          <div class="card">
+            <div class="card-title">Rackets strung this period</div>
+            <div class="counts" id="counts"><div class="empty" style="padding:8px 0">No strings logged yet.</div></div>
+          </div>
+
+          <!-- Add a string -->
+          <div class="card" id="add-card">
+            <div class="card-title">Log a string</div>
+            <form autocomplete="off" onsubmit="return false;">
+            <div class="add-grid">
+              <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
+              <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name" autocomplete="off"></div>
+              <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU" autocomplete="off"></div>
+              <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55" autocomplete="off" name="tension_lbs"></div>
+              <div class="fld"><label>Taken in by</label><select id="f-taken" autocomplete="off"></select></div>
+              <div class="fld"><label>Strung by</label><select id="f-by" autocomplete="off"></select></div>
+              <button class="btn-add" onclick="addString()">Add</button>
+            </div>
+            </form>
+            <div style="margin-top:9px;display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="f-own-string" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;">
+              <label for="f-own-string" style="font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;">Member providing own string (labour only)</label>
+            </div>
+          </div>
+
+          <!-- Log -->
+          <div class="card">
+            <div class="card-title">Log</div>
+            <div class="tbl-wrap">
+              <table class="log">
+                <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Taken in</th><th>Strung by</th><th>Paid?</th><th></th></tr></thead>
+                <tbody id="log-body"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div><!-- /section-stringing -->
+
+      </div><!-- /ps-content -->
+    </div><!-- /ps-layout -->
   </div>
 
   <div id="toast" class="toast"></div>
@@ -148,7 +181,7 @@
       const EXCLUDE_TAKEN_IN=['craig','jaime'];
       const officeStaff=staff.filter(s=>['manager','staff'].includes(s.role)&&!EXCLUDE_TAKEN_IN.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-taken').innerHTML=optList(officeStaff,'');   // no auto-select; Craig + Jaime excluded
-      const STRINGERS=['lilly','matthew'];
+      const STRINGERS=['lily','matthew'];
       const stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-by').innerHTML=optList(stringers,'');
       document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
@@ -222,6 +255,14 @@
       if(!confirm('Remove this string log entry?')) return;
       const r=await fetch('/api/proshop/strings/'+id,{method:'DELETE'});
       if(r.ok){ loadAll(); toast('Removed'); }
+    }
+
+    function showSection(id, btn) {
+      document.querySelectorAll('.ps-nav-item').forEach(b => b.classList.remove('ps-active'));
+      if (btn) btn.classList.add('ps-active');
+      document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+      const el = document.getElementById('section-' + id);
+      if (el) el.style.display = '';
     }
 
     init();

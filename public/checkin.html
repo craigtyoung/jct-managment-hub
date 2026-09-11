@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>JCT Member Check-In</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root {
+      --navy:#0c1738; --blue:#2c5c9c; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --bg:#f4f6fa; --surface:#ffffff; --border:#e4e8f0; --text:#0c1738; --text-2:#3b4a63; --text-3:#8a97ad;
+      --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;}
+    body{font-family:var(--font);background:var(--navy);color:#fff;display:flex;flex-direction:column;min-height:100vh;}
+
+    /* Header */
+    .hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.10);}
+    .hdr-logo{font-size:18px;font-weight:800;letter-spacing:-0.01em;color:#fff;opacity:.9;}
+    .hdr-logo span{opacity:.5;font-weight:400;}
+    .hdr-clock{text-align:right;}
+    .clock-time{font-size:22px;font-weight:700;color:#fff;line-height:1;}
+    .clock-date{font-size:12px;color:rgba(255,255,255,0.50);margin-top:2px;}
+    .hdr-count{font-size:13px;color:rgba(255,255,255,0.55);font-weight:600;}
+
+    /* Main */
+    .main{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .card{background:var(--surface);color:var(--text);border-radius:20px;padding:32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.35);}
+
+    /* Screens */
+    .screen{display:none;}
+    .screen.active{display:block;}
+
+    /* PIN screen */
+    .screen-title{font-size:18px;font-weight:800;color:var(--navy);text-align:center;margin-bottom:4px;}
+    .screen-sub{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:20px;}
+    .pin-display{display:flex;justify-content:center;gap:10px;margin-bottom:20px;height:48px;align-items:center;}
+    .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:background .15s,border-color .15s;}
+    .pin-dot.filled{background:var(--navy);border-color:var(--navy);}
+    .pin-error{font-size:13px;color:var(--red);text-align:center;min-height:18px;margin-bottom:8px;font-weight:600;}
+
+    /* Keypad */
+    .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+    .key{height:68px;border:1px solid var(--border);border-radius:14px;background:var(--bg);font-family:var(--font);font-size:24px;font-weight:700;color:var(--navy);cursor:pointer;transition:background .1s,transform .1s;display:flex;align-items:center;justify-content:center;user-select:none;}
+    .key:active,.key.pressed{background:#e8edf6;transform:scale(0.95);}
+    .key.key-action{font-size:13px;font-weight:800;color:var(--blue);}
+    .key.key-del{font-size:18px;color:var(--text-3);}
+    .key.key-go{background:var(--navy);color:#fff;border-color:var(--navy);}
+    .key.key-go:active{background:var(--blue);border-color:var(--blue);}
+
+    /* Name search toggle */
+    .alt-link{text-align:center;margin-top:18px;}
+    .alt-link button{background:none;border:none;font-family:var(--font);font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;text-decoration:underline;padding:4px;}
+
+    /* Name search screen */
+    .name-input-wrap{position:relative;margin-bottom:14px;}
+    .name-input{width:100%;font-family:var(--font);font-size:16px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);outline:none;}
+    .name-input:focus{border-color:var(--blue);}
+    .name-results{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;}
+    .name-result{padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--navy);transition:background .1s;}
+    .name-result:hover,.name-result:active{background:#e8edf6;}
+    .name-result .result-type{font-size:11px;font-weight:600;color:var(--text-3);text-transform:capitalize;margin-top:2px;}
+    .no-results{text-align:center;color:var(--text-3);font-size:13px;padding:20px 0;}
+
+    /* Confirmation screen */
+    .confirm-name{font-size:28px;font-weight:800;color:var(--navy);text-align:center;margin:12px 0 4px;}
+    .confirm-type{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:24px;text-transform:capitalize;}
+    .already-badge{display:inline-block;background:#dcfce7;color:var(--green);font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;margin:0 auto 16px;display:block;text-align:center;}
+    .btn-confirm{width:100%;padding:18px;border:none;border-radius:14px;background:var(--green);color:#fff;font-family:var(--font);font-size:16px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;margin-bottom:10px;}
+    .btn-confirm:active{background:#15803d;transform:scale(0.98);}
+    .btn-back{width:100%;padding:13px;border:1px solid var(--border);border-radius:14px;background:var(--bg);color:var(--text-2);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;}
+    .btn-back:hover{background:#eef2f8;}
+
+    /* Success screen */
+    .success-icon{font-size:60px;text-align:center;margin-bottom:16px;}
+    .success-msg{font-size:24px;font-weight:800;color:var(--green);text-align:center;margin-bottom:6px;}
+    .success-sub{font-size:14px;color:var(--text-3);text-align:center;}
+    .success-countdown{font-size:12px;color:var(--text-3);text-align:center;margin-top:18px;}
+
+    /* Footer */
+    .ftr{padding:12px 24px;text-align:center;font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:0.02em;}
+  </style>
+</head>
+<body>
+
+  <div class="hdr">
+    <div class="hdr-logo">Joshua Creek Tennis <span>· Member Check-In</span></div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div class="hdr-count" id="today-count">— checked in today</div>
+      <div class="hdr-clock">
+        <div class="clock-time" id="clock">—</div>
+        <div class="clock-date" id="dateline">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card">
+
+      <!-- PIN entry screen -->
+      <div class="screen active" id="screen-pin">
+        <div class="screen-title">Welcome to JCT</div>
+        <div class="screen-sub">Enter your 4-digit PIN to check in</div>
+        <div class="pin-display" id="pin-display">
+          <div class="pin-dot" id="d0"></div>
+          <div class="pin-dot" id="d1"></div>
+          <div class="pin-dot" id="d2"></div>
+          <div class="pin-dot" id="d3"></div>
+        </div>
+        <div class="pin-error" id="pin-error">&nbsp;</div>
+        <div class="keypad">
+          <button class="key" onclick="addDigit('1')">1</button>
+          <button class="key" onclick="addDigit('2')">2</button>
+          <button class="key" onclick="addDigit('3')">3</button>
+          <button class="key" onclick="addDigit('4')">4</button>
+          <button class="key" onclick="addDigit('5')">5</button>
+          <button class="key" onclick="addDigit('6')">6</button>
+          <button class="key" onclick="addDigit('7')">7</button>
+          <button class="key" onclick="addDigit('8')">8</button>
+          <button class="key" onclick="addDigit('9')">9</button>
+          <button class="key key-del" onclick="delDigit()">⌫</button>
+          <button class="key" onclick="addDigit('0')">0</button>
+          <button class="key key-go" onclick="submitPin()">Go</button>
+        </div>
+        <div class="alt-link"><button onclick="showNameSearch()">Search by last name instead</button></div>
+      </div>
+
+      <!-- Name search screen -->
+      <div class="screen" id="screen-name">
+        <div class="screen-title">Search by Last Name</div>
+        <div class="screen-sub">Type the first few letters of your last name</div>
+        <div class="name-input-wrap">
+          <input class="name-input" id="name-input" type="text" autocomplete="off" autocorrect="off"
+            autocapitalize="words" spellcheck="false" placeholder="e.g. Smi" maxlength="20"
+            oninput="searchName()" />
+        </div>
+        <div class="name-results" id="name-results"></div>
+        <div class="alt-link"><button onclick="showPin()">Use PIN instead</button></div>
+      </div>
+
+      <!-- Confirmation screen -->
+      <div class="screen" id="screen-confirm">
+        <div class="screen-title">Is this you?</div>
+        <div class="confirm-name" id="confirm-name">—</div>
+        <div class="confirm-type" id="confirm-type">—</div>
+        <div id="already-notice" style="display:none" class="already-badge">Already checked in today ✓</div>
+        <button class="btn-confirm" id="confirm-btn" onclick="confirmCheckin()">That's me — Check In!</button>
+        <button class="btn-back" onclick="resetToPin()">Not me — try again</button>
+      </div>
+
+      <!-- Success screen -->
+      <div class="screen" id="screen-success">
+        <div class="success-icon">✓</div>
+        <div class="success-msg" id="success-msg">Checked in!</div>
+        <div class="success-sub" id="success-sub">Enjoy your time at JCT.</div>
+        <div class="success-countdown" id="success-countdown"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="ftr">This area is monitored by security cameras &nbsp;·&nbsp; Staff: members are managed via the Hub</div>
+
+  <script>
+    let pin = '';
+    let pendingMember = null;
+    let pendingMethod = 'pin';
+    let countdownTimer = null;
+
+    // Clock
+    function tick() {
+      const n = new Date();
+      const c = document.getElementById('clock'), d = document.getElementById('dateline');
+      if (c) c.textContent = n.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (d) d.textContent = n.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+    tick(); setInterval(tick, 10000);
+
+    // Today count
+    async function loadTodayCount() {
+      try {
+        const r = await fetch('/api/checkin/today');
+        if (r.ok) {
+          const data = await r.json();
+          const el = document.getElementById('today-count');
+          if (el) el.textContent = data.count === 1 ? '1 checked in today' : `${data.count} checked in today`;
+        }
+      } catch (e) {}
+    }
+    loadTodayCount(); setInterval(loadTodayCount, 60000);
+
+    // Screen navigation
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + id).classList.add('active');
+    }
+    function showPin() { resetToPin(); }
+    function showNameSearch() {
+      showScreen('name');
+      setTimeout(() => document.getElementById('name-input').focus(), 100);
+    }
+
+    // PIN logic
+    function updateDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('d' + i);
+        if (dot) dot.classList.toggle('filled', i < pin.length);
+      }
+    }
+    function addDigit(d) {
+      if (pin.length >= 4) return;
+      document.getElementById('pin-error').innerHTML = '&nbsp;';
+      pin += d;
+      updateDots();
+      if (pin.length === 4) setTimeout(submitPin, 120);
+    }
+    function delDigit() {
+      pin = pin.slice(0, -1);
+      document.getElementById('pin-error').innerHTML = '&nbsp;';
+      updateDots();
+    }
+    async function submitPin() {
+      if (pin.length < 4) { document.getElementById('pin-error').textContent = 'Enter all 4 digits'; return; }
+      try {
+        const r = await fetch('/api/checkin/lookup?pin=' + encodeURIComponent(pin));
+        if (r.status === 404) {
+          document.getElementById('pin-error').textContent = 'PIN not found — try again or search by name';
+          pin = ''; updateDots(); return;
+        }
+        if (!r.ok) { document.getElementById('pin-error').textContent = 'Something went wrong — try again'; pin = ''; updateDots(); return; }
+        const data = await r.json();
+        pendingMember = data.member;
+        pendingMethod = 'pin';
+        showConfirm(data.already_checked_in);
+      } catch (e) {
+        document.getElementById('pin-error').textContent = 'Connection error — please try again';
+        pin = ''; updateDots();
+      }
+    }
+
+    // Name search
+    let nameTimer = null;
+    async function searchName() {
+      const q = document.getElementById('name-input').value.trim();
+      const res = document.getElementById('name-results');
+      if (q.length < 2) { res.innerHTML = ''; return; }
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(async () => {
+        try {
+          const r = await fetch('/api/checkin/search?q=' + encodeURIComponent(q));
+          if (!r.ok) return;
+          const members = await r.json();
+          if (!members.length) { res.innerHTML = '<div class="no-results">No members found</div>'; return; }
+          res.innerHTML = members.map(m =>
+            `<div class="name-result" onclick="selectMember(${m.id},'${escAttr(m.first_name)}','${escAttr(m.last_name)}','${escAttr(m.member_type || '')}')">
+              ${esc(m.first_name)} ${esc(m.last_name)}
+              <div class="result-type">${esc(m.member_type || 'member')}</div>
+            </div>`
+          ).join('');
+        } catch (e) {}
+      }, 250);
+    }
+    function selectMember(id, fn, ln, type) {
+      pendingMember = { id, first_name: fn, last_name: ln, member_type: type };
+      pendingMethod = 'name';
+      // Check if already in via quick fetch
+      fetch('/api/checkin/lookup?pin=__skip__').catch(() => {});
+      showConfirm(false);
+    }
+
+    // Confirm screen
+    function showConfirm(alreadyIn) {
+      if (!pendingMember) return;
+      document.getElementById('confirm-name').textContent = pendingMember.first_name + ' ' + pendingMember.last_name;
+      document.getElementById('confirm-type').textContent = pendingMember.member_type || 'Member';
+      const alreadyEl = document.getElementById('already-notice');
+      const confirmBtn = document.getElementById('confirm-btn');
+      if (alreadyIn) {
+        alreadyEl.style.display = 'block';
+        confirmBtn.textContent = 'That\'s me — I\'m here!';
+      } else {
+        alreadyEl.style.display = 'none';
+        confirmBtn.textContent = 'That\'s me — Check In!';
+      }
+      showScreen('confirm');
+    }
+
+    async function confirmCheckin() {
+      if (!pendingMember) return;
+      try {
+        const r = await fetch('/api/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: pendingMember.id, method: pendingMethod }),
+        });
+        const data = await r.json();
+        showSuccess(pendingMember.first_name, data.already);
+        loadTodayCount();
+      } catch (e) {
+        showSuccess(pendingMember.first_name, false);
+      }
+    }
+
+    // Success screen
+    function showSuccess(firstName, wasAlready) {
+      document.getElementById('success-msg').textContent = wasAlready
+        ? `Welcome back, ${firstName}!`
+        : `Checked in — welcome, ${firstName}!`;
+      document.getElementById('success-sub').textContent = wasAlready
+        ? 'You were already logged in. Enjoy your game!'
+        : 'Enjoy your time at JCT.';
+      showScreen('success');
+      clearTimeout(countdownTimer);
+      let secs = 4;
+      const countEl = document.getElementById('success-countdown');
+      function updateCountdown() {
+        countEl.textContent = `Returning in ${secs}…`;
+        if (secs > 0) { secs--; countdownTimer = setTimeout(updateCountdown, 1000); }
+        else resetToPin();
+      }
+      updateCountdown();
+    }
+
+    // Reset
+    function resetToPin() {
+      pin = ''; pendingMember = null; pendingMethod = 'pin';
+      clearTimeout(countdownTimer);
+      updateDots();
+      document.getElementById('pin-error').innerHTML = '&nbsp;';
+      document.getElementById('name-input').value = '';
+      document.getElementById('name-results').innerHTML = '';
+      showScreen('pin');
+    }
+
+    // Utils
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s == null ? '' : s).replace(/'/g,"\\'"); }
+
+    // Keyboard support (for testing on desktop)
+    document.addEventListener('keydown', e => {
+      const screen = document.querySelector('.screen.active');
+      if (!screen) return;
+      if (screen.id === 'screen-pin') {
+        if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+        if (e.key === 'Backspace') delDigit();
+        if (e.key === 'Enter') submitPin();
+      }
+    });
+  </script>
+</body>
+</html>

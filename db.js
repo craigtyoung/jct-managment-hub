@@ -498,7 +498,7 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
   save();
   console.log('Appended adult academy classes:', ACADEMY_ADULT_SEED.length);
 }
-['academy_waitlist', 'academy_changes', 'academy_notes', 'staff_pay', 'push_subscriptions'].forEach(t => {
+['academy_waitlist', 'academy_changes', 'academy_notes', 'staff_pay', 'push_subscriptions', 'members', 'checkin_logs'].forEach(t => {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 
@@ -2792,6 +2792,77 @@ function getPublicProSchedule() {
   });
 }
 
+// ─── Members (check-in system) ────────────────────────────────────────────────
+function getAllMembers(includeInactive) {
+  return (_data.members || [])
+    .filter(m => includeInactive || m.active !== false)
+    .sort((a, b) => String(a.last_name).localeCompare(String(b.last_name)) || String(a.first_name).localeCompare(String(b.first_name)));
+}
+function getMemberById(id) { return (_data.members || []).find(m => m.id === parseInt(id)); }
+function getMemberByPin(pin) {
+  if (!pin) return null;
+  return (_data.members || []).find(m => m.active !== false && String(m.pin) === String(pin).trim());
+}
+function searchMembersByName(q) {
+  if (!q) return [];
+  const s = String(q).toLowerCase().trim();
+  return (_data.members || [])
+    .filter(m => m.active !== false && String(m.last_name || '').toLowerCase().startsWith(s))
+    .sort((a, b) => String(a.last_name).localeCompare(String(b.last_name)) || String(a.first_name).localeCompare(String(b.first_name)));
+}
+function addMember({ firstName, lastName, phone, email, pin, memberType }) {
+  if (!Array.isArray(_data.members)) { _data.members = []; _data._seq.members = 0; }
+  const id = nextId('members');
+  _data.members.push({
+    id,
+    first_name: String(firstName || '').trim().slice(0, 60),
+    last_name: String(lastName || '').trim().slice(0, 60),
+    phone: String(phone || '').trim().slice(0, 20),
+    email: String(email || '').trim().slice(0, 80),
+    pin: String(pin || '').trim().slice(0, 10),
+    member_type: ['full', 'junior', 'family', 'social', 'limited', 'seasonal', 'other'].includes(memberType) ? memberType : 'full',
+    active: true,
+    created_at: now(),
+  });
+  save(); return id;
+}
+function updateMember(id, fields) {
+  const m = (_data.members || []).find(x => x.id === parseInt(id));
+  if (!m) return null;
+  if (fields.firstName !== undefined) m.first_name = String(fields.firstName).trim().slice(0, 60);
+  if (fields.lastName !== undefined) m.last_name = String(fields.lastName).trim().slice(0, 60);
+  if (fields.phone !== undefined) m.phone = String(fields.phone).trim().slice(0, 20);
+  if (fields.email !== undefined) m.email = String(fields.email).trim().slice(0, 80);
+  if (fields.pin !== undefined) m.pin = String(fields.pin).trim().slice(0, 10);
+  if (fields.memberType !== undefined) m.member_type = fields.memberType;
+  if (fields.active !== undefined) m.active = !!fields.active;
+  save(); return m;
+}
+function deactivateMember(id) {
+  const m = (_data.members || []).find(x => x.id === parseInt(id));
+  if (!m) return false;
+  m.active = false; save(); return true;
+}
+// ─── Check-in logs ────────────────────────────────────────────────────────────
+function addCheckinLog({ memberId, method }) {
+  if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
+  const id = nextId('checkin_logs');
+  const ts = now();
+  _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: ts.slice(0, 10), time: ts.slice(11, 19), method: method === 'name' ? 'name' : 'pin', created_at: ts });
+  save(); return id;
+}
+function getCheckinLogsByDate(date) {
+  const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m.first_name + ' ' + m.last_name; });
+  return (_data.checkin_logs || [])
+    .filter(l => l.date === date)
+    .sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    .map(l => ({ ...l, member_name: byId[l.member_id] || '—' }));
+}
+function getMemberCheckinToday(memberId) {
+  const today = now().slice(0, 10);
+  return (_data.checkin_logs || []).find(l => l.date === today && l.member_id === parseInt(memberId)) || null;
+}
+
 module.exports = {
   getIdeas,
   getIdea,
@@ -2939,4 +3010,14 @@ module.exports = {
   getCashSummary,
   upsertCashSummary,
   getCashSummaryRange,
+  getAllMembers,
+  getMemberById,
+  getMemberByPin,
+  searchMembersByName,
+  addMember,
+  updateMember,
+  deactivateMember,
+  addCheckinLog,
+  getCheckinLogsByDate,
+  getMemberCheckinToday,
 };

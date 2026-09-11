@@ -56,6 +56,8 @@ const academyRoutes     = require('./routes/academy');
 const proScheduleRoutes = require('./routes/pro-schedule');
 const staffMgmtRoutes   = require('./routes/staff-mgmt');
 const pushRoutes        = require('./routes/push');
+const checkinRoutes     = require('./routes/checkin');
+const membersRoutes     = require('./routes/members');
 
 app.use('/api/auth', authRoutes);
 
@@ -69,6 +71,9 @@ app.get('/api/public/pro-schedule', (req, res) => {
 // Public: current server build id. Open pages poll this to detect a new deploy and
 // offer a soft "update now" prompt — never a forced reload.
 app.get('/api/version', (req, res) => res.json({ boot: BOOT_ID }));
+
+// Public kiosk: member check-in (no login required — tablet stays open all day)
+app.use('/api/checkin', checkinRoutes);
 
 // First-login guard: until a user sets their own password, block every data
 // endpoint (auth, identity and avatar reads stay open so they can complete setup).
@@ -124,6 +129,7 @@ app.use('/api/academy',      requireAuth, academyRoutes);
 app.use('/api/pro-schedule', requireAuth, proScheduleRoutes);
 app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
 app.use('/api/push',         requireAuth, pushRoutes);
+app.use('/api/members',      requireAuth, membersRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {
