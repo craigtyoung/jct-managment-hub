@@ -13,6 +13,7 @@ router.use((req, res, next) => {
   next();
 });
 function isMgmt(id) { const s = db.getStaffById(id); return s && ['admin', 'manager'].includes(s.role); }
+function isStringer(id) { const s = db.getStaffById(id); return s && ['lilly', 'matthew'].some(n => String(s.name || '').toLowerCase().includes(n)); }
 
 // Staff list for the "Strung by" picker (everyone — office staff string too).
 router.get('/staff', (req, res) => res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name, role: s.role }))));
@@ -22,6 +23,7 @@ router.get('/strings', (req, res) => res.json(db.getStringLogs()));
 router.get('/strings/counts', (req, res) => res.json(db.getStringCounts()));
 
 router.post('/strings', (req, res) => {
+  if (!isMgmt(req.actingStaffId) && !isStringer(req.actingStaffId)) return res.status(403).json({ error: 'Only Lilly, Matthew, or managers can log string entries' });
   const { date, member, string, tension, strung_by, taken_in_by, string_source } = req.body;
   if (!strung_by) return res.status(400).json({ error: 'Strung by is required' });
   const id = db.addStringLog({ date, member, string, tension, strung_by, taken_in_by, string_source });

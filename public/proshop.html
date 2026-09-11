@@ -97,7 +97,7 @@
     </div>
 
     <!-- Add a string -->
-    <div class="card">
+    <div class="card" id="add-card">
       <div class="card-title">Log a string</div>
       <form autocomplete="off" onsubmit="return false;">
       <div class="add-grid">
@@ -152,6 +152,8 @@
       const stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-by').innerHTML=optList(stringers,'');
       document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+      const canAdd = me.role==='admin' || me.role==='manager' || STRINGERS.some(n=>String(me.name||'').toLowerCase().includes(n));
+      if(!canAdd) document.getElementById('add-card').style.display='none';
       await loadAll();
     }
     window.onLiveUpdate = loadAll;
