@@ -561,12 +561,12 @@
           <option value="guest"${type==='guest'?' selected':''}>Guest</option>
           <option value="payg"${type==='payg'?' selected':''}>PAYG</option>
         </select></td>
-        <td><select class="cf-court-sel">
+        <td><select class="cf-court-sel" onchange="onInput();">
           <option value="">—</option>
           ${[1,2,3,4,5,6].map(c=>`<option value="${c}"${court==c?' selected':''}>Ct ${c}</option>`).join('')}
           <option value="in"${court==='in'?' selected':''}>Indoor</option>
         </select></td>
-        <td><select class="cf-time-sel"><option value="">Time</option>${timeOpts}</select></td>
+        <td><select class="cf-time-sel" onchange="onInput();"><option value="">Time</option>${timeOpts}</select></td>
         <td><input type="text" class="cf-name-input" placeholder="Name" value="${name.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
         <td><select class="cf-pro-sel" onchange="onInput();"><option value="">—</option>${proOpts}</select></td>
         <td><input type="text" class="cf-note-input" placeholder="Note" value="${note.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
@@ -1070,18 +1070,22 @@
 
     async function doSave() {
       saveTimer = null;
-      const payload = collectAll();
       try {
+        const payload = collectAll();
         const res = await fetch('/api/cash-summary', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (res.status === 401) { window.location.href = '/login.html'; return; }
-        if (!res.ok) throw new Error(`Save failed ${res.status}`);
-        setSaveStatus('saved', 'Saved');
+        if (!res.ok) {
+          let detail = res.status;
+          try { const d = await res.json(); detail = d.error || detail; } catch (_) {}
+          throw new Error(String(detail));
+        }
+        setSaveStatus('saved', 'Saved ✓');
       } catch (e) {
-        setSaveStatus('', `Save error — ${e.message}`);
+        setSaveStatus('', `⚠ Save error — ${e.message}`);
       }
     }
 

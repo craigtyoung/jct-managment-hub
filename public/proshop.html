@@ -240,7 +240,11 @@
         string_source:document.getElementById('f-own-string').checked?'member':'club',
       };
       const r=await fetch('/api/proshop/strings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(!r.ok){ toast('Could not save'); return; }
+      if(!r.ok){
+        let msg='Could not save';
+        try{ const d=await r.json(); msg=d.error||msg; }catch(_){}
+        toast(msg); return;
+      }
       document.getElementById('f-member').value='';
       document.getElementById('f-string').value='';
       document.getElementById('f-tension').value='';
