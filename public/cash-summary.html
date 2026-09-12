@@ -619,13 +619,11 @@
       ).join('') + addBtn(item);
 
       return `
-        <!-- Staff Name -->
-        <div class="cs-card">
-          <div class="staff-row">
-            <div class="staff-avatars" id="s${si}-avatars"></div>
-            <input type="text" class="staff-input" id="s${si}-staff" placeholder="Enter name" oninput="onInput()">
-          </div>
+        <!-- Staff (hidden input keeps name in saved data; avatars shown inline) -->
+        <input type="hidden" id="s${si}-staff">
+        <div class="staff-avatars" id="s${si}-avatars" style="display:flex;align-items:center;gap:4px;padding:10px 18px 2px;"></div>
 
+        <div class="cs-card">
           <!-- PRO SHOP -->
           <div class="cs-header ps">
             <span>Pro Shop</span>
