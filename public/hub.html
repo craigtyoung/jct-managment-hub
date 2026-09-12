@@ -2066,10 +2066,12 @@
       if (!visible.length) { wrap.innerHTML = '<div class="notes-empty">No notes yet.</div>'; return; }
       const catNames  = (cats && cats.names)  || { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' };
       const catColors = (cats && cats.colors) || { urgent:'#ef4444', membership:'#8b5cf6', 'pro-shop':'#d97706', maintenance:'#0d9488', academy:'#059669', general:'#64748b' };
+      // Clicking a note jumps straight to it in the Comm Log (opened + highlighted)
+      const commsBase = (targetId === 'pro-notes-list') ? '/comms.html?audience=pro&msg=' : '/comms.html?msg=';
       wrap.innerHTML = visible.map(m => {
         const cat = m.category || 'general';
         const unread = !m.is_read_by_me && m.author_id !== me.id;
-        return `<div class="note-row">
+        return `<div class="note-row" style="cursor:pointer" title="Open in the Comm Log" onclick="location.href='${commsBase}${m.id}'">
           <div class="note-avatar" data-photo-id="${m.author_id}" data-photo-name="${esc(m.author_name||'?')}" data-photo-color="${m.author_color}" style="background:${m.author_color}22;color:${m.author_color};overflow:hidden">${esc((m.author_name||'?').slice(0,2).toUpperCase())}</div>
           <div class="note-main">
             <div class="note-top">

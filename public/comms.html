@@ -809,6 +809,36 @@
         if (sel) { sel.value = composeCat; if (sel.onchange) sel.onchange(); }
       }
     } catch (e) {}
+
+    // Deep-link: ?msg=<id> jumps to a specific note (used by the dashboard's
+    // latest-notes list). Jump to that note's day, open it, scroll, and flash it.
+    try {
+      const msgId = parseInt(new URLSearchParams(location.search).get('msg'), 10);
+      if (msgId) focusMessage(msgId);
+    } catch (e) {}
+  }
+
+  // Bring a single message into view: switch to its day in the day feed, clear any
+  // filters that would hide it, expand its body, scroll to it, and flash a highlight.
+  function focusMessage(msgId) {
+    const target = messages.find(m => m.id === msgId);
+    if (!target) return;
+    feedMode = 'day';
+    activeCategory = 'all'; activeStaff = 'all'; activeGroup = 'all'; activeTimeSensitive = false;
+    viewDate = new Date(effDate(target) + 'T12:00:00');
+    updateDateNav();
+    renderFeed();
+    requestAnimationFrame(() => {
+      const card = document.getElementById('msg-' + msgId);
+      if (!card) return;
+      const body = document.getElementById('body-' + msgId);
+      if (body && body.style.display === 'none') toggleMsg(msgId);
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const prevShadow = card.style.boxShadow;
+      card.style.transition = 'box-shadow 0.3s';
+      card.style.boxShadow = '0 0 0 3px rgba(44,92,156,0.55)';
+      setTimeout(() => { card.style.boxShadow = prevShadow; }, 2200);
+    });
   }
 
   // Paint the per-audience UI: sidebar category filters, compose dropdown, and — for the
