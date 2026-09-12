@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Check-in Test · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <style>
+    :root{
+      --spine-w:0px;--nav-w:214px;--total-nav:calc(var(--spine-w) + var(--nav-w));
+      --navy:#0c1738;--navy-mid:#111e40;--navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c;--powder:#b1c9fb;
+      --bg:#f0f4f9;--surface:#fff;--border:rgba(12,23,56,0.08);--border-nav:rgba(177,201,251,0.07);
+      --text:#0c1738;--text-2:#4a6080;--text-3:#8fa0b8;--canvas:#f8fafc;
+      --green:#16a34a;--amber:#d97706;--red:#dc2626;
+      --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);padding-left:var(--total-nav);min-height:100vh;}
+
+    /* Sidenav */
+    .sidenav{position:fixed;left:0;top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
+    .sidenav::-webkit-scrollbar{width:0;}
+    .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);}
+    .sidenav-brand-name{font-size:1rem;font-weight:700;color:#f0f4ff;}
+    .sidenav-brand-tag{font-size:9.5px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(177,201,251,0.36);margin-top:4px;}
+    .sidenav-body{flex:1;padding:8px 0 4px;}
+    .nav-group-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:14px 18px 5px;}
+    .nav-link{display:flex;align-items:center;gap:9px;width:100%;padding:8px 18px 8px 16px;background:none;border:none;cursor:pointer;border-left:2px solid transparent;font-size:13px;font-weight:400;color:rgba(177,201,251,0.55);text-align:left;text-decoration:none;transition:color .15s,background .15s,border-color .15s;}
+    .nav-link:hover{color:rgba(240,244,255,0.88);background:var(--navy-hover);}
+    .nav-link.active{color:var(--powder);border-left-color:var(--powder);background:rgba(177,201,251,0.07);font-weight:500;}
+    .nav-icon{width:15px;height:15px;flex-shrink:0;}
+    .sidenav-foot{flex-shrink:0;padding:12px 14px 18px;border-top:1px solid var(--border-nav);}
+    .sidenav-user{display:flex;align-items:center;gap:9px;padding:6px 4px 10px;}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden;}
+    .sidenav-user-name{font-size:12px;font-weight:500;color:rgba(240,244,255,0.85);}
+    .sidenav-user-role{font-size:10px;color:rgba(177,201,251,0.38);text-transform:capitalize;margin-top:1px;}
+    .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font);font-size:11px;color:rgba(177,201,251,0.32);transition:color .15s,border-color .15s;}
+    .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
+
+    /* Topstrip */
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .ts-clock{font-size:13px;font-weight:500;} .ts-date{font-size:11px;color:var(--text-3);margin-top:1px;}
+
+    /* Main */
+    .main{padding:24px 32px 80px;max-width:960px;}
+    h1{font-size:22px;font-weight:800;margin-bottom:4px;}
+    .page-sub{font-size:13px;color:var(--text-2);margin-bottom:22px;}
+
+    /* Testing badge */
+    .test-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(217,119,6,0.1);color:var(--amber);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:16px;}
+
+    /* Two-column layout */
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    @media(max-width:700px){.cols{grid-template-columns:1fr;}}
+
+    /* Card */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+    .card-head{padding:12px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+
+    /* Search input */
+    .search-wrap{padding:14px 16px;border-bottom:1px solid var(--border);}
+    .search-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:14px;color:var(--text);background:var(--canvas);}
+    .search-input:focus{outline:none;border-color:rgba(44,92,156,0.4);}
+
+    /* Member result rows */
+    .result-list{max-height:340px;overflow-y:auto;}
+    .m-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;}
+    .m-row:last-child{border-bottom:none;}
+    .m-row:hover{background:#f0f4f9;}
+    .m-av{width:34px;height:34px;border-radius:9px;background:rgba(44,92,156,0.12);color:#2c5c9c;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .m-name{font-size:13px;font-weight:600;}
+    .m-num{font-size:11px;color:var(--text-3);}
+    .m-type{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-left:auto;color:var(--text-3);}
+    .m-checkin-btn{margin-left:8px;padding:5px 12px;border-radius:8px;border:1px solid var(--navy);background:var(--navy);color:#fff;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;}
+    .m-checkin-btn:hover{background:var(--blue);border-color:var(--blue);}
+    .empty-hint{padding:24px;text-align:center;color:var(--text-3);font-size:13px;}
+
+    /* Live feed */
+    .feed-list{max-height:420px;overflow-y:auto;}
+    .feed-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);}
+    .feed-row:last-child{border-bottom:none;}
+    .feed-av{width:30px;height:30px;border-radius:8px;background:rgba(44,92,156,0.12);color:#2c5c9c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .feed-name{font-size:13px;font-weight:600;flex:1;}
+    .feed-meta{font-size:11px;color:var(--text-3);}
+    .dup-tag{font-size:9px;font-weight:700;background:rgba(217,119,6,0.1);color:var(--amber);border-radius:4px;padding:1px 6px;margin-left:6px;}
+    .confirm-flash{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
+    .confirm-flash.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .confirm-flash.dup{background:#92400e;}
+
+    @media(max-width:768px){.sidenav{display:none;}body{padding-left:0;}.main{padding:16px 14px 80px;}}
+  </style>
+</head>
+<body>
+
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">JCT Staff Hub</div>
+      <div class="sidenav-brand-tag">Check-in Testing</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Navigation</div>
+      <a href="/hub.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Dashboard</a>
+      <a href="/members.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Members</a>
+      <a href="/cash-summary.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Cash Summary</a>
+      <a href="/checkin-test.html" class="nav-link active"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Check-in Test</a>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div><div class="sidenav-user-name" id="nav-name">—</div><div class="sidenav-user-role" id="nav-role">—</div></div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="topstrip">
+    <div style="font-size:15px;font-weight:700">Check-in Test Harness</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="text-align:right"><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
+    </div>
+  </div>
+
+  <main class="main">
+    <h1>Check-in Test Harness</h1>
+    <p class="page-sub">Simulate member sign-ins to verify the live feed and data collection. Management only.</p>
+    <div class="test-badge">
+      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      Testing mode — no member-facing UI is live yet
+    </div>
+
+    <div class="cols">
+
+      <!-- Left: member search + sign-in -->
+      <div>
+        <div class="card">
+          <div class="card-head">Find a member to sign in</div>
+          <div class="search-wrap">
+            <input class="search-input" id="search" type="text" placeholder="Name, last name, or member number…" autocomplete="off" oninput="onSearch(this.value)">
+          </div>
+          <div class="result-list" id="result-list">
+            <div class="empty-hint">Type a name or member number to search.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: today's live feed -->
+      <div>
+        <div class="card">
+          <div class="card-head" style="display:flex;align-items:center;gap:6px;">
+            <span class="section-live-dot" style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+            Today's Check-ins
+            <span id="feed-count" style="margin-left:auto;font-size:11px;color:var(--text-3);">—</span>
+          </div>
+          <div class="feed-list" id="feed-list">
+            <div class="empty-hint">No check-ins yet today.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="confirm-flash" id="flash"></div>
+
+  <script src="/staff-avatar.js"></script>
+  <script>
+    let me = null;
+    let searchTimer = null;
+
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function tick(){const n=new Date();const c=document.getElementById('clock'),d=document.getElementById('dateline');if(c)c.textContent=n.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});if(d)d.textContent=n.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    tick();setInterval(tick,30000);
+    async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}location.href='/login.html';}
+
+    async function init() {
+      try {
+        const r = await fetch('/api/me');
+        if (!r.ok) { location.href = '/login.html'; return; }
+        me = await r.json();
+        if (!me.can_manage_directory) { document.querySelector('.main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Management access only.</div>'; return; }
+        const navAv = document.getElementById('nav-avatar');
+        const navName = document.getElementById('nav-name');
+        const navRole = document.getElementById('nav-role');
+        if (navName) navName.textContent = me.name;
+        if (navRole) navRole.textContent = me.role;
+        if (navAv && window.staffAvatar) staffAvatar(navAv, me.id, me.name, me.color || '#2c5c9c');
+        await loadFeed();
+      } catch (e) { location.href = '/login.html'; }
+    }
+
+    function onSearch(q) {
+      clearTimeout(searchTimer);
+      if (!q || q.trim().length < 2) {
+        document.getElementById('result-list').innerHTML = '<div class="empty-hint">Type a name or member number to search.</div>';
+        return;
+      }
+      searchTimer = setTimeout(() => doSearch(q.trim()), 250);
+    }
+
+    async function doSearch(q) {
+      try {
+        const r = await fetch('/api/checkin/search?q=' + encodeURIComponent(q));
+        const members = await r.json();
+        const list = document.getElementById('result-list');
+        if (!members.length) { list.innerHTML = '<div class="empty-hint">No members found.</div>'; return; }
+        list.innerHTML = members.map(m => {
+          const name = `${m.first_name} ${m.last_name}`;
+          const ini = `${(m.first_name||'?')[0]}${(m.last_name||'')[0]||''}`.toUpperCase();
+          return `<div class="m-row" onclick="checkin(${m.id},'${esc(name)}')">
+            <div class="m-av">${esc(ini)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="m-name">${esc(name)}</div>
+              <div class="m-num">${esc(m.club_number || '—')}</div>
+            </div>
+            <span class="m-type">${esc(m.member_type || '')}</span>
+            <button class="m-checkin-btn" onclick="event.stopPropagation();checkin(${m.id},'${esc(name)}')">Sign in</button>
+          </div>`;
+        }).join('');
+      } catch (e) {}
+    }
+
+    async function checkin(memberId, name) {
+      try {
+        const r = await fetch('/api/checkin', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ member_id: memberId, method: 'staff' })
+        });
+        const data = await r.json();
+        if (!r.ok) { flash(`Error: ${data.error || 'Could not sign in'}`, true); return; }
+        if (data.duplicate) {
+          flash(`⚠ ${name} — already signed in today (logged again, flagged)`, true);
+        } else {
+          flash(`✓ ${name} signed in`);
+        }
+        await loadFeed();
+        // Clear the search after a sign-in
+        document.getElementById('search').value = '';
+        document.getElementById('result-list').innerHTML = '<div class="empty-hint">Type a name or member number to search.</div>';
+      } catch (e) { flash('Network error', true); }
+    }
+
+    async function loadFeed() {
+      try {
+        const r = await fetch('/api/checkin/feed');
+        if (!r.ok) return;
+        const { count, logs } = await r.json();
+        document.getElementById('feed-count').textContent = `${count} today`;
+        const list = document.getElementById('feed-list');
+        if (!logs.length) { list.innerHTML = '<div class="empty-hint">No check-ins yet today.</div>'; return; }
+        list.innerHTML = logs.slice().reverse().map(l => {
+          const name = l.member_name || '—';
+          const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
+          const dupTag = l.duplicate ? '<span class="dup-tag">dup</span>' : '';
+          return `<div class="feed-row">
+            <div class="feed-av">${esc(ini)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="feed-name">${esc(name)}${dupTag}</div>
+              <div class="feed-meta">${esc(l.club_number||'—')} · ${l.method}</div>
+            </div>
+            <div class="feed-meta">${l.time ? l.time.slice(0,5) : ''}</div>
+          </div>`;
+        }).join('');
+      } catch (e) {}
+    }
+
+    function flash(msg, isDup) {
+      const el = document.getElementById('flash');
+      el.textContent = msg;
+      el.className = 'confirm-flash show' + (isDup ? ' dup' : '');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.className = 'confirm-flash'; }, 2800);
+    }
+
+    // SSE: auto-refresh feed when other sign-ins come in
+    try {
+      const es = new EventSource('/api/events');
+      es.onmessage = e => { if (e.data === 'checkin-update') loadFeed(); };
+    } catch (e) {}
+
+    init();
+  </script>
+</body>
+</html>

@@ -1154,6 +1154,26 @@
         <div class="stat-value" id="sc-weather-val">—</div>
         <div class="stat-sub" id="sc-weather-sub">Loading…</div>
       </div>
+      <div class="stat-card live mgmt-only" id="sc-checkin-card">
+        <span class="stat-live-dot"></span>
+        <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9" style="stroke:#16a34a;stroke-width:1.8"/></svg></div>
+        <div class="stat-label">Members In Today</div>
+        <div class="stat-value" id="sc-checkin-val">—</div>
+        <div class="stat-sub" id="sc-checkin-sub">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Today's Check-ins (mgmt only) ──────────── -->
+    <div class="mgmt-only" id="checkin-section">
+      <div class="section-title" style="margin-bottom:10px">
+        <div class="section-live-dot"></div>
+        Today's Check-ins
+        <a href="/checkin-test.html" class="reach-log-btn" style="margin-left:auto">Test harness →</a>
+        <a href="/members.html#checkins" class="reach-log-btn">Full log →</a>
+      </div>
+      <div id="checkin-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
+        <div style="padding:14px 18px;color:var(--text-3);font-size:13px;">Loading…</div>
+      </div>
     </div>
 
     <!-- Latest Messages relocated into the Comm Log + Bubble two-column above. -->
@@ -1947,6 +1967,46 @@
       } catch (e) {
         document.getElementById('notes-list').innerHTML = '<div class="notes-empty">Unable to load notes.</div>';
       }
+
+      // Check-in feed (mgmt only — section already hidden for non-mgmt via .mgmt-only)
+      if (me.can_manage_directory) {
+        loadCheckins();
+        window.__checkinLiveUpdate = loadCheckins;
+      }
+    }
+
+    async function loadCheckins() {
+      try {
+        const r = await fetch('/api/checkin/feed');
+        if (!r.ok) return;
+        const { count, logs } = await r.json();
+        const scv = document.getElementById('sc-checkin-val');
+        const scs = document.getElementById('sc-checkin-sub');
+        if (scv) { scv.textContent = count; scv.className = 'stat-value' + (count > 0 ? ' accent-blue' : ''); }
+        if (scs) scs.textContent = count === 1 ? '1 member signed in' : `${count} members signed in`;
+        const feed = document.getElementById('checkin-feed');
+        if (!feed) return;
+        if (!logs.length) {
+          feed.innerHTML = '<div style="padding:18px 18px;color:var(--text-3);font-size:13px;text-align:center;">No check-ins yet today.</div>';
+          return;
+        }
+        feed.innerHTML = logs.slice().reverse().slice(0, 15).map(l => {
+          const name = l.member_name || '—';
+          const ini = name.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
+          const dupBadge = l.duplicate ? '<span style="font-size:9px;font-weight:700;background:rgba(217,119,6,0.12);color:#d97706;border-radius:4px;padding:1px 6px;margin-left:6px;">dup</span>' : '';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);">
+            <div style="width:30px;height:30px;border-radius:8px;background:rgba(44,92,156,0.12);color:#2c5c9c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${esc(ini)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;">${esc(name)}${dupBadge}</div>
+              <div style="font-size:11px;color:var(--text-3);">${esc(l.club_number || '—')} · ${l.method}</div>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);white-space:nowrap;">${l.time ? l.time.slice(0,5) : ''}</div>
+          </div>`;
+        }).join('');
+        // Strip bottom border on last row
+        const rows = feed.querySelectorAll('div[style*="border-bottom"]');
+        if (rows.length) rows[rows.length - 1].style.borderBottom = 'none';
+      } catch (e) {}
     }
 
     function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -2114,6 +2174,18 @@
     }
 
     init();
+
+    // SSE: refresh check-in feed in real time when any member signs in
+    (function () {
+      try {
+        var es = new EventSource('/api/events');
+        es.onmessage = function (e) {
+          if (e.data === 'checkin-update' && typeof window.__checkinLiveUpdate === 'function') {
+            window.__checkinLiveUpdate();
+          }
+        };
+      } catch (e) {}
+    })();
   </script>
   <!-- ══════════════════════════════════════════
        MOBILE BOTTOM NAV (max-width:768px only)

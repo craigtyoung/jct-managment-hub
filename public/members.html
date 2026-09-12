@@ -68,6 +68,25 @@
     .stat-num{font-size:22px;font-weight:800;color:var(--navy);}
     .stat-lbl{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
 
+    /* View tabs */
+    .view-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;}
+    .view-tab{flex:none;padding:7px 16px;border-radius:7px;border:none;background:transparent;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s;}
+    .view-tab:hover{background:rgba(44,92,156,0.06);color:var(--blue);}
+    .view-tab.active{background:var(--navy);color:#f0f4ff;font-weight:600;}
+
+    /* Check-in log */
+    .ci-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);}
+    .ci-date{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);}
+    .ci-count{font-size:12px;color:var(--text-3);margin-left:auto;}
+    .ci-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+    .ci-row:last-child{border-bottom:none;}
+    .ci-row:hover{background:#f8fafc;}
+    .ci-av{width:30px;height:30px;border-radius:8px;background:rgba(44,92,156,0.1);color:#2c5c9c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .ci-name{font-size:13px;font-weight:600;flex:1;}
+    .ci-meta{font-size:11px;color:var(--text-3);}
+    .ci-time{font-size:12px;color:var(--text-3);white-space:nowrap;}
+    .dup-tag{font-size:9px;font-weight:700;background:rgba(217,119,6,0.1);color:#d97706;border-radius:4px;padding:1px 6px;margin-left:6px;}
+
     /* Table */
     .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
     table{width:100%;border-collapse:collapse;}
@@ -163,6 +182,25 @@
 
     <div class="stats" id="stats-row"></div>
 
+    <!-- View tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-list" onclick="showView('list')">Member List</button>
+      <button class="view-tab mgmt-only" id="tab-checkins" onclick="showView('checkins')">Check-ins</button>
+    </div>
+
+    <!-- Check-ins view (mgmt only) -->
+    <div id="view-checkins" style="display:none">
+      <div class="card">
+        <div class="ci-toolbar">
+          <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
+          <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font-body);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
+          <span class="ci-count" id="ci-count">—</span>
+        </div>
+        <div id="ci-list"><div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div></div>
+      </div>
+    </div>
+
+    <div id="view-list">
     <div class="toolbar">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -189,6 +227,7 @@
       </table>
       <div id="empty-state" class="empty-state" style="display:none">No members match your search.</div>
     </div>
+    </div><!-- /view-list -->
   </main>
 
   <!-- Add/Edit Modal -->
@@ -350,7 +389,49 @@
       const nr = document.getElementById('nav-role'); if (nr) nr.textContent = me.role;
       if (!me.is_management) document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
       await load();
+      // Hash routing: /members.html#checkins opens the check-ins tab
+      if (window.location.hash === '#checkins' && me.is_management) showView('checkins');
     }
+
+    function showView(view) {
+      document.getElementById('view-list').style.display = view === 'list' ? '' : 'none';
+      document.getElementById('view-checkins').style.display = view === 'checkins' ? '' : 'none';
+      document.getElementById('tab-list').className = 'view-tab' + (view === 'list' ? ' active' : '');
+      document.getElementById('tab-checkins').className = 'view-tab mgmt-only' + (view === 'checkins' ? ' active' : '');
+      if (view === 'checkins') {
+        const today = new Date().toISOString().slice(0, 10);
+        const dateEl = document.getElementById('ci-date');
+        if (dateEl && !dateEl.value) dateEl.value = today;
+        loadCheckinTab(dateEl.value || today);
+      }
+    }
+
+    async function loadCheckinTab(date) {
+      const list = document.getElementById('ci-list');
+      const count = document.getElementById('ci-count');
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div>';
+      try {
+        const r = await fetch('/api/checkin/feed?date=' + (date || new Date().toISOString().slice(0,10)));
+        if (!r.ok) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Access denied.</div>'; return; }
+        const { logs, count: n } = await r.json();
+        if (count) count.textContent = `${n} check-in${n===1?'':'s'}`;
+        if (!logs.length) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">No check-ins for this date.</div>'; return; }
+        list.innerHTML = logs.slice().reverse().map(l => {
+          const name = l.member_name || '—';
+          const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
+          const dupTag = l.duplicate ? '<span class="dup-tag">dup</span>' : '';
+          return `<div class="ci-row" onclick="location.href='/members.html?id=${l.member_id}'">
+            <div class="ci-av">${esc(ini)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="ci-name">${esc(name)}${dupTag}</div>
+              <div class="ci-meta">${esc(l.club_number||'—')} · ${esc(l.member_type||'—')} · ${l.method}</div>
+            </div>
+            <div class="ci-time">${l.time ? l.time.slice(0,5) : ''}</div>
+          </div>`;
+        }).join('');
+      } catch(e) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Could not load.</div>'; }
+    }
+
     init();
   </script>
 </body>

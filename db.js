@@ -3742,10 +3742,12 @@ function deactivateMember(id) {
 // ─── Check-in logs ────────────────────────────────────────────────────────────
 function addCheckinLog({ memberId, method }) {
   if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
-  const id = nextId('checkin_logs');
   const ts = now();
-  _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: ts.slice(0, 10), time: ts.slice(11, 19), method: method === 'name' ? 'name' : 'pin', created_at: ts });
-  save(); return id;
+  const today = ts.slice(0, 10);
+  const duplicate = (_data.checkin_logs || []).some(l => l.date === today && l.member_id === parseInt(memberId));
+  const id = nextId('checkin_logs');
+  _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: today, time: ts.slice(11, 19), method: method === 'name' ? 'name' : 'pin', duplicate: duplicate || undefined, created_at: ts });
+  save(); return { id, duplicate };
 }
 function getCheckinLogsByDate(date) {
   const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m.first_name + ' ' + m.last_name; });
