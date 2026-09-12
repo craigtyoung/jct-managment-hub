@@ -13,7 +13,7 @@ router.use((req, res, next) => {
   next();
 });
 function isMgmt(id) { const s = db.getStaffById(id); return s && ['admin', 'manager'].includes(s.role); }
-function isStringer(id) { const s = db.getStaffById(id); return s && ['lily', 'matthew'].some(n => String(s.name || '').toLowerCase().includes(n)); }
+function isStringer(id) { const s = db.getStaffById(id); return s && ['lil', 'matthew'].some(n => String(s.name || '').toLowerCase().includes(n)); }
 
 // Staff list for the "Strung by" picker (everyone — office staff string too).
 router.get('/staff', (req, res) => res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name, role: s.role }))));

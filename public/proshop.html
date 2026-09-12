@@ -181,7 +181,7 @@
       const EXCLUDE_TAKEN_IN=['craig','jaime'];
       const officeStaff=staff.filter(s=>['manager','staff'].includes(s.role)&&!EXCLUDE_TAKEN_IN.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-taken').innerHTML=optList(officeStaff,'');   // no auto-select; Craig + Jaime excluded
-      const STRINGERS=['lily','matthew'];
+      const STRINGERS=['lil','matthew'];  // 'lil' matches Lily, Lilly, Lillian etc.
       const stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-by').innerHTML=optList(stringers,'');
       document.getElementById('f-date').value=new Date().toISOString().slice(0,10);

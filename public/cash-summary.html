@@ -495,6 +495,12 @@
     const n    = v => v != null && v !== '' ? parseFloat(v) || 0 : 0;
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const getEl   = id => document.getElementById(id);
+    // Always use LOCAL date (not UTC) so "today" matches the calendar date staff see on screen.
+    // new Date().toISOString() would roll to the next day for Toronto after ~8 pm.
+    function localToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
 
     const UNIT_PRICES = {};   // tennis balls now entered as a plain dollar amount, like the other items
     // Slot counts — more room per Craig's Sep 3 request (especially slips). Cash
@@ -1107,7 +1113,7 @@
 
     // ── Wrong-day edit guard ───────────────────────────────────────────────────
     function applyDateGuard() {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localToday();
       const isToday = currentDate === today;
       const isSample = currentDate === SAMPLE_DATE;
       const locked = !isToday && !isSample && !editUnlocked;
@@ -1144,11 +1150,12 @@
     function shiftDate(delta) {
       const d = new Date(currentDate + 'T12:00:00');
       d.setDate(d.getDate() + delta);
-      changeDate(d.toISOString().slice(0, 10));
+      const y = d.getFullYear(), mo = String(d.getMonth()+1).padStart(2,'0'), dy = String(d.getDate()).padStart(2,'0');
+      changeDate(`${y}-${mo}-${dy}`);
     }
 
     function goToday() {
-      changeDate(new Date().toISOString().slice(0, 10));
+      changeDate(localToday());
     }
 
     // ── Schedule staff integration ─────────────────────────────────────────────
@@ -1164,15 +1171,16 @@
           if (!Array.isArray(staff)) return;
 
           // Render avatars regardless (shows who's scheduled even if name was overridden)
+          // Note: schedule API returns staff_name / staff_color / staff_id (not name/color/id)
           const container = document.getElementById(`s${si}-avatars`);
           if (container) {
             if (staff.length) {
               container.innerHTML = staff.map(s =>
-                `<div id="cs-av-${si}-${s.id}" class="cs-av" style="background:${s.color||'#ddd'}22;color:${s.color||'#666'}" title="${s.name||''}">${(s.name||'?').slice(0,2).toUpperCase()}</div>`
+                `<div id="cs-av-${si}-${s.staff_id}" class="cs-av" style="background:${s.staff_color||'#ddd'}22;color:${s.staff_color||'#666'}" title="${s.staff_name||''}">${(s.staff_name||'?').slice(0,2).toUpperCase()}</div>`
               ).join('');
               staff.forEach(s => {
-                const el = document.getElementById(`cs-av-${si}-${s.id}`);
-                if (el) staffAvatar(el, s.id, s.name, s.color);
+                const el = document.getElementById(`cs-av-${si}-${s.staff_id}`);
+                if (el) staffAvatar(el, s.staff_id, s.staff_name, s.staff_color);
               });
             } else {
               container.innerHTML = '<span class="staff-none">No one scheduled</span>';
@@ -1183,7 +1191,7 @@
           const savedName = (savedShifts?.[si]?.staff_name || '').trim();
           const nameEl = document.getElementById(`s${si}-staff`);
           if (nameEl && !savedName && staff.length) {
-            nameEl.value = staff.map(s => s.name).join(' · ');
+            nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
           }
         } catch (e) {}
       }));
@@ -1319,7 +1327,7 @@
 
       // Date
       const params = new URLSearchParams(location.search);
-      currentDate = params.get('date') || new Date().toISOString().slice(0, 10);
+      currentDate = params.get('date') || localToday();
 
       updateClock();
       setInterval(updateClock, 30000);
