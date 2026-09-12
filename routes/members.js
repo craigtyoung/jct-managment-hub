@@ -29,18 +29,18 @@ router.get('/', (req, res) => {
 // POST /api/members — add a member (manager+)
 router.post('/', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
-  const { first_name, last_name, phone, email, pin, member_type } = req.body;
+  const { first_name, last_name, club_number, phone, email, pin, member_type } = req.body;
   if (!first_name || !last_name) return res.status(400).json({ error: 'first_name and last_name required' });
-  const id = db.addMember({ firstName: first_name, lastName: last_name, phone, email, pin, memberType: member_type });
+  const id = db.addMember({ firstName: first_name, lastName: last_name, clubNumber: club_number, phone, email, pin, memberType: member_type });
   res.json({ ok: true, id });
 });
 
 // PUT /api/members/:id — update member (manager+)
 router.put('/:id', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
-  const { first_name, last_name, phone, email, pin, member_type, active } = req.body;
+  const { first_name, last_name, club_number, phone, email, pin, member_type, active } = req.body;
   const updated = db.updateMember(req.params.id, {
-    firstName: first_name, lastName: last_name, phone, email, pin, memberType: member_type, active,
+    firstName: first_name, lastName: last_name, clubNumber: club_number, phone, email, pin, memberType: member_type, active,
   });
   if (!updated) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });

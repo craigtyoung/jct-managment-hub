@@ -100,6 +100,9 @@
     .shift-tab.active{background:var(--navy);color:#f0f4ff;}
     .shift-tab .tab-total{display:block;font-size:10px;font-weight:600;margin-top:2px;opacity:0.7;}
     .shift-tab.active .tab-total{opacity:1;}
+    .tab-staff-row{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:3px;min-height:20px;}
+    .tab-staff-av{width:20px;height:20px;border-radius:5px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .tab-staff-name{font-size:11px;font-weight:500;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
     /* ── Shift Panel ── */
     .shift-panel{display:none;}
@@ -783,12 +786,27 @@
       });
     }
 
+    // ── Tab Staff Avatar ───────────────────────────────────────────────────────
+
+    function updateTabStaff(si, staffArr) {
+      const row = document.getElementById(`tab-staff-${si}`);
+      if (!row) return;
+      if (!staffArr || !staffArr.length) { row.innerHTML = ''; return; }
+      const s = staffArr[0];
+      const color = s.staff_color || '#2c5c9c';
+      const name = (s.staff_name || '?').trim();
+      const initials = name.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
+      const firstName = name.split(' ')[0];
+      row.innerHTML = `<div class="tab-staff-av" style="background:${color}33;color:${color}">${initials}</div><span class="tab-staff-name">${firstName}</span>`;
+    }
+
     // ── Build Tab Bar ──────────────────────────────────────────────────────────
 
     function buildTabs() {
       const tabs = document.getElementById('shift-tabs');
       tabs.innerHTML = SHIFT_LABELS.map((label, si) =>
         `<button class="shift-tab${si === 0 ? ' active' : ''}" id="tab-${si}" onclick="showShift(${si})">
+          <div class="tab-staff-row" id="tab-staff-${si}"></div>
           ${label}
           <span class="tab-total" id="tab-total-${si}">$0.00</span>
         </button>`
@@ -1186,6 +1204,9 @@
               container.innerHTML = '<span class="staff-none">No one scheduled</span>';
             }
           }
+
+          // Update tab avatar from schedule data
+          updateTabStaff(si, staff);
 
           // Pre-fill name only if the saved data has no staff name for this shift
           const savedName = (savedShifts?.[si]?.staff_name || '').trim();
