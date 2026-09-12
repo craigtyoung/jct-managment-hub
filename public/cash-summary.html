@@ -100,7 +100,6 @@
     .shift-tab.active{background:var(--navy);color:#f0f4ff;}
     .shift-tab .tab-total{display:block;font-size:10px;font-weight:600;margin-top:2px;opacity:0.7;}
     .shift-tab.active .tab-total{opacity:1;}
-    .tab-staff-row{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:3px;min-height:20px;}
     .tab-staff-av{width:20px;height:20px;border-radius:5px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
     .tab-staff-name{font-size:11px;font-weight:500;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
@@ -619,9 +618,8 @@
       ).join('') + addBtn(item);
 
       return `
-        <!-- Staff (hidden input keeps name in saved data; avatars shown inline) -->
         <input type="hidden" id="s${si}-staff">
-        <div class="staff-avatars" id="s${si}-avatars" style="display:flex;align-items:center;gap:4px;padding:10px 18px 2px;"></div>
+        <div id="s${si}-pills" style="display:none;flex-wrap:wrap;gap:6px;padding:12px 18px 4px;align-items:center;"></div>
 
         <div class="cs-card">
           <!-- PRO SHOP -->
@@ -786,35 +784,12 @@
 
     // ── Tab Staff Avatar ───────────────────────────────────────────────────────
 
-    function updateTabStaff(si, staffArr) {
-      const row = document.getElementById(`tab-staff-${si}`);
-      if (!row) return;
-      if (!staffArr || !staffArr.length) { row.innerHTML = ''; return; }
-      const s = staffArr[0];
-      const color = s.staff_color || '#2c5c9c';
-      const name = (s.staff_name || '?').trim();
-      const initials = name.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
-      const firstName = name.split(' ')[0];
-      row.innerHTML = `<div class="tab-staff-av" style="background:${color}33;color:${color}">${initials}</div><span class="tab-staff-name">${firstName}</span>`;
-    }
-
-    function updateTabStaffFromName(si, name) {
-      if (!name || !name.trim()) return;
-      const row = document.getElementById(`tab-staff-${si}`);
-      if (!row || row.innerHTML) return; // schedule API result takes priority
-      const clean = name.trim();
-      const firstName = clean.split(/[\s·]+/)[0];
-      const initials = clean.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
-      row.innerHTML = `<div class="tab-staff-av" style="background:rgba(44,92,156,0.18);color:#2c5c9c">${initials}</div><span class="tab-staff-name">${firstName}</span>`;
-    }
-
     // ── Build Tab Bar ──────────────────────────────────────────────────────────
 
     function buildTabs() {
       const tabs = document.getElementById('shift-tabs');
       tabs.innerHTML = SHIFT_LABELS.map((label, si) =>
         `<button class="shift-tab${si === 0 ? ' active' : ''}" id="tab-${si}" onclick="showShift(${si})">
-          <div class="tab-staff-row" id="tab-staff-${si}"></div>
           ${label}
           <span class="tab-total" id="tab-total-${si}">$0.00</span>
         </button>`
@@ -1021,8 +996,6 @@
 
       const staffEl = getEl(`s${si}-staff`);
       if (staffEl) staffEl.value = shift.staff_name || '';
-      updateTabStaffFromName(si, shift.staff_name);
-
       const ps = shift.pro_shop || {};
       const setArr = (item, arr) => (arr || []).forEach((v, i) => {
         const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${i}"]:not([data-field])`);
@@ -1189,41 +1162,23 @@
 
     const SHIFT_KEYS = ['morning', 'afternoon', 'closing'];
 
-    async function loadScheduleStaff(date, savedShifts) {
+    async function loadScheduleStaff(date) {
       await Promise.all(SHIFT_KEYS.map(async (shiftKey, si) => {
+        const wrap = document.getElementById(`s${si}-pills`);
+        if (!wrap) return;
         try {
           const res = await fetch(`/api/schedule/shift?date=${date}&shift=${shiftKey}`);
-          if (!res.ok) return;
+          if (!res.ok) { wrap.style.display = 'none'; return; }
           const staff = await res.json();
-          if (!Array.isArray(staff)) return;
-
-          // Render avatars regardless (shows who's scheduled even if name was overridden)
-          // Note: schedule API returns staff_name / staff_color / staff_id (not name/color/id)
-          const container = document.getElementById(`s${si}-avatars`);
-          if (container) {
-            if (staff.length) {
-              container.innerHTML = staff.map(s =>
-                `<div id="cs-av-${si}-${s.staff_id}" class="cs-av" style="background:${s.staff_color||'#ddd'}22;color:${s.staff_color||'#666'}" title="${s.staff_name||''}">${(s.staff_name||'?').slice(0,2).toUpperCase()}</div>`
-              ).join('');
-              staff.forEach(s => {
-                const el = document.getElementById(`cs-av-${si}-${s.staff_id}`);
-                if (el) staffAvatar(el, s.staff_id, s.staff_name, s.staff_color);
-              });
-            } else {
-              container.innerHTML = '<span class="staff-none">No one scheduled</span>';
-            }
-          }
-
-          // Update tab avatar from schedule data
-          updateTabStaff(si, staff);
-
-          // Pre-fill name only if the saved data has no staff name for this shift
-          const savedName = (savedShifts?.[si]?.staff_name || '').trim();
-          const nameEl = document.getElementById(`s${si}-staff`);
-          if (nameEl && !savedName && staff.length) {
-            nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
-          }
-        } catch (e) {}
+          if (!Array.isArray(staff) || !staff.length) { wrap.style.display = 'none'; return; }
+          wrap.innerHTML = staff.map(s =>
+            `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:11px;font-weight:600;background:${s.staff_color||'#6366f1'}18;color:${s.staff_color||'#6366f1'}">
+              <span style="width:7px;height:7px;border-radius:50%;background:${s.staff_color||'#6366f1'};flex-shrink:0;display:inline-block"></span>
+              ${s.staff_name||''}
+            </span>`
+          ).join('');
+          wrap.style.display = 'flex';
+        } catch (e) { wrap.style.display = 'none'; }
       }));
     }
 
@@ -1254,7 +1209,7 @@
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
-        loadScheduleStaff(currentDate, summary.shifts);
+        loadScheduleStaff(currentDate);
       } catch (e) {
         setSaveStatus('', 'Load error');
       }
