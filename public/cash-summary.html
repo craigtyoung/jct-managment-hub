@@ -1156,29 +1156,51 @@
 
     function goToday() {
       changeDate(localToday());
+      showShift(defaultShiftIndex());
+    }
+
+    // Same boundaries as the checklist: morning until 1PM, afternoon until 7PM, then closing
+    function defaultShiftIndex() {
+      const h = new Date().getHours();
+      return h < 13 ? 0 : h < 19 ? 1 : 2;
     }
 
     // ── Schedule staff integration ─────────────────────────────────────────────
 
     const SHIFT_KEYS = ['morning', 'afternoon', 'closing'];
 
-    async function loadScheduleStaff(date) {
+    async function loadScheduleStaff(date, savedShifts) {
+      const escp = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const pill = (name, color) =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:11px;font-weight:600;background:${color}18;color:${color}">
+          <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
+          ${escp(name)}
+        </span>`;
       await Promise.all(SHIFT_KEYS.map(async (shiftKey, si) => {
         const wrap = document.getElementById(`s${si}-pills`);
         if (!wrap) return;
+        let html = '';
         try {
           const res = await fetch(`/api/schedule/shift?date=${date}&shift=${shiftKey}`);
-          if (!res.ok) { wrap.style.display = 'none'; return; }
-          const staff = await res.json();
-          if (!Array.isArray(staff) || !staff.length) { wrap.style.display = 'none'; return; }
-          wrap.innerHTML = staff.map(s =>
-            `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:11px;font-weight:600;background:${s.staff_color||'#6366f1'}18;color:${s.staff_color||'#6366f1'}">
-              <span style="width:7px;height:7px;border-radius:50%;background:${s.staff_color||'#6366f1'};flex-shrink:0;display:inline-block"></span>
-              ${s.staff_name||''}
-            </span>`
-          ).join('');
-          wrap.style.display = 'flex';
-        } catch (e) { wrap.style.display = 'none'; }
+          if (res.ok) {
+            const staff = await res.json();
+            if (Array.isArray(staff) && staff.length) {
+              html = staff.map(s => pill(s.staff_name || '?', s.staff_color || '#6366f1')).join('');
+              // Keep the saved sheet in step with the schedule when no name was entered manually
+              const savedName = (savedShifts?.[si]?.staff_name || '').trim();
+              const nameEl = document.getElementById(`s${si}-staff`);
+              if (nameEl && !savedName) nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
+            }
+          }
+        } catch (e) {}
+        if (!html) {
+          // Fallback: name saved on the sheet itself (manual-entry days)
+          const saved = (savedShifts?.[si]?.staff_name || '').trim();
+          if (saved) html = saved.split('·').map(n => n.trim()).filter(Boolean).map(n => pill(n, '#2c5c9c')).join('');
+        }
+        if (!html) html = `<span style="font-size:11px;color:#94a3b8;font-style:italic">No one on the schedule for this shift</span>`;
+        wrap.innerHTML = html;
+        wrap.style.display = 'flex';
       }));
     }
 
@@ -1209,7 +1231,7 @@
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
-        loadScheduleStaff(currentDate);
+        loadScheduleStaff(currentDate, summary.shifts);
       } catch (e) {
         setSaveStatus('', 'Load error');
       }
@@ -1308,14 +1330,18 @@
       for (let si = 0; si < SHIFT_LABELS.length; si++) {
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
-      showShift(0);
 
       // Date
       const params = new URLSearchParams(location.search);
       currentDate = params.get('date') || localToday();
 
+      // On today's sheet, open the shift that matches the time of day
+      showShift(currentDate === localToday() ? defaultShiftIndex() : 0);
+
       updateClock();
-      setInterval(updateClock, 30000);
+      // Re-check the wrong-day guard every 30s so a tab left open past midnight
+      // locks itself instead of silently writing onto yesterday's sheet
+      setInterval(() => { updateClock(); applyDateGuard(); }, 30000);
 
       await load();
     }
