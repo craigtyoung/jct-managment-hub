@@ -619,7 +619,10 @@
 
       return `
         <input type="hidden" id="s${si}-staff">
-        <div id="s${si}-pills" style="display:none;flex-wrap:wrap;gap:6px;padding:12px 18px 4px;align-items:center;"></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--text);">${label} shift</span>
+          <div id="s${si}-pills" style="display:none;flex-wrap:wrap;gap:6px;align-items:center;"></div>
+        </div>
 
         <div class="cs-card">
           <!-- PRO SHOP -->
@@ -1107,7 +1110,8 @@
     function changeDate(d) {
       currentDate = d;
       editUnlocked = false; // re-lock whenever the date changes
-      history.replaceState({}, '', `?date=${d}`);
+      // Deliberately NOT writing the date to the URL — keeping the URL clean
+      // means a refresh always returns to today instead of a stale past date.
       load();
     }
 
@@ -1249,7 +1253,6 @@
     async function fillSample() {
       currentDate = SAMPLE_DATE;
       editUnlocked = true;
-      history.replaceState({}, '', `?date=${SAMPLE_DATE}`);
       await load();
       showShift(0);
       const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = val; };
@@ -1331,9 +1334,12 @@
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
 
-      // Date
+      // Date — honour an explicit ?date= deep-link (e.g. from Settings) once,
+      // then strip it so any later refresh or reopened tab lands back on today.
+      // Cash Summary should always open on today unless you were sent to a date.
       const params = new URLSearchParams(location.search);
       currentDate = params.get('date') || localToday();
+      history.replaceState({}, '', location.pathname);
 
       // On today's sheet, open the shift that matches the time of day
       showShift(currentDate === localToday() ? defaultShiftIndex() : 0);
