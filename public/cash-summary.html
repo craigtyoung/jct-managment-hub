@@ -800,6 +800,16 @@
       row.innerHTML = `<div class="tab-staff-av" style="background:${color}33;color:${color}">${initials}</div><span class="tab-staff-name">${firstName}</span>`;
     }
 
+    function updateTabStaffFromName(si, name) {
+      if (!name || !name.trim()) return;
+      const row = document.getElementById(`tab-staff-${si}`);
+      if (!row || row.innerHTML) return; // schedule API result takes priority
+      const clean = name.trim();
+      const firstName = clean.split(/[\s·]+/)[0];
+      const initials = clean.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
+      row.innerHTML = `<div class="tab-staff-av" style="background:rgba(44,92,156,0.18);color:#2c5c9c">${initials}</div><span class="tab-staff-name">${firstName}</span>`;
+    }
+
     // ── Build Tab Bar ──────────────────────────────────────────────────────────
 
     function buildTabs() {
@@ -1013,6 +1023,7 @@
 
       const staffEl = getEl(`s${si}-staff`);
       if (staffEl) staffEl.value = shift.staff_name || '';
+      updateTabStaffFromName(si, shift.staff_name);
 
       const ps = shift.pro_shop || {};
       const setArr = (item, arr) => (arr || []).forEach((v, i) => {
