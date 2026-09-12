@@ -3760,6 +3760,29 @@ function getMemberCheckinToday(memberId) {
   const today = now().slice(0, 10);
   return (_data.checkin_logs || []).find(l => l.date === today && l.member_id === parseInt(memberId)) || null;
 }
+function getUnsyncedCheckins() {
+  const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m; });
+  return (_data.checkin_logs || [])
+    .filter(l => !l.gametime_synced_at && !l.duplicate)
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    .map(l => {
+      const m = byId[l.member_id] || {};
+      return { ...l, first_name: m.first_name || '', last_name: m.last_name || '', club_number: m.club_number || '' };
+    });
+}
+function markCheckinSynced(id) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  log.gametime_synced_at = now();
+  save(); return true;
+}
+function markCheckinSyncFailed(id, reason) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  log.gametime_sync_error = reason || 'unknown';
+  log.gametime_sync_attempted_at = now();
+  save(); return true;
+}
 
 module.exports = {
   getIdeas,
@@ -3919,4 +3942,7 @@ module.exports = {
   addCheckinLog,
   getCheckinLogsByDate,
   getMemberCheckinToday,
+  getUnsyncedCheckins,
+  markCheckinSynced,
+  markCheckinSyncFailed,
 };

@@ -68,4 +68,42 @@ router.delete('/staff/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/admin/gametime-sync — manually trigger GameTime sync (testing)
+// Returns unsynced count; actual sync runs as a child process
+router.post('/gametime-sync', (req, res) => {
+  const pending = db.getUnsyncedCheckins();
+  if (!pending.length) return res.json({ ok: true, message: 'Nothing to sync', pending: 0 });
+
+  const { execFile } = require('child_process');
+  const path = require('path');
+  const script = path.join(__dirname, '..', 'scripts', 'gametime-sync.js');
+
+  // Fire and forget — client gets immediate response, sync runs in background
+  execFile('node', [script], { env: process.env }, (err, stdout, stderr) => {
+    if (err) console.error('[gametime-sync]', err.message, stderr);
+    else console.log('[gametime-sync]', stdout);
+  });
+
+  res.json({ ok: true, message: `Sync started for ${pending.length} check-in(s)`, pending: pending.length });
+});
+
+// GET /api/admin/gametime-sync/status — show sync status of today's check-ins
+router.get('/gametime-sync/status', (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const logs = db.getCheckinLogsByDate(today);
+  const summary = {
+    total: logs.length,
+    synced: logs.filter(l => l.gametime_synced_at).length,
+    pending: logs.filter(l => !l.gametime_synced_at && !l.gametime_sync_error && !l.duplicate).length,
+    failed: logs.filter(l => l.gametime_sync_error).length,
+    duplicates: logs.filter(l => l.duplicate).length,
+    logs: logs.map(l => ({
+      id: l.id, time: l.time, member_name: l.member_name,
+      synced: !!l.gametime_synced_at, synced_at: l.gametime_synced_at || null,
+      error: l.gametime_sync_error || null, duplicate: !!l.duplicate,
+    })),
+  };
+  res.json(summary);
+});
+
 module.exports = router;

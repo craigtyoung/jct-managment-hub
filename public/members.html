@@ -194,6 +194,7 @@
         <div class="ci-toolbar">
           <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
           <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font-body);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
+          <button id="gt-sync-btn" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.07);color:#2c5c9c;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;" onclick="triggerGTSync()">Sync to GameTime</button>
           <span class="ci-count" id="ci-count">—</span>
         </div>
         <div id="ci-list"><div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div></div>
@@ -420,16 +421,36 @@
           const name = l.member_name || '—';
           const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
           const dupTag = l.duplicate ? '<span class="dup-tag">dup</span>' : '';
+          let syncBadge = '';
+          if (l.gametime_synced_at) syncBadge = '<span style="font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;">GT ✓</span>';
+          else if (l.gametime_sync_error) syncBadge = `<span style="font-size:9px;font-weight:700;background:rgba(220,38,38,0.08);color:#dc2626;border-radius:4px;padding:1px 6px;margin-left:6px;" title="${esc(l.gametime_sync_error)}">GT ✗</span>`;
+          else if (!l.duplicate) syncBadge = '<span style="font-size:9px;font-weight:600;background:rgba(217,119,6,0.08);color:#d97706;border-radius:4px;padding:1px 6px;margin-left:6px;">GT pending</span>';
           return `<div class="ci-row" onclick="location.href='/members.html?id=${l.member_id}'">
             <div class="ci-av">${esc(ini)}</div>
             <div style="flex:1;min-width:0;">
-              <div class="ci-name">${esc(name)}${dupTag}</div>
+              <div class="ci-name">${esc(name)}${dupTag}${syncBadge}</div>
               <div class="ci-meta">${esc(l.club_number||'—')} · ${esc(l.member_type||'—')} · ${l.method}</div>
             </div>
             <div class="ci-time">${l.time ? l.time.slice(0,5) : ''}</div>
           </div>`;
         }).join('');
       } catch(e) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Could not load.</div>'; }
+    }
+
+    async function triggerGTSync() {
+      const btn = document.getElementById('gt-sync-btn');
+      if (btn) { btn.textContent = 'Syncing…'; btn.disabled = true; }
+      try {
+        const r = await fetch('/api/admin/gametime-sync', { method: 'POST' });
+        const d = await r.json();
+        if (btn) { btn.textContent = d.message || 'Sync triggered'; }
+        setTimeout(async () => {
+          if (btn) { btn.textContent = 'Sync to GameTime'; btn.disabled = false; }
+          await loadCheckinTab(document.getElementById('ci-date')?.value);
+        }, 5000);
+      } catch (e) {
+        if (btn) { btn.textContent = 'Sync to GameTime'; btn.disabled = false; }
+      }
     }
 
     init();
