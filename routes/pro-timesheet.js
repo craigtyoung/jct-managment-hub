@@ -21,7 +21,9 @@ router.use((req, res, next) => {
 
 function isManagement(s) { return s && ['admin', 'manager'].includes(s.role); }
 
-// GET /week?start=&end=&staff_id= — auto class rows merged with confirmations + manual entries
+// GET /week?start=&end= — auto class rows merged with confirmations + manual entries.
+// Management sees EVERY teaching pro (one card each, like the office sheet); a pro
+// sees only their own. Rows carry staff_name/color so the client can group by pro.
 router.get('/week', (req, res) => {
   const acting = db.getStaffById(req.actingStaffId);
   if (!acting) return res.status(401).json({ error: 'Not authenticated' });
@@ -31,24 +33,28 @@ router.get('/week', (req, res) => {
   const start = req.query.start || periodStart(today);
   const end   = req.query.end   || periodEnd(start);
 
-  // Whose sheet? Management can view any pro via ?staff_id; everyone else sees their own.
-  const targetId = (req.query.staff_id && mgmt) ? parseInt(req.query.staff_id) : req.actingStaffId;
-
-  const assignments = db.getProAssignmentsForRange(start, end).filter(a => a.staff_id === targetId);
-  const entries     = db.getProTimesheetForRange(start, end).filter(e => e.staff_id === targetId);
+  let assignments = db.getProAssignmentsForRange(start, end);
+  let entries     = db.getProTimesheetForRange(start, end);
+  if (!mgmt) {
+    assignments = assignments.filter(a => a.staff_id === req.actingStaffId);
+    entries     = entries.filter(e => e.staff_id === req.actingStaffId);
+  }
 
   const entryMap = {};
   const manual = [];
   for (const e of entries) {
     if (e.source === 'manual') manual.push(e);
-    else entryMap[`${e.slot_id}:${e.date}`] = e;
+    else entryMap[`${e.staff_id}:${e.slot_id}:${e.date}`] = e;
   }
 
   const rows = assignments
     .map(a => {
-      const entry = entryMap[`${a.slot_id}:${a.date}`] || null;
+      const entry = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`] || null;
+      const s = db.getStaffById(a.staff_id);
       return {
-        slot_id: a.slot_id, staff_id: a.staff_id, date: a.date, day: a.day,
+        slot_id: a.slot_id, staff_id: a.staff_id,
+        staff_name: s ? s.name : 'Unknown', staff_color: s ? s.color : '#999',
+        date: a.date, day: a.day,
         program: a.program, time_label: a.time_label, kind: a.kind,
         scheduled_start: a.start, scheduled_end: a.end,
         actual_start: entry ? entry.actual_start : null,
@@ -58,11 +64,11 @@ router.get('/week', (req, res) => {
         source: 'class',
       };
     })
-    .sort((a, b) => a.date.localeCompare(b.date) || String(a.scheduled_start).localeCompare(String(b.scheduled_start)));
+    .sort((a, b) => a.staff_name.localeCompare(b.staff_name) || a.date.localeCompare(b.date) || String(a.scheduled_start).localeCompare(String(b.scheduled_start)));
 
-  manual.sort((a, b) => a.date.localeCompare(b.date) || String(a.actual_start).localeCompare(String(b.actual_start)));
+  manual.sort((a, b) => (a.staff_name || '').localeCompare(b.staff_name || '') || a.date.localeCompare(b.date) || String(a.actual_start).localeCompare(String(b.actual_start)));
 
-  res.json({ start, end, staff_id: targetId, is_management: mgmt, rows, manual });
+  res.json({ start, end, acting_id: req.actingStaffId, is_management: mgmt, rows, manual });
 });
 
 // GET /pros — non-salaried teaching pros (management staff-picker source)
@@ -133,18 +139,21 @@ router.get('/export', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const start = req.query.start || periodStart(today);
   const end   = req.query.end   || periodEnd(start);
-  const targetId = (req.query.staff_id && mgmt) ? parseInt(req.query.staff_id) : req.actingStaffId;
-
-  const assignments = db.getProAssignmentsForRange(start, end).filter(a => a.staff_id === targetId);
-  const entries     = db.getProTimesheetForRange(start, end).filter(e => e.staff_id === targetId);
-  const staff = db.getStaffById(targetId);
+  // Management exports every pro; a pro exports their own.
+  let assignments = db.getProAssignmentsForRange(start, end);
+  let entries     = db.getProTimesheetForRange(start, end);
+  if (!mgmt) {
+    assignments = assignments.filter(a => a.staff_id === req.actingStaffId);
+    entries     = entries.filter(e => e.staff_id === req.actingStaffId);
+  }
 
   const entryMap = {};
   const manual = [];
   for (const e of entries) {
     if (e.source === 'manual') manual.push(e);
-    else entryMap[`${e.slot_id}:${e.date}`] = e;
+    else entryMap[`${e.staff_id}:${e.slot_id}:${e.date}`] = e;
   }
+  const nameOf = id => { const s = db.getStaffById(id); return s ? s.name : id; };
 
   const q = c => `"${String(c ?? '').replace(/"/g, '""')}"`;
   const hrs = (s, e2) => {
@@ -158,27 +167,30 @@ router.get('/export', (req, res) => {
   lines.push(['Pro', 'Date', 'Type', 'Class', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
 
   // Confirmed classes only (unconfirmed = 0 hours, omitted from payroll export)
-  assignments.forEach(a => {
-    const en = entryMap[`${a.slot_id}:${a.date}`];
-    if (!en || !en.actual_start) return;
-    lines.push([
-      staff ? staff.name : targetId, a.date, 'Class', a.program,
-      a.start, a.end, en.actual_start, en.actual_end,
-      hrs(en.actual_start, en.actual_end), en.notes || '',
-    ].map(q).join(','));
-  });
+  assignments
+    .sort((a, b) => nameOf(a.staff_id).localeCompare(nameOf(b.staff_id)) || a.date.localeCompare(b.date))
+    .forEach(a => {
+      const en = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`];
+      if (!en || !en.actual_start) return;
+      lines.push([
+        nameOf(a.staff_id), a.date, 'Class', a.program,
+        a.start, a.end, en.actual_start, en.actual_end,
+        hrs(en.actual_start, en.actual_end), en.notes || '',
+      ].map(q).join(','));
+    });
 
   // Manual lines
   manual.forEach(m => {
     lines.push([
-      staff ? staff.name : targetId, m.date, 'Manual', m.program || '',
+      nameOf(m.staff_id), m.date, 'Manual', m.program || '',
       '', '', m.actual_start || '', m.actual_end || '',
       hrs(m.actual_start, m.actual_end), m.notes || '',
     ].map(q).join(','));
   });
 
+  const who = mgmt ? 'all-pros' : (nameOf(req.actingStaffId) || 'pro').toString().replace(/\s+/g, '-');
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="pro-timesheet-${staff ? staff.name.replace(/\s+/g, '-') : targetId}-${start}_${end}.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="pro-timesheet-${who}-${start}_${end}.csv"`);
   res.send(lines.join('\n'));
 });
 

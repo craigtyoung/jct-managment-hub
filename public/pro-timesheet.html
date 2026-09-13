@@ -299,8 +299,7 @@
       <a href="/checklist.html" class="qnav" title="Shift Checklist"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Checklist</span></a>
       <a href="/cash-summary.html" class="qnav" title="Cash Summary"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg><span>Cash</span></a>
       <a href="/schedule.html" class="qnav" title="Schedule"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Schedule</span></a>
-      <a href="/timesheet.html" class="qnav" title="Office Timesheet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Office Sheet</span></a>
-      <span class="qnav qnav-active" id="office-toggle" title="Pro Timesheet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M12 2.5l2.6 6.3 6.9.5-5.3 4.4 1.7 6.6L12 17.4 6.1 20.8l1.7-6.6L2.5 9.8l6.9-.5z"/></svg><span>Pro Sheet</span></span>
+      <span class="qnav qnav-active" title="Timesheets"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Timesheets</span></span>
       <a href="/comms.html" class="qnav" title="Communications"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Communications</span></a>
     </div>
     <div class="ts-right" style="display:flex;align-items:center;gap:10px">
@@ -350,8 +349,6 @@
     let me = null;
     let isManagement = false;
     let currentStart = '', currentEnd = '';
-    let targetStaffId = null;      // whose sheet we're viewing (management can switch)
-    let proList = [];              // management staff-picker source
     let rows = [], manual = [];
 
     // ── Clock ──────────────────────────────────────────────────────
@@ -411,9 +408,7 @@
 
     // ── Nav ────────────────────────────────────────────────────────
     function exportSheet() {
-      const q = `start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}` +
-                (targetStaffId ? `&staff_id=${targetStaffId}` : '');
-      window.location.href = '/api/pro-timesheet/export?' + q;
+      window.location.href = `/api/pro-timesheet/export?start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}`;
     }
     function prevPeriod() { const p = shiftPeriod(currentStart,-1); currentStart=p.start; currentEnd=p.end; load(); }
     function nextPeriod() { const p = shiftPeriod(currentStart, 1); currentStart=p.start; currentEnd=p.end; load(); }
@@ -425,70 +420,67 @@
       document.getElementById('period-sub').textContent   = `(${currentStart} to ${currentEnd})`;
       document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
       try {
-        const q = `start=${currentStart}&end=${currentEnd}` + (targetStaffId ? `&staff_id=${targetStaffId}` : '');
-        const res  = await fetch('/api/pro-timesheet/week?' + q);
+        const res  = await fetch(`/api/pro-timesheet/week?start=${currentStart}&end=${currentEnd}`);
         const data = await res.json();
         rows   = data.rows   || [];
         manual = data.manual || [];
-        targetStaffId = data.staff_id || targetStaffId;
         render();
       } catch(e) {
         document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load pro timesheet.</div>';
       }
     }
 
-    // ── Render ─────────────────────────────────────────────────────
+    // ── Render — one card per pro (like the office sheet) ───────────
     function render() {
       const main = document.getElementById('ts-main');
-      const person = proList.find(p => p.id === targetStaffId) || (me && me.id === targetStaffId ? me : null);
-      const personName = person ? person.name : (me ? me.name : '');
-      const personColor = person ? (person.color || '#2c5c9c') : (me ? me.color : '#2c5c9c');
+      const groups = {};
+      const G = (id) => groups[id] || (groups[id] = { id, name:'', color:'#2c5c9c', rows:[], manual:[] });
+      rows.forEach(r => { const g=G(r.staff_id); g.name=r.staff_name||g.name; g.color=r.staff_color||g.color; g.rows.push(r); });
+      manual.forEach(m => { const g=G(m.staff_id); g.name=m.staff_name||g.name; g.color=m.staff_color||g.color; g.manual.push(m); });
+      const list = Object.values(groups).sort((a,b)=> a.name.localeCompare(b.name));
 
-      const classHours  = rows.reduce((s,r) => s + (r.actual_start ? (calcHours(r.actual_start, r.actual_end) || 0) : 0), 0);
-      const manualHours = manual.reduce((s,m) => s + (calcHours(m.actual_start, m.actual_end) || 0), 0);
-      const totalHours  = classHours + manualHours;
-      const confirmed   = rows.filter(r => r.actual_start).length;
+      window._rowData = {};
 
-      let picker = '';
-      if (isManagement && proList.length) {
-        picker = `<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:12px;color:var(--text-3);font-weight:600">Viewing pro:</span>
-          <select id="pro-picker" onchange="switchPro(this.value)" style="padding:7px 12px;border-radius:9px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;background:var(--surface);color:var(--text)">
-            ${proList.map(p => `<option value="${p.id}" ${p.id===targetStaffId?'selected':''}>${esc(p.name)}</option>`).join('')}
-          </select>
-        </div>`;
-      }
-
-      if (!rows.length && !manual.length) {
-        main.innerHTML = picker + `<div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--text-3)">
+      if (!list.length) {
+        main.innerHTML = `<div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--text-3)">
           No classes assigned this period.${isManagement ? '' : ' Add a manual entry below if you taught off-schedule.'}
-          <div style="margin-top:18px">${manualAddButton()}</div>
         </div>`;
         return;
       }
+      main.innerHTML = list.map(renderPersonCard).join('');
+    }
 
-      const hoursPill = totalHours > 0
-        ? `<span class="hours-pill has">${fmtHours(totalHours)}</span>`
+    function renderPersonCard(person) {
+      person.rows.sort((a,b)=> a.date.localeCompare(b.date) || String(a.scheduled_start).localeCompare(String(b.scheduled_start)));
+      person.manual.sort((a,b)=> a.date.localeCompare(b.date));
+
+      const classHours  = person.rows.reduce((s,r) => s + (r.actual_start ? (calcHours(r.actual_start, r.actual_end) || 0) : 0), 0);
+      const manualHours = person.manual.reduce((s,m) => s + (calcHours(m.actual_start, m.actual_end) || 0), 0);
+      const total = classHours + manualHours;
+      const confirmed = person.rows.filter(r => r.actual_start).length;
+
+      const hoursPill = total > 0
+        ? `<span class="hours-pill has">${fmtHours(total)}</span>`
         : `<span class="hours-pill none">No hours logged</span>`;
 
-      const classRowsHtml = rows.map(renderClassRow).join('');
-      const manualHtml = renderManualSection();
+      const rowsHtml   = person.rows.map(renderClassRow).join('');
+      const manualHtml = renderManualSection(person);
 
-      main.innerHTML = picker + `
+      return `
         <div class="person-card">
           <div class="person-head">
             <div class="person-head-left">
-              <span class="person-chip" style="background:${personColor}1a;color:${personColor}">
-                <span class="person-dot" style="background:${personColor}"></span>${esc(personName)}
+              <span class="person-chip" style="background:${person.color}1a;color:${person.color}">
+                <span class="person-dot" style="background:${person.color}"></span>${esc(person.name)}
               </span>
               <span class="person-role">Pro</span>
             </div>
             <div class="person-head-right">
-              <span class="progress-text">${confirmed}/${rows.length} classes</span>
+              <span class="progress-text">${confirmed}/${person.rows.length} classes</span>
               ${hoursPill}
             </div>
           </div>
-          ${classRowsHtml || '<div class="empty-state" style="padding:20px;color:var(--text-3)">No scheduled classes this period.</div>'}
+          ${rowsHtml || '<div class="empty-state" style="padding:16px 20px;color:var(--text-3)">No scheduled classes this period.</div>'}
           ${manualHtml}
         </div>`;
     }
@@ -502,9 +494,9 @@
       const isOverride = isConfirmed && (row.actual_start !== row.scheduled_start || row.actual_end !== row.scheduled_end);
 
       let statusHtml;
-      if (isOverride) statusHtml = `<span class="shift-status-override" style="font-size:12px;color:var(--amber);font-weight:600">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
+      if (isOverride) statusHtml = `<span style="font-size:12px;color:var(--amber);font-weight:600">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
       else if (isConfirmed) statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
-      else statusHtml = `<span class="shift-status-pending" style="font-size:12px;color:var(--text-3)">Not confirmed</span>`;
+      else statusHtml = `<span style="font-size:12px;color:var(--text-3)">Not confirmed</span>`;
 
       const shiftHours = isConfirmed ? calcHours(row.actual_start, row.actual_end) : null;
       const hoursHtml = shiftHours ? `<span class="shift-hours">${fmtHours(shiftHours)}</span>` : '';
@@ -523,7 +515,6 @@
           <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
         </div>` : '';
 
-      window._rowData = window._rowData || {};
       window._rowData[key] = row;
 
       return `
@@ -544,8 +535,9 @@
         ${overrideForm}`;
     }
 
-    function renderManualSection() {
-      const items = manual.map(m => {
+    function renderManualSection(person) {
+      const fid = `manual-form-${person.id}`;
+      const items = person.manual.map(m => {
         const dt = new Date(m.date + 'T12:00:00');
         const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
         const h = calcHours(m.actual_start, m.actual_end);
@@ -567,21 +559,17 @@
       return `<div class="manual-section">
         <div class="manual-head">Manual entries <span style="font-weight:400;color:var(--text-3);font-size:11px">— private lessons, subs, off-schedule</span></div>
         ${items || '<div style="padding:8px 20px;font-size:12px;color:var(--text-3)">None yet.</div>'}
-        <div style="padding:12px 20px">${manualAddButton()}</div>
-        <div class="manual-form" id="manual-form" style="display:none">
-          <input type="date" class="time-input" id="man-date" value="${todayStr()}" style="width:140px">
-          <input type="text" class="time-input" id="man-prog" placeholder="Lesson / description" style="flex:1;min-width:140px">
-          <input type="time" class="time-input" id="man-start">
+        <div style="padding:12px 20px"><button class="today-btn" onclick="document.getElementById('${fid}').style.display='flex'">+ Add manual entry</button></div>
+        <div class="manual-form" id="${fid}" style="display:none">
+          <input type="date" class="time-input" id="man-date-${person.id}" value="${todayStr()}" style="width:140px">
+          <input type="text" class="time-input" id="man-prog-${person.id}" placeholder="Lesson / description" style="flex:1;min-width:140px">
+          <input type="time" class="time-input" id="man-start-${person.id}">
           <span class="sep">–</span>
-          <input type="time" class="time-input" id="man-end">
-          <button class="ov-save-btn" onclick="addManual()">Add</button>
-          <button class="ov-cancel-btn" onclick="document.getElementById('manual-form').style.display='none'">Cancel</button>
+          <input type="time" class="time-input" id="man-end-${person.id}">
+          <button class="ov-save-btn" onclick="addManual(${person.id})">Add</button>
+          <button class="ov-cancel-btn" onclick="document.getElementById('${fid}').style.display='none'">Cancel</button>
         </div>
       </div>`;
-    }
-
-    function manualAddButton() {
-      return `<button class="today-btn" onclick="const f=document.getElementById('manual-form'); if(f) f.style.display='flex';">+ Add manual entry</button>`;
     }
 
     // ── Confirm / unconfirm a class ────────────────────────────────
@@ -615,15 +603,15 @@
       load();
     }
 
-    async function addManual() {
-      const date  = document.getElementById('man-date')?.value;
-      const prog  = document.getElementById('man-prog')?.value;
-      const start = document.getElementById('man-start')?.value;
-      const end   = document.getElementById('man-end')?.value;
+    async function addManual(personId) {
+      const date  = document.getElementById('man-date-'+personId)?.value;
+      const prog  = document.getElementById('man-prog-'+personId)?.value;
+      const start = document.getElementById('man-start-'+personId)?.value;
+      const end   = document.getElementById('man-end-'+personId)?.value;
       if (!date || !start || !end) { alert('Date, start and end are required.'); return; }
       await fetch('/api/pro-timesheet/manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ staff_id: targetStaffId, date, actual_start: start, actual_end: end, program: prog, notes: '' })
+        body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: '' })
       });
       load();
     }
@@ -633,8 +621,6 @@
       await fetch('/api/pro-timesheet/entry/' + id, { method:'DELETE' });
       load();
     }
-
-    function switchPro(id) { targetStaffId = parseInt(id); load(); }
 
     // ── Logout ─────────────────────────────────────────────────────
     async function doLogout() { await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login.html'; }
@@ -649,24 +635,10 @@
       if (typeof staffAvatar === 'function') staffAvatar(av, me.id, me.name, me.color);
 
       isManagement = !!me.is_management;
-      targetStaffId = me.id;
 
       document.getElementById('page-hint').textContent = isManagement
-        ? 'Semi-monthly periods · Classes auto-generate from the pro schedule. Pick a pro, then confirm the classes they taught. Manual entries are flagged.'
+        ? 'Semi-monthly periods · Classes auto-generate from the pro schedule. Confirm the classes each pro taught. Manual entries are flagged.'
         : 'Your classes auto-generate from the pro schedule. Check the ones you taught — hours fill in automatically. Add manual entries for private lessons or subs.';
-
-      // Office⇄Pro toggle only for staff who also work the desk (dual-role) or management
-      const toggle = document.getElementById('office-toggle');
-      if (toggle && (isManagement || me.is_office !== false)) toggle.style.display = 'inline-flex';
-
-      if (isManagement) {
-        try {
-          const pr = await fetch('/api/pro-timesheet/pros');
-          proList = await pr.json();
-          // default to self if self is a pro, else first pro
-          if (!proList.find(p => p.id === me.id) && proList.length) targetStaffId = proList[0].id;
-        } catch(e) {}
-      }
 
       const period = computePeriod(todayStr());
       currentStart = period.start;
