@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timesheets · JCT Staff Hub</title>
+  <title>Pro Timesheets · JCT Staff Hub</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -116,6 +116,10 @@
 
     .shift-status-area{flex:1;display:flex;align-items:center;gap:8px;}
     .shift-hours{font-size:12.5px;font-weight:700;color:var(--navy);flex-shrink:0;margin-left:10px;font-variant-numeric:tabular-nums;}
+    .manual-badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:rgba(217,119,6,0.12);color:var(--amber);}
+    .manual-section{border-top:1px solid var(--border);margin-top:4px;}
+    .manual-head{padding:14px 20px 6px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-2);}
+    .manual-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 20px 18px;}
     .shift-status-confirmed{font-size:12px;font-weight:600;color:var(--green);}
     .shift-status-override{font-size:12px;font-weight:600;color:var(--blue);}
     .shift-status-pending{font-size:12px;color:var(--text-3);}
@@ -295,8 +299,8 @@
       <a href="/checklist.html" class="qnav" title="Shift Checklist"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Checklist</span></a>
       <a href="/cash-summary.html" class="qnav" title="Cash Summary"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg><span>Cash</span></a>
       <a href="/schedule.html" class="qnav" title="Schedule"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Schedule</span></a>
-      <span class="qnav qnav-active" title="Office Timesheet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Office Sheet</span></span>
-      <a href="/pro-timesheet.html" class="qnav" id="pro-sheet-link" title="Pro Timesheet" style="display:none"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M12 2.5l2.6 6.3 6.9.5-5.3 4.4 1.7 6.6L12 17.4 6.1 20.8l1.7-6.6L2.5 9.8l6.9-.5z"/></svg><span>Pro Sheet</span></a>
+      <a href="/timesheet.html" class="qnav" title="Office Timesheet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Office Sheet</span></a>
+      <span class="qnav qnav-active" id="office-toggle" title="Pro Timesheet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M12 2.5l2.6 6.3 6.9.5-5.3 4.4 1.7 6.6L12 17.4 6.1 20.8l1.7-6.6L2.5 9.8l6.9-.5z"/></svg><span>Pro Sheet</span></span>
       <a href="/comms.html" class="qnav" title="Communications"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Communications</span></a>
     </div>
     <div class="ts-right" style="display:flex;align-items:center;gap:10px">
@@ -307,7 +311,7 @@
 
   <!-- Main -->
   <main class="main">
-    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Timesheets</h1>
+    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Pro Timesheets</h1>
     <p style="font-size:13px;color:var(--text-2);margin-bottom:0" id="page-hint"></p>
 
     <!-- Period Nav -->
@@ -323,7 +327,7 @@
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg>
       </button>
       <button class="today-btn" onclick="goToday()">Current period</button>
-      <button class="today-btn" onclick="exportTimesheet()" style="margin-left:auto">Export CSV</button>
+      <button class="today-btn" onclick="exportSheet()" style="margin-left:auto">Export CSV</button>
     </div>
 
     <!-- Person cards -->
@@ -340,18 +344,15 @@
   </main>
 
   <script>
-    const SHIFTS       = ['morning','afternoon','closing'];
-    const SHIFT_LABELS = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' };
-    const SHIFT_ORDER  = { morning:0, afternoon:1, closing:2 };
-    const DAY_FULL     = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const DAY_SHORT    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const MONTHS       = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
     let me = null;
-    let isAdmin = false;    // admin or manager — can edit any row, see all staff, add expenses
-    let canConfirm = false; // all logged-in users — can confirm their own shifts
+    let isManagement = false;
     let currentStart = '', currentEnd = '';
-    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {}, expenseItemsByStaff = {};
+    let targetStaffId = null;      // whose sheet we're viewing (management can switch)
+    let proList = [];              // management staff-picker source
+    let rows = [], manual = [];
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -374,7 +375,8 @@
       if (!start || !end) return null;
       const [sh, sm] = start.split(':').map(Number);
       const [eh, em] = end.split(':').map(Number);
-      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      let mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (mins < 0) mins += 1440;
       return mins > 0 ? mins / 60 : null;
     }
 
@@ -384,12 +386,11 @@
       return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
     }
 
-    // ── Period helpers ─────────────────────────────────────────────
+    // ── Period helpers (semi-monthly, identical to office sheet) ────
     function todayStr() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
-
     function computePeriod(dateStr) {
       const d = new Date(dateStr + 'T12:00:00');
       const yr = d.getFullYear(), mo = String(d.getMonth()+1).padStart(2,'0'), day = d.getDate();
@@ -397,21 +398,23 @@
       const last = new Date(yr, d.getMonth()+1, 0).getDate();
       return { start: `${yr}-${mo}-16`, end: `${yr}-${mo}-${last}` };
     }
-
     function shiftPeriod(startStr, dir) {
       const d = new Date(startStr + 'T12:00:00');
       if (dir === -1) { d.getDate() === 1 ? d.setDate(0) : d.setDate(1); }
       else { d.getDate() === 1 ? d.setDate(16) : (d.setDate(d.getDate() + 16), d.setDate(1)); }
       return computePeriod(d.toISOString().slice(0,10));
     }
-
     function fmtPeriodLabel(start, end) {
       const s = new Date(start + 'T12:00:00'), e = new Date(end + 'T12:00:00');
       return `${MONTHS[s.getMonth()]} ${s.getDate()}–${e.getDate()}, ${s.getFullYear()}`;
     }
 
     // ── Nav ────────────────────────────────────────────────────────
-    function exportTimesheet() { window.location.href = '/api/timesheet/export?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
+    function exportSheet() {
+      const q = `start=${encodeURIComponent(currentStart)}&end=${encodeURIComponent(currentEnd)}` +
+                (targetStaffId ? `&staff_id=${targetStaffId}` : '');
+      window.location.href = '/api/pro-timesheet/export?' + q;
+    }
     function prevPeriod() { const p = shiftPeriod(currentStart,-1); currentStart=p.start; currentEnd=p.end; load(); }
     function nextPeriod() { const p = shiftPeriod(currentStart, 1); currentStart=p.start; currentEnd=p.end; load(); }
     function goToday()    { const p = computePeriod(todayStr()); currentStart=p.start; currentEnd=p.end; load(); }
@@ -422,357 +425,216 @@
       document.getElementById('period-sub').textContent   = `(${currentStart} to ${currentEnd})`;
       document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
       try {
-        const res  = await fetch(`/api/timesheet/week?start=${currentStart}&end=${currentEnd}`);
+        const q = `start=${currentStart}&end=${currentEnd}` + (targetStaffId ? `&staff_id=${targetStaffId}` : '');
+        const res  = await fetch('/api/pro-timesheet/week?' + q);
         const data = await res.json();
-        weekRows     = data.rows     || [];
-        weekDefaults = data.defaults || {};
-        periodExpenses = data.period_expenses || {};
-        periodReceipts = data.period_receipts || {};
-        stringByStaff = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
-        expenseItemsByStaff = data.expense_items || {};
+        rows   = data.rows   || [];
+        manual = data.manual || [];
+        targetStaffId = data.staff_id || targetStaffId;
         render();
-        if (isAdmin) renderDefaults();
       } catch(e) {
-        document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load timesheets.</div>';
+        document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load pro timesheet.</div>';
       }
     }
 
     // ── Render ─────────────────────────────────────────────────────
     function render() {
-      if (!weekRows.length) {
-        document.getElementById('ts-main').innerHTML =
-          '<div class="empty-state">No shifts scheduled this period.<br>Assign staff on the <a href="/schedule.html" style="color:var(--blue)">Schedule</a> page first.</div>';
+      const main = document.getElementById('ts-main');
+      const person = proList.find(p => p.id === targetStaffId) || (me && me.id === targetStaffId ? me : null);
+      const personName = person ? person.name : (me ? me.name : '');
+      const personColor = person ? (person.color || '#2c5c9c') : (me ? me.color : '#2c5c9c');
+
+      const classHours  = rows.reduce((s,r) => s + (r.actual_start ? (calcHours(r.actual_start, r.actual_end) || 0) : 0), 0);
+      const manualHours = manual.reduce((s,m) => s + (calcHours(m.actual_start, m.actual_end) || 0), 0);
+      const totalHours  = classHours + manualHours;
+      const confirmed   = rows.filter(r => r.actual_start).length;
+
+      let picker = '';
+      if (isManagement && proList.length) {
+        picker = `<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;color:var(--text-3);font-weight:600">Viewing pro:</span>
+          <select id="pro-picker" onchange="switchPro(this.value)" style="padding:7px 12px;border-radius:9px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;background:var(--surface);color:var(--text)">
+            ${proList.map(p => `<option value="${p.id}" ${p.id===targetStaffId?'selected':''}>${esc(p.name)}</option>`).join('')}
+          </select>
+        </div>`;
+      }
+
+      if (!rows.length && !manual.length) {
+        main.innerHTML = picker + `<div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--text-3)">
+          No classes assigned this period.${isManagement ? '' : ' Add a manual entry below if you taught off-schedule.'}
+          <div style="margin-top:18px">${manualAddButton()}</div>
+        </div>`;
         return;
       }
-
-      // Group by staff
-      const groups = {};
-      for (const row of weekRows) {
-        if (!groups[row.staff_id]) {
-          groups[row.staff_id] = { id: row.staff_id, name: row.staff_name, color: row.staff_color, role: row.staff_role, rows: [] };
-        }
-        groups[row.staff_id].rows.push(row);
-      }
-
-      // Sort each person's shifts by date then shift order
-      for (const g of Object.values(groups)) {
-        g.rows.sort((a, b) => a.date.localeCompare(b.date) || (SHIFT_ORDER[a.shift]||0) - (SHIFT_ORDER[b.shift]||0));
-      }
-
-      // Determine which staff to show
-      const staffIds = Object.keys(groups)
-        .map(Number)
-        .sort((a, b) => groups[a].name.localeCompare(groups[b].name));
-      const visible = isAdmin ? staffIds : staffIds.filter(id => id === me.id);
-
-      if (!visible.length) {
-        document.getElementById('ts-main').innerHTML = '<div class="empty-state">No shifts found for this period.</div>';
-        return;
-      }
-
-      document.getElementById('ts-main').innerHTML = visible.map(sid => renderPersonCard(groups[sid])).join('');
-
-      // Load staff photos after render
-      visible.forEach(sid => staffAvatar(document.getElementById(`ts-av-${sid}`), sid, groups[sid].name, groups[sid].color));
-    }
-
-    function renderPersonCard(person) {
-      const totalHours = person.rows.reduce((sum, r) => {
-        return sum + (calcHours(r.actual_start, r.actual_end) || 0);
-      }, 0);
-      const confirmed = person.rows.filter(r => r.actual_start).length;
-      const total     = person.rows.length;
-      const expenses  = periodExpenses[person.id] ?? null;
 
       const hoursPill = totalHours > 0
         ? `<span class="hours-pill has">${fmtHours(totalHours)}</span>`
         : `<span class="hours-pill none">No hours logged</span>`;
 
-      const shiftRowsHtml = person.rows.map(r => renderShiftRow(r, person)).join('');
+      const classRowsHtml = rows.map(renderClassRow).join('');
+      const manualHtml = renderManualSection();
 
-      const expensesRow = renderExpensesSection(person);
-
-      return `
+      main.innerHTML = picker + `
         <div class="person-card">
           <div class="person-head">
             <div class="person-head-left">
-              <div id="ts-av-${person.id}" style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:${person.color}22;color:${person.color}">
-                ${esc(person.name).slice(0,2).toUpperCase()}
-              </div>
-              <span class="person-chip" style="background:${person.color}18;color:${person.color}">
-                ${esc(person.name)}
+              <span class="person-chip" style="background:${personColor}1a;color:${personColor}">
+                <span class="person-dot" style="background:${personColor}"></span>${esc(personName)}
               </span>
-              <span class="person-role">${person.role}</span>
+              <span class="person-role">Pro</span>
             </div>
             <div class="person-head-right">
-              <span class="progress-text">${confirmed}/${total} shifts</span>
+              <span class="progress-text">${confirmed}/${rows.length} classes</span>
               ${hoursPill}
-              ${(() => { const sc = stringByStaff[person.id]; return sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung${sc.unpaid ? ` · ${sc.unpaid} unpaid` : ''}</span>` : ''; })()}
             </div>
           </div>
-          ${shiftRowsHtml}
-          ${expensesRow}
+          ${classRowsHtml || '<div class="empty-state" style="padding:20px;color:var(--text-3)">No scheduled classes this period.</div>'}
+          ${manualHtml}
         </div>`;
     }
 
-    function renderShiftRow(row, person) {
-      const key = `${row.staff_id}-${row.date}-${row.shift}`;
+    function renderClassRow(row) {
+      const key = `${row.staff_id}-${row.date}-${row.slot_id}`;
       const isConfirmed = !!row.actual_start;
-      const isOverride  = isConfirmed && (
-        row.actual_start !== row.scheduled_start ||
-        row.actual_end   !== row.scheduled_end
-      );
-
+      const canEdit = isManagement || row.staff_id === me.id;
       const dt = new Date(row.date + 'T12:00:00');
       const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
+      const isOverride = isConfirmed && (row.actual_start !== row.scheduled_start || row.actual_end !== row.scheduled_end);
 
-      const canConfirmThisRow = isAdmin || (row.staff_id === me.id);
+      let statusHtml;
+      if (isOverride) statusHtml = `<span class="shift-status-override" style="font-size:12px;color:var(--amber);font-weight:600">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
+      else if (isConfirmed) statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
+      else statusHtml = `<span class="shift-status-pending" style="font-size:12px;color:var(--text-3)">Not confirmed</span>`;
 
-      const canEditTimes = isAdmin || (isConfirmed && row.staff_id === me.id);
-      const noteText = esc(row.notes || '');
-
-      let statusHtml = '';
-      if (isOverride) {
-        statusHtml = `<span class="shift-status-override">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
-        if (row.notes) statusHtml += `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(row.notes)}</span>`;
-      } else if (isConfirmed) {
-        statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
-      } else {
-        statusHtml = `<span class="shift-status-pending">Not confirmed</span>`;
-      }
-
-      const editBtn = canEditTimes
-        ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
-        : '';
-
-      // Per-shift hours — shown inline at the end of the row once the shift is confirmed
       const shiftHours = isConfirmed ? calcHours(row.actual_start, row.actual_end) : null;
-      const shiftHoursHtml = shiftHours ? `<span class="shift-hours" title="Hours worked this shift">${fmtHours(shiftHours)}</span>` : '';
+      const hoursHtml = shiftHours ? `<span class="shift-hours">${fmtHours(shiftHours)}</span>` : '';
 
-      const overrideForm = canEditTimes ? `
+      const editBtn = (canEdit && isConfirmed)
+        ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>` : '';
+
+      const overrideForm = (canEdit && isConfirmed) ? `
         <div class="override-form" id="override-${key}">
           <span class="ov-label">Start</span>
           <input type="time" class="time-input" id="ov-start-${key}" value="${row.actual_start || row.scheduled_start || ''}">
           <span class="sep">–</span>
           <span class="ov-label" style="width:30px">End</span>
           <input type="time" class="time-input" id="ov-end-${key}" value="${row.actual_end || row.scheduled_end || ''}">
-          <input type="text" class="time-input" id="ov-note-${key}" value="${noteText}" placeholder="Reason (optional)" style="width:180px;flex:1" autocomplete="off">
-          <button class="ov-save-btn" onclick="saveOverride('${key}', ${row.staff_id}, '${row.date}', '${row.shift}')">Save</button>
+          <button class="ov-save-btn" onclick="saveOverride('${key}', ${row.staff_id}, '${row.date}', ${row.slot_id})">Save</button>
           <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
         </div>` : '';
 
-      // Store row data for JS access
       window._rowData = window._rowData || {};
       window._rowData[key] = row;
 
       return `
         <div class="shift-row" id="row-${key}">
           <div class="shift-cb-wrap">
-            <input type="checkbox" class="shift-cb"
-              id="cb-${key}"
-              ${isConfirmed ? 'checked' : ''}
-              ${!canConfirmThisRow ? 'disabled' : ''}
-              onchange="toggleShift('${key}', ${row.staff_id}, '${row.date}', '${row.shift}', '${row.scheduled_start || ''}', '${row.scheduled_end || ''}')">
+            <input type="checkbox" class="shift-cb" id="cb-${key}" ${isConfirmed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}
+              onchange="toggleClass('${key}', ${row.staff_id}, '${row.date}', ${row.slot_id}, '${row.scheduled_start||''}', '${row.scheduled_end||''}', ${row.entry_id || 'null'})">
           </div>
           <span class="shift-row-date">${dateLabel}</span>
-          <span class="shift-badge ${row.shift}">${SHIFT_LABELS[row.shift]}</span>
           <span class="shift-sched">${fmt12(row.scheduled_start)} – ${fmt12(row.scheduled_end)}</span>
           <div class="shift-status-area">
+            <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(row.program)}</span>
             ${statusHtml}
             ${editBtn}
           </div>
-          ${shiftHoursHtml}
+          ${hoursHtml}
         </div>
         ${overrideForm}`;
     }
 
-    // ── Toggle shift confirmation ──────────────────────────────────
-    async function toggleShift(key, staffId, date, shift, scheduledStart, scheduledEnd) {
-      const cb = document.getElementById(`cb-${key}`);
-      const isChecked = cb.checked;
-
-      cb.disabled = true;
-      try {
-        await fetch('/api/timesheet/entry', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            staff_id:     staffId,
-            date,
-            shift,
-            actual_start: isChecked ? (scheduledStart || null) : null,
-            actual_end:   isChecked ? (scheduledEnd   || null) : null,
-          }),
-        });
-        // Update local row data
-        if (window._rowData && window._rowData[key]) {
-          window._rowData[key].actual_start = isChecked ? scheduledStart : null;
-          window._rowData[key].actual_end   = isChecked ? scheduledEnd   : null;
-        }
-        // Re-render just this person's card by reloading
-        await load();
-      } catch(e) {
-        cb.checked = !isChecked; // revert
-        cb.disabled = false;
-      }
-    }
-
-    // ── Override (edit times) ──────────────────────────────────────
-    function openOverride(key) {
-      document.getElementById(`override-${key}`)?.classList.add('open');
-    }
-    function closeOverride(key) {
-      document.getElementById(`override-${key}`)?.classList.remove('open');
-    }
-
-    async function saveOverride(key, staffId, date, shift) {
-      const start = document.getElementById(`ov-start-${key}`)?.value;
-      const end   = document.getElementById(`ov-end-${key}`)?.value;
-      const note  = document.getElementById(`ov-note-${key}`)?.value.trim() || '';
-      if (!start || !end) { alert('Enter both start and end times.'); return; }
-      try {
-        await fetch('/api/timesheet/entry', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end, notes: note }),
-        });
-        await load();
-      } catch(e) { alert('Failed to save.'); }
-    }
-
-    // ── Expense line items ────────────────────────────────────────
-
-    function renderExpensesSection(person) {
-      const items = expenseItemsByStaff[person.id] || [];
-      const canSee = isAdmin || person.id === me.id;
-      if (!canSee) return '';
-
-      const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-      const totalStr = total > 0 ? `$${total.toFixed(2)}` : '';
-
-      const itemsHtml = items.map(item => {
-        const isPdf = item.receipt_file && String(item.receipt_file).toLowerCase().endsWith('.pdf');
-        const rcptUrl = `/api/timesheet/expense-items/${item.id}/receipt?t=${Date.now()}`;
-        const rcptHtml = item.receipt_file
-          ? (isPdf
-              ? `<a class="receipt-pdf-sm" href="${esc(rcptUrl)}" target="_blank" rel="noopener" title="View receipt">📄</a>`
-              : `<img class="receipt-thumb-sm" src="${esc(rcptUrl)}" alt="Receipt" title="View receipt" onclick="window.open('${esc(rcptUrl)}','_blank','noopener')">`)
-          : `<button class="receipt-add-sm" onclick="document.getElementById('item-rcpt-${item.id}').click()" title="Add receipt">📎</button>
-             <input type="file" id="item-rcpt-${item.id}" accept="image/*,application/pdf" style="display:none" onchange="uploadItemReceipt(${item.id},this)">`;
-        const canDel = isAdmin || item.submitted_by === me.id || item.staff_id === me.id;
-        const delBtn = canDel
-          ? `<button class="exp-item-del" onclick="deleteExpenseItem(${item.id})" title="Remove">
-               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-             </button>` : '';
-        const d = new Date(item.date + 'T12:00:00');
-        const dateStr = `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}`;
-        return `<div class="exp-item" id="exp-item-${item.id}">
-          <span class="exp-item-date">${dateStr}</span>
-          <span class="exp-item-desc" title="${esc(item.description)}">${esc(item.description)}</span>
-          <span class="exp-item-amt">$${parseFloat(item.amount).toFixed(2)}</span>
-          <span class="exp-item-rcpt">${rcptHtml}</span>
-          ${delBtn}
-        </div>`;
-      }).join('');
-
-      const today = todayStr();
-      const addForm = `
-        <div class="exp-add-form" id="exp-add-form-${person.id}">
-          <input type="date" class="exp-date-input" id="exp-add-date-${person.id}" value="${today}" max="${today}">
-          <input type="text" class="exp-desc-input" id="exp-add-desc-${person.id}" placeholder="Description (e.g. Uniform top)" autocomplete="off">
-          <input type="number" class="exp-amt-input" id="exp-add-amt-${person.id}" placeholder="$0.00" min="0" step="0.01" autocomplete="off">
-          <button class="exp-form-save" onclick="saveExpenseItem(${person.id})">Add</button>
-          <button class="exp-form-cancel" onclick="closeExpenseForm(${person.id})">Cancel</button>
-        </div>`;
-
-      return `
-        <div class="person-footer" id="exp-footer-${person.id}">
-          <div class="exp-footer-head">
-            <span class="exp-footer-label">Expenses this period${totalStr ? '' : ' · none yet'}</span>
-            <div style="display:flex;align-items:center;gap:10px">
-              ${totalStr ? `<span class="exp-footer-total">${totalStr}</span>` : ''}
-              <button class="exp-add-btn" onclick="openExpenseForm(${person.id})">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add expense
-              </button>
-            </div>
+    function renderManualSection() {
+      const items = manual.map(m => {
+        const dt = new Date(m.date + 'T12:00:00');
+        const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
+        const h = calcHours(m.actual_start, m.actual_end);
+        const canDel = isManagement || m.staff_id === me.id;
+        return `<div class="shift-row">
+          <div class="shift-cb-wrap" style="width:17px"></div>
+          <span class="shift-row-date">${dateLabel}</span>
+          <span class="shift-sched">${fmt12(m.actual_start)} – ${fmt12(m.actual_end)}</span>
+          <div class="shift-status-area">
+            <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(m.program || 'Manual entry')}</span>
+            <span class="manual-badge">Manual</span>
+            ${m.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(m.notes)}</span>` : ''}
+            ${canDel ? `<button class="edit-times-btn" onclick="deleteManual(${m.id})">Remove</button>` : ''}
           </div>
-          ${items.length ? `<div class="exp-list">${itemsHtml}</div>` : ''}
-          ${addForm}
-        </div>`;
-    }
-
-    function openExpenseForm(staffId) {
-      document.getElementById(`exp-add-form-${staffId}`)?.classList.add('open');
-      setTimeout(() => document.getElementById(`exp-add-desc-${staffId}`)?.focus(), 50);
-    }
-    function closeExpenseForm(staffId) {
-      const f = document.getElementById(`exp-add-form-${staffId}`);
-      if (f) { f.classList.remove('open'); }
-    }
-
-    async function saveExpenseItem(staffId) {
-      const date = document.getElementById(`exp-add-date-${staffId}`)?.value;
-      const desc = document.getElementById(`exp-add-desc-${staffId}`)?.value.trim();
-      const amt  = document.getElementById(`exp-add-amt-${staffId}`)?.value;
-      if (!desc) { alert('Please enter a description.'); return; }
-      if (!amt || isNaN(parseFloat(amt)) || parseFloat(amt) <= 0) { alert('Please enter a valid amount.'); return; }
-      try {
-        await fetch('/api/timesheet/expense-items', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ staff_id: staffId, period_start: currentStart, date, description: desc, amount: parseFloat(amt) }),
-        });
-        await load();
-      } catch(e) { alert('Failed to save expense.'); }
-    }
-
-    async function deleteExpenseItem(itemId) {
-      if (!confirm('Remove this expense item?')) return;
-      try {
-        await fetch(`/api/timesheet/expense-items/${itemId}`, { method: 'DELETE' });
-        await load();
-      } catch(e) { alert('Failed to delete.'); }
-    }
-
-    async function uploadItemReceipt(itemId, inputEl) {
-      const file = inputEl.files && inputEl.files[0];
-      if (!file) return;
-      const fd = new FormData();
-      fd.append('receipt', file);
-      try {
-        const res = await fetch(`/api/timesheet/expense-items/${itemId}/receipt`, { method: 'POST', body: fd });
-        if (!res.ok) throw new Error('upload failed');
-        await load();
-      } catch(e) {
-        alert('Failed to upload receipt.');
-      } finally {
-        inputEl.value = '';
-      }
-    }
-
-    // ── Defaults (admin only) ──────────────────────────────────────
-    function renderDefaults() {
-      document.getElementById('defaults-panel').style.display = 'block';
-      document.getElementById('defaults-rows').innerHTML = SHIFTS.map(shift => {
-        const d = weekDefaults[shift] || {};
-        return `<div class="defaults-row">
-          <span class="defaults-label">${SHIFT_LABELS[shift]}</span>
-          <input type="time" id="def-start-${shift}" class="time-input" value="${d.start||''}" style="width:82px">
-          <span style="font-size:12px;color:var(--text-3)">–</span>
-          <input type="time" id="def-end-${shift}"   class="time-input" value="${d.end||''}"   style="width:82px">
-          <button class="save-btn" onclick="saveDefault('${shift}')" style="margin-left:8px">Update</button>
+          ${h ? `<span class="shift-hours">${fmtHours(h)}</span>` : ''}
         </div>`;
       }).join('');
+
+      return `<div class="manual-section">
+        <div class="manual-head">Manual entries <span style="font-weight:400;color:var(--text-3);font-size:11px">— private lessons, subs, off-schedule</span></div>
+        ${items || '<div style="padding:8px 20px;font-size:12px;color:var(--text-3)">None yet.</div>'}
+        <div style="padding:12px 20px">${manualAddButton()}</div>
+        <div class="manual-form" id="manual-form" style="display:none">
+          <input type="date" class="time-input" id="man-date" value="${todayStr()}" style="width:140px">
+          <input type="text" class="time-input" id="man-prog" placeholder="Lesson / description" style="flex:1;min-width:140px">
+          <input type="time" class="time-input" id="man-start">
+          <span class="sep">–</span>
+          <input type="time" class="time-input" id="man-end">
+          <button class="ov-save-btn" onclick="addManual()">Add</button>
+          <button class="ov-cancel-btn" onclick="document.getElementById('manual-form').style.display='none'">Cancel</button>
+        </div>
+      </div>`;
     }
 
-    async function saveDefault(shift) {
-      const start = document.getElementById(`def-start-${shift}`)?.value;
-      const end   = document.getElementById(`def-end-${shift}`)?.value;
-      if (!start || !end) { alert('Enter both start and end times.'); return; }
-      await fetch(`/api/timesheet/defaults/${shift}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({start,end}) });
-      weekDefaults[shift] = {start,end};
+    function manualAddButton() {
+      return `<button class="today-btn" onclick="const f=document.getElementById('manual-form'); if(f) f.style.display='flex';">+ Add manual entry</button>`;
     }
+
+    // ── Confirm / unconfirm a class ────────────────────────────────
+    async function toggleClass(key, staffId, date, slotId, schedStart, schedEnd, entryId) {
+      const cb = document.getElementById(`cb-${key}`);
+      const checked = cb.checked;
+      try {
+        if (checked) {
+          await fetch('/api/pro-timesheet/entry', {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ staff_id: staffId, date, slot_id: slotId, actual_start: schedStart || null, actual_end: schedEnd || null, program: (window._rowData[key]||{}).program })
+          });
+        } else if (entryId) {
+          await fetch('/api/pro-timesheet/entry/' + entryId, { method:'DELETE' });
+        }
+        load();
+      } catch(e) { cb.checked = !checked; alert('Could not save. Try again.'); }
+    }
+
+    function openOverride(key)  { const f=document.getElementById('override-'+key); if(f) f.style.display='flex'; }
+    function closeOverride(key) { const f=document.getElementById('override-'+key); if(f) f.style.display='none'; }
+
+    async function saveOverride(key, staffId, date, slotId) {
+      const start = document.getElementById('ov-start-'+key)?.value;
+      const end   = document.getElementById('ov-end-'+key)?.value;
+      if (!start || !end) { alert('Enter both start and end times.'); return; }
+      await fetch('/api/pro-timesheet/entry', {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ staff_id: staffId, date, slot_id: slotId, actual_start: start, actual_end: end, program: (window._rowData[key]||{}).program })
+      });
+      load();
+    }
+
+    async function addManual() {
+      const date  = document.getElementById('man-date')?.value;
+      const prog  = document.getElementById('man-prog')?.value;
+      const start = document.getElementById('man-start')?.value;
+      const end   = document.getElementById('man-end')?.value;
+      if (!date || !start || !end) { alert('Date, start and end are required.'); return; }
+      await fetch('/api/pro-timesheet/manual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ staff_id: targetStaffId, date, actual_start: start, actual_end: end, program: prog, notes: '' })
+      });
+      load();
+    }
+
+    async function deleteManual(id) {
+      if (!confirm('Remove this manual entry?')) return;
+      await fetch('/api/pro-timesheet/entry/' + id, { method:'DELETE' });
+      load();
+    }
+
+    function switchPro(id) { targetStaffId = parseInt(id); load(); }
 
     // ── Logout ─────────────────────────────────────────────────────
     async function doLogout() { await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login.html'; }
@@ -784,27 +646,27 @@
       me = await res.json();
 
       const av = document.getElementById('nav-avatar');
-      staffAvatar(av, me.id, me.name, me.color);
-      const _nn=document.getElementById('nav-name'); if(_nn)_nn.textContent=me.name;
-      const _nr=document.getElementById('nav-role'); if(_nr)_nr.textContent=me.role;
-      const _ang=document.getElementById('admin-nav-group'); if(me.role==='admin'&&_ang)_ang.style.display='block';
+      if (typeof staffAvatar === 'function') staffAvatar(av, me.id, me.name, me.color);
 
-      isAdmin  = ['admin','manager'].includes(me.role);
-      canConfirm = true; // everyone can confirm their own
+      isManagement = !!me.is_management;
+      targetStaffId = me.id;
 
-      // Reveal the Pro Sheet toggle for teaching pros and management (dual-role staff)
-      const _psl = document.getElementById('pro-sheet-link');
-      if (_psl && (me.is_pro || me.is_management)) _psl.style.display = 'inline-flex';
+      document.getElementById('page-hint').textContent = isManagement
+        ? 'Semi-monthly periods · Classes auto-generate from the pro schedule. Pick a pro, then confirm the classes they taught. Manual entries are flagged.'
+        : 'Your classes auto-generate from the pro schedule. Check the ones you taught — hours fill in automatically. Add manual entries for private lessons or subs.';
 
-      document.getElementById('page-hint').textContent = isAdmin
-        ? 'Semi-monthly periods · Check a shift to confirm hours worked. Edit times only if different from scheduled. Expenses are per person per period.'
-        : 'Check off your shifts to confirm you worked as scheduled. Your manager handles time adjustments and expenses.';
+      // Office⇄Pro toggle only for staff who also work the desk (dual-role) or management
+      const toggle = document.getElementById('office-toggle');
+      if (toggle && (isManagement || me.is_office !== false)) toggle.style.display = 'inline-flex';
 
-      try {
-        const ur = await fetch('/api/messages/unread-count');
-        const { count } = await ur.json();
-        if (count > 0) { const nb = document.getElementById('comms-nav-badge'); nb.textContent=count; nb.style.display='inline-block'; }
-      } catch(e) {}
+      if (isManagement) {
+        try {
+          const pr = await fetch('/api/pro-timesheet/pros');
+          proList = await pr.json();
+          // default to self if self is a pro, else first pro
+          if (!proList.find(p => p.id === me.id) && proList.length) targetStaffId = proList[0].id;
+        } catch(e) {}
+      }
 
       const period = computePeriod(todayStr());
       currentStart = period.start;
@@ -873,5 +735,3 @@
   <style>/* On mobile the bottom nav replaces the top quick-nav — hide the redundant top strip */@media(max-width:820px){.qnav{display:none!important}}</style>
   <script src="/live-sync.js"></script>
   <script src="/app-version.js"></script>
-</body>
-</html>
