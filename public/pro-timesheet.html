@@ -120,6 +120,23 @@
     .manual-section{border-top:1px solid var(--border);margin-top:4px;}
     .manual-head{padding:14px 20px 6px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-2);}
     .manual-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 20px 18px;}
+    /* ── Pro roster menu (management, master-detail) ── */
+    .pro-layout{display:flex;gap:20px;align-items:flex-start;}
+    .pro-menu{width:216px;flex-shrink:0;position:sticky;top:80px;display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px;max-height:calc(100vh - 108px);overflow-y:auto;}
+    .pro-menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;border:none;background:none;border-radius:9px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text-2);text-align:left;transition:background .12s,color .12s;}
+    .pro-menu-item:hover{background:var(--canvas);color:var(--text);}
+    .pro-menu-item.active{background:rgba(44,92,156,0.10);color:var(--blue);font-weight:600;}
+    .pro-menu-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .pro-menu-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pro-menu-stat{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap;}
+    .pro-menu-stat.done{color:var(--green);font-weight:600;}
+    .pro-detail{flex:1;min-width:0;}
+    @media(max-width:768px){
+      .pro-layout{flex-direction:column;}
+      .pro-menu{width:100%;flex-direction:row;overflow-x:auto;position:static;max-height:none;}
+      .pro-menu-item{width:auto;flex-shrink:0;}
+      .pro-menu-item .pro-menu-stat{display:none;}
+    }
     .shift-status-confirmed{font-size:12px;font-weight:600;color:var(--green);}
     .shift-status-override{font-size:12px;font-weight:600;color:var(--blue);}
     .shift-status-pending{font-size:12px;color:var(--text-3);}
@@ -430,7 +447,14 @@
       }
     }
 
-    // ── Render — one card per pro (like the office sheet) ───────────
+    // ── Render — left roster menu + detail card(s) ─────────────────
+    let selectedProId = null;
+
+    function personHours(p) {
+      return p.rows.reduce((s,r)=> s + (r.actual_start ? (calcHours(r.actual_start, r.actual_end) || 0) : 0), 0)
+           + p.manual.reduce((s,m)=> s + (calcHours(m.actual_start, m.actual_end) || 0), 0);
+    }
+
     function render() {
       const main = document.getElementById('ts-main');
       const groups = {};
@@ -447,8 +471,38 @@
         </div>`;
         return;
       }
-      main.innerHTML = list.map(renderPersonCard).join('');
+
+      // A single pro (viewing their own sheet) → just their card, no menu.
+      if (list.length === 1) { main.innerHTML = renderPersonCard(list[0]); return; }
+
+      // Management with multiple pros → left roster menu + detail pane.
+      if (selectedProId !== 'all' && !list.find(p => p.id === selectedProId)) selectedProId = list[0].id;
+
+      const menu = `<aside class="pro-menu">
+        <button class="pro-menu-item ${selectedProId==='all'?'active':''}" onclick="selectPro('all')">
+          <span class="pro-menu-name">All pros</span><span class="pro-menu-stat">${list.length}</span>
+        </button>
+        ${list.map(p => {
+          const conf = p.rows.filter(r=>r.actual_start).length;
+          const tot  = p.rows.length;
+          const hrs  = personHours(p);
+          const done = tot>0 && conf===tot;
+          return `<button class="pro-menu-item ${p.id===selectedProId?'active':''}" onclick="selectPro(${p.id})">
+            <span class="pro-menu-dot" style="background:${p.color}"></span>
+            <span class="pro-menu-name">${esc(p.name)}</span>
+            <span class="pro-menu-stat ${done?'done':''}">${hrs>0?fmtHours(hrs)+' · ':''}${conf}/${tot}</span>
+          </button>`;
+        }).join('')}
+      </aside>`;
+
+      const detail = (selectedProId==='all')
+        ? list.map(renderPersonCard).join('')
+        : renderPersonCard(list.find(p=>p.id===selectedProId));
+
+      main.innerHTML = `<div class="pro-layout">${menu}<div class="pro-detail">${detail}</div></div>`;
     }
+
+    function selectPro(id) { selectedProId = (id==='all') ? 'all' : parseInt(id); render(); }
 
     function renderPersonCard(person) {
       person.rows.sort((a,b)=> a.date.localeCompare(b.date) || String(a.scheduled_start).localeCompare(String(b.scheduled_start)));
