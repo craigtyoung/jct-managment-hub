@@ -507,7 +507,20 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
 // structured day + start/end); court + pros are assigned in-app via dropdowns.
 // Gated by a flag so edits/deletions survive reboots.
 if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
+if (!Array.isArray(_data.pro_timesheet_entries)) { _data.pro_timesheet_entries = []; _data._seq.pro_timesheet_entries = 0; }
 if (!_data._migrations) _data._migrations = {};
+
+// Migration: flag salaried staff so they're kept OUT of the hourly timesheets
+// (David & Megan are on salary, tracked outside this system). Idempotent; a hand
+// edit in staff management can override the flag later without being re-applied.
+if (!_data._migrations.salariedFlag2026v1 && Array.isArray(_data.staff)) {
+  const SALARIED = ['david', 'megan'];
+  for (const s of _data.staff) {
+    if (SALARIED.includes(String(s.name || '').trim().toLowerCase())) s.salaried = true;
+  }
+  _data._migrations.salariedFlag2026v1 = true;
+  save();
+}
 
 // Migration: initial member import (Sep 2026) — runs once, never again.
 if (!_data._migrations.memberImport2026Sep) {
@@ -3679,6 +3692,137 @@ function getPublicProSchedule() {
   });
 }
 
+// ─── Pro timesheet ──────────────────────────────────────────────────────────
+// Teaching pros get an hourly timesheet whose rows are AUTO-GENERATED from the live
+// pro-schedule class grid. Office staff use the fixed-shift timesheet above; a
+// dual-role person (e.g. Angie) uses both. Salaried staff are kept out entirely.
+
+function _isSalaried(id) {
+  const s = getStaffById(id);
+  return !!(s && s.salaried);
+}
+
+// Resolve the pros assigned to a slot: prefer the per-court map, fall back to the
+// legacy flat pro_ids array. Mirrors getPublicProSchedule.
+function _slotProIds(s) {
+  if (s.court_pros && Object.keys(s.court_pros).length) {
+    return [...new Set(Object.values(s.court_pros).flat().map(Number))].filter(n => !isNaN(n));
+  }
+  return (Array.isArray(s.pro_ids) ? s.pro_ids.map(Number) : []).filter(n => !isNaN(n));
+}
+
+// Expand the CURRENT class grid into dated teaching rows for a period. Because it
+// reads whatever slots are active now, it follows the season automatically when
+// management swaps the grid — no stored per-class end-dates needed.
+function getProAssignmentsForRange(startDate, endDate) {
+  const slots = getProScheduleSlots(); // active, normalized
+  const rows = [];
+  const last = new Date(endDate + 'T12:00:00');
+  for (const s of slots) {
+    const proIds = _slotProIds(s).filter(id => !_isSalaried(id));
+    if (!proIds.length) continue;
+    const wantDow = _SLOT_DAY_ORDER[s.day]; // 1..7 (Mon..Sun)
+    if (!wantDow) continue;
+    let cur = new Date(startDate + 'T12:00:00');
+    while (cur <= last) {
+      const jsDow = cur.getDay() === 0 ? 7 : cur.getDay(); // Sun → 7
+      if (jsDow === wantDow) {
+        const dateStr = cur.toISOString().slice(0, 10);
+        for (const pid of proIds) {
+          rows.push({
+            slot_id: s.id, staff_id: pid, date: dateStr, day: s.day,
+            start: s.start, end: s.end, time_label: s.time_label || '',
+            program: s.program, kind: s.kind || 'class',
+          });
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+  return rows;
+}
+
+function getProTimesheetForRange(startDate, endDate) {
+  return (_data.pro_timesheet_entries || [])
+    .filter(e => e.date >= startDate && e.date <= endDate)
+    .map(e => {
+      const s = getStaffById(e.staff_id);
+      return { ...e, staff_name: s ? s.name : 'Unknown', staff_color: s ? s.color : '#999' };
+    });
+}
+
+// Confirm (or update) a class row. Keyed on staff_id + date + slot_id. Snapshots
+// the program label + times so the entry survives a later grid/season change.
+function upsertProTimesheetEntry({ staffId, date, slotId, actualStart, actualEnd, program, notes, updatedBy }) {
+  if (!Array.isArray(_data.pro_timesheet_entries)) { _data.pro_timesheet_entries = []; _data._seq.pro_timesheet_entries = 0; }
+  const sid = parseInt(staffId), slot = parseInt(slotId);
+  const existing = _data.pro_timesheet_entries.find(
+    e => e.staff_id === sid && e.date === date && e.slot_id === slot && e.source === 'class'
+  );
+  if (existing) {
+    existing.actual_start = actualStart || null;
+    existing.actual_end   = actualEnd   || null;
+    if (program != null) existing.program = program;
+    existing.notes      = notes || '';
+    existing.updated_by = updatedBy;
+    existing.updated_at = now();
+  } else {
+    _data.pro_timesheet_entries.push({
+      id: nextId('pro_timesheet_entries'),
+      staff_id: sid, date, slot_id: slot, source: 'class',
+      program: program || '', actual_start: actualStart || null, actual_end: actualEnd || null,
+      notes: notes || '', updated_by: updatedBy, updated_at: now(),
+    });
+  }
+  save();
+}
+
+// Add a manual line (private lesson, sub, off-grid). Flagged source:'manual' so
+// management can scan a period for hand-entered hours.
+function addProManualEntry({ staffId, date, actualStart, actualEnd, program, notes, submittedBy }) {
+  if (!Array.isArray(_data.pro_timesheet_entries)) { _data.pro_timesheet_entries = []; _data._seq.pro_timesheet_entries = 0; }
+  const entry = {
+    id: nextId('pro_timesheet_entries'),
+    staff_id: parseInt(staffId), date, slot_id: null, source: 'manual',
+    program: program || 'Manual entry',
+    actual_start: actualStart || null, actual_end: actualEnd || null,
+    notes: notes || '', updated_by: submittedBy, updated_at: now(),
+  };
+  _data.pro_timesheet_entries.push(entry);
+  save();
+  return entry;
+}
+
+function getProTimesheetEntryById(id) {
+  return (_data.pro_timesheet_entries || []).find(e => e.id === parseInt(id));
+}
+
+function deleteProTimesheetEntry(id) {
+  const before = (_data.pro_timesheet_entries || []).length;
+  _data.pro_timesheet_entries = (_data.pro_timesheet_entries || []).filter(e => e.id !== parseInt(id));
+  if (_data.pro_timesheet_entries.length !== before) save();
+}
+
+// Non-salaried staff who teach (appear in any active slot) — the pro-timesheet roster
+// and the management staff-picker source.
+function getTeachingPros() {
+  const ids = new Set();
+  for (const s of getProScheduleSlots()) _slotProIds(s).forEach(id => ids.add(id));
+  return [...ids]
+    .filter(id => !_isSalaried(id))
+    .map(id => getStaffById(id))
+    .filter(Boolean)
+    .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Does this person teach at all (used to show the Office⇄Pro toggle for dual-role staff)?
+function isTeachingPro(id) {
+  if (_isSalaried(id)) return false;
+  const pid = parseInt(id);
+  return getProScheduleSlots().some(s => _slotProIds(s).includes(pid));
+}
+
 // ─── Members (check-in system) ────────────────────────────────────────────────
 function getAllMembers(includeInactive) {
   return (_data.members || [])
@@ -3875,6 +4019,14 @@ module.exports = {
   deleteAcademyNote,
   getProScheduleSlots,
   getPublicProSchedule,
+  getProAssignmentsForRange,
+  getProTimesheetForRange,
+  upsertProTimesheetEntry,
+  addProManualEntry,
+  getProTimesheetEntryById,
+  deleteProTimesheetEntry,
+  getTeachingPros,
+  isTeachingPro,
   addProScheduleSlot,
   updateProScheduleSlot,
   deleteProScheduleSlot,

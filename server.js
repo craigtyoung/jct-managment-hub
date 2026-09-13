@@ -54,6 +54,7 @@ const contractorRoutes  = require('./routes/contractor');
 const ideaRoutes        = require('./routes/ideas');
 const academyRoutes     = require('./routes/academy');
 const proScheduleRoutes = require('./routes/pro-schedule');
+const proTimesheetRoutes = require('./routes/pro-timesheet');
 const staffMgmtRoutes   = require('./routes/staff-mgmt');
 const pushRoutes        = require('./routes/push');
 const checkinRoutes     = require('./routes/checkin');
@@ -127,6 +128,7 @@ app.use('/api/contractor',   requireAuth, contractorRoutes);
 app.use('/api/ideas',        requireAuth, ideaRoutes);
 app.use('/api/academy',      requireAuth, academyRoutes);
 app.use('/api/pro-schedule', requireAuth, proScheduleRoutes);
+app.use('/api/pro-timesheet', requireAuth, proTimesheetRoutes);
 app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
 app.use('/api/push',         requireAuth, pushRoutes);
 app.use('/api/members',      requireAuth, membersRoutes);
@@ -166,6 +168,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     id: eff.id, name: eff.name, color: eff.color, role: eff.role, badge: eff.badge || null,
     is_admin: eff.role === 'admin',
     is_management: eff.role === 'admin' || eff.role === 'manager',
+    is_pro: db.isTeachingPro(eff.id),
     can_view_as: db.canViewAs(real.id),
     can_manage_directory: db.canManageDirectory(eff.id), // Directory: all management (incl. David)
     can_manage_pay: db.canManageStaff(eff.id),           // Pay Review: trio only
