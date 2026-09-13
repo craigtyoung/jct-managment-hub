@@ -115,6 +115,7 @@
     .shift-sched{font-size:12px;color:var(--text-3);margin:0 14px;flex-shrink:0;min-width:120px;}
 
     .shift-status-area{flex:1;display:flex;align-items:center;gap:8px;}
+    .shift-hours{font-size:12.5px;font-weight:700;color:var(--navy);flex-shrink:0;margin-left:10px;font-variant-numeric:tabular-nums;}
     .shift-status-confirmed{font-size:12px;font-weight:600;color:var(--green);}
     .shift-status-override{font-size:12px;font-weight:600;color:var(--blue);}
     .shift-status-pending{font-size:12px;color:var(--text-3);}
@@ -543,6 +544,10 @@
         ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
         : '';
 
+      // Per-shift hours — shown inline at the end of the row once the shift is confirmed
+      const shiftHours = isConfirmed ? calcHours(row.actual_start, row.actual_end) : null;
+      const shiftHoursHtml = shiftHours ? `<span class="shift-hours" title="Hours worked this shift">${fmtHours(shiftHours)}</span>` : '';
+
       const overrideForm = canEditTimes ? `
         <div class="override-form" id="override-${key}">
           <span class="ov-label">Start</span>
@@ -575,6 +580,7 @@
             ${statusHtml}
             ${editBtn}
           </div>
+          ${shiftHoursHtml}
         </div>
         ${overrideForm}`;
     }
