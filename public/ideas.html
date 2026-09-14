@@ -698,9 +698,9 @@
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   <span class="vote-count" id="vc-${i.id}">${votes}</span>
                 </button>
-                <button class="cmt-btn" onclick="toggleComments(${i.id})">
+                <button class="cmt-btn" onclick="toggleComments(${i.id})" title="Comment / reply on this idea">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <span id="cc-${i.id}">${cc}</span>
+                  <span>Comment</span><span class="cmt-count" id="cc-${i.id}">${cc ? ` · ${cc}` : ''}</span>
                 </button>
                 ${statusCtrl}
                 ${delBtn}
@@ -785,7 +785,7 @@
       const idea = ideas.find(x => x.id === id);
       if (idea) idea.comment_count = comments.length;
       const cc = document.getElementById('cc-' + id);
-      if (cc) cc.textContent = comments.length;
+      if (cc) cc.textContent = comments.length ? ' · ' + comments.length : '';
 
       const mgmt = isManagement();
       const items = comments.length
