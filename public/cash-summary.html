@@ -145,7 +145,14 @@
     .cat-add:hover{border-color:rgba(44,92,156,0.45);color:var(--blue);}
     .amt-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
     /* Subtle "$" painted inside dollar-amount fields (never on quantity/count fields) */
-    .has-dollar{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14'%3E%3Ctext x='0' y='11' font-family='Arial,Helvetica,sans-serif' font-size='11' fill='%2394a3b8'%3E%24%3C/text%3E%3C/svg%3E");background-repeat:no-repeat;background-position:6px center;padding-left:16px;}
+    /* !important + background-image (not shorthand) so later `background:` rules on
+       cf-row-amt / slip-input / sdw-float can't wipe the "$" glyph. */
+    .has-dollar{
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14'%3E%3Ctext x='0' y='11' font-family='Arial,Helvetica,sans-serif' font-size='11' fill='%2394a3b8'%3E%24%3C/text%3E%3C/svg%3E") !important;
+      background-repeat:no-repeat !important;
+      background-position:6px center !important;
+      padding-left:16px !important;
+    }
     /* Unit-priced field: [qty] = [$ amount] */
     .unit-wrap{display:inline-flex;align-items:center;gap:3px;}
     .unit-wrap .unit-hint{white-space:nowrap;}
@@ -385,7 +392,6 @@
           <button class="ctx-arrow" onclick="shiftDate(1)" title="Next day"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
         <button class="today-btn" onclick="goToday()">Today</button>
-        <button class="export-btn mgmt-only" onclick="fillSample()" title="Fill this sheet with test numbers to check the totals (nothing saves until you edit a field)" style="background:transparent;border:1px solid var(--border);color:var(--text-2)">Sample data</button>
         <button class="export-btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </div>
@@ -434,13 +440,9 @@
         <span class="sdw-val" id="daily-till">$0.00</span>
       </div>
 
-      <div class="sdw-section mgmt-only">Unit Prices <span style="font-weight:400;color:var(--text-3);font-size:10px">· management only</span></div>
+      <div class="sdw-section mgmt-only">Guest / PAYG Fee <span style="font-weight:400;color:var(--text-3);font-size:10px">· management only</span></div>
       <div class="sdw-row mgmt-only">
-        <span class="sdw-label">Tennis Balls / can</span>
-        <input type="number" class="sdw-float has-dollar" id="price-tennis-balls" min="0" step="0.01">
-      </div>
-      <div class="sdw-row mgmt-only">
-        <span class="sdw-label">Guest Fee / PAYG</span>
+        <span class="sdw-label">Standard Guest Fee</span>
         <input type="number" class="sdw-float has-dollar" id="price-guest-fee" min="0" step="0.01">
       </div>
       <div class="sdw-row mgmt-only">
@@ -609,12 +611,10 @@
       onInput();
     }
 
-    // Management-only: update the shared unit prices on the server, then refresh the hints.
+    // Management-only: update the shared guest/PAYG fee on the server.
     async function saveUnitPrices() {
-      const tb = parseFloat(getEl('price-tennis-balls')?.value);
       const gf = parseFloat(getEl('price-guest-fee')?.value);
       const body = { unit_prices: {} };
-      if (!isNaN(tb) && tb >= 0) body.unit_prices.tennis_balls = tb;
       if (!isNaN(gf) && gf >= 0) body.unit_prices.guest_fee = gf;
       const st = getEl('price-save-status');
       if (st) { st.textContent = 'Saving…'; st.style.color = 'var(--text-3)'; }
@@ -624,9 +624,7 @@
         });
         if (!res.ok) throw new Error('save failed');
         const out = await res.json();
-        CASH_UNIT_PRICES.tennis_balls = out.unit_prices.tennis_balls;
-        CASH_UNIT_PRICES.guest_fee    = out.unit_prices.guest_fee;
-        document.querySelectorAll('.tb-price-hint').forEach(h => h.textContent = `× $${CASH_UNIT_PRICES.tennis_balls}/can`);
+        CASH_UNIT_PRICES.guest_fee = out.unit_prices.guest_fee;
         if (st) { st.textContent = 'Saved'; st.style.color = 'var(--green, #16a34a)'; }
         setTimeout(() => { if (st) st.textContent = ''; }, 2500);
       } catch (e) {
@@ -634,20 +632,6 @@
       }
     }
 
-    // Tennis-ball quantity helper: qty × unit price → fills the line's dollar amount.
-    // Typing a quantity fills the $ (rounded to cents); the $ stays editable for discounts.
-    // Leaving qty blank never clears a manually-entered amount.
-    function applyUnitQty(qtyEl, si) {
-      const wrap  = qtyEl.closest('.amt-wrap');
-      const amtEl = wrap && wrap.querySelector('input[data-item]');
-      if (!amtEl) return;
-      const price = parseFloat(CASH_UNIT_PRICES.tennis_balls) || 0;
-      if (qtyEl.value !== '' && qtyEl.value != null) {
-        amtEl.value = +(((parseFloat(qtyEl.value) || 0) * price).toFixed(2));
-      }
-      recalcShift(si);
-      onInput();
-    }
     function getStr(si, item, idx, field) {
       const el = document.querySelector(`[data-si="${si}"][data-item="${item}"][data-idx="${idx}"][data-field="${field}"]`);
       return el ? el.value.trim() : '';
@@ -738,17 +722,6 @@
       const amtsWithMember = (item) => SLOTS.map(i =>
         `<div class="amt-wrap field-slot${i >= DEFAULT_VISIBLE ? ' amt-hidden' : ''}">${a(item,i,'amount')}${d(item,i,'member')}</div>`
       ).join('') + addBtn(item);
-      // Unit-priced item: each slot is [qty] = [$ amount]. Qty fills the amount (qty × price);
-      // the amount stays a plain, editable dollar field (so it saves/loads/exports like any other).
-      const amtsUnit = (item) => SLOTS.map(i =>
-        `<div class="amt-wrap unit-slot field-slot${i >= DEFAULT_VISIBLE ? ' amt-hidden' : ''}">
-           <div class="unit-wrap">
-             <input type="number" class="qty-input" min="0" step="1" placeholder="qty" title="Quantity — fills the price automatically" oninput="applyUnitQty(this,${si});">
-             <span class="unit-eq">=</span>
-             <input type="number" class="amt-input has-dollar" data-si="${si}" data-item="${item}" data-idx="${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
-           </div>
-         </div>`
-      ).join('') + addBtn(item);
 
       return `
         <input type="hidden" id="s${si}-staff">
@@ -761,8 +734,8 @@
             <span class="section-total-val" id="s${si}-ps-total">$0.00</span>
           </div>
           <div class="cat-row">
-            <span class="cat-label">Tennis Balls <span class="unit-hint tb-price-hint">× $${CASH_UNIT_PRICES.tennis_balls}/can</span></span>
-            <div class="cat-inputs">${amtsUnit('tennis_balls')}</div>
+            <span class="cat-label">Tennis Balls</span>
+            <div class="cat-inputs">${amts5('tennis_balls')}</div>
             <span class="cat-row-total" id="s${si}-tb-total">$0.00</span>
           </div>
           <div class="cat-row">
@@ -1242,6 +1215,11 @@
     }
     document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
     window.addEventListener('pagehide', flushSave);
+    // Back/forward cache or a resumed PWA/tab restores the frozen page WITHOUT re-running init,
+    // so currentDate can be a stale past day. Snap back to today so staff never land on an old sheet.
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && currentDate && currentDate !== localToday()) goToday();
+    });
 
     async function doSave() {
       saveTimer = null;
@@ -1584,9 +1562,8 @@
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
 
-      // Seed the management price editor with the current values
-      if (getEl('price-tennis-balls')) getEl('price-tennis-balls').value = CASH_UNIT_PRICES.tennis_balls;
-      if (getEl('price-guest-fee'))    getEl('price-guest-fee').value    = CASH_UNIT_PRICES.guest_fee;
+      // Seed the management price editor with the current value
+      if (getEl('price-guest-fee')) getEl('price-guest-fee').value = CASH_UNIT_PRICES.guest_fee;
 
       // Cash Summary ALWAYS opens on today. (Use the date arrows / picker to review
       // another day.) Any ?date= in the URL is ignored and stripped, so a stale link
