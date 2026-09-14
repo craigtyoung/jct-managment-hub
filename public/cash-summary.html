@@ -95,15 +95,18 @@
 
     /* ── Shift Tabs ── */
     .shift-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;}
-    .shift-tab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--text-2);transition:all 0.18s;text-align:center;}
+    .shift-tab{flex:1;min-width:0;padding:7px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-family:var(--font-body);color:var(--text-2);transition:all 0.18s;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;}
     .shift-tab:hover{background:rgba(44,92,156,0.06);color:var(--blue);}
     .shift-tab.active{background:var(--navy);color:#f0f4ff;}
-    .shift-tab .tab-total{display:block;font-size:10px;font-weight:600;margin-top:2px;opacity:0.7;}
-    .shift-tab.active .tab-total{opacity:1;}
-    .shift-tab .tab-label{display:block;}
-    .shift-tab .tab-staff{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;font-size:11px;font-weight:600;margin-top:4px;line-height:1.2;}
+    /* staff far-left, slim single line */
+    .shift-tab .tab-staff{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;font-weight:600;color:var(--text);}
+    .shift-tab.active .tab-staff{color:#f0f4ff;}
     .shift-tab .tab-staff:empty{display:none;}
-    .shift-tab .tab-staff .cs-staff-av{width:18px;height:18px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;}
+    .shift-tab .tab-staff .cs-staff-av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;}
+    .shift-tab .tab-meta{display:flex;align-items:baseline;gap:7px;flex-shrink:0;}
+    .shift-tab .tab-label{font-size:12px;font-weight:600;}
+    .shift-tab .tab-total{font-size:12px;font-weight:700;opacity:0.75;}
+    .shift-tab.active .tab-total{opacity:1;}
     .tab-staff-av{width:20px;height:20px;border-radius:5px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
     .tab-staff-name{font-size:11px;font-weight:500;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
@@ -794,9 +797,11 @@
       const tabs = document.getElementById('shift-tabs');
       tabs.innerHTML = SHIFT_LABELS.map((label, si) =>
         `<button class="shift-tab${si === 0 ? ' active' : ''}" id="tab-${si}" onclick="showShift(${si})">
-          <span class="tab-label">${label}</span>
           <span class="tab-staff" id="tab-staff-${si}"></span>
-          <span class="tab-total" id="tab-total-${si}">$0.00</span>
+          <span class="tab-meta">
+            <span class="tab-label">${label}</span>
+            <span class="tab-total" id="tab-total-${si}">$0.00</span>
+          </span>
         </button>`
       ).join('') +
       `<button class="sdw-tab-btn" onclick="openSummary()" title="Daily Summary">
