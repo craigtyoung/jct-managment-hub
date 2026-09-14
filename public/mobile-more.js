@@ -29,12 +29,15 @@
     if (!sheet) return;
     var here = norm(location.pathname);
     var isMgmt = !!(me && me.is_management);
+    var isPro  = !!(me && me.is_pro);
     var items = LINKS
       .filter(function (l) { return !l.mgmt || isMgmt; })
       .map(function (l) {
-        var active = norm(l.href) === here ? ' active' : '';
+        // Timesheets is mode-aware: pros go to their own timesheet, everyone else to office.
+        var href = (l.href === '/timesheet.html' && isPro) ? '/pro-timesheet.html' : l.href;
+        var active = (norm(href) === here) ? ' active' : '';
         var cur = active ? ' aria-current="page"' : '';
-        return '<a href="' + l.href + '" class="mnav-sheet-link' + active + '"' + cur + '>' + l.svg + l.label + '</a>';
+        return '<a href="' + href + '" class="mnav-sheet-link' + active + '"' + cur + '>' + l.svg + l.label + '</a>';
       }).join('');
     sheet.innerHTML =
       '<div class="mnav-grip"></div>' +
