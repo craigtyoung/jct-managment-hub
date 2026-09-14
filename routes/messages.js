@@ -1,8 +1,33 @@
 const express = require('express');
+const multer = require('multer');
+const path   = require('path');
+const fs     = require('fs');
 const db = require('../db');
 const sse = require('../sse');
 const push = require('../push');
 const router = express.Router();
+
+// ── Optional image attachment on a note (mirrors the Idea Board) ──────────────
+const DATA_FILE   = process.env.DATA_FILE || path.join(__dirname, '..', 'jct-data.json');
+const MSG_IMG_DIR = path.join(path.dirname(DATA_FILE), 'message-images');
+const IMG_EXTS    = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+function findMsgImage(id) {
+  for (const ext of IMG_EXTS) { const p = path.join(MSG_IMG_DIR, `msg-${id}${ext}`); if (fs.existsSync(p)) return p; }
+  return null;
+}
+const msgStorage = multer.diskStorage({
+  destination: (req, file, cb) => { if (!fs.existsSync(MSG_IMG_DIR)) fs.mkdirSync(MSG_IMG_DIR, { recursive: true }); cb(null, MSG_IMG_DIR); },
+  filename: (req, file, cb) => {
+    const base = `msg-${req.params.id}`;
+    IMG_EXTS.forEach(ext => { try { fs.unlinkSync(path.join(MSG_IMG_DIR, `${base}${ext}`)); } catch (e) {} });
+    cb(null, `${base}${path.extname(file.originalname).toLowerCase() || '.jpg'}`);
+  },
+});
+const msgUpload = multer({
+  storage: msgStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+});
 
 // Resolve the acting identity for every request. Admins in "View as" mode act as
 // the viewed staff member; everyone else acts as themselves.
@@ -175,6 +200,29 @@ router.delete('/:id', (req, res) => {
   db.deleteMessage(req.params.id);
   sse.broadcast('update');
   res.json({ ok: true });
+});
+
+// POST /:id/image — attach/replace a note's image (author or management)
+router.post('/:id/image', (req, res, next) => {
+  const msg = db.getMessage(req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
+  const staff = db.getStaffById(req.actingStaffId);
+  const isMgmt = staff && ['admin', 'manager'].includes(staff.role);
+  const isAuthor = staff && msg.staff_id === staff.id;
+  if (!isMgmt && !isAuthor) return res.status(403).json({ error: 'Not authorised' });
+  next();
+}, msgUpload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+  db.setMessageImage(req.params.id, req.file.filename);
+  sse.broadcast('update');
+  res.json({ ok: true, image: req.file.filename });
+});
+
+// GET /:id/image — serve a note's image
+router.get('/:id/image', (req, res) => {
+  const p = findMsgImage(req.params.id);
+  if (p) return res.sendFile(p);
+  res.status(404).end();
 });
 
 module.exports = router;

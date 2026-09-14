@@ -497,7 +497,12 @@
               <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
             </div>
             <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
-            <textarea id="compose-text" class="compose-input" rows="3" placeholder="Post a note for the team..."></textarea>
+            <textarea id="compose-text" class="compose-input" rows="3" placeholder="Post a note for the team...  (you can drag, paste, or attach an image)"></textarea>
+            <input type="file" id="compose-img-input" accept="image/*" style="display:none" onchange="handleComposeImage(this.files[0])">
+            <div id="compose-img-preview" style="display:none;margin:8px 0 0;position:relative;width:fit-content">
+              <img id="compose-img-thumb" alt="attachment preview" style="max-height:96px;max-width:200px;border-radius:8px;border:1px solid var(--input-border);display:block">
+              <button type="button" onclick="clearComposeImage()" title="Remove image" style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:none;background:#0f172a;color:#fff;cursor:pointer;font-size:13px;line-height:1">×</button>
+            </div>
             <div class="compose-footer">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
             <select id="compose-category" class="select-pill"><!-- options set per-audience by applyAudienceUI() --></select>
@@ -514,6 +519,7 @@
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 <span id="compose-mic-dot" style="display:none;width:9px;height:9px;border-radius:50%;background:#f87171;animation:pulse-rec 1s infinite"></span>
               </button>
+              <button class="emoji-btn" type="button" onclick="document.getElementById('compose-img-input').click()" title="Attach image">🖼️</button>
               <button class="emoji-btn" onclick="toggleEmojiPickerFor('compose-text',this)" title="Emoji">😊</button>
               <button class="btn btn-ghost btn-sm" onclick="closeCompose()">Cancel</button>
               <button class="btn btn-indigo" onclick="postMessage()">Post Note</button>
@@ -1313,6 +1319,7 @@
             </div>
             <div class="msg-col-note">
               <div class="msg-content" id="content-${msg.id}">${esc(msg.content)}</div>
+              ${msg.has_image ? `<img class="msg-image" src="/api/messages/${msg.id}/image" alt="attachment" loading="lazy" onclick="event.stopPropagation();window.open('/api/messages/${msg.id}/image','_blank')" style="margin-top:10px;max-width:100%;max-height:340px;border-radius:10px;border:1px solid var(--input-border);cursor:zoom-in;display:block">` : ''}
               <div class="msg-actions">
                 ${unread ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();markRead(${msg.id})">Mark as read</button>` : ''}
                 <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openReplyBox(${msg.id})">Reply</button>
@@ -1399,6 +1406,37 @@
     await loadAll();
   }
 
+  // ── Compose image attachment (drag, paste, or the 🖼 button) ─────────────────
+  let composeImage = null;
+  function handleComposeImage(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) return;
+    if (file.size > 8 * 1024 * 1024) { showToast('Image too large (max 8MB)', true); return; }
+    composeImage = file;
+    const thumb = document.getElementById('compose-img-thumb');
+    const prev  = document.getElementById('compose-img-preview');
+    if (thumb) thumb.src = URL.createObjectURL(file);
+    if (prev)  prev.style.display = '';
+  }
+  function clearComposeImage() {
+    composeImage = null;
+    const inp = document.getElementById('compose-img-input'); if (inp) inp.value = '';
+    const prev = document.getElementById('compose-img-preview'); if (prev) prev.style.display = 'none';
+  }
+  (function wireComposeImageDrop() {
+    const ta = document.getElementById('compose-text');
+    if (!ta) return;
+    ta.addEventListener('dragover', e => { e.preventDefault(); });
+    ta.addEventListener('drop', e => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) { e.preventDefault(); handleComposeImage(f); }
+    });
+    ta.addEventListener('paste', e => {
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      const img = [...items].find(i => i.type && i.type.startsWith('image/'));
+      if (img) handleComposeImage(img.getAsFile());
+    });
+  })();
+
   async function postMessage() {
     const content = document.getElementById('compose-text').value.trim();
     if (!content) { showToast('Please write something first', true); return; }
@@ -1411,6 +1449,16 @@
         body: JSON.stringify({content, category, recipients: selectedRecipients.length > 0 ? selectedRecipients : [], show_on: showOn, audience: AUDIENCE, time_sensitive: timeSensitive})
       });
       if (!res.ok) { showToast('Failed to post — try again', true); return; }
+      // If an image was attached, upload it to the new note before refreshing.
+      if (composeImage) {
+        try {
+          const data = await res.json();
+          if (data && data.id) {
+            const fd = new FormData(); fd.append('image', composeImage);
+            await fetch(`/api/messages/${data.id}/image`, { method: 'POST', body: fd });
+          }
+        } catch (e) { /* note still posted; image just didn't attach */ }
+      }
       clearCompose();
       closeCompose();
       if (feedMode === 'unread') setFeedMode('day');
@@ -1432,6 +1480,7 @@
 
   function clearCompose() {
     document.getElementById('compose-text').value = '';
+    clearComposeImage();
     document.getElementById('compose-category').value = 'general';
     document.getElementById('compose-showon').value = '';
     document.getElementById('showon-hint').style.display = 'inline';

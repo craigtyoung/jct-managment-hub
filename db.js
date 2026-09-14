@@ -2030,11 +2030,20 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
       author_name: author.name,
       author_color: author.color,
       author_role: author.role,
+      has_image: !!msg.image,
       is_read_by_me,
       reads,
       replies,
     };
   });
+}
+
+function setMessageImage(id, filename) {
+  const m = _data.messages.find(x => x.id === parseInt(id));
+  if (!m) return false;
+  m.image = filename;
+  save();
+  return true;
 }
 
 function createMessage({ staffId, content, shift, category, recipients, show_on, audience, time_sensitive }) {
@@ -4053,6 +4062,7 @@ module.exports = {
   removeStaff,
   getMessages,
   createMessage,
+  setMessageImage,
   getMessage,
   markRead,
   getUnreadCount,
