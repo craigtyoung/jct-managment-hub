@@ -808,15 +808,16 @@
       </button>`;
     }
 
-    function showShift(si) {
+    // Pure display toggle — no data fetch, safe to call during a reload.
+    function setActiveShift(si) {
       activeShift = si;
-      document.querySelectorAll('.shift-panel').forEach((el, i) => {
-        el.classList.toggle('active', i === si);
-      });
-      document.querySelectorAll('.shift-tab').forEach((el, i) => {
-        el.classList.toggle('active', i === si);
-      });
-      // Load this shift's scheduled staff on show — same trigger the checklist uses.
+      document.querySelectorAll('.shift-panel').forEach((el, i) => el.classList.toggle('active', i === si));
+      document.querySelectorAll('.shift-tab').forEach((el, i) => el.classList.toggle('active', i === si));
+    }
+
+    // Manual tab-select: switch to the shift AND load its staff (checklist pattern).
+    function showShift(si) {
+      setActiveShift(si);
       loadShiftStaff(si);
     }
 
@@ -1166,8 +1167,8 @@
     }
 
     function goToday() {
-      changeDate(localToday());
-      showShift(defaultShiftIndex());
+      setActiveShift(defaultShiftIndex());   // set the shift synchronously first…
+      changeDate(localToday());              // …then reload, which repaints the staff last
     }
 
     // Same boundaries as the checklist: morning until 1PM, afternoon until 7PM, then closing
@@ -1239,10 +1240,12 @@
           renderShift(si, summary.shifts?.[si]);
           recalcShift(si);
         }
+        setActiveShift(activeShift);   // re-assert the visible shift after the panel rebuild
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
-        loadAllShiftStaff();
+        loadAllShiftStaff();           // single reliable staff repaint, always last
+
       } catch (e) {
         setSaveStatus('', 'Load error');
       }
@@ -1347,8 +1350,8 @@
       currentDate = localToday();
       history.replaceState({}, '', location.pathname);
 
-      // Open the shift that matches the time of day
-      showShift(defaultShiftIndex());
+      // Open the shift that matches the time of day (load() repaints staff)
+      setActiveShift(defaultShiftIndex());
 
       updateClock();
       // Re-check the wrong-day guard every 30s so a tab left open past midnight
