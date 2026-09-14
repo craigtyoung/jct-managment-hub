@@ -246,17 +246,26 @@
 
     async function loadCounts(){
       let rows=[]; try{ rows=await (await fetch('/api/proshop/strings/counts')).json(); }catch(e){}
+      let logs=[]; try{ logs=await (await fetch('/api/proshop/strings')).json(); }catch(e){}
       const el=document.getElementById('counts');
       if(!rows.length){ el.innerHTML='<div class="empty" style="padding:8px 0">No strings logged yet.</div>'; return; }
-      el.innerHTML=rows.map(r=>`<div class="count-chip">
+      // Per-stringer member list for the hover tooltip (repeat members collapse to a count)
+      const byStringer={};
+      (logs||[]).forEach(l=>{ if(l.strung_by==null) return; (byStringer[l.strung_by]=byStringer[l.strung_by]||[]).push((l.member||'').trim()); });
+      el.innerHTML=rows.map(r=>{
+        const freq={};
+        (byStringer[r.staff_id]||[]).forEach(m=>{ const name=m||'(no name)'; freq[name]=(freq[name]||0)+1; });
+        const names=Object.entries(freq).map(([m,c])=>c>1?`${m} (${c})`:m);
+        const tip=names.length?`Strung for: ${names.join(', ')}`:'';
+        return `<div class="count-chip"${tip?` title="${esc(tip)}" style="cursor:help"`:''}>
         <span class="ps-av" data-av="${r.staff_id}" data-name="${esc(r.name)}" data-color="${r.color||'#2c5c9c'}"></span>
         <div class="chip-info">
           <span class="count-name">${esc(r.name)}</span>
           <div class="count-nums">
             <span class="count-total">${r.total}<span class="lbl">strung</span></span>
-            <span class="count-unpaid ${r.unpaid?'':'zero'}">${r.unpaid} unpaid</span>
           </div>
-        </div></div>`).join('');
+        </div></div>`;
+      }).join('');
       if(window.staffAvatar) el.querySelectorAll('[data-av]').forEach(a=>staffAvatar(a,a.dataset.av,a.dataset.name,a.dataset.color));
     }
 
