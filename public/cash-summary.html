@@ -207,6 +207,8 @@
     .discrepancy-row.balanced{background:rgba(22,163,74,0.08);color:var(--green);}
     .discrepancy-row.warn{background:rgba(217,119,6,0.1);color:var(--amber);}
     .discrepancy-row.error{background:rgba(220,38,38,0.08);color:var(--red);}
+    .cash-context{font-size:11px;color:var(--text-2);padding:0 20px 10px;line-height:1.55;}
+    .cash-context .cash-context-sub{color:var(--text-3);}
 
     /* Till Count */
     .till-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 18px;}
@@ -412,7 +414,7 @@
     <div class="sdw-body">
       <div class="sdw-row">
         <span class="sdw-label">Opening Float</span>
-        <input type="number" class="sdw-float has-dollar" id="opening-float" value="100" min="0" step="0.01" oninput="onInput()">
+        <input type="number" class="sdw-float has-dollar" id="opening-float" value="100" min="0" step="0.01" oninput="recalcBalances();onInput()">
       </div>
       <div class="sdw-row">
         <span class="sdw-label">Closing Float</span>
@@ -825,11 +827,12 @@
           <span class="shift-total-val" id="s${si}-shift-total">$0.00</span>
         </div>
 
-        <!-- Discrepancy -->
+        <!-- Cash balance (running: float + cash sales to date) -->
         <div class="discrepancy-row balanced" id="s${si}-discrepancy">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          <span id="s${si}-disc-text">Enter till count to verify balance</span>
+          <span id="s${si}-disc-text">Enter cash count to verify balance</span>
         </div>
+        <div class="cash-context" id="s${si}-cash-context"></div>
 
         <!-- TILL COUNT -->
         <div class="cs-card">
@@ -999,30 +1002,59 @@
       setText(`s${si}-till-grand`, fmt(tillT));
       setText(`s${si}-till-total`, fmt(tillT));
 
-      // Discrepancy
-      const discRow  = getEl(`s${si}-discrepancy`);
-      const discText = getEl(`s${si}-disc-text`);
-      if (discRow && discText) {
-        const hasTill = cashSub > 0 || slipSub > 0;
-        if (!hasTill) {
-          discRow.className  = 'discrepancy-row balanced';
-          discText.textContent = 'Enter till count to verify balance';
-        } else {
-          const diff = tillT - shiftT;
-          if (Math.abs(diff) < 0.005) {
-            discRow.className  = 'discrepancy-row balanced';
-            discText.textContent = 'Till balanced';
-          } else if (Math.abs(diff) < 2) {
-            discRow.className  = 'discrepancy-row warn';
-            discText.textContent = `Till ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))} vs shift total`;
-          } else {
-            discRow.className  = 'discrepancy-row error';
-            discText.textContent = `Till ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))} — check entries`;
-          }
-        }
-      }
+      // Cash balance is computed across ALL shifts (running), since cash carries over
+      // from one shift to the next and the float lives in the drawer all day.
+      recalcBalances();
 
       recalcDaily();
+    }
+
+    // Running cash reconciliation across shifts.
+    //   Expected drawer cash at end of shift N = opening float + Σ cash-sales(1..N)
+    //   where cash-sales = shift sales − that shift's card slips (slips are card, not cash).
+    // Card slips carry their own running total (kept out of the cash variance) for month-end.
+    function recalcBalances() {
+      const float0 = n(getEl('opening-float')?.value) || 0;
+      let runCashSales = 0;   // cumulative cash sales, day-to-date
+      let runCard = 0;        // cumulative card slips, day-to-date
+      for (let si = 0; si < SHIFT_LABELS.length; si++) {
+        const shiftT = parseFloat((getEl(`s${si}-shift-total`)?.textContent || '').replace(/[^0-9.\-]/g, '')) || 0;
+        let slipSub = 0; SLIPS.forEach(i => { slipSub += n(getEl(`s${si}-slip-${i}`)?.value); });
+        let cashSub = 0; DENOM.forEach(d => { cashSub += (parseInt(getEl(`s${si}-till-${d.key}`)?.value || '0') || 0) * d.val; });
+
+        runCashSales += (shiftT - slipSub);
+        runCard      += slipSub;
+        const expectedCash = float0 + runCashSales;
+
+        const discRow  = getEl(`s${si}-discrepancy`);
+        const discText = getEl(`s${si}-disc-text`);
+        const ctx      = getEl(`s${si}-cash-context`);
+        const counted  = cashSub > 0;
+        if (discRow && discText) {
+          if (!counted) {
+            discRow.className = 'discrepancy-row balanced';
+            discText.textContent = 'Enter cash count to verify balance';
+          } else {
+            const diff = cashSub - expectedCash;
+            if (Math.abs(diff) < 0.005) {
+              discRow.className = 'discrepancy-row balanced';
+              discText.textContent = 'Cash balanced';
+            } else if (Math.abs(diff) < 2) {
+              discRow.className = 'discrepancy-row warn';
+              discText.textContent = `Cash ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))}`;
+            } else {
+              discRow.className = 'discrepancy-row error';
+              discText.textContent = `Cash ${diff > 0 ? 'over' : 'short'} ${fmt(Math.abs(diff))} — check entries`;
+            }
+          }
+        }
+        if (ctx) {
+          ctx.innerHTML =
+            `Expected cash in drawer: <strong>${fmt(expectedCash)}</strong> ` +
+            `<span class="cash-context-sub">(float ${fmt(float0)} + cash sales to date ${fmt(runCashSales)})</span>` +
+            ` · Card slips today: <strong>${fmt(runCard)}</strong> <span class="cash-context-sub">(reconciled separately)</span>`;
+        }
+      }
     }
 
     function recalcDaily() {
