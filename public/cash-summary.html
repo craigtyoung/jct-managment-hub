@@ -816,6 +816,8 @@
       document.querySelectorAll('.shift-tab').forEach((el, i) => {
         el.classList.toggle('active', i === si);
       });
+      // Load this shift's scheduled staff on show — same trigger the checklist uses.
+      loadShiftStaff(si);
     }
 
     // ── Recalculation ──────────────────────────────────────────────────────────
@@ -1177,40 +1179,40 @@
     // ── Schedule staff integration ─────────────────────────────────────────────
 
     const SHIFT_KEYS = ['morning', 'afternoon', 'closing'];
+    const escp = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    async function loadScheduleStaff(date, savedShifts) {
-      const escp = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const pill = (name, color) =>
-        `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border-radius:100px;font-size:11px;font-weight:600;background:${color}18;color:${color}">
-          <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
-          ${escp(name)}
-        </span>`;
-      await Promise.all(SHIFT_KEYS.map(async (shiftKey, si) => {
-        const wrap = document.getElementById(`s${si}-pills`);
-        if (!wrap) return;
-        let html = '';
-        try {
-          const res = await fetch(`/api/schedule/shift?date=${date}&shift=${shiftKey}`);
-          if (res.ok) {
-            const staff = await res.json();
-            if (Array.isArray(staff) && staff.length) {
-              html = staff.map(s => pill(s.staff_name || '?', s.staff_color || '#6366f1')).join('');
-              // Keep the saved sheet in step with the schedule when no name was entered manually
-              const savedName = (savedShifts?.[si]?.staff_name || '').trim();
-              const nameEl = document.getElementById(`s${si}-staff`);
-              if (nameEl && !savedName) nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
-            }
-          }
-        } catch (e) {}
-        if (!html) {
-          // Fallback: name saved on the sheet itself (manual-entry days)
-          const saved = (savedShifts?.[si]?.staff_name || '').trim();
-          if (saved) html = saved.split('·').map(n => n.trim()).filter(Boolean).map(n => pill(n, '#2c5c9c')).join('');
+    // Load the scheduled staff for ONE shift and show them as photo + name — the exact
+    // pattern the shift checklist uses (it works), tied to showing the shift so it always
+    // runs. Also seeds the editable Staff field when nothing has been entered/saved yet.
+    async function loadShiftStaff(si) {
+      const wrap = document.getElementById(`s${si}-pills`);
+      if (!wrap) return;
+      try {
+        const res = await fetch(`/api/schedule/shift?date=${currentDate}&shift=${SHIFT_KEYS[si]}`);
+        const staff = res.ok ? await res.json() : [];
+        if (Array.isArray(staff) && staff.length) {
+          wrap.innerHTML = staff.map(s =>
+            `<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px 2px 3px;border-radius:100px;background:rgba(44,92,156,0.08);font-size:12px;font-weight:600;color:var(--text);">
+              <span class="cs-staff-av" data-id="${s.staff_id}" data-name="${escp(s.staff_name)}" data-color="${s.staff_color || '#2c5c9c'}" style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;"></span>
+              ${escp(s.staff_name || '?')}
+            </span>`
+          ).join('');
+          wrap.querySelectorAll('.cs-staff-av').forEach(el => {
+            try { if (typeof staffAvatar === 'function') staffAvatar(el, +el.dataset.id, el.dataset.name, el.dataset.color); } catch (e) {}
+          });
+          const nameEl = document.getElementById(`s${si}-staff`);
+          if (nameEl && !nameEl.value.trim()) nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
+        } else {
+          wrap.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-style:italic">No one on the schedule — type a name</span>`;
         }
-        if (!html) html = `<span style="font-size:11px;color:#94a3b8;font-style:italic">No one on the schedule for this shift</span>`;
-        wrap.innerHTML = html;
-        wrap.style.display = 'flex';
-      }));
+      } catch (e) {
+        wrap.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-style:italic">Couldn't load schedule — type a name</span>`;
+      }
+      wrap.style.display = 'flex';
+    }
+
+    function loadAllShiftStaff() {
+      for (let si = 0; si < SHIFT_KEYS.length; si++) loadShiftStaff(si);
     }
 
     // ── Load ───────────────────────────────────────────────────────────────────
@@ -1240,7 +1242,7 @@
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
-        loadScheduleStaff(currentDate, summary.shifts);
+        loadAllShiftStaff();
       } catch (e) {
         setSaveStatus('', 'Load error');
       }
