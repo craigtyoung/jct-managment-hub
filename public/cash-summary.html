@@ -1341,15 +1341,14 @@
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
 
-      // Date — honour an explicit ?date= deep-link (e.g. from Settings) once,
-      // then strip it so any later refresh or reopened tab lands back on today.
-      // Cash Summary should always open on today unless you were sent to a date.
-      const params = new URLSearchParams(location.search);
-      currentDate = params.get('date') || localToday();
+      // Cash Summary ALWAYS opens on today. (Use the date arrows / picker to review
+      // another day.) Any ?date= in the URL is ignored and stripped, so a stale link
+      // or a reopened tab can never strand you on the wrong day.
+      currentDate = localToday();
       history.replaceState({}, '', location.pathname);
 
-      // On today's sheet, open the shift that matches the time of day
-      showShift(currentDate === localToday() ? defaultShiftIndex() : 0);
+      // Open the shift that matches the time of day
+      showShift(defaultShiftIndex());
 
       updateClock();
       // Re-check the wrong-day guard every 30s so a tab left open past midnight
