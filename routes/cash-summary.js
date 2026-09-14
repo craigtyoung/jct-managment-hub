@@ -195,4 +195,19 @@ router.get('/export', (req, res) => {
   res.send(csv);
 });
 
+// GET /settings — unit prices (all staff read these to compute line amounts)
+router.get('/settings', (req, res) => {
+  res.json(db.getCashSettings());
+});
+
+// POST /settings — update unit prices (management only)
+router.post('/settings', (req, res) => {
+  const staff = db.getStaffById(req.session.staffId);
+  const isMgmt = staff && ['admin', 'manager'].includes(staff.role);
+  if (!isMgmt) return res.status(403).json({ error: 'Management only' });
+  const result = db.setCashUnitPrices(req.body?.unit_prices || {});
+  try { sse.broadcast('cash-update'); } catch (e) {}
+  res.json(result);
+});
+
 module.exports = router;

@@ -146,9 +146,14 @@
     .amt-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
     /* Subtle "$" painted inside dollar-amount fields (never on quantity/count fields) */
     .has-dollar{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14'%3E%3Ctext x='0' y='11' font-family='Arial,Helvetica,sans-serif' font-size='11' fill='%2394a3b8'%3E%24%3C/text%3E%3C/svg%3E");background-repeat:no-repeat;background-position:6px center;padding-left:16px;}
-    /* Unit-priced field: quantity entry with a "× $N" hint shown after it */
+    /* Unit-priced field: [qty] = [$ amount] */
     .unit-wrap{display:inline-flex;align-items:center;gap:3px;}
     .unit-wrap .unit-hint{white-space:nowrap;}
+    .qty-input{width:42px;padding:5px 6px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text);text-align:right;background:var(--canvas);}
+    .qty-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
+    .unit-eq{color:var(--text-3);font-size:11px;}
+    .unit-slot .amt-input{width:62px;}
+    .cat-label .unit-hint{font-weight:400;margin-left:4px;}
     .detail-input{width:68px;padding:3px 6px;border:1px solid rgba(12,23,56,0.06);border-radius:5px;font-size:10px;color:var(--text-2);background:transparent;}
     .detail-input:focus{outline:none;border-color:rgba(44,92,156,0.25);}
     .cat-row-total{font-size:12px;font-weight:600;color:var(--text);text-align:right;padding-top:7px;min-width:60px;}
@@ -418,6 +423,20 @@
         <span class="sdw-val" id="daily-till">$0.00</span>
       </div>
 
+      <div class="sdw-section mgmt-only">Unit Prices <span style="font-weight:400;color:var(--text-3);font-size:10px">· management only</span></div>
+      <div class="sdw-row mgmt-only">
+        <span class="sdw-label">Tennis Balls / can</span>
+        <input type="number" class="sdw-float has-dollar" id="price-tennis-balls" min="0" step="0.01">
+      </div>
+      <div class="sdw-row mgmt-only">
+        <span class="sdw-label">Guest Fee / PAYG</span>
+        <input type="number" class="sdw-float has-dollar" id="price-guest-fee" min="0" step="0.01">
+      </div>
+      <div class="sdw-row mgmt-only">
+        <button type="button" class="today-btn" style="width:100%;text-align:center" onclick="saveUnitPrices()">Save prices</button>
+        <span id="price-save-status" style="font-size:11px;color:var(--text-3);margin-left:6px"></span>
+      </div>
+
       <div class="sdw-section">Pro Shop</div>
       <div class="sdw-sub">
         <span class="sdw-label">Tennis Balls</span>
@@ -518,7 +537,11 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
-    const UNIT_PRICES = {};   // tennis balls now entered as a plain dollar amount, like the other items
+    const UNIT_PRICES = {};   // (legacy engine — tennis balls now use the qty helper below)
+    // Management-set unit prices, fetched from the server at init (shared by all staff).
+    // Tennis balls: quantity × price. Guest/PAYG: standard fee auto-filled on the row.
+    // Any staff can override an individual line; only management changes these defaults.
+    let CASH_UNIT_PRICES = { tennis_balls: 6, guest_fee: 28 };
     // Slot counts — more room per Craig's Sep 3 request (especially slips). Cash
     // Summary storage is a flexible blob, so raising these is safe and preserves
     // existing shorter data (extra slots just start empty).
@@ -555,7 +578,56 @@
 
     function onCfTypeChange(sel, si) {
       sel.className = 'cf-type-sel ' + sel.value;
-      applyCfRowType(sel.closest('tr'), sel.value);
+      const tr = sel.closest('tr');
+      applyCfRowType(tr, sel.value);
+      // Auto-fill the standard guest fee when switching a row to Guest/PAYG (staff can override).
+      // Only fills an empty amount, so it never overwrites what someone already typed.
+      if (sel.value === 'guest' || sel.value === 'payg') {
+        const amt = tr && tr.querySelector('.cf-row-amt');
+        if (amt && (amt.value === '' || amt.value == null)) {
+          amt.value = parseFloat(CASH_UNIT_PRICES.guest_fee) || 0;
+        }
+      }
+      recalcShift(si);
+      onInput();
+    }
+
+    // Management-only: update the shared unit prices on the server, then refresh the hints.
+    async function saveUnitPrices() {
+      const tb = parseFloat(getEl('price-tennis-balls')?.value);
+      const gf = parseFloat(getEl('price-guest-fee')?.value);
+      const body = { unit_prices: {} };
+      if (!isNaN(tb) && tb >= 0) body.unit_prices.tennis_balls = tb;
+      if (!isNaN(gf) && gf >= 0) body.unit_prices.guest_fee = gf;
+      const st = getEl('price-save-status');
+      if (st) { st.textContent = 'Saving…'; st.style.color = 'var(--text-3)'; }
+      try {
+        const res = await fetch('/api/cash-summary/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('save failed');
+        const out = await res.json();
+        CASH_UNIT_PRICES.tennis_balls = out.unit_prices.tennis_balls;
+        CASH_UNIT_PRICES.guest_fee    = out.unit_prices.guest_fee;
+        document.querySelectorAll('.tb-price-hint').forEach(h => h.textContent = `× $${CASH_UNIT_PRICES.tennis_balls}/can`);
+        if (st) { st.textContent = 'Saved'; st.style.color = 'var(--green, #16a34a)'; }
+        setTimeout(() => { if (st) st.textContent = ''; }, 2500);
+      } catch (e) {
+        if (st) { st.textContent = 'Error — not saved'; st.style.color = '#dc2626'; }
+      }
+    }
+
+    // Tennis-ball quantity helper: qty × unit price → fills the line's dollar amount.
+    // Typing a quantity fills the $ (rounded to cents); the $ stays editable for discounts.
+    // Leaving qty blank never clears a manually-entered amount.
+    function applyUnitQty(qtyEl, si) {
+      const wrap  = qtyEl.closest('.amt-wrap');
+      const amtEl = wrap && wrap.querySelector('input[data-item]');
+      if (!amtEl) return;
+      const price = parseFloat(CASH_UNIT_PRICES.tennis_balls) || 0;
+      if (qtyEl.value !== '' && qtyEl.value != null) {
+        amtEl.value = +(((parseFloat(qtyEl.value) || 0) * price).toFixed(2));
+      }
       recalcShift(si);
       onInput();
     }
@@ -649,6 +721,17 @@
       const amtsWithMember = (item) => SLOTS.map(i =>
         `<div class="amt-wrap field-slot${i >= DEFAULT_VISIBLE ? ' amt-hidden' : ''}">${a(item,i,'amount')}${d(item,i,'member')}</div>`
       ).join('') + addBtn(item);
+      // Unit-priced item: each slot is [qty] = [$ amount]. Qty fills the amount (qty × price);
+      // the amount stays a plain, editable dollar field (so it saves/loads/exports like any other).
+      const amtsUnit = (item) => SLOTS.map(i =>
+        `<div class="amt-wrap unit-slot field-slot${i >= DEFAULT_VISIBLE ? ' amt-hidden' : ''}">
+           <div class="unit-wrap">
+             <input type="number" class="qty-input" min="0" step="1" placeholder="qty" title="Quantity — fills the price automatically" oninput="applyUnitQty(this,${si});">
+             <span class="unit-eq">=</span>
+             <input type="number" class="amt-input has-dollar" data-si="${si}" data-item="${item}" data-idx="${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
+           </div>
+         </div>`
+      ).join('') + addBtn(item);
 
       return `
         <input type="hidden" id="s${si}-staff">
@@ -661,8 +744,8 @@
             <span class="section-total-val" id="s${si}-ps-total">$0.00</span>
           </div>
           <div class="cat-row">
-            <span class="cat-label">Tennis Balls</span>
-            <div class="cat-inputs">${amts5('tennis_balls')}</div>
+            <span class="cat-label">Tennis Balls <span class="unit-hint tb-price-hint">× $${CASH_UNIT_PRICES.tennis_balls}/can</span></span>
+            <div class="cat-inputs">${amtsUnit('tennis_balls')}</div>
             <span class="cat-row-total" id="s${si}-tb-total">$0.00</span>
           </div>
           <div class="cat-row">
@@ -810,7 +893,7 @@
         if (inp.value !== '' && inp.value != null) inp.classList.remove('amt-hidden');
       });
       document.querySelectorAll(`#shift-${si} .amt-wrap.field-slot.amt-hidden`).forEach(w => {
-        const inp = w.querySelector('input[data-field="amount"]');
+        const inp = w.querySelector('input[data-item]');   // amount input (member-style or unit-slot)
         if (inp && inp.value !== '' && inp.value != null) w.classList.remove('amt-hidden');
       });
     }
@@ -1378,11 +1461,25 @@
       // Teaching pros for the court-fee instructor dropdown (non-fatal)
       try { csPros = await (await fetch('/api/pro-schedule/pros')).json(); } catch (e) { csPros = []; }
 
+      // Management-set unit prices (tennis balls, guest fee) — fetch BEFORE building panels
+      // so category hints and the qty helper use the live values. Non-fatal: keep defaults.
+      try {
+        const st = await (await fetch('/api/cash-summary/settings')).json();
+        if (st && st.unit_prices) {
+          if (st.unit_prices.tennis_balls != null) CASH_UNIT_PRICES.tennis_balls = st.unit_prices.tennis_balls;
+          if (st.unit_prices.guest_fee    != null) CASH_UNIT_PRICES.guest_fee    = st.unit_prices.guest_fee;
+        }
+      } catch (e) {}
+
       // Build panels
       buildTabs();
       for (let si = 0; si < SHIFT_LABELS.length; si++) {
         getEl(`shift-${si}`).innerHTML = buildShiftPanel(si);
       }
+
+      // Seed the management price editor with the current values
+      if (getEl('price-tennis-balls')) getEl('price-tennis-balls').value = CASH_UNIT_PRICES.tennis_balls;
+      if (getEl('price-guest-fee'))    getEl('price-guest-fee').value    = CASH_UNIT_PRICES.guest_fee;
 
       // Cash Summary ALWAYS opens on today. (Use the date arrows / picker to review
       // another day.) Any ?date= in the URL is ignored and stripped, so a stale link

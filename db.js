@@ -2624,6 +2624,30 @@ function getCashSummaryRange(startDate, endDate) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// ─── Cash Summary settings (management-set unit prices, shared by all staff) ─────
+const CASH_UNIT_PRICE_DEFAULTS = { tennis_balls: 6, guest_fee: 28 };
+
+function getCashSettings() {
+  const up = (_data.cash_settings && _data.cash_settings.unit_prices) || {};
+  return {
+    unit_prices: {
+      tennis_balls: up.tennis_balls != null ? up.tennis_balls : CASH_UNIT_PRICE_DEFAULTS.tennis_balls,
+      guest_fee:    up.guest_fee    != null ? up.guest_fee    : CASH_UNIT_PRICE_DEFAULTS.guest_fee,
+    },
+  };
+}
+
+function setCashUnitPrices(prices) {
+  _data.cash_settings = _data.cash_settings || {};
+  _data.cash_settings.unit_prices = _data.cash_settings.unit_prices || {};
+  const tb = parseFloat(prices && prices.tennis_balls);
+  const gf = parseFloat(prices && prices.guest_fee);
+  if (!isNaN(tb) && tb >= 0) _data.cash_settings.unit_prices.tennis_balls = tb;
+  if (!isNaN(gf) && gf >= 0) _data.cash_settings.unit_prices.guest_fee = gf;
+  save();
+  return getCashSettings();
+}
+
 // ─── Shift coverage ────────────────────────────────────────────────────────────
 
 function getCoverageRequests() {
@@ -4073,6 +4097,8 @@ module.exports = {
   getCashSummary,
   upsertCashSummary,
   getCashSummaryRange,
+  getCashSettings,
+  setCashUnitPrices,
   getAllMembers,
   getMemberById,
   getMemberByPin,
