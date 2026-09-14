@@ -163,6 +163,7 @@
     .cf-court-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text);background:var(--canvas);cursor:pointer;}
     .cf-time-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:var(--canvas);cursor:pointer;}
     .cf-pro-sel{width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:var(--canvas);cursor:pointer;}
+    .cf-pro-sel.cf-pro-off{opacity:0.4;background:rgba(12,23,56,0.03);cursor:not-allowed;}
     .cf-table col.col-pro{width:104px;}
     .cf-time-sel:focus{outline:none;border-color:rgba(44,92,156,0.25);}
     .cf-name-input{width:100%;padding:5px 8px;border:1px solid rgba(12,23,56,0.08);border-radius:7px;font-family:var(--font-body);font-size:12px;color:var(--text-2);background:transparent;}
@@ -531,8 +532,25 @@
       return n(el.value) * unit;
     }
 
+    // Court-fee rows adapt to their type:
+    //  • lesson → Name field asks for the MEMBER, Pro dropdown is active (a pro teaches the lesson)
+    //  • guest / payg → Name field asks for the GUEST, Pro isn't relevant (dimmed + cleared)
+    function applyCfRowType(tr, type) {
+      if (!tr) return;
+      const nameInp = tr.querySelector('.cf-name-input');
+      const proSel  = tr.querySelector('.cf-pro-sel');
+      const isLesson = type === 'lesson';
+      if (nameInp) nameInp.placeholder = isLesson ? 'Member name' : 'Guest name';
+      if (proSel) {
+        proSel.disabled = !isLesson;
+        proSel.classList.toggle('cf-pro-off', !isLesson);
+        if (!isLesson) proSel.value = '';   // don't carry a stale pro onto a guest/payg line
+      }
+    }
+
     function onCfTypeChange(sel, si) {
       sel.className = 'cf-type-sel ' + sel.value;
+      applyCfRowType(sel.closest('tr'), sel.value);
       recalcShift(si);
       onInput();
     }
@@ -589,6 +607,7 @@
         <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
         <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
       tbody.appendChild(tr);
+      applyCfRowType(tr, type);   // set Name placeholder + Pro state to match the row's type
     }
 
     function getCfEntries(si) {
