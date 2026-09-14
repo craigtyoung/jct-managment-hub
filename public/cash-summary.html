@@ -618,16 +618,14 @@
       ).join('') + addBtn(item);
 
       return `
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-          <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--text);">${label} shift</span>
-          <div id="s${si}-pills" style="display:none;flex-wrap:wrap;gap:6px;align-items:center;"></div>
-          <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);">
-            <span style="font-weight:600;">Staff:</span>
-            <input type="text" id="s${si}-staff" placeholder="who worked this shift" autocomplete="off"
-              style="padding:5px 10px;border:1px solid rgba(12,23,56,0.15);border-radius:8px;font-size:13px;min-width:150px;font-family:var(--font-body);color:var(--text);"
-              oninput="onInput();">
-          </span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(12,23,56,0.08);">
+          <div id="s${si}-pills" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:28px;"></div>
+          <div style="display:flex;align-items:baseline;gap:10px;flex-shrink:0;">
+            <span style="font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--text);">${label}</span>
+            <span id="s${si}-header-total" style="font-size:1.1rem;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;">$0.00</span>
+          </div>
         </div>
+        <input type="hidden" id="s${si}-staff">
 
         <div class="cs-card">
           <!-- PRO SHOP -->
@@ -868,6 +866,7 @@
       const shiftT = psT + cfT + dsT;
       setText(`s${si}-shift-total`, fmt(shiftT));
       setText(`tab-total-${si}`,    fmt(shiftT));
+      setText(`s${si}-header-total`, fmt(shiftT));
 
       // Till
       let cashSub = 0;
@@ -1188,18 +1187,13 @@
     async function loadShiftStaff(si) {
       const wrap = document.getElementById(`s${si}-pills`);
       if (!wrap) return;
-      let status = 0, count = -1;
       try {
-        const url = `/api/schedule/shift?date=${currentDate}&shift=${SHIFT_KEYS[si]}`;
-        const res = await fetch(url, { cache: 'no-store' });
-        status = res.status;
+        const res = await fetch(`/api/schedule/shift?date=${currentDate}&shift=${SHIFT_KEYS[si]}`, { cache: 'no-store' });
         const staff = res.ok ? await res.json() : [];
-        count = Array.isArray(staff) ? staff.length : -1;
-        console.log('[cash staff]', url, '→ HTTP', status, 'rows', count, staff);
         if (Array.isArray(staff) && staff.length) {
           wrap.innerHTML = staff.map(s =>
-            `<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px 2px 3px;border-radius:100px;background:rgba(44,92,156,0.08);font-size:12px;font-weight:600;color:var(--text);">
-              <span class="cs-staff-av" data-id="${s.staff_id}" data-name="${escp(s.staff_name)}" data-color="${s.staff_color || '#2c5c9c'}" style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;"></span>
+            `<span style="display:inline-flex;align-items:center;gap:7px;padding:2px 13px 2px 3px;border-radius:100px;background:rgba(44,92,156,0.08);font-size:13px;font-weight:600;color:var(--text);">
+              <span class="cs-staff-av" data-id="${s.staff_id}" data-name="${escp(s.staff_name)}" data-color="${s.staff_color || '#2c5c9c'}" style="width:24px;height:24px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;"></span>
               ${escp(s.staff_name || '?')}
             </span>`
           ).join('');
@@ -1211,12 +1205,14 @@
           wrap.style.display = 'flex';
           return;
         }
-      } catch (e) {
-        console.log('[cash staff] fetch error', e);
-        status = -1;
-      }
-      // TEMP DIAGNOSTIC: show exactly what the schedule call returned so we can pinpoint the cause.
-      wrap.innerHTML = `<span style="font-size:11px;color:#b45309;font-style:italic">No staff pulled · ${currentDate} · ${SHIFT_KEYS[si]} · HTTP ${status} · ${count} rows — type a name</span>`;
+      } catch (e) { console.log('[cash staff] fetch error', e); }
+      // No one scheduled (or fetch failed) → a subtle inline field so a name can still be entered,
+      // prefilled with any name already saved on this sheet.
+      const nameEl = document.getElementById(`s${si}-staff`);
+      const saved = (nameEl ? nameEl.value : '').replace(/"/g, '&quot;');
+      wrap.innerHTML = `<input type="text" value="${saved}" placeholder="Add staff name" autocomplete="off"
+        oninput="var h=document.getElementById('s${si}-staff'); if(h){h.value=this.value;} onInput();"
+        style="padding:5px 11px;border:1px dashed rgba(12,23,56,0.2);border-radius:8px;font-size:12.5px;min-width:150px;font-family:var(--font-body);color:var(--text);background:transparent;">`;
       wrap.style.display = 'flex';
     }
 
