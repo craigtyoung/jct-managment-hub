@@ -3,6 +3,28 @@
    page polls that id; when it changes, we show a non-blocking banner offering
    "Update now" (reload) or "Later" — we NEVER reload on our own, so a staff member
    is never yanked out of a task mid-edit. */
+// Self-heal stale caches. An older build shipped a caching service worker that can
+// get stuck serving old pages across deploys (nothing registers it anymore, so it
+// never updates itself). Proactively unregister any non-push service worker and wipe
+// all caches so users land on fresh code. push-sw.js is left alone (notifications only).
+(function () {
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        var killedOne = false;
+        regs.forEach(function (r) {
+          var sw = r.active || r.waiting || r.installing;
+          var url = (sw && sw.scriptURL) || '';
+          if (url.indexOf('push-sw.js') === -1) { r.unregister(); killedOne = true; }
+        });
+        if (killedOne && window.caches && caches.keys) {
+          caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+        }
+      }).catch(function () {});
+    }
+  } catch (e) { /* best effort */ }
+})();
+
 (function () {
   var knownBoot = null;      // the build this page loaded with
   var snoozedUntil = 0;      // epoch ms; while in the future the banner stays hidden
