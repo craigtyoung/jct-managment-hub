@@ -1188,9 +1188,14 @@
     async function loadShiftStaff(si) {
       const wrap = document.getElementById(`s${si}-pills`);
       if (!wrap) return;
+      let status = 0, count = -1;
       try {
-        const res = await fetch(`/api/schedule/shift?date=${currentDate}&shift=${SHIFT_KEYS[si]}`);
+        const url = `/api/schedule/shift?date=${currentDate}&shift=${SHIFT_KEYS[si]}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        status = res.status;
         const staff = res.ok ? await res.json() : [];
+        count = Array.isArray(staff) ? staff.length : -1;
+        console.log('[cash staff]', url, '→ HTTP', status, 'rows', count, staff);
         if (Array.isArray(staff) && staff.length) {
           wrap.innerHTML = staff.map(s =>
             `<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 12px 2px 3px;border-radius:100px;background:rgba(44,92,156,0.08);font-size:12px;font-weight:600;color:var(--text);">
@@ -1203,12 +1208,15 @@
           });
           const nameEl = document.getElementById(`s${si}-staff`);
           if (nameEl && !nameEl.value.trim()) nameEl.value = staff.map(s => s.staff_name).filter(Boolean).join(' · ');
-        } else {
-          wrap.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-style:italic">No one on the schedule — type a name</span>`;
+          wrap.style.display = 'flex';
+          return;
         }
       } catch (e) {
-        wrap.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-style:italic">Couldn't load schedule — type a name</span>`;
+        console.log('[cash staff] fetch error', e);
+        status = -1;
       }
+      // TEMP DIAGNOSTIC: show exactly what the schedule call returned so we can pinpoint the cause.
+      wrap.innerHTML = `<span style="font-size:11px;color:#b45309;font-style:italic">No staff pulled · ${currentDate} · ${SHIFT_KEYS[si]} · HTTP ${status} · ${count} rows — type a name</span>`;
       wrap.style.display = 'flex';
     }
 
@@ -1244,10 +1252,11 @@
         applyDateGuard();
         adjustBottomPadding();
         setSaveStatus('saved', 'Loaded');
-        loadAllShiftStaff();           // single reliable staff repaint, always last
-
       } catch (e) {
+        console.log('[cash load] error', e);
         setSaveStatus('', 'Load error');
+      } finally {
+        loadAllShiftStaff();   // always repaint staff, even if something above threw
       }
     }
 
