@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Private Lesson Waitlist · JCT</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#f0f4f9; --surface:#ffffff; --canvas:#f8fafc;
+      --border:rgba(12,23,56,0.08); --border2:#d4dae6;
+      --navy:#0c1738; --blue:#2c5c9c; --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+    .main{max-width:920px;margin:0 auto;padding:24px 22px 90px;}
+    .page-head{margin-bottom:6px;}
+    h1{font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+    .page-sub{color:var(--text-2);font-size:13px;margin-bottom:18px;}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;}
+
+    /* Add form */
+    .add-grid{display:grid;grid-template-columns:1.4fr 130px 1fr 1fr 1fr;gap:9px;align-items:end;}
+    .fld{display:flex;flex-direction:column;gap:4px;min-width:0;}
+    .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+    .fld input,.fld select{font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);width:100%;}
+    .fld input:focus,.fld select:focus{outline:none;border-color:rgba(44,92,156,0.4);}
+    .add-foot{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap;}
+    .member-toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;}
+    .member-toggle input{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;}
+    .btn-add{padding:9px 18px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:auto;}
+    .btn-add:hover{background:var(--blue);border-color:var(--blue);}
+    @media(max-width:720px){ .add-grid{grid-template-columns:1fr 1fr;} }
+
+    /* Inquiry cards */
+    .inq{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-bottom:10px;}
+    .inq.closed{opacity:0.6;}
+    .inq-main{flex:1;min-width:0;}
+    .inq-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+    .inq-name{font-size:15px;font-weight:700;}
+    .badge{font-size:10px;font-weight:700;letter-spacing:0.03em;border-radius:5px;padding:2px 7px;text-transform:uppercase;}
+    .badge.member{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .badge.guest{background:rgba(217,119,6,0.12);color:var(--amber);}
+    .badge.level{background:rgba(12,23,56,0.06);color:var(--text-2);}
+    .status-sel{font-family:inherit;font-size:12px;font-weight:700;padding:3px 6px;border-radius:7px;border:1px solid var(--border2);background:var(--canvas);cursor:pointer;}
+    .status-badge{font-size:10px;font-weight:700;text-transform:uppercase;border-radius:5px;padding:2px 8px;}
+    .st-open{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .st-contacted{background:rgba(217,119,6,0.12);color:var(--amber);}
+    .st-scheduled{background:rgba(22,163,74,0.12);color:var(--green);}
+    .st-closed{background:rgba(12,23,56,0.06);color:var(--text-3);}
+    .inq-meta{font-size:12.5px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:5px;}
+    .inq-meta a{color:var(--blue);text-decoration:none;font-weight:600;}
+    .inq-meta a:hover{text-decoration:underline;}
+    .inq-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;}
+    .inq-note{font-size:12.5px;color:var(--text-2);margin-top:6px;font-style:italic;}
+    .assigned{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
+    .assigned .dot{width:8px;height:8px;border-radius:50%;}
+    .btn-sm{padding:5px 12px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--canvas);color:var(--text-2);}
+    .btn-sm:hover{border-color:rgba(44,92,156,0.4);color:var(--blue);}
+    .btn-sm.claim{background:rgba(22,163,74,0.08);border-color:rgba(22,163,74,0.35);color:var(--green);}
+    .btn-sm.mine{background:var(--green);border-color:var(--green);color:#fff;}
+    .btn-del{margin-left:auto;color:var(--red);border-color:rgba(220,38,38,0.25);}
+    .btn-del:hover{background:rgba(220,38,38,0.07);border-color:rgba(220,38,38,0.4);color:var(--red);}
+    .empty{padding:34px;text-align:center;color:var(--text-3);font-size:13px;}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:400;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="page-head"><h1>Private Lesson Waitlist</h1></div>
+    <div class="page-sub">Members and guests waiting for a private lesson. Office logs inquiries; pros pick them up.</div>
+
+    <!-- Add (management only) -->
+    <div class="card mgmt-only" id="add-card" style="display:none">
+      <div class="card-title">Log an inquiry</div>
+      <div class="add-grid">
+        <div class="fld"><label>Name</label><input type="text" id="f-name" placeholder="Member / guest name" autocomplete="off"></div>
+        <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
+        <div class="fld"><label>Level</label><input type="text" id="f-level" placeholder="e.g. Beginner, 3.5" autocomplete="off"></div>
+        <div class="fld"><label>Phone</label><input type="tel" id="f-phone" placeholder="Phone" autocomplete="off"></div>
+        <div class="fld"><label>Email</label><input type="email" id="f-email" placeholder="Email" autocomplete="off"></div>
+      </div>
+      <div class="add-foot">
+        <label class="member-toggle"><input type="checkbox" id="f-member"> Member (unchecked = guest / non-member)</label>
+        <input type="text" id="f-notes" placeholder="Notes (optional)" style="flex:1;min-width:160px;font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text)">
+        <button class="btn-add" onclick="addInquiry()">Add to waitlist</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Waiting list</div>
+      <div id="list"><div class="empty">Loading…</div></div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let me = null, canManage = false, canClaim = false;
+    const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+    function fmtDate(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return iso||''; } }
+
+    async function init(){
+      try{ const r=await fetch('/api/me'); if(!r.ok){location.href='/login.html';return;} me=await r.json(); }
+      catch(e){ location.href='/login.html'; return; }
+      canManage = !!me.is_management;
+      canClaim  = !!me.is_pro || canManage;
+      if(canManage){
+        document.getElementById('add-card').style.display='';
+        document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+      }
+      await load();
+    }
+    window.onLiveUpdate = load;
+
+    async function load(){
+      let rows=[]; try{ rows=await (await fetch('/api/lesson-waitlist')).json(); }catch(e){}
+      const el=document.getElementById('list');
+      if(!Array.isArray(rows)||!rows.length){ el.innerHTML='<div class="empty">No one on the private lesson waitlist yet.</div>'; return; }
+      el.innerHTML=rows.map(renderInq).join('');
+    }
+
+    function renderInq(i){
+      const memberBadge = i.is_member ? '<span class="badge member">Member</span>' : '<span class="badge guest">Guest</span>';
+      const levelBadge = i.level ? `<span class="badge level">${esc(i.level)}</span>` : '';
+      const statusCtrl = canManage
+        ? `<select class="status-sel" onchange="setStatus(${i.id},this.value)">
+             ${['open','contacted','scheduled','closed'].map(s=>`<option value="${s}"${i.status===s?' selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}
+           </select>`
+        : `<span class="status-badge st-${i.status}">${i.status}</span>`;
+      const contact = [
+        i.phone ? `<a href="tel:${esc(i.phone)}">${esc(i.phone)}</a>` : '',
+        i.email ? `<a href="mailto:${esc(i.email)}">${esc(i.email)}</a>` : '',
+      ].filter(Boolean).join('');
+      const assigned = i.assigned_pro
+        ? `<span class="assigned" style="color:${esc(i.assigned_pro_color||'#2c5c9c')}"><span class="dot" style="background:${esc(i.assigned_pro_color||'#2c5c9c')}"></span>${esc(i.assigned_pro_name||'Assigned')}</span>`
+        : '';
+      const mine = me && i.assigned_pro === me.id;
+      const claimBtn = canClaim
+        ? `<button class="btn-sm ${mine?'mine':'claim'}" onclick="claim(${i.id})">${mine?'Release':(i.assigned_pro?'Take over':'Claim')}</button>`
+        : '';
+      const delBtn = canManage ? `<button class="btn-sm btn-del" onclick="removeInq(${i.id})">Delete</button>` : '';
+      return `
+        <div class="inq ${i.status==='closed'?'closed':''}">
+          <div class="inq-main">
+            <div class="inq-top">
+              <span class="inq-name">${esc(i.name)}</span>
+              ${memberBadge}${levelBadge}${statusCtrl}
+            </div>
+            <div class="inq-meta">
+              <span>Inquired ${esc(fmtDate(i.inquiry_date))}</span>
+              ${contact}
+              ${i.added_by_name?`<span style="color:var(--text-3)">logged by ${esc(i.added_by_name)}</span>`:''}
+            </div>
+            ${i.notes?`<div class="inq-note">${esc(i.notes)}</div>`:''}
+            <div class="inq-foot">
+              ${assigned}
+              ${claimBtn}
+              ${delBtn}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function addInquiry(){
+      const name=document.getElementById('f-name').value.trim();
+      if(!name){ toast('Enter a name'); return; }
+      const body={
+        name,
+        inquiry_date:document.getElementById('f-date').value||undefined,
+        is_member:document.getElementById('f-member').checked,
+        level:document.getElementById('f-level').value.trim(),
+        phone:document.getElementById('f-phone').value.trim(),
+        email:document.getElementById('f-email').value.trim(),
+        notes:document.getElementById('f-notes').value.trim(),
+      };
+      const r=await fetch('/api/lesson-waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok){ let m='Could not add'; try{const d=await r.json();m=d.error||m;}catch(_){}; toast(m); return; }
+      ['f-name','f-level','f-phone','f-email','f-notes'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('f-member').checked=false;
+      await load(); toast('Added to waitlist');
+    }
+    async function setStatus(id,status){
+      const r=await fetch('/api/lesson-waitlist/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+      if(r.ok) load(); else toast('Could not update');
+    }
+    async function claim(id){
+      const r=await fetch('/api/lesson-waitlist/'+id+'/claim',{method:'POST'});
+      if(r.ok) load(); else toast('Could not claim');
+    }
+    async function removeInq(id){
+      if(!confirm('Remove this inquiry from the waitlist?')) return;
+      const r=await fetch('/api/lesson-waitlist/'+id,{method:'DELETE'});
+      if(r.ok){ load(); toast('Removed'); } else toast('Could not remove');
+    }
+
+    init();
+  </script>
+  <script src="/staff-avatar.js"></script>
+  <script src="/live-sync.js"></script>
+  <script src="/app-version.js"></script>
+  <script src="/topnav.js"></script>
+  <script src="/mobile-more.js"></script>
+</body>
+</html>

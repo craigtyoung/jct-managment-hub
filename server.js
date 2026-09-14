@@ -59,6 +59,7 @@ const staffMgmtRoutes   = require('./routes/staff-mgmt');
 const pushRoutes        = require('./routes/push');
 const checkinRoutes     = require('./routes/checkin');
 const membersRoutes     = require('./routes/members');
+const lessonWaitlistRoutes = require('./routes/lesson-waitlist');
 
 app.use('/api/auth', authRoutes);
 
@@ -132,6 +133,7 @@ app.use('/api/pro-timesheet', requireAuth, proTimesheetRoutes);
 app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
 app.use('/api/push',         requireAuth, pushRoutes);
 app.use('/api/members',      requireAuth, membersRoutes);
+app.use('/api/lesson-waitlist', requireAuth, lessonWaitlistRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {

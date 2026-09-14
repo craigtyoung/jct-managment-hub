@@ -3951,7 +3951,83 @@ function markCheckinSyncFailed(id, reason) {
   save(); return true;
 }
 
+// ─── Private Lesson Waiting List (inquiries) ─────────────────────────────────
+// Admin/managers log a member/guest who wants a private lesson; pros view the list
+// to pick lessons up. Distinct from the court/open-spots waitlist (admin-only).
+function getLessonInquiries() {
+  var staff = _data.staff || [];
+  var nameOf = function (id) { var s = staff.find(function (x) { return x.id === id; }); return s ? s.name : null; };
+  var colorOf = function (id) { var s = staff.find(function (x) { return x.id === id; }); return s ? s.color : null; };
+  return (_data.lesson_inquiries || [])
+    .slice()
+    .sort(function (a, b) {
+      var rank = { open: 0, contacted: 1, scheduled: 2, closed: 3 };
+      var ra = rank[a.status] != null ? rank[a.status] : 0, rb = rank[b.status] != null ? rank[b.status] : 0;
+      if (ra !== rb) return ra - rb;
+      return new Date(b.created_at) - new Date(a.created_at);
+    })
+    .map(function (i) {
+      return {
+        id: i.id, name: i.name, inquiry_date: i.inquiry_date,
+        is_member: !!i.is_member, level: i.level || '', phone: i.phone || '', email: i.email || '',
+        status: i.status || 'open', notes: i.notes || '',
+        assigned_pro: i.assigned_pro || null, assigned_pro_name: i.assigned_pro ? nameOf(i.assigned_pro) : null,
+        assigned_pro_color: i.assigned_pro ? colorOf(i.assigned_pro) : null,
+        added_by: i.added_by || null, added_by_name: i.added_by ? nameOf(i.added_by) : null,
+        created_at: i.created_at, updated_at: i.updated_at || null,
+      };
+    });
+}
+
+function addLessonInquiry(d) {
+  if (!Array.isArray(_data.lesson_inquiries)) { _data._seq.lesson_inquiries = 0; _data.lesson_inquiries = []; }
+  var rec = {
+    id: nextId('lesson_inquiries'),
+    name: String(d.name || '').trim(),
+    inquiry_date: (typeof d.inquiryDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.inquiryDate)) ? d.inquiryDate : now().slice(0, 10),
+    is_member: !!d.isMember,
+    level: String(d.level || '').trim(),
+    phone: String(d.phone || '').trim(),
+    email: String(d.email || '').trim(),
+    status: 'open',
+    notes: String(d.notes || '').trim(),
+    assigned_pro: null,
+    added_by: d.addedBy || null,
+    created_at: now(),
+    updated_at: now(),
+  };
+  _data.lesson_inquiries.push(rec);
+  save();
+  return rec;
+}
+
+function updateLessonInquiry(id, fields) {
+  var rec = (_data.lesson_inquiries || []).find(function (x) { return x.id === parseInt(id); });
+  if (!rec) return false;
+  var STR = ['name', 'level', 'phone', 'email', 'notes'];
+  STR.forEach(function (k) { if (fields[k] != null) rec[k] = String(fields[k]).trim(); });
+  if (fields.inquiry_date != null && /^\d{4}-\d{2}-\d{2}$/.test(fields.inquiry_date)) rec.inquiry_date = fields.inquiry_date;
+  if (fields.is_member != null) rec.is_member = !!fields.is_member;
+  if (fields.status != null && ['open', 'contacted', 'scheduled', 'closed'].indexOf(fields.status) !== -1) rec.status = fields.status;
+  if (fields.assigned_pro !== undefined) rec.assigned_pro = fields.assigned_pro ? parseInt(fields.assigned_pro) : null;
+  rec.updated_at = now();
+  save();
+  return rec;
+}
+
+function deleteLessonInquiry(id) {
+  var before = (_data.lesson_inquiries || []).length;
+  _data.lesson_inquiries = (_data.lesson_inquiries || []).filter(function (x) { return x.id !== parseInt(id); });
+  if (_data.lesson_inquiries.length === before) return false;
+  save();
+  return true;
+}
+
 module.exports = {
+  getLessonInquiries,
+  addLessonInquiry,
+  updateLessonInquiry,
+  deleteLessonInquiry,
   getIdeas,
   getIdea,
   getIdeaOut,

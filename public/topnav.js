@@ -23,6 +23,7 @@
     clock: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
     chat: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
     bulb: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>',
+    lessons: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2.6h6V4"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>',
   };
 
   var OFFICE = [
@@ -32,6 +33,7 @@
     { href: '/schedule.html',     label: 'Schedule',   icon: I.cal },
     { href: '/timesheet.html',    label: 'Timesheets', icon: I.clock },
     { href: '/comms.html',        label: 'Comms',      icon: I.chat },
+    { href: '/lesson-waitlist.html', label: 'Lessons',  icon: I.lessons },
     { href: '/ideas.html',        label: 'Idea Board', icon: I.bulb },
   ];
   // Pro nav is deliberately lean — Idea Board is an admin thing, not for pros.
@@ -39,6 +41,7 @@
     { href: '/hub.html',                label: 'Dashboard',    icon: I.home },
     { href: '/pro-schedule-view.html',  label: 'Pro Schedule', icon: I.cal },
     { href: '/pro-timesheet.html',      label: 'Timesheets',   icon: I.clock },
+    { href: '/lesson-waitlist.html',    label: 'Lessons',      icon: I.lessons },
     { href: '/comms.html?audience=pro', label: 'Pro Comms',    icon: I.chat },
   ];
 
