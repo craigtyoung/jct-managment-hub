@@ -2214,22 +2214,12 @@ function getAssignmentsForRange(startDate, endDate) {
   return results;
 }
 
+// Single shift's staff. Delegates to getAssignmentsForRange (the same path the
+// Schedule week view uses, so the two can never disagree) and filters to the shift
+// case-insensitively — guards against any stored shift label differing in casing.
 function getAssignmentsForShift(date, shift) {
-  const slotMap = _expandRules(date, date);
-  for (const sk of (_data.shift_skips || [])) {
-    if (sk.date === date && sk.shift === shift && slotMap[`${date}|${shift}`]) slotMap[`${date}|${shift}`].delete(sk.staff_id);
-  }
-  for (const a of _data.shift_assignments.filter(a => a.date === date && a.shift === shift)) {
-    const key = `${date}|${shift}`;
-    if (!slotMap[key]) slotMap[key] = new Map();
-    slotMap[key].set(a.staff_id, { id: a.id, staff_id: a.staff_id, date, shift, is_recurring: false });
-  }
-  const key = `${date}|${shift}`;
-  if (!slotMap[key]) return [];
-  return [...slotMap[key].values()].map(info => {
-    const s = _data.staff.find(x => x.id === info.staff_id) || {};
-    return { ...info, staff_name: s.name, staff_color: s.color };
-  });
+  const want = String(shift || '').toLowerCase();
+  return getAssignmentsForRange(date, date).filter(a => String(a.shift || '').toLowerCase() === want);
 }
 
 function setShiftAssignments({ date, shift, staffIds, createdBy }) {
