@@ -195,6 +195,70 @@ router.get('/export', (req, res) => {
   res.send(csv);
 });
 
+// GET /monthly?date=YYYY-MM-DD — month-to-date rollup (1st of that date's month → that date)
+router.get('/monthly', (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date required (YYYY-MM-DD)' });
+  }
+  const month = date.slice(0, 7);
+  const start = `${month}-01`;
+  const end   = date;                    // "to date" — stops at the day being viewed
+  const rows  = db.getCashSummaryRange(start, end);
+
+  const sumArr = a => (a || []).reduce((x, v) => x + (v != null ? Number(v) || 0 : 0), 0);
+  const sumObj = (a, k) => (a || []).reduce((x, o) => x + (o && o[k] != null ? Number(o[k]) || 0 : 0), 0);
+  const cfEntries = sh => {
+    const e = sh.court_fees && sh.court_fees.entries;
+    if (e) return e;
+    const cf = sh.court_fees || {};   // backward-compat with the old named structure
+    return [
+      ...(cf.private_lessons || []).map(o => ({ type: 'lesson', ...o })),
+      ...(cf.guests || []).map(o => ({ type: 'guest', ...o })),
+      ...(cf.payg || []).map(o => ({ type: 'payg', ...o })),
+    ];
+  };
+
+  const agg = {
+    month, start, end, days: 0,
+    pro_shop:      { tennis_balls: 0, stringing: 0, accessories: 0, racquet_sales: 0, grips: 0, total: 0 },
+    court_fees:    { lessons: 0, guests: 0, payg: 0, total: 0 },
+    drinks_snacks: { drinks: 0, snacks: 0, total: 0 },
+    card_slips: 0, cash_sales: 0, grand_total: 0,
+  };
+
+  for (const s of rows) {
+    let dayHadData = false;
+    for (const sh of (s.shifts || [])) {
+      const ps = sh.pro_shop || {};
+      const tb = sumArr(ps.tennis_balls), str = sumObj(ps.stringing, 'amount'),
+            acc = sumArr(ps.accessories), rs = sumObj(ps.racquet_sales, 'amount'), grp = sumArr(ps.grips);
+      const psT = tb + str + acc + rs + grp;
+      agg.pro_shop.tennis_balls += tb; agg.pro_shop.stringing += str; agg.pro_shop.accessories += acc;
+      agg.pro_shop.racquet_sales += rs; agg.pro_shop.grips += grp; agg.pro_shop.total += psT;
+
+      const ent = cfEntries(sh);
+      const byType = t => ent.filter(e => e && e.type === t).reduce((x, e) => x + (Number(e.amount) || 0), 0);
+      const les = byType('lesson'), gue = byType('guest'), pay = byType('payg');
+      const cfT = les + gue + pay;
+      agg.court_fees.lessons += les; agg.court_fees.guests += gue; agg.court_fees.payg += pay; agg.court_fees.total += cfT;
+
+      const ds = sh.drinks_snacks || {};
+      const dr = sumArr(ds.drinks), sn = sumArr(ds.snacks);
+      const dsT = dr + sn;
+      agg.drinks_snacks.drinks += dr; agg.drinks_snacks.snacks += sn; agg.drinks_snacks.total += dsT;
+
+      const slips = sumArr(sh.till && sh.till.slips);
+      agg.card_slips += slips;
+      agg.grand_total += psT + cfT + dsT;
+      if (psT + cfT + dsT + slips > 0) dayHadData = true;
+    }
+    if (dayHadData) agg.days += 1;
+  }
+  agg.cash_sales = agg.grand_total - agg.card_slips;
+  res.json(agg);
+});
+
 // GET /settings — unit prices (all staff read these to compute line amounts)
 router.get('/settings', (req, res) => {
   res.json(db.getCashSettings());
