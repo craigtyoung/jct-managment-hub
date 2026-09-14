@@ -144,6 +144,11 @@
     .cat-add{width:26px;height:28px;padding:0;border:1px dashed var(--border);border-radius:7px;background:transparent;color:var(--text-3);font-size:16px;line-height:1;cursor:pointer;align-self:center;}
     .cat-add:hover{border-color:rgba(44,92,156,0.45);color:var(--blue);}
     .amt-input:focus{outline:none;border-color:rgba(44,92,156,0.40);background:var(--surface);}
+    /* Subtle "$" painted inside dollar-amount fields (never on quantity/count fields) */
+    .has-dollar{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14'%3E%3Ctext x='0' y='11' font-family='Arial,Helvetica,sans-serif' font-size='11' fill='%2394a3b8'%3E%24%3C/text%3E%3C/svg%3E");background-repeat:no-repeat;background-position:6px center;padding-left:16px;}
+    /* Unit-priced field: quantity entry with a "× $N" hint shown after it */
+    .unit-wrap{display:inline-flex;align-items:center;gap:3px;}
+    .unit-wrap .unit-hint{white-space:nowrap;}
     .detail-input{width:68px;padding:3px 6px;border:1px solid rgba(12,23,56,0.06);border-radius:5px;font-size:10px;color:var(--text-2);background:transparent;}
     .detail-input:focus{outline:none;border-color:rgba(44,92,156,0.25);}
     .cat-row-total{font-size:12px;font-weight:600;color:var(--text);text-align:right;padding-top:7px;min-width:60px;}
@@ -402,11 +407,11 @@
     <div class="sdw-body">
       <div class="sdw-row">
         <span class="sdw-label">Opening Float</span>
-        <input type="number" class="sdw-float" id="opening-float" value="100" min="0" step="0.01" oninput="onInput()">
+        <input type="number" class="sdw-float has-dollar" id="opening-float" value="100" min="0" step="0.01" oninput="onInput()">
       </div>
       <div class="sdw-row">
         <span class="sdw-label">Closing Float</span>
-        <input type="number" class="sdw-float" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
+        <input type="number" class="sdw-float has-dollar" id="closing-float" placeholder="—" min="0" step="0.01" oninput="onInput()">
       </div>
       <div class="sdw-row">
         <span class="sdw-label">Final Till Count</span>
@@ -604,7 +609,7 @@
         <td><input type="text" class="cf-name-input" placeholder="Name" value="${name.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
         <td><select class="cf-pro-sel" onchange="onInput();"><option value="">—</option>${proOpts}</select></td>
         <td><input type="text" class="cf-note-input" placeholder="Note" value="${note.replace(/"/g,'&quot;')}" oninput="onInput();"></td>
-        <td><input type="number" class="cf-row-amt" min="0" step="0.01" placeholder="$0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
+        <td><input type="number" class="cf-row-amt has-dollar" min="0" step="0.01" placeholder="0.00" value="${initAmt}" oninput="recalcShift(${si});onInput();"></td>
         <td><button type="button" class="cf-del" onclick="this.closest('tr').remove();recalcShift(${si});onInput();">×</button></td>`;
       tbody.appendChild(tr);
       applyCfRowType(tr, type);   // set Name placeholder + Pro state to match the row's type
@@ -633,7 +638,8 @@
         const dfAttr = field ? `data-field="${field}"` : '';
         const unit = UNIT_PRICES[item];
         const unitAttr = unit ? `data-unit="${unit}"` : '';
-        const cls = 'amt-input' + (field ? '' : (' field-slot' + (hidden ? ' amt-hidden' : '')));
+        const isDollar = !unit;   // unit-priced items take a quantity, not a dollar amount
+        const cls = 'amt-input' + (field ? '' : (' field-slot' + (hidden ? ' amt-hidden' : ''))) + (isDollar ? ' has-dollar' : '');
         return `<input type="number" class="${cls}" data-si="${si}" data-item="${item}" data-idx="${idx}" ${dfAttr} ${unitAttr} min="0" step="${unit?1:0.01}" placeholder="${unit?'qty':'—'}" oninput="recalcShift(${si});onInput();">`;
       };
       const d = (item, idx, field) =>
@@ -770,7 +776,7 @@
                 ${SLIPS.map(i =>
                   `<div class="slip-row">
                     <span class="slip-label">Slip ${i+1}</span>
-                    <input type="number" class="slip-input" id="s${si}-slip-${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
+                    <input type="number" class="slip-input has-dollar" id="s${si}-slip-${i}" min="0" step="0.01" placeholder="—" oninput="recalcShift(${si});onInput();">
                   </div>`
                 ).join('')}
               </div>
