@@ -94,6 +94,16 @@
     .compose-input { background: transparent; border: none; outline: none; color: var(--text); font-size: 16px; width: 100%; resize: none; font-family: 'Inter', sans-serif; line-height: 1.6; }
     .compose-input::placeholder { color: var(--text3); }
     .compose-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    /* ── Collapsible recipient picker: message-first, names tucked behind a one-line summary ── */
+    .to-summary { display: inline-flex; align-items: center; gap: 7px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 100px; padding: 6px 14px; font-size: 14px; font-weight: 600; color: var(--text2); font-family: 'Inter', sans-serif; cursor: pointer; margin-bottom: 10px; transition: border-color 0.15s; }
+    .to-summary:hover { border-color: rgba(44,92,156,0.4); }
+    .to-summary .to-label-txt { color: var(--text3); font-weight: 500; }
+    .to-summary #to-summary-txt { color: #2c5c9c; }
+    .to-caret { color: var(--text3); transition: transform 0.18s; flex-shrink: 0; }
+    .to-picker { display: none; margin-bottom: 4px; }
+    .compose-box.to-open .to-picker { display: block; }
+    .compose-box.to-open .to-caret { transform: rotate(180deg); }
+    .compose-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; justify-content: flex-end; flex-wrap: wrap; }
     @keyframes pulse-rec { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.25)} }
     /* ── Post Note trigger (collapsed state) ── */
     .compose-trigger { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: rgba(44,92,156,0.06); border: 1.5px solid rgba(44,92,156,0.35); border-radius: 14px; padding: 13px 16px; color: #2c5c9c; font-size: 16px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.18s; box-shadow: 0 1px 4px rgba(44,92,156,0.10); }
@@ -113,7 +123,10 @@
       .compose-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
       .compose-panel-title { font-size: 16px; font-weight: 700; color: var(--text); font-family: 'Inter', sans-serif; }
       .compose-panel-close { background: transparent; border: none; color: var(--text3); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
-      .compose-panel .compose-box { border: none; border-radius: 0; background: transparent; }
+      .compose-panel .compose-box { border: none; border-radius: 0; background: transparent; padding-bottom: 0; }
+      /* Send is always reachable: pin the action bar to the bottom of the sheet, above the keyboard. */
+      .compose-panel .compose-actions { position: sticky; bottom: 0; margin-top: 8px; padding: 10px 4px calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); z-index: 2; }
+      .compose-panel .compose-actions .btn-indigo { flex: 1; text-align: center; }
       .compose-backdrop.open { display: block; position: fixed; inset: 0; z-index: 340; background: rgba(15,23,42,0.5); }
     }
     .select-pill { background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 6px 12px; color: var(--text2); font-size: 14px; outline: none; cursor: pointer; font-family: 'Inter', sans-serif; }
@@ -489,21 +502,27 @@
             <button class="compose-panel-close" onclick="closeCompose()" aria-label="Close">&#10005;</button>
           </div>
           <div class="compose-box">
-            <div class="to-row" style="flex-wrap:wrap;gap:5px;align-items:center">
+            <button type="button" class="to-summary" id="to-summary" onclick="toggleRecipientPicker()" title="Tap to choose who this note goes to">
               <span class="to-label-txt">To:</span>
-              <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
-              <button class="chip group-chip" data-group="management" onclick="toggleGroup('management',this)">Management</button>
-              <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
-              <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+              <span id="to-summary-txt">Everyone</span>
+              <svg class="to-caret" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="to-picker" id="to-picker">
+              <div class="to-row" style="flex-wrap:wrap;gap:5px;align-items:center">
+                <button class="chip selected" id="chip-all" onclick="toggleRecipient('all',this)">Everyone</button>
+                <button class="chip group-chip" data-group="management" onclick="toggleGroup('management',this)">Management</button>
+                <button class="chip group-chip" data-group="office" onclick="toggleGroup('office',this)">Office</button>
+                <div id="recipient-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
             </div>
-            <div style="font-size:11px;color:var(--text3);margin:2px 0 8px 2px">Tap a name or group to send to specific people. Leave <strong>Everyone</strong> selected to post to the whole team.</div>
             <textarea id="compose-text" class="compose-input" rows="3" placeholder="Post a note for the team...  (you can drag, paste, or attach an image)"></textarea>
             <input type="file" id="compose-img-input" accept="image/*" style="display:none" onchange="handleComposeImage(this.files[0])">
             <div id="compose-img-preview" style="display:none;margin:8px 0 0;position:relative;width:fit-content">
               <img id="compose-img-thumb" alt="attachment preview" style="max-height:96px;max-width:200px;border-radius:8px;border:1px solid var(--input-border);display:block">
               <button type="button" onclick="clearComposeImage()" title="Remove image" style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:none;background:#0f172a;color:#fff;cursor:pointer;font-size:13px;line-height:1">×</button>
             </div>
-            <div class="compose-footer">
+            <div class="compose-footer compose-meta">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Category:</span>
             <select id="compose-category" class="select-pill"><!-- options set per-audience by applyAudienceUI() --></select>
             <span id="cat-hint" style="display:none;font-size:11px;color:#dc2626;font-weight:600;line-height:1.3;flex-basis:100%;margin-top:4px"></span>
@@ -514,7 +533,8 @@
               <input type="checkbox" id="compose-timesensitive" style="width:15px;height:15px;accent-color:#d97706;cursor:pointer">
               ⏱ Time-sensitive
             </label>
-            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            </div>
+            <div class="compose-actions">
               <button id="compose-mic-btn" onclick="toggleComposeMic()" title="Dictate" style="display:none;padding:6px 10px;border-radius:9px;border:1px solid var(--input-border);background:transparent;cursor:pointer;transition:all 0.18s;display:none;align-items:center;justify-content:center">
                 <svg id="compose-mic-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color:var(--text2)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 <span id="compose-mic-dot" style="display:none;width:9px;height:9px;border-radius:50%;background:#f87171;animation:pulse-rec 1s infinite"></span>
@@ -1496,6 +1516,8 @@
     const trigger = document.getElementById('compose-trigger');
     const backdrop = document.getElementById('compose-backdrop');
     if (!panel) return;
+    const box = panel.querySelector('.compose-box');
+    if (box) box.classList.remove('to-open');  // start collapsed: message + Send lead
     panel.classList.add('open');
     if (trigger) trigger.classList.add('hidden');
     if (backdrop) backdrop.classList.add('open');
@@ -1603,6 +1625,25 @@
       const on = ids.length > 0 && ids.length === selectedRecipients.length && ids.every(i => selectedRecipients.includes(i));
       setChip(g, on, '#2c5c9c');
     });
+    updateToSummary();
+  }
+
+  // One-line summary of who the note goes to, shown on the collapsed "To:" pill.
+  function updateToSummary() {
+    const el = document.getElementById('to-summary-txt');
+    if (!el) return;
+    if (!selectedRecipients.length) { el.textContent = 'Everyone'; return; }
+    const names = selectedRecipients.map(id => {
+      const s = allStaff.find(x => x.id === id);
+      return s ? s.name.split(' ')[0] : '?';
+    });
+    el.textContent = names.length <= 2 ? names.join(', ') : names.length + ' people';
+  }
+
+  // Expand/collapse the full name picker. Collapsed by default so the message + Send lead.
+  function toggleRecipientPicker() {
+    const box = document.querySelector('.compose-panel .compose-box');
+    if (box) box.classList.toggle('to-open');
   }
 
   function toggleRecipient(id, el) {

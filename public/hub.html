@@ -699,6 +699,27 @@
     .ask-send svg { width: 16px; height: 16px; }
 
     /* ── Assistant button (slim, professional; opens the AI chat) ── */
+    .notif-prompt {
+      display: flex; align-items: center; gap: 13px; width: 100%;
+      margin: 0 0 18px; padding: 13px 14px 13px 16px;
+      background: linear-gradient(180deg, rgba(44,92,156,0.08), rgba(44,92,156,0.04));
+      border: 1px solid rgba(44,92,156,0.28); border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(44,92,156,0.08); animation: notif-in 0.25s ease-out;
+    }
+    @keyframes notif-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .notif-prompt-ico { font-size: 22px; line-height: 1; flex-shrink: 0; }
+    .notif-prompt-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .notif-prompt-body strong { font-family: var(--font-body); font-size: 14.5px; font-weight: 700; color: var(--text); }
+    .notif-prompt-body span { font-family: var(--font-body); font-size: 12.5px; color: var(--text-2); line-height: 1.4; }
+    .notif-prompt-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .notif-prompt-cta { background: #2c5c9c; color: #fff; border: none; border-radius: 100px; padding: 8px 16px; font-family: var(--font-body); font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+    .notif-prompt-cta:hover { background: #24508c; }
+    .notif-prompt-x { background: transparent; border: none; color: var(--text-3, var(--text-2)); font-size: 20px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 8px; }
+    @media (max-width: 560px) {
+      .notif-prompt { flex-wrap: wrap; }
+      .notif-prompt-body { flex-basis: 70%; }
+      .notif-prompt-actions { margin-left: auto; }
+    }
     .assistant-slim {
       display: flex; width: 100%; align-items: center; gap: 10px;
       margin: 0 0 26px; padding: 11px 16px 11px 13px;
@@ -1070,6 +1091,19 @@
         <p class="page-sub" id="subheading">What do you need today?</p>
       </div>
       <div class="hero-avatar" id="hero-avatar"></div>
+    </div>
+
+    <!-- ── Notification enrollment prompt (hidden until we know it's needed) ──────── -->
+    <div id="notif-prompt" class="notif-prompt" style="display:none">
+      <div class="notif-prompt-ico">🔔</div>
+      <div class="notif-prompt-body">
+        <strong id="notif-prompt-title">Turn on notifications</strong>
+        <span id="notif-prompt-sub">Get a ping on this device when a new note is posted for the team.</span>
+      </div>
+      <div class="notif-prompt-actions">
+        <button type="button" id="notif-prompt-btn" class="notif-prompt-cta" onclick="enableNotifsFromDash()">Turn on</button>
+        <button type="button" class="notif-prompt-x" onclick="dismissNotifPrompt()" aria-label="Dismiss">&times;</button>
+      </div>
     </div>
 
     <!-- ── Assistant (opens the AI chat) ──────── -->
@@ -2180,6 +2214,66 @@
 
     init();
 
+    // ── Notification enrollment prompt ──────────────────────────────────────────
+    // Push is opt-in per device. Surface a clear prompt on the dashboard (not buried
+    // in Comms) so staff actually enable it — with the iPhone Add-to-Home-Screen path
+    // spelled out, since iOS web push only works from an installed PWA.
+    const NOTIF_SNOOZE_KEY = 'jct-notif-snooze';
+    const NOTIF_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;  // re-nudge after 3 days
+    function renderNotifPrompt(mode) {
+      const el = document.getElementById('notif-prompt');
+      const title = document.getElementById('notif-prompt-title');
+      const sub = document.getElementById('notif-prompt-sub');
+      const btn = document.getElementById('notif-prompt-btn');
+      if (!el) return;
+      if (mode === 'ios') {
+        title.textContent = 'Turn on notifications on your iPhone';
+        sub.textContent = "Tap the Share icon, choose “Add to Home Screen”, then open the hub from that new icon and come back here to turn them on.";
+        btn.style.display = 'none';
+      } else if (mode === 'denied') {
+        title.textContent = 'Notifications are blocked';
+        sub.textContent = 'Notifications are turned off for this site in your browser settings. Enable them there, then reload this page.';
+        btn.style.display = 'none';
+      } else if (mode === 'success') {
+        title.textContent = "You’re all set";
+        sub.textContent = "You’ll get a ping on this device when a new note is posted.";
+        btn.style.display = 'none';
+        setTimeout(() => { el.style.display = 'none'; }, 3500);
+      } else {
+        title.textContent = 'Turn on notifications';
+        sub.textContent = 'Get a ping on this device when a new note is posted for the team.';
+        btn.style.display = '';
+      }
+      el.style.display = 'flex';
+    }
+    async function initNotifPrompt() {
+      if (!window.jctPush) return;
+      let st;
+      try { st = await window.jctPush.status(); } catch (e) { return; }
+      if (st === 'on' || st === 'unsupported') return;  // enrolled or nothing we can do
+      const snoozed = Number(localStorage.getItem(NOTIF_SNOOZE_KEY) || 0);
+      if (snoozed && (Date.now() - snoozed) < NOTIF_SNOOZE_MS) return;
+      renderNotifPrompt(st === 'ios-install' ? 'ios' : st === 'denied' ? 'denied' : 'enroll');
+    }
+    async function enableNotifsFromDash() {
+      if (!window.jctPush) return;
+      const btn = document.getElementById('notif-prompt-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Turning on…'; }
+      let r;
+      try { r = await window.jctPush.enable(); } catch (e) { r = { ok: false, reason: 'error' }; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Turn on'; }
+      if (r.ok) renderNotifPrompt('success');
+      else if (r.reason === 'ios-install') renderNotifPrompt('ios');
+      else if (r.reason === 'denied') renderNotifPrompt('denied');
+      // 'dismissed' (closed the browser permission dialog) → leave the prompt as-is to retry.
+    }
+    function dismissNotifPrompt() {
+      const el = document.getElementById('notif-prompt');
+      if (el) el.style.display = 'none';
+      try { localStorage.setItem(NOTIF_SNOOZE_KEY, String(Date.now())); } catch (e) {}
+    }
+    initNotifPrompt();
+
     // SSE: refresh check-in feed in real time when any member signs in
     (function () {
       try {
@@ -2242,6 +2336,7 @@
     function mnavOpenMore(){ document.getElementById('mnav-more-backdrop').classList.add('open'); }
     function mnavCloseMore(){ document.getElementById('mnav-more-backdrop').classList.remove('open'); }
   </script>
+  <script src="/push-client.js"></script>
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
   <script src="/app-version.js"></script>
