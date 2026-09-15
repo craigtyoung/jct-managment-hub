@@ -295,9 +295,20 @@
     [data-tip] { position: relative; }
     [data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 100; }
 
-    /* ── Mode toggle ── */
+    /* ── Compact icon buttons in the top bar ── */
+    .icon-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); border-radius: 9px; padding: 6px 9px; color: var(--text3); cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s, border-color 0.15s; }
+    .icon-btn:hover { color: var(--text2); border-color: rgba(44,92,156,0.35); }
+    .icon-btn svg { display: block; }
+    #notif-btn.notif-on { color: #10b981; border-color: rgba(16,185,129,0.4); }
+    .signout-btn:hover { color: #ef4444; border-color: rgba(239,68,68,0.4); }
     .mode-toggle { background: transparent; border: none; border-radius: 8px; padding: 4px 8px; font-size: 11px; color: var(--text3); cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s, opacity 0.15s; opacity: 0.65; }
     .mode-toggle:hover { color: var(--text2); opacity: 1; }
+    /* Mobile: trim the top bar to essentials — bottom nav handles navigation. */
+    @media (max-width: 820px) {
+      #viewas-wrap { display: none !important; }
+      .signout-btn .signout-label { display: none; }
+      .icon-btn { padding: 6px; }
+    }
 
     /* ── Toast ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 10px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
@@ -421,18 +432,24 @@
       </span>
       <span id="unread-pill" style="display:none;background:#2c5c9c;color:white;font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px;margin-left:2px"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="mode-toggle" onclick="toggleMode()" id="mode-btn">Dark mode</button>
-      <button id="notif-btn" onclick="toggleNotif()" title="Notifications for new notes" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;color:var(--text3);cursor:pointer;font-family:Inter,sans-serif;transition:color .15s">🔔 <span id="notif-label">Notify</span></button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="icon-btn" onclick="toggleMode()" id="mode-btn" title="Switch theme" aria-label="Switch theme"></button>
+      <button class="icon-btn" id="notif-btn" onclick="toggleNotif()" title="Notifications for new notes" aria-label="Notifications">
+        <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notif-label" style="display:none"></span>
+      </button>
       <div id="viewas-wrap" style="display:none;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--text3);font-weight:600">View as</span>
+        <span class="viewas-label" style="font-size:11px;color:var(--text3);font-weight:600">View as</span>
         <select id="viewas-select" class="select-pill" style="padding:4px 8px;font-size:12px" onchange="setViewAs(this.value)"></select>
       </div>
       <div class="me-badge">
         <div id="me-avatar" class="avatar" style="width:24px;height:24px;font-size:10px"></div>
         <span id="me-name" style="font-size:12px;font-weight:600;color:var(--text)"></span>
       </div>
-      <button onclick="doLogout()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:Inter,sans-serif;transition:color 0.15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text3)'">Sign out</button>
+      <button class="icon-btn signout-btn" onclick="doLogout()" title="Sign out" aria-label="Sign out">
+        <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="signout-label" style="font-size:11px;font-weight:600">Sign out</span>
+      </button>
     </div>
   </div>
 
@@ -700,8 +717,9 @@
     if (!b || !window.jctPush) return;
     const st = await window.jctPush.status();
     if (st === 'unsupported') { b.style.display = 'none'; return; }
-    if (st === 'on') { l.textContent = 'Notifications on'; b.style.color = '#10b981'; b.style.borderColor = 'rgba(16,185,129,0.4)'; }
-    else { l.textContent = 'Notify'; b.style.color = 'var(--text3)'; b.style.borderColor = 'var(--border)'; }
+    // Just a bell: green when on, muted when off. Title carries the state for a11y.
+    b.classList.toggle('notif-on', st === 'on');
+    b.title = st === 'on' ? 'Notifications on' : 'Turn on notifications for new notes';
   }
   async function toggleNotif() {
     if (!window.jctPush) return;
@@ -718,17 +736,22 @@
   }
 
   // ── Dark/light mode ────────────────────────────────────────────────────────
+  // Icons only (sun when dark→tap for light, moon when light→tap for dark).
+  const ICON_MOON = '<svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  const ICON_SUN = '<svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>';
+  function isMobileViewport() { return window.matchMedia('(max-width: 820px)').matches; }
   function applyTheme(dark) {
     document.body.classList.toggle('dark', dark);
     const btn = document.getElementById('mode-btn');
-    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    if (btn) btn.innerHTML = dark ? ICON_SUN : ICON_MOON;
   }
   function toggleMode() {
     const dark = !document.body.classList.contains('dark');
     localStorage.setItem('jct-theme', dark ? 'dark' : 'light');
     applyTheme(dark);
   }
-  applyTheme(localStorage.getItem('jct-theme') === 'dark');
+  // Phones stay clean white to match every other page; dark is a desktop-only option.
+  applyTheme(!isMobileViewport() && localStorage.getItem('jct-theme') === 'dark');
 
   // ── Draggable note/comments divider (shared split, persisted) ────────────────
   (function () {
@@ -1673,7 +1696,7 @@
     });
     const total = messages.filter(isActive).length;
     const pill = document.getElementById('unread-pill');
-    pill.textContent = total + ' unread'; pill.style.display = total > 0 ? 'inline' : 'none';
+    pill.textContent = total; pill.title = total + ' unread'; pill.style.display = total > 0 ? 'inline' : 'none';
     const seg = document.getElementById('seg-unread-badge');
     if (seg) { seg.textContent = total; seg.style.display = total > 0 ? 'inline' : 'none'; }
   }

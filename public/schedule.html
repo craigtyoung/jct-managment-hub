@@ -268,8 +268,16 @@
 
   <!-- Main -->
   <main class="main">
-    <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Shift Schedule</h1>
-    <p style="font-size:13px;color:var(--text-2)" id="admin-hint"></p>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Shift Schedule</h1>
+        <p style="font-size:13px;color:var(--text-2)" id="admin-hint"></p>
+      </div>
+      <a href="/timesheet.html" style="display:inline-flex;align-items:center;gap:8px;background:rgba(44,92,156,0.08);border:1px solid rgba(44,92,156,0.28);border-radius:100px;padding:9px 16px;text-decoration:none;color:#2c5c9c;font-size:14px;font-weight:700;white-space:nowrap;flex-shrink:0">
+        <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Timesheets
+      </a>
+    </div>
 
     <!-- Week Nav -->
     <div class="week-nav">
