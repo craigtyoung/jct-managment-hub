@@ -11,11 +11,11 @@
  * Include on every staff page: <script src="/mobile-more.js"></script>
  */
 (function () {
+  // Timesheets was moved OUT of here — it's now a primary bottom-nav tab on every page.
+  // Pro Schedule is a teaching-side tool: management + pros only, so office logins stay clean.
   var LINKS = [
-    { href: '/pro-schedule-view.html', label: 'Pro Schedule',
+    { href: '/pro-schedule-view.html', label: 'Pro Schedule', proOrMgmt: true,
       svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>' },
-    { href: '/timesheet.html', label: 'Timesheets',
-      svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
     { href: '/ideas.html', label: 'Idea Board',
       svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>' },
     { href: '/staff-management.html', label: 'Staff Management', mgmt: true,
@@ -32,9 +32,9 @@
     var isPro  = !!(me && me.is_pro);
     var items = LINKS
       .filter(function (l) { return !l.mgmt || isMgmt; })
+      .filter(function (l) { return !l.proOrMgmt || isMgmt || isPro; })
       .map(function (l) {
-        // Timesheets is mode-aware: pros go to their own timesheet, everyone else to office.
-        var href = (l.href === '/timesheet.html' && isPro) ? '/pro-timesheet.html' : l.href;
+        var href = l.href;
         var active = (norm(href) === here) ? ' active' : '';
         var cur = active ? ' aria-current="page"' : '';
         return '<a href="' + href + '" class="mnav-sheet-link' + active + '"' + cur + '>' + l.svg + l.label + '</a>';
