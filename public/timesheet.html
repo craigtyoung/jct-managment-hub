@@ -468,14 +468,7 @@
     }
 
     // ── Render ─────────────────────────────────────────────────────
-    function render() {
-      if (!weekRows.length) {
-        document.getElementById('ts-main').innerHTML =
-          '<div class="empty-state">No shifts scheduled this period.<br>Assign staff on the <a href="/schedule.html" style="color:var(--blue)">Schedule</a> page first.</div>';
-        return;
-      }
-
-      // Group by staff
+    function buildGroups() {
       const groups = {};
       for (const row of weekRows) {
         if (!groups[row.staff_id]) {
@@ -483,11 +476,20 @@
         }
         groups[row.staff_id].rows.push(row);
       }
-
-      // Sort each person's shifts by date then shift order
       for (const g of Object.values(groups)) {
         g.rows.sort((a, b) => a.date.localeCompare(b.date) || (SHIFT_ORDER[a.shift]||0) - (SHIFT_ORDER[b.shift]||0));
       }
+      return groups;
+    }
+
+    function render() {
+      if (!weekRows.length) {
+        document.getElementById('ts-main').innerHTML =
+          '<div class="empty-state">No shifts scheduled this period.<br>Assign staff on the <a href="/schedule.html" style="color:var(--blue)">Schedule</a> page first.</div>';
+        return;
+      }
+
+      const groups = buildGroups();
 
       // Determine which staff to show
       const staffIds = Object.keys(groups)
@@ -504,6 +506,35 @@
 
       // Load staff photos after render
       visible.forEach(sid => staffAvatar(document.getElementById(`ts-av-${sid}`), sid, groups[sid].name, groups[sid].color));
+    }
+
+    // Refresh data, then re-render ONLY the affected person's card in place — no
+    // whole-page rebuild, so ticking a box or saving an edit doesn't flash the screen.
+    async function reloadPersonCard(staffId) {
+      try {
+        const res  = await fetch(`/api/timesheet/week?start=${currentStart}&end=${currentEnd}`);
+        const data = await res.json();
+        weekRows       = data.rows          || [];
+        weekDefaults   = data.defaults      || {};
+        periodExpenses = data.period_expenses || {};
+        periodReceipts = data.period_receipts || {};
+        stringByStaff  = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
+        expenseItemsByStaff = data.expense_items || {};
+        proByStaff     = data.pro_by_staff  || {};
+      } catch(e) { return; }
+
+      const groups = buildGroups();
+      const g = groups[staffId];
+      const el = document.getElementById(`pc-${staffId}`);
+      if (g && el) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderPersonCard(g);
+        el.replaceWith(tmp.firstElementChild);
+        staffAvatar(document.getElementById(`ts-av-${staffId}`), staffId, g.name, g.color);
+      } else {
+        render();
+        if (isAdmin) renderDefaults();
+      }
     }
 
     function renderPersonCard(person) {
@@ -568,7 +599,7 @@
         </div>` : '';
 
       return `
-        <div class="person-card">
+        <div class="person-card" id="pc-${person.id}">
           <div class="person-head">
             <div class="person-head-left">
               <div id="ts-av-${person.id}" style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:${person.color}22;color:${person.color}">
@@ -733,8 +764,8 @@
           window._rowData[key].actual_start = isChecked ? scheduledStart : null;
           window._rowData[key].actual_end   = isChecked ? scheduledEnd   : null;
         }
-        // Re-render just this person's card by reloading
-        await load(true);
+        // Re-render just this person's card in place (no whole-page flash)
+        await reloadPersonCard(staffId);
       } catch(e) {
         cb.checked = !isChecked; // revert
         cb.disabled = false;
@@ -760,7 +791,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end, notes: note }),
         });
-        await load(true);
+        await reloadPersonCard(staffId);
       } catch(e) { alert('Failed to save.'); }
     }
 
@@ -774,7 +805,7 @@
           body: JSON.stringify({ staff_id: staffId, date, shift }),
         });
         if (!res.ok) throw new Error();
-        await load(true);
+        await reloadPersonCard(staffId);
       } catch(e) { alert('Failed to remove the shift.'); }
     }
 
@@ -798,15 +829,17 @@
           body: JSON.stringify({ staff_id: personId, date, label, actual_start: start, actual_end: end, notes: note }),
         });
         if (!res.ok) throw new Error();
-        await load(true);
+        await reloadPersonCard(personId);
       } catch(e) { alert('Failed to add the line.'); }
     }
     async function deleteManualLine(id) {
       if (!confirm('Delete this line?')) return;
+      const r = weekRows.find(x => x.is_manual && x.manual_id === id);
+      const sid = r ? r.staff_id : null;
       try {
         const res = await fetch(`/api/timesheet/manual-entry/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
-        await load(true);
+        if (sid) await reloadPersonCard(sid); else await load(true);
       } catch(e) { alert('Failed to delete the line.'); }
     }
     function openManualEdit(id)  { document.getElementById(`medit-${id}`)?.classList.add('open'); }
@@ -817,6 +850,8 @@
       const end   = document.getElementById(`me-end-${id}`)?.value;
       const note  = document.getElementById(`me-note-${id}`)?.value.trim() || '';
       if (!start || !end) { alert('Enter both start and end times.'); return; }
+      const r = weekRows.find(x => x.is_manual && x.manual_id === id);
+      const sid = r ? r.staff_id : null;
       try {
         const res = await fetch(`/api/timesheet/manual-entry/${id}`, {
           method: 'PUT',
@@ -824,7 +859,7 @@
           body: JSON.stringify({ label, actual_start: start, actual_end: end, notes: note }),
         });
         if (!res.ok) throw new Error();
-        await load(true);
+        if (sid) await reloadPersonCard(sid); else await load(true);
       } catch(e) { alert('Failed to save.'); }
     }
 
@@ -911,27 +946,37 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ staff_id: staffId, period_start: currentStart, date, description: desc, amount: parseFloat(amt) }),
         });
-        await load(true);
+        await reloadPersonCard(staffId);
       } catch(e) { alert('Failed to save expense.'); }
+    }
+
+    // Find which staff an expense item belongs to (for a single-card refresh)
+    function staffIdForExpenseItem(itemId) {
+      for (const k in expenseItemsByStaff) {
+        if ((expenseItemsByStaff[k] || []).some(it => String(it.id) === String(itemId))) return Number(k);
+      }
+      return null;
     }
 
     async function deleteExpenseItem(itemId) {
       if (!confirm('Remove this expense item?')) return;
+      const sid = staffIdForExpenseItem(itemId);
       try {
         await fetch(`/api/timesheet/expense-items/${itemId}`, { method: 'DELETE' });
-        await load(true);
+        if (sid) await reloadPersonCard(sid); else await load(true);
       } catch(e) { alert('Failed to delete.'); }
     }
 
     async function uploadItemReceipt(itemId, inputEl) {
       const file = inputEl.files && inputEl.files[0];
       if (!file) return;
+      const sid = staffIdForExpenseItem(itemId);
       const fd = new FormData();
       fd.append('receipt', file);
       try {
         const res = await fetch(`/api/timesheet/expense-items/${itemId}/receipt`, { method: 'POST', body: fd });
         if (!res.ok) throw new Error('upload failed');
-        await load(true);
+        if (sid) await reloadPersonCard(sid); else await load(true);
       } catch(e) {
         alert('Failed to upload receipt.');
       } finally {
