@@ -109,7 +109,11 @@ router.get('/week', (req, res) => {
     });
   }
 
-  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start) });
+  // Teaching hours per staff (read-only cross-reference from the Pro timesheet) so
+  // accounting can total dual-role staff (office + teaching) in one place.
+  const proByStaff = buildProHoursByStaff(start, end);
+
+  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start), pro_by_staff: proByStaff });
 });
 
 // PUT upsert a timesheet entry
@@ -414,6 +418,9 @@ router.get('/export', (req, res) => {
     return (m / 60).toFixed(2);
   };
 
+  const decHrs = (s, e2) => { const v = hrs(s, e2); return v === '' ? 0 : parseFloat(v); };
+  const officeHoursById = {}; // office hours per staff for the combined summary
+
   const lines = [];
   lines.push(['Staff', 'Date', 'Shift', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
   // Combine scheduled shifts (minus voided ones) with manual lines, sorted by date
@@ -425,6 +432,7 @@ router.get('/export', (req, res) => {
       const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
       const s = db.getStaffById(a.staff_id);
       const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
+      officeHoursById[a.staff_id] = (officeHoursById[a.staff_id] || 0) + decHrs(as, ae);
       exportRows.push({ sortKey: a.date + a.shift, cells: [
         s ? s.name : a.staff_id, a.date, a.shift,
         ov?.start || def.start || '', ov?.end || def.end || '',
@@ -433,6 +441,7 @@ router.get('/export', (req, res) => {
     });
   manual.forEach(m => {
     const s = db.getStaffById(m.staff_id);
+    officeHoursById[m.staff_id] = (officeHoursById[m.staff_id] || 0) + decHrs(m.actual_start, m.actual_end);
     exportRows.push({ sortKey: m.date + 'zz', cells: [
       s ? s.name : m.staff_id, m.date, `Added: ${m.label || 'Manual entry'}`,
       '', '', m.actual_start || '', m.actual_end || '', hrs(m.actual_start, m.actual_end), m.notes || ''
@@ -440,6 +449,23 @@ router.get('/export', (req, res) => {
   });
   exportRows.sort((a, b) => a.sortKey.localeCompare(b.sortKey)).forEach(r => lines.push(r.cells.map(q).join(',')));
   lines.push('');
+
+  // Combined hours summary (office + teaching) so dual-role staff total in one place
+  const proByStaff = buildProHoursByStaff(start, end);
+  const summaryIds = new Set([...Object.keys(officeHoursById), ...Object.keys(proByStaff)].map(Number));
+  if (summaryIds.size) {
+    lines.push(['Hours Summary (Office + Teaching)'].map(q).join(','));
+    lines.push(['Staff', 'Office Hours', 'Teaching Hours', 'Total Hours'].map(q).join(','));
+    [...summaryIds]
+      .sort((a, b) => { const na = db.getStaffById(a), nb = db.getStaffById(b); return (na ? na.name : String(a)).localeCompare(nb ? nb.name : String(b)); })
+      .forEach(id => {
+        const s = db.getStaffById(id);
+        const office = officeHoursById[id] || 0;
+        const teach  = proByStaff[id] ? proByStaff[id].total_hours : 0;
+        lines.push([s ? s.name : id, office.toFixed(2), teach.toFixed(2), (office + teach).toFixed(2)].map(q).join(','));
+      });
+    lines.push('');
+  }
   lines.push(['Expense Items'].map(q).join(','));
   lines.push(['Staff', 'Date', 'Description', 'Amount', 'Receipt'].map(q).join(','));
   const allItems = db.getExpenseItemsForPeriodAllStaff(start);
@@ -456,6 +482,44 @@ router.get('/export', (req, res) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Pro/teaching hours per staff for a period — confirmed classes + manual lines only
+// (mirrors the pro-timesheet payroll export). Returns { staffId: { lines:[], total_hours } }.
+function buildProHoursByStaff(start, end) {
+  const decimalHours = (s, e2) => {
+    if (!s || !e2) return 0;
+    const [sh, sm] = s.split(':').map(Number), [eh, em] = e2.split(':').map(Number);
+    let m = (eh * 60 + em) - (sh * 60 + sm); if (m < 0) m += 1440;
+    return m / 60;
+  };
+  let assignments = [], entries = [];
+  try { assignments = db.getProAssignmentsForRange(start, end) || []; } catch (e) { assignments = []; }
+  try { entries     = db.getProTimesheetForRange(start, end)   || []; } catch (e) { entries = []; }
+
+  const entryMap = {};
+  const manual = [];
+  for (const e of entries) {
+    if (e.source === 'manual') manual.push(e);
+    else entryMap[`${e.staff_id}:${e.slot_id}:${e.date}`] = e;
+  }
+  const byStaff = {};
+  const add = (staffId, line) => {
+    if (!byStaff[staffId]) byStaff[staffId] = { lines: [], total_hours: 0 };
+    byStaff[staffId].lines.push(line);
+    byStaff[staffId].total_hours += line.hours;
+  };
+  for (const a of assignments) {
+    const en = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`];
+    if (!en || !en.actual_start) continue; // unconfirmed classes = 0 hours
+    add(a.staff_id, { date: a.date, program: a.program || 'Class', actual_start: en.actual_start, actual_end: en.actual_end, hours: decimalHours(en.actual_start, en.actual_end), kind: 'class' });
+  }
+  for (const m of manual) {
+    add(m.staff_id, { date: m.date, program: m.program || 'Manual', actual_start: m.actual_start, actual_end: m.actual_end, hours: decimalHours(m.actual_start, m.actual_end), kind: 'manual' });
+  }
+  // Sort each staff's lines by date
+  for (const s of Object.values(byStaff)) s.lines.sort((a, b) => a.date.localeCompare(b.date));
+  return byStaff;
+}
 
 function periodStart(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');

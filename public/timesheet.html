@@ -89,6 +89,20 @@
     .hours-pill{display:inline-block;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:600;}
     .hours-pill.has{background:rgba(22,163,74,0.08);color:var(--green);}
     .hours-pill.none{color:var(--text-3);font-weight:400;font-size:12px;}
+    .hours-pill.teach{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .hours-pill.total{background:var(--navy);color:#f0f4ff;font-weight:700;}
+    /* Teaching-hours cross-reference (read-only) */
+    .pro-section{border-top:2px solid var(--border);background:rgba(44,92,156,0.03);padding:4px 0 2px;}
+    .pro-head{font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--blue);padding:10px 16px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .pro-sub{font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--text-3);}
+    .pro-row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid var(--border);font-size:13px;}
+    .pro-row .shift-badge.teach{background:rgba(44,92,156,0.12);color:var(--blue);}
+    .pro-prog{flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pro-times{font-size:12px;color:var(--text-3);white-space:nowrap;}
+    .pro-subtotal{display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 12px;font-size:12.5px;color:var(--text-2);}
+    .pro-subtotal b{color:var(--blue);}
+    .al-time{width:118px;}
+    @media (max-width:640px){ .pro-row{flex-wrap:wrap;gap:4px 8px;} .pro-times{margin-left:auto;} }
 
     /* ── Shift rows ── */
     .shift-row{
@@ -361,7 +375,7 @@
     let isAdmin = false;    // admin or manager — can edit any row, see all staff, add expenses
     let canConfirm = false; // all logged-in users — can confirm their own shifts
     let currentStart = '', currentEnd = '';
-    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {}, expenseItemsByStaff = {};
+    let weekRows = [], weekDefaults = {}, periodExpenses = {}, periodReceipts = {}, stringByStaff = {}, expenseItemsByStaff = {}, proByStaff = {};
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -440,6 +454,7 @@
         periodReceipts = data.period_receipts || {};
         stringByStaff = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
         expenseItemsByStaff = data.expense_items || {};
+        proByStaff = data.pro_by_staff || {};
         render();
         if (isAdmin) renderDefaults();
       } catch(e) {
@@ -494,11 +509,40 @@
       const total     = person.rows.length;
       const expenses  = periodExpenses[person.id] ?? null;
 
+      // Teaching hours (read-only, pulled from the Pro timesheet for this period)
+      const pro = proByStaff[person.id] || null;
+      const proHours = pro ? (pro.total_hours || 0) : 0;
+      const combined = totalHours + proHours;
+
       const hoursPill = totalHours > 0
-        ? `<span class="hours-pill has">${fmtHours(totalHours)}</span>`
-        : `<span class="hours-pill none">No hours logged</span>`;
+        ? `<span class="hours-pill has" title="Office hours">${fmtHours(totalHours)}${proHours > 0 ? ' office' : ''}</span>`
+        : (proHours > 0 ? '' : `<span class="hours-pill none">No hours logged</span>`);
+      const teachPill = proHours > 0
+        ? `<span class="hours-pill teach" title="Teaching hours (from the Pro timesheet)">${fmtHours(proHours)} teaching</span>`
+        : '';
+      const totalPill = proHours > 0
+        ? `<span class="hours-pill total" title="Office + teaching = total pay hours">Total ${fmtHours(combined)}</span>`
+        : '';
 
       const shiftRowsHtml = person.rows.map(r => renderShiftRow(r, person)).join('');
+
+      // Read-only teaching-hours block (edited on the Pro timesheet — one source of truth)
+      const proSection = (pro && pro.lines && pro.lines.length) ? `
+        <div class="pro-section">
+          <div class="pro-head">Teaching hours <span class="pro-sub">from the Pro timesheet · read-only</span></div>
+          ${pro.lines.map(l => {
+            const d = new Date(l.date + 'T12:00:00');
+            const dl = `${DAY_SHORT[d.getDay()]} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}`;
+            return `<div class="pro-row">
+              <span class="shift-row-date">${dl}</span>
+              <span class="shift-badge teach">${l.kind === 'manual' ? 'Manual' : 'Class'}</span>
+              <span class="pro-prog">${esc(l.program || '')}</span>
+              <span class="pro-times">${fmt12(l.actual_start)} – ${fmt12(l.actual_end)}</span>
+              <span class="shift-hours">${fmtHours(l.hours)}</span>
+            </div>`;
+          }).join('')}
+          <div class="pro-subtotal">Teaching subtotal <b>${fmtHours(proHours)}</b></div>
+        </div>` : '';
 
       const expensesRow = renderExpensesSection(person);
 
@@ -510,9 +554,9 @@
           <input type="date" class="text-input" id="al-date-${person.id}" min="${currentStart}" max="${currentEnd}" value="${currentStart}">
           <input type="text" class="text-input" id="al-label-${person.id}" placeholder="e.g. Staff meeting, Coverage" style="min-width:170px;flex:1" autocomplete="off">
           <span class="al-label">Start</span>
-          <input type="time" class="time-input" id="al-start-${person.id}">
+          <input type="time" class="time-input al-time" id="al-start-${person.id}">
           <span class="al-label">End</span>
-          <input type="time" class="time-input" id="al-end-${person.id}">
+          <input type="time" class="time-input al-time" id="al-end-${person.id}">
           <input type="text" class="text-input" id="al-note-${person.id}" placeholder="Note (optional)" style="min-width:120px;flex:1" autocomplete="off">
           <button class="ov-save-btn" onclick="submitAddLine(${person.id})">Add</button>
           <button class="ov-cancel-btn" onclick="toggleAddLine(${person.id})">Cancel</button>
@@ -533,11 +577,14 @@
             <div class="person-head-right">
               <span class="progress-text">${confirmed}/${total} shifts</span>
               ${hoursPill}
+              ${teachPill}
+              ${totalPill}
               ${(() => { const sc = stringByStaff[person.id]; return sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung${sc.unpaid ? ` · ${sc.unpaid} unpaid` : ''}</span>` : ''; })()}
             </div>
           </div>
           ${shiftRowsHtml}
           ${addLineHtml}
+          ${proSection}
           ${expensesRow}
         </div>`;
     }
