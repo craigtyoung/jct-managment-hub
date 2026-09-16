@@ -1121,6 +1121,9 @@
     ══════════════════════════════════════════ -->
     <div id="admin-view" class="admin-only">
 
+    <!-- ── Gentle checklist reminder (shows only when the current shift is behind) ─── -->
+    <div id="checklist-nudge" style="display:none"></div>
+
     <!-- ── Comm Log + Bubble Monitoring (two-column) ─── -->
     <div class="dash-duo">
       <div class="duo-col">
@@ -1195,6 +1198,16 @@
         <div class="stat-value" id="sc-checkin-val">—</div>
         <div class="stat-sub" id="sc-checkin-sub">Loading…</div>
       </div>
+    </div>
+
+    <!-- ── Checklist Compliance (mgmt only) ──────────── -->
+    <div class="mgmt-only" id="checklist-compliance-section" style="display:none">
+      <div class="section-title" style="margin-bottom:10px">
+        <div class="section-live-dot"></div>
+        Checklist Compliance
+        <a href="/checklist.html" class="reach-log-btn" style="margin-left:auto">Open checklist →</a>
+      </div>
+      <div id="checklist-compliance" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;"></div>
     </div>
 
     <!-- ── Today's Check-ins (mgmt only) ──────────── -->
@@ -1833,6 +1846,69 @@
       }
     }
 
+    // ── Checklist compliance (gentle nudge + management panel) ──
+    function dismissChecklistNudge(key) {
+      localStorage.setItem('jct-cl-nudge', key);
+      const n = document.getElementById('checklist-nudge');
+      if (n) n.style.display = 'none';
+    }
+
+    async function loadCompliance(me) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const r = await fetch(`/api/checklist/compliance?date=${today}`);
+        if (!r.ok) return;
+        const data = await r.json();
+        const shifts = data.shifts || [];
+        const h = new Date().getHours();
+        const curName = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const cur = shifts.find(s => s.shift === curName);
+
+        // Gentle staff nudge — only when the current shift is actively behind
+        const nudge = document.getElementById('checklist-nudge');
+        if (nudge && cur && cur.state === 'active' && (cur.status === 'amber' || cur.status === 'red') && cur.start_pending > 0) {
+          const dismissed = localStorage.getItem('jct-cl-nudge') === `${today}:${curName}`;
+          if (!dismissed) {
+            const amber = cur.status === 'amber';
+            const bg = amber ? 'rgba(217,119,6,0.08)' : 'rgba(220,38,38,0.08)';
+            const bd = amber ? 'rgba(217,119,6,0.30)' : 'rgba(220,38,38,0.30)';
+            nudge.style.display = 'block';
+            nudge.innerHTML = `
+              <div style="display:flex;align-items:center;gap:10px;background:${bg};border:1px solid ${bd};border-radius:12px;padding:11px 14px;margin-bottom:16px">
+                <span style="font-size:16px">⏰</span>
+                <div style="flex:1;font-size:13px;color:var(--text-2);line-height:1.4">
+                  <b style="color:var(--text)">${cur.label} checklist</b> — ${cur.start_pending} opening task${cur.start_pending > 1 ? 's' : ''} not ticked yet. Best to check them off as you go, rather than all at the end.
+                </div>
+                <a href="/checklist.html" style="font-size:12px;font-weight:600;color:var(--blue);white-space:nowrap;text-decoration:none">Open →</a>
+                <button onclick="dismissChecklistNudge('${today}:${curName}')" title="Dismiss" style="background:none;border:none;color:var(--text-3);font-size:15px;cursor:pointer;padding:0 2px;line-height:1">✕</button>
+              </div>`;
+          } else { nudge.style.display = 'none'; }
+        } else if (nudge) { nudge.style.display = 'none'; }
+
+        // Management panel — all shifts at a glance
+        if (me && me.is_management) {
+          const sec = document.getElementById('checklist-compliance-section');
+          const box = document.getElementById('checklist-compliance');
+          if (sec && box) {
+            const dot = st => ({ green: '#16a34a', amber: '#d97706', red: '#dc2626', neutral: '#8fa0b8' }[st] || '#8fa0b8');
+            box.innerHTML = shifts.map((s, i) => {
+              const isCur = s.shift === curName;
+              const meta = s.state === 'upcoming' ? '' : (s.total ? `${s.complete}/${s.total}` : '');
+              return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}${isCur ? 'background:rgba(44,92,156,0.03)' : ''}">
+                <span style="width:11px;height:11px;border-radius:50%;background:${dot(s.status)};flex-shrink:0;box-shadow:0 0 0 3px ${dot(s.status)}22"></span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13.5px;font-weight:600;color:var(--text)">${s.label}${isCur ? ' <span style="font-size:10px;color:var(--blue);font-weight:600">· now</span>' : ''}${s.bulk ? ' <span style="font-size:10px;color:#d97706">· batch-checked</span>' : ''}</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:1px">${s.reason}</div>
+                </div>
+                <span style="font-size:12px;color:var(--text-3);white-space:nowrap">${meta}</span>
+              </div>`;
+            }).join('') || '<div style="padding:14px 18px;color:var(--text-3);font-size:13px">No checklist data.</div>';
+            sec.style.display = 'block';
+          }
+        }
+      } catch (e) { /* non-critical */ }
+    }
+
     // ── Init ───────────────────────────────────────────────────
     async function init() {
       const res = await fetch('/api/me');
@@ -1913,6 +1989,9 @@
           }
         }
       } catch (e) { /* non-critical */ }
+
+      // Checklist compliance — gentle staff nudge + management panel
+      loadCompliance(me);
 
       // Schedule tile + On Shift Now stat card — who's on today
       try {
