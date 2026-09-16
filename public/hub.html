@@ -1115,8 +1115,8 @@
           <span class="as-hint">— who's on, latest notes, anything</span>
         </button>
       </div>
-      <div class="mgmt-only" id="checklist-compliance-col" style="flex:1;min-width:260px;display:none">
-        <div id="checklist-compliance" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden"></div>
+      <div id="checklist-compliance-col" style="flex:1;min-width:220px;display:none">
+        <div id="checklist-compliance"></div>
       </div>
     </div>
 
@@ -1840,9 +1840,12 @@
       }
     }
 
-    // ── Checklist compliance (subtle hover cue + management panel) ──
+    // ── Checklist compliance — one subtle line beside Ask the Assistant ──
+    // Current shift only, a single coloured light + hover message. Friendly, not
+    // "we're watching you." Shown to office staff + management (not pros).
     async function loadCompliance(me) {
       try {
+        if (me && me.role === 'pro') return;   // pros don't run the office checklist
         const today = new Date().toISOString().slice(0, 10);
         const r = await fetch(`/api/checklist/compliance?date=${today}`);
         if (!r.ok) return;
@@ -1851,47 +1854,22 @@
         const h = new Date().getHours();
         const curName = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
         const cur = shifts.find(s => s.shift === curName);
+        if (!cur) return;
 
-        // Gentle HOVER cue on the Checklist stat card — a soft dot + tooltip, no banner,
-        // so staff get a nudge without feeling monitored.
-        const card = document.getElementById('sc-checklist-card');
-        const dot  = document.getElementById('sc-checklist-dot');
-        if (card && cur) {
-          const behind = cur.state === 'active' && (cur.status === 'amber' || cur.status === 'red') && cur.start_pending > 0;
-          if (behind) {
-            card.title = `${cur.label} checklist — ${cur.start_pending} opening task${cur.start_pending > 1 ? 's' : ''} not ticked yet. Best to check them off as you go, rather than all at the end.`;
-            card.style.cursor = 'help';
-            if (dot) dot.style.background = cur.status === 'red' ? '#dc2626' : '#d97706';
-          } else {
-            card.removeAttribute('title');
-            card.style.cursor = '';
-            if (dot) dot.style.background = '';
-          }
-        }
+        const col = document.getElementById('checklist-compliance-col');
+        const box = document.getElementById('checklist-compliance');
+        if (!col || !box) return;
 
-        // Management panel — all shifts, compact, beside Ask the Assistant.
-        if (me && me.is_management) {
-          const col = document.getElementById('checklist-compliance-col');
-          const box = document.getElementById('checklist-compliance');
-          if (col && box) {
-            const dotc = st => ({ green: '#16a34a', amber: '#d97706', red: '#dc2626', neutral: '#8fa0b8' }[st] || '#8fa0b8');
-            const header = `<div style="display:flex;align-items:center;gap:8px;padding:11px 16px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-2)"><span class="section-live-dot" style="margin:0"></span>Checklist Compliance<a href="/checklist.html" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--blue);text-decoration:none;letter-spacing:0">Open →</a></div>`;
-            const rows = shifts.map(s => {
-              const isCur = s.shift === curName;
-              const meta = s.state === 'upcoming' ? '' : (s.total ? `${s.complete}/${s.total}` : '');
-              return `<div style="display:flex;align-items:center;gap:11px;padding:10px 16px;border-top:1px solid var(--border);${isCur ? 'background:rgba(44,92,156,0.03)' : ''}">
-                <span style="width:10px;height:10px;border-radius:50%;background:${dotc(s.status)};flex-shrink:0;box-shadow:0 0 0 3px ${dotc(s.status)}22"></span>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:13px;font-weight:600;color:var(--text)">${s.label}${isCur ? ' <span style="font-size:10px;color:var(--blue)">· now</span>' : ''}${s.bulk ? ' <span style="font-size:10px;color:#d97706">· batch</span>' : ''}</div>
-                  <div style="font-size:11.5px;color:var(--text-3);margin-top:1px">${s.reason}</div>
-                </div>
-                <span style="font-size:11.5px;color:var(--text-3);white-space:nowrap">${meta}</span>
-              </div>`;
-            }).join('');
-            box.innerHTML = header + rows;
-            col.style.display = 'block';
-          }
-        }
+        const color = { green: '#16a34a', amber: '#d97706', red: '#dc2626', neutral: '#8fa0b8' }[cur.status] || '#8fa0b8';
+        const meta  = cur.state === 'upcoming' ? '' : (cur.total ? `${cur.complete}/${cur.total}` : '');
+        const tip   = String(cur.reason || '').replace(/"/g, '&quot;');
+        box.innerHTML = `
+          <a href="/checklist.html" title="${tip}" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;text-decoration:none;cursor:help">
+            <span style="width:11px;height:11px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 0 3px ${color}22"></span>
+            <span style="font-size:13.5px;font-weight:600;color:var(--text)">${cur.label} checklist</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--text-3)">${meta}</span>
+          </a>`;
+        col.style.display = 'block';
       } catch (e) { /* non-critical */ }
     }
 
