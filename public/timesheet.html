@@ -441,10 +441,14 @@
     function goToday()    { const p = computePeriod(todayStr()); currentStart=p.start; currentEnd=p.end; load(); }
 
     // ── Load ───────────────────────────────────────────────────────
-    async function load() {
+    // silent = a reload triggered by an in-page action (checkbox, edit, add, delete).
+    // It preserves scroll position and skips the "Loading…" flash so the page doesn't
+    // bounce to the top. Period-nav loads (prevPeriod/nextPeriod/goToday) run non-silent.
+    async function load(silent = false) {
+      const scrollY = window.scrollY;
       document.getElementById('period-label').textContent = fmtPeriodLabel(currentStart, currentEnd);
       document.getElementById('period-sub').textContent   = `(${currentStart} to ${currentEnd})`;
-      document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
+      if (!silent) document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
       try {
         const res  = await fetch(`/api/timesheet/week?start=${currentStart}&end=${currentEnd}`);
         const data = await res.json();
@@ -457,8 +461,9 @@
         proByStaff = data.pro_by_staff || {};
         render();
         if (isAdmin) renderDefaults();
+        if (silent) requestAnimationFrame(() => window.scrollTo(0, scrollY));
       } catch(e) {
-        document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load timesheets.</div>';
+        if (!silent) document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load timesheets.</div>';
       }
     }
 
@@ -729,7 +734,7 @@
           window._rowData[key].actual_end   = isChecked ? scheduledEnd   : null;
         }
         // Re-render just this person's card by reloading
-        await load();
+        await load(true);
       } catch(e) {
         cb.checked = !isChecked; // revert
         cb.disabled = false;
@@ -755,7 +760,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end, notes: note }),
         });
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to save.'); }
     }
 
@@ -769,7 +774,7 @@
           body: JSON.stringify({ staff_id: staffId, date, shift }),
         });
         if (!res.ok) throw new Error();
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to remove the shift.'); }
     }
 
@@ -793,7 +798,7 @@
           body: JSON.stringify({ staff_id: personId, date, label, actual_start: start, actual_end: end, notes: note }),
         });
         if (!res.ok) throw new Error();
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to add the line.'); }
     }
     async function deleteManualLine(id) {
@@ -801,7 +806,7 @@
       try {
         const res = await fetch(`/api/timesheet/manual-entry/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to delete the line.'); }
     }
     function openManualEdit(id)  { document.getElementById(`medit-${id}`)?.classList.add('open'); }
@@ -819,7 +824,7 @@
           body: JSON.stringify({ label, actual_start: start, actual_end: end, notes: note }),
         });
         if (!res.ok) throw new Error();
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to save.'); }
     }
 
@@ -906,7 +911,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ staff_id: staffId, period_start: currentStart, date, description: desc, amount: parseFloat(amt) }),
         });
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to save expense.'); }
     }
 
@@ -914,7 +919,7 @@
       if (!confirm('Remove this expense item?')) return;
       try {
         await fetch(`/api/timesheet/expense-items/${itemId}`, { method: 'DELETE' });
-        await load();
+        await load(true);
       } catch(e) { alert('Failed to delete.'); }
     }
 
@@ -926,7 +931,7 @@
       try {
         const res = await fetch(`/api/timesheet/expense-items/${itemId}/receipt`, { method: 'POST', body: fd });
         if (!res.ok) throw new Error('upload failed');
-        await load();
+        await load(true);
       } catch(e) {
         alert('Failed to upload receipt.');
       } finally {

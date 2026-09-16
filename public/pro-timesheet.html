@@ -432,18 +432,22 @@
     function goToday()    { const p = computePeriod(todayStr()); currentStart=p.start; currentEnd=p.end; load(); }
 
     // ── Load ───────────────────────────────────────────────────────
-    async function load() {
+    // silent = an in-page action reload (confirm, edit, add, delete): preserves scroll
+    // and skips the "Loading…" flash so the page doesn't bounce to the top.
+    async function load(silent = false) {
+      const scrollY = window.scrollY;
       document.getElementById('period-label').textContent = fmtPeriodLabel(currentStart, currentEnd);
       document.getElementById('period-sub').textContent   = `(${currentStart} to ${currentEnd})`;
-      document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
+      if (!silent) document.getElementById('ts-main').innerHTML = '<div class="empty-state">Loading…</div>';
       try {
         const res  = await fetch(`/api/pro-timesheet/week?start=${currentStart}&end=${currentEnd}`);
         const data = await res.json();
         rows   = data.rows   || [];
         manual = data.manual || [];
         render();
+        if (silent) requestAnimationFrame(() => window.scrollTo(0, scrollY));
       } catch(e) {
-        document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load pro timesheet.</div>';
+        if (!silent) document.getElementById('ts-main').innerHTML = '<div class="empty-state">Failed to load pro timesheet.</div>';
       }
     }
 
@@ -639,7 +643,7 @@
         } else if (entryId) {
           await fetch('/api/pro-timesheet/entry/' + entryId, { method:'DELETE' });
         }
-        load();
+        load(true);
       } catch(e) { cb.checked = !checked; alert('Could not save. Try again.'); }
     }
 
@@ -654,7 +658,7 @@
         method:'PUT', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ staff_id: staffId, date, slot_id: slotId, actual_start: start, actual_end: end, program: (window._rowData[key]||{}).program })
       });
-      load();
+      load(true);
     }
 
     async function addManual(personId) {
@@ -667,13 +671,13 @@
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: '' })
       });
-      load();
+      load(true);
     }
 
     async function deleteManual(id) {
       if (!confirm('Remove this manual entry?')) return;
       await fetch('/api/pro-timesheet/entry/' + id, { method:'DELETE' });
-      load();
+      load(true);
     }
 
     // ── Logout ─────────────────────────────────────────────────────
