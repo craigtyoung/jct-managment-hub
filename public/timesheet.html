@@ -111,6 +111,17 @@
     .shift-badge.morning{background:rgba(251,191,36,0.12);color:#b45309;}
     .shift-badge.afternoon{background:rgba(44,92,156,0.10);color:var(--blue);}
     .shift-badge.closing{background:rgba(12,23,56,0.07);color:var(--text-2);}
+    .shift-badge.manual{background:rgba(22,163,74,0.12);color:var(--green);}
+    .shift-status-manual{font-size:12px;font-weight:600;color:var(--text);}
+    .del-shift-btn{font-size:15px;line-height:1;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font-body);padding:2px 6px;border-radius:6px;transition:all 0.15s;}
+    .del-shift-btn:hover{color:#c0392b;background:rgba(192,57,43,0.07);}
+    .add-line-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--blue);background:none;border:1px dashed rgba(44,92,156,0.35);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;margin:10px 16px 14px;}
+    .add-line-btn:hover{border-color:var(--blue);background:rgba(44,92,156,0.05);}
+    .add-line-form{display:none;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px 16px;border-top:1px solid var(--border);background:rgba(240,244,249,0.4);}
+    .add-line-form.open{display:flex;}
+    .add-line-form .al-label{font-size:11px;color:var(--text-3);font-weight:600;}
+    .text-input{padding:5px 8px;border-radius:7px;border:1px solid var(--border);font-family:var(--font-body);font-size:13px;color:var(--text);background:var(--surface);}
+    .text-input:focus{outline:none;border-color:rgba(44,92,156,0.35);}
 
     .shift-sched{font-size:12px;color:var(--text-3);margin:0 14px;flex-shrink:0;min-width:120px;}
 
@@ -340,8 +351,8 @@
 
   <script>
     const SHIFTS       = ['morning','afternoon','closing'];
-    const SHIFT_LABELS = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' };
-    const SHIFT_ORDER  = { morning:0, afternoon:1, closing:2 };
+    const SHIFT_LABELS = { morning:'Morning', afternoon:'Afternoon', closing:'Closing', manual:'Added' };
+    const SHIFT_ORDER  = { morning:0, afternoon:1, closing:2, manual:3 };
     const DAY_FULL     = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const DAY_SHORT    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const MONTHS       = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -491,6 +502,22 @@
 
       const expensesRow = renderExpensesSection(person);
 
+      const canAdd = isAdmin || person.id === me.id;
+      const addLineHtml = canAdd ? `
+        <button class="add-line-btn" onclick="toggleAddLine(${person.id})">➕ Add line</button>
+        <div class="add-line-form" id="add-line-form-${person.id}">
+          <span class="al-label">Date</span>
+          <input type="date" class="text-input" id="al-date-${person.id}" min="${currentStart}" max="${currentEnd}" value="${currentStart}">
+          <input type="text" class="text-input" id="al-label-${person.id}" placeholder="e.g. Staff meeting, Coverage" style="min-width:170px;flex:1" autocomplete="off">
+          <span class="al-label">Start</span>
+          <input type="time" class="time-input" id="al-start-${person.id}">
+          <span class="al-label">End</span>
+          <input type="time" class="time-input" id="al-end-${person.id}">
+          <input type="text" class="text-input" id="al-note-${person.id}" placeholder="Note (optional)" style="min-width:120px;flex:1" autocomplete="off">
+          <button class="ov-save-btn" onclick="submitAddLine(${person.id})">Add</button>
+          <button class="ov-cancel-btn" onclick="toggleAddLine(${person.id})">Cancel</button>
+        </div>` : '';
+
       return `
         <div class="person-card">
           <div class="person-head">
@@ -510,11 +537,52 @@
             </div>
           </div>
           ${shiftRowsHtml}
+          ${addLineHtml}
           ${expensesRow}
         </div>`;
     }
 
     function renderShiftRow(row, person) {
+      const dt = new Date(row.date + 'T12:00:00');
+      const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
+
+      // ── Manual line (staff meeting, coverage, off-schedule) ──
+      if (row.is_manual) {
+        const canManage = isAdmin || row.staff_id === me.id;
+        const mHours = calcHours(row.actual_start, row.actual_end);
+        const mHoursHtml = mHours ? `<span class="shift-hours" title="Hours worked this line">${fmtHours(mHours)}</span>` : '';
+        const mNote = row.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(row.notes)}</span>` : '';
+        const mEditBtn = canManage ? `<button class="edit-times-btn" onclick="openManualEdit(${row.manual_id})">Edit</button>` : '';
+        const mDelBtn  = canManage ? `<button class="del-shift-btn" title="Delete this line" onclick="deleteManualLine(${row.manual_id})">🗑</button>` : '';
+        const mEditForm = canManage ? `
+          <div class="override-form" id="medit-${row.manual_id}">
+            <input type="text" class="text-input" id="me-label-${row.manual_id}" value="${esc(row.label || '')}" placeholder="Label" style="min-width:150px">
+            <span class="ov-label">Start</span>
+            <input type="time" class="time-input" id="me-start-${row.manual_id}" value="${row.actual_start || ''}">
+            <span class="sep">–</span>
+            <span class="ov-label" style="width:30px">End</span>
+            <input type="time" class="time-input" id="me-end-${row.manual_id}" value="${row.actual_end || ''}">
+            <input type="text" class="text-input" id="me-note-${row.manual_id}" value="${esc(row.notes || '')}" placeholder="Note (optional)" style="min-width:120px;flex:1">
+            <button class="ov-save-btn" onclick="saveManualEdit(${row.manual_id})">Save</button>
+            <button class="ov-cancel-btn" onclick="closeManualEdit(${row.manual_id})">Cancel</button>
+          </div>` : '';
+        return `
+          <div class="shift-row">
+            <div class="shift-cb-wrap" style="color:var(--green);text-align:center;font-size:13px">✓</div>
+            <span class="shift-row-date">${dateLabel}</span>
+            <span class="shift-badge manual">${SHIFT_LABELS.manual}</span>
+            <div class="shift-status-area">
+              <span class="shift-status-manual">${esc(row.label || 'Manual entry')} · ${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>
+              ${mNote}
+              ${mEditBtn}
+              ${mDelBtn}
+            </div>
+            ${mHoursHtml}
+          </div>
+          ${mEditForm}`;
+      }
+
+      // ── Scheduled shift ──
       const key = `${row.staff_id}-${row.date}-${row.shift}`;
       const isConfirmed = !!row.actual_start;
       const isOverride  = isConfirmed && (
@@ -522,12 +590,9 @@
         row.actual_end   !== row.scheduled_end
       );
 
-      const dt = new Date(row.date + 'T12:00:00');
-      const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
-
       const canConfirmThisRow = isAdmin || (row.staff_id === me.id);
-
       const canEditTimes = isAdmin || (isConfirmed && row.staff_id === me.id);
+      const canDelete    = isAdmin || row.staff_id === me.id;
       const noteText = esc(row.notes || '');
 
       let statusHtml = '';
@@ -542,6 +607,9 @@
 
       const editBtn = canEditTimes
         ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
+        : '';
+      const delBtn = canDelete
+        ? `<button class="del-shift-btn" title="Remove this shift from the timesheet" onclick="deleteScheduledShift(${row.staff_id}, '${row.date}', '${row.shift}')">🗑</button>`
         : '';
 
       // Per-shift hours — shown inline at the end of the row once the shift is confirmed
@@ -564,6 +632,10 @@
       window._rowData = window._rowData || {};
       window._rowData[key] = row;
 
+      // Once a shift's times are edited, hide the original scheduled times — only the
+      // actual worked times show (in statusHtml) to avoid confusion during payroll.
+      const schedHtml = isOverride ? '' : `<span class="shift-sched">${fmt12(row.scheduled_start)} – ${fmt12(row.scheduled_end)}</span>`;
+
       return `
         <div class="shift-row" id="row-${key}">
           <div class="shift-cb-wrap">
@@ -575,10 +647,11 @@
           </div>
           <span class="shift-row-date">${dateLabel}</span>
           <span class="shift-badge ${row.shift}">${SHIFT_LABELS[row.shift]}</span>
-          <span class="shift-sched">${fmt12(row.scheduled_start)} – ${fmt12(row.scheduled_end)}</span>
+          ${schedHtml}
           <div class="shift-status-area">
             ${statusHtml}
             ${editBtn}
+            ${delBtn}
           </div>
           ${shiftHoursHtml}
         </div>
@@ -635,6 +708,70 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ staff_id: staffId, date, shift, actual_start: start, actual_end: end, notes: note }),
         });
+        await load();
+      } catch(e) { alert('Failed to save.'); }
+    }
+
+    // ── Delete (void) a scheduled shift — timesheet only, schedule untouched ──
+    async function deleteScheduledShift(staffId, date, shift) {
+      if (!confirm('Remove this shift from the timesheet for this pay period?\n\nThe schedule itself is not changed.')) return;
+      try {
+        const res = await fetch('/api/timesheet/void', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId, date, shift }),
+        });
+        if (!res.ok) throw new Error();
+        await load();
+      } catch(e) { alert('Failed to remove the shift.'); }
+    }
+
+    // ── Manual lines (staff meetings, coverage, off-schedule work) ──
+    function toggleAddLine(personId) {
+      const f = document.getElementById(`add-line-form-${personId}`);
+      if (f) f.classList.toggle('open');
+    }
+    async function submitAddLine(personId) {
+      const date  = document.getElementById(`al-date-${personId}`)?.value;
+      const label = document.getElementById(`al-label-${personId}`)?.value.trim() || '';
+      const start = document.getElementById(`al-start-${personId}`)?.value;
+      const end   = document.getElementById(`al-end-${personId}`)?.value;
+      const note  = document.getElementById(`al-note-${personId}`)?.value.trim() || '';
+      if (!date)         { alert('Pick a date.'); return; }
+      if (!start || !end){ alert('Enter both start and end times.'); return; }
+      try {
+        const res = await fetch('/api/timesheet/manual-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: personId, date, label, actual_start: start, actual_end: end, notes: note }),
+        });
+        if (!res.ok) throw new Error();
+        await load();
+      } catch(e) { alert('Failed to add the line.'); }
+    }
+    async function deleteManualLine(id) {
+      if (!confirm('Delete this line?')) return;
+      try {
+        const res = await fetch(`/api/timesheet/manual-entry/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        await load();
+      } catch(e) { alert('Failed to delete the line.'); }
+    }
+    function openManualEdit(id)  { document.getElementById(`medit-${id}`)?.classList.add('open'); }
+    function closeManualEdit(id) { document.getElementById(`medit-${id}`)?.classList.remove('open'); }
+    async function saveManualEdit(id) {
+      const label = document.getElementById(`me-label-${id}`)?.value.trim() || '';
+      const start = document.getElementById(`me-start-${id}`)?.value;
+      const end   = document.getElementById(`me-end-${id}`)?.value;
+      const note  = document.getElementById(`me-note-${id}`)?.value.trim() || '';
+      if (!start || !end) { alert('Enter both start and end times.'); return; }
+      try {
+        const res = await fetch(`/api/timesheet/manual-entry/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label, actual_start: start, actual_end: end, notes: note }),
+        });
+        if (!res.ok) throw new Error();
         await load();
       } catch(e) { alert('Failed to save.'); }
     }

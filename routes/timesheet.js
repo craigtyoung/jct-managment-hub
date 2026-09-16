@@ -58,27 +58,56 @@ router.get('/week', (req, res) => {
   const defaults    = db.getShiftDefaults();
   const overrides   = db.getTimeOverridesForRange(start, end);
   const periodExp   = db.getPeriodExpensesForRange(start);
+  const voids       = db.getTimesheetVoidsForRange(start, end);
+  const manual      = db.getManualTimesheetForRange(start, end);
 
   const entryMap = {};
   for (const e of entries) {
     entryMap[`${e.staff_id}:${e.date}:${e.shift}`] = e;
   }
 
-  const rows = assignments.map(a => {
-    const key   = `${a.staff_id}:${a.date}:${a.shift}`;
-    const entry = entryMap[key] || null;
-    const def   = defaults[a.shift] || {};
-    const ov    = overrides[`${a.date}:${a.shift}`] || null;
-    return {
-      ...a,
-      scheduled_start: ov?.start || def.start || null,
-      scheduled_end:   ov?.end   || def.end   || null,
-      actual_start:    entry ? entry.actual_start : null,
-      actual_end:      entry ? entry.actual_end   : null,
-      timesheet_id:    entry ? entry.id           : null,
-      notes:           entry ? entry.notes        : '',
-    };
-  });
+  // Scheduled shifts voided on the timesheet for this period (schedule untouched)
+  const voidSet = new Set(voids.map(v => `${v.staff_id}:${v.date}:${v.shift}`));
+
+  const rows = assignments
+    .filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`))
+    .map(a => {
+      const key   = `${a.staff_id}:${a.date}:${a.shift}`;
+      const entry = entryMap[key] || null;
+      const def   = defaults[a.shift] || {};
+      const ov    = overrides[`${a.date}:${a.shift}`] || null;
+      return {
+        ...a,
+        scheduled_start: ov?.start || def.start || null,
+        scheduled_end:   ov?.end   || def.end   || null,
+        actual_start:    entry ? entry.actual_start : null,
+        actual_end:      entry ? entry.actual_end   : null,
+        timesheet_id:    entry ? entry.id           : null,
+        notes:           entry ? entry.notes        : '',
+      };
+    });
+
+  // Manual lines (staff meetings, coverage, off-schedule) — appended as their own rows
+  for (const m of manual) {
+    const s = db.getStaffById(m.staff_id) || {};
+    rows.push({
+      is_manual:       true,
+      manual_id:       m.id,
+      staff_id:        m.staff_id,
+      staff_name:      s.name,
+      staff_color:     s.color,
+      staff_role:      s.role,
+      date:            m.date,
+      shift:           'manual',
+      label:           m.label,
+      scheduled_start: null,
+      scheduled_end:   null,
+      actual_start:    m.actual_start,
+      actual_end:      m.actual_end,
+      timesheet_id:    null,
+      notes:           m.notes || '',
+    });
+  }
 
   res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start) });
 });
@@ -124,6 +153,101 @@ router.delete('/entry/:id', (req, res) => {
     return res.status(403).json({ error: 'Not authorised' });
   }
   db.deleteTimesheetEntry(req.params.id);
+  res.json({ ok: true });
+});
+
+// ── Manual timesheet lines (staff meetings, coverage, off-schedule work) ────────
+
+// POST add a manual line (own line for any staff; admin/manager for anyone)
+router.post('/manual-entry', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const { staff_id, date, label, actual_start, actual_end, notes } = req.body;
+  if (!date || !actual_start || !actual_end) {
+    return res.status(400).json({ error: 'date, actual_start and actual_end required' });
+  }
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  const targetId = (staff_id && isManagement) ? parseInt(staff_id) : req.actingStaffId;
+  if (targetId !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const entry = db.addManualTimesheetEntry({
+    staffId: targetId, date, label,
+    actualStart: actual_start, actualEnd: actual_end,
+    notes, submittedBy: req.actingStaffId,
+  });
+  res.json({ ok: true, entry });
+});
+
+// PUT edit a manual line (own line; admin/manager any)
+router.put('/manual-entry/:id', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const item = db.getManualTimesheetEntryById(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  if (item.staff_id !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const { label, actual_start, actual_end, notes } = req.body;
+  if (!actual_start || !actual_end) {
+    return res.status(400).json({ error: 'actual_start and actual_end required' });
+  }
+  const entry = db.updateManualTimesheetEntry(req.params.id, {
+    label, actualStart: actual_start, actualEnd: actual_end, notes, updatedBy: req.actingStaffId,
+  });
+  res.json({ ok: true, entry });
+});
+
+// DELETE a manual line (own line; admin/manager any)
+router.delete('/manual-entry/:id', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const item = db.getManualTimesheetEntryById(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  if (item.staff_id !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  db.deleteManualTimesheetEntry(req.params.id);
+  res.json({ ok: true });
+});
+
+// ── Void a scheduled shift on the timesheet (schedule left untouched) ───────────
+
+// POST void: remove a scheduled shift from the timesheet for this period.
+// Own shift for any staff; admin/manager for anyone.
+router.post('/void', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const { staff_id, date, shift } = req.body;
+  const validShifts = ['morning', 'afternoon', 'closing'];
+  if (!staff_id || !date || !validShifts.includes(shift)) {
+    return res.status(400).json({ error: 'staff_id, date and a valid shift required' });
+  }
+  const targetId = parseInt(staff_id);
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  if (targetId !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  db.addTimesheetVoid({ staffId: targetId, date, shift, createdBy: req.actingStaffId });
+  res.json({ ok: true });
+});
+
+// DELETE void: restore a previously-removed scheduled shift (admin/manager any; own)
+router.delete('/void', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!acting) return res.status(401).json({ error: 'Not authenticated' });
+  const { staff_id, date, shift } = req.body;
+  if (!staff_id || !date || !shift) {
+    return res.status(400).json({ error: 'staff_id, date and shift required' });
+  }
+  const targetId = parseInt(staff_id);
+  const isManagement = ['admin', 'manager'].includes(acting.role);
+  if (targetId !== req.actingStaffId && !isManagement) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  db.removeTimesheetVoid({ staffId: targetId, date, shift });
   res.json({ ok: true });
 });
 
@@ -275,9 +399,12 @@ router.get('/export', (req, res) => {
   const defaults    = db.getShiftDefaults();
   const overrides   = db.getTimeOverridesForRange(start, end);
   const periodExp   = db.getPeriodExpensesForRange(start);
+  const voids       = db.getTimesheetVoidsForRange(start, end);
+  const manual      = db.getManualTimesheetForRange(start, end);
 
   const entryMap = {};
   for (const e of entries) entryMap[`${e.staff_id}:${e.date}:${e.shift}`] = e;
+  const voidSet = new Set(voids.map(v => `${v.staff_id}:${v.date}:${v.shift}`));
 
   const q = c => `"${String(c ?? '').replace(/"/g, '""')}"`;
   const hrs = (s, e2) => {
@@ -289,17 +416,29 @@ router.get('/export', (req, res) => {
 
   const lines = [];
   lines.push(['Staff', 'Date', 'Shift', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
-  assignments.slice().sort((a, b) => (a.date + a.shift).localeCompare(b.date + b.shift)).forEach(a => {
-    const key = `${a.staff_id}:${a.date}:${a.shift}`;
-    const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
-    const s = db.getStaffById(a.staff_id);
-    const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
-    lines.push([
-      s ? s.name : a.staff_id, a.date, a.shift,
-      ov?.start || def.start || '', ov?.end || def.end || '',
-      as || '', ae || '', hrs(as, ae), en ? en.notes : ''
-    ].map(q).join(','));
+  // Combine scheduled shifts (minus voided ones) with manual lines, sorted by date
+  const exportRows = [];
+  assignments
+    .filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`))
+    .forEach(a => {
+      const key = `${a.staff_id}:${a.date}:${a.shift}`;
+      const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
+      const s = db.getStaffById(a.staff_id);
+      const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
+      exportRows.push({ sortKey: a.date + a.shift, cells: [
+        s ? s.name : a.staff_id, a.date, a.shift,
+        ov?.start || def.start || '', ov?.end || def.end || '',
+        as || '', ae || '', hrs(as, ae), en ? en.notes : ''
+      ]});
+    });
+  manual.forEach(m => {
+    const s = db.getStaffById(m.staff_id);
+    exportRows.push({ sortKey: m.date + 'zz', cells: [
+      s ? s.name : m.staff_id, m.date, `Added: ${m.label || 'Manual entry'}`,
+      '', '', m.actual_start || '', m.actual_end || '', hrs(m.actual_start, m.actual_end), m.notes || ''
+    ]});
   });
+  exportRows.sort((a, b) => a.sortKey.localeCompare(b.sortKey)).forEach(r => lines.push(r.cells.map(q).join(',')));
   lines.push('');
   lines.push(['Expense Items'].map(q).join(','));
   lines.push(['Staff', 'Date', 'Description', 'Amount', 'Receipt'].map(q).join(','));

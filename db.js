@@ -299,6 +299,22 @@ if (!Array.isArray(_data.shift_assignments)) {
   console.log('Shift assignments table initialized.');
 }
 
+// Migration: office timesheet manual lines (staff meetings, coverage, off-schedule work)
+if (!Array.isArray(_data.timesheet_manual_entries)) {
+  _data._seq.timesheet_manual_entries = 0;
+  _data.timesheet_manual_entries = [];
+  save();
+  console.log('Timesheet manual entries table initialized.');
+}
+
+// Migration: office timesheet voids (scheduled shift removed from the timesheet only,
+// schedule left untouched)
+if (!Array.isArray(_data.timesheet_voids)) {
+  _data.timesheet_voids = [];
+  save();
+  console.log('Timesheet voids table initialized.');
+}
+
 // Migration: add shift_rules table if missing
 if (!Array.isArray(_data.shift_rules)) {
   _data._seq.shift_rules = 0;
@@ -2484,6 +2500,83 @@ function deleteTimesheetEntry(id) {
   if (idx !== -1) { _data.timesheet_entries.splice(idx, 1); save(); }
 }
 
+// ─── Office timesheet manual lines ──────────────────────────────────────────────
+// A hand-entered line not tied to the schedule (staff meeting, coverage, off-grid).
+function addManualTimesheetEntry({ staffId, date, label, actualStart, actualEnd, notes, submittedBy }) {
+  if (!Array.isArray(_data.timesheet_manual_entries)) { _data.timesheet_manual_entries = []; _data._seq.timesheet_manual_entries = 0; }
+  const entry = {
+    id: nextId('timesheet_manual_entries'),
+    staff_id: parseInt(staffId),
+    date,
+    label: label || 'Manual entry',
+    actual_start: actualStart || null,
+    actual_end:   actualEnd   || null,
+    notes: notes || '',
+    created_by: submittedBy,
+    updated_by: submittedBy,
+    updated_at: now(),
+  };
+  _data.timesheet_manual_entries.push(entry);
+  save();
+  return entry;
+}
+
+function getManualTimesheetForRange(startDate, endDate) {
+  return (_data.timesheet_manual_entries || []).filter(e => e.date >= startDate && e.date <= endDate);
+}
+
+function getManualTimesheetEntryById(id) {
+  return (_data.timesheet_manual_entries || []).find(e => e.id === parseInt(id));
+}
+
+function updateManualTimesheetEntry(id, { label, actualStart, actualEnd, notes, updatedBy }) {
+  const e = (_data.timesheet_manual_entries || []).find(x => x.id === parseInt(id));
+  if (!e) return null;
+  if (label != null) e.label = label || 'Manual entry';
+  e.actual_start = actualStart || null;
+  e.actual_end   = actualEnd   || null;
+  e.notes = notes || '';
+  e.updated_by = updatedBy;
+  e.updated_at = now();
+  save();
+  return e;
+}
+
+function deleteManualTimesheetEntry(id) {
+  const before = (_data.timesheet_manual_entries || []).length;
+  _data.timesheet_manual_entries = (_data.timesheet_manual_entries || []).filter(e => e.id !== parseInt(id));
+  if (_data.timesheet_manual_entries.length !== before) save();
+}
+
+// ─── Office timesheet voids ─────────────────────────────────────────────────────
+// Remove a scheduled shift from the timesheet for one period WITHOUT touching the
+// schedule itself. Keyed by staff_id:date:shift.
+function addTimesheetVoid({ staffId, date, shift, createdBy }) {
+  if (!Array.isArray(_data.timesheet_voids)) _data.timesheet_voids = [];
+  const sid = parseInt(staffId);
+  const exists = _data.timesheet_voids.some(v => v.staff_id === sid && v.date === date && v.shift === shift);
+  if (!exists) {
+    _data.timesheet_voids.push({ staff_id: sid, date, shift, created_by: createdBy, created_at: now() });
+    // A void also clears any confirmed times for that shift so it can't feed payroll.
+    _data.timesheet_entries = (_data.timesheet_entries || []).filter(
+      e => !(e.staff_id === sid && e.date === date && e.shift === shift)
+    );
+    save();
+  }
+}
+
+function removeTimesheetVoid({ staffId, date, shift }) {
+  if (!Array.isArray(_data.timesheet_voids)) return;
+  const sid = parseInt(staffId);
+  const before = _data.timesheet_voids.length;
+  _data.timesheet_voids = _data.timesheet_voids.filter(v => !(v.staff_id === sid && v.date === date && v.shift === shift));
+  if (_data.timesheet_voids.length !== before) save();
+}
+
+function getTimesheetVoidsForRange(startDate, endDate) {
+  return (_data.timesheet_voids || []).filter(v => v.date >= startDate && v.date <= endDate);
+}
+
 // ─── Period Expenses ──────────────────────────────────────────────────────────
 
 function getPeriodExpenses(staffId, periodStart) {
@@ -4171,6 +4264,14 @@ module.exports = {
   getTimesheetForRange,
   upsertTimesheetEntry,
   deleteTimesheetEntry,
+  addManualTimesheetEntry,
+  getManualTimesheetForRange,
+  getManualTimesheetEntryById,
+  updateManualTimesheetEntry,
+  deleteManualTimesheetEntry,
+  addTimesheetVoid,
+  removeTimesheetVoid,
+  getTimesheetVoidsForRange,
   getPeriodExpenses,
   setPeriodExpenses,
   getPeriodExpensesForRange,
