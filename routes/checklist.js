@@ -130,55 +130,44 @@ function computeShiftCompliance(shift, label, date, def, isToday, nowMin) {
     return { ...base, state: 'none', status: 'neutral', reason: 'No tasks set', complete: 0, pending: 0, start_total: 0, start_pending: 0, mins: null, bulk: false };
   }
 
-  const done      = i => i.status === 'complete' || i.status === 'not_required';
-  const complete  = items.filter(done).length;
-  const pending   = items.filter(i => i.status === 'pending').length;
-  const startItems = items.filter(i => i.phase === 'start');
-  const startTotal   = startItems.length;
-  const startPending = startItems.filter(i => i.status === 'pending').length;
-
-  // Bulk detection: many completions crammed into a tight window = retroactive catch-up.
-  const compMins = items.filter(i => i.completed_at).map(i => torontoMinutes(new Date(i.completed_at)));
-  let bulk = false;
-  if (compMins.length >= 4 && compMins.length >= Math.ceil(total * 0.6)) {
-    const span = Math.max(...compMins) - Math.min(...compMins);
-    if (span >= 0 && span <= 5) bulk = true;
-  }
+  // "not_required" counts as handled, same as complete.
+  const done     = i => i.status === 'complete' || i.status === 'not_required';
+  const complete = items.filter(done).length;
+  const pending  = items.filter(i => i.status === 'pending').length;
 
   const startMin = parseHHMM(def.start);
   const endMin   = parseHHMM(def.end);
+  const mk = (state, status, reason) => ({ ...base, state, status, reason, complete, pending, mins_left: (endMin != null && isToday) ? endMin - nowMin : null });
 
-  // Historical day, or shift already over → final compliance.
+  // Historical day, or shift already over → final tally, no pressure.
   const isOver = !isToday || (endMin != null && nowMin > endMin + 30);
   if (isOver) {
-    let status = 'green', reason = 'Completed on time';
-    if (startPending > 0) { status = 'red';   reason = `${startPending} opening task${startPending > 1 ? 's' : ''} never checked`; }
-    else if (bulk)        { status = 'amber'; reason = 'Checked in a single batch'; }
-    else if (pending > 0) { status = 'amber'; reason = `${pending} task${pending > 1 ? 's' : ''} left unchecked`; }
-    return { ...base, state: 'done', status, reason, complete, pending, start_total: startTotal, start_pending: startPending, mins: null, bulk };
+    if (pending === 0) return mk('done', 'green', 'All tasks done');
+    return mk('done', 'amber', `${pending} of ${total} task${pending > 1 ? 's' : ''} left unchecked`);
   }
 
-  // Not started yet today.
+  // Not started yet today → neutral, no pressure.
   if (startMin != null && nowMin < startMin) {
-    return { ...base, state: 'upcoming', status: 'neutral', reason: `Starts ${fmt12(def.start)}`, complete, pending, start_total: startTotal, start_pending: startPending, mins: null, bulk };
+    return mk('upcoming', 'neutral', `Starts ${fmt12(def.start)}`);
   }
 
-  // Active shift.
-  const mins = startMin != null ? Math.max(0, nowMin - startMin) : 0;
-  let status = 'green', reason = 'On track';
-  if (startTotal === 0) {
-    status = 'green'; reason = 'No opening tasks';
-  } else if (startPending === 0) {
-    status = bulk ? 'amber' : 'green';
-    reason = bulk ? 'Opening done, but checked in a batch' : 'Opening tasks done';
-  } else if (mins <= 30) {
-    status = 'green'; reason = 'Opening tasks in progress';
-  } else if (mins <= 60) {
-    status = 'amber'; reason = `${startPending} opening task${startPending > 1 ? 's' : ''} not checked, ${mins} min in`;
-  } else {
-    status = 'red'; reason = `${startPending} opening task${startPending > 1 ? 's' : ''} still not checked, ${mins} min in`;
+  // Active shift. We DON'T nag at the start — staff are encouraged to check as they
+  // go. We only flag as the shift nears its end and things are still undone. Fair.
+  if (pending === 0) return mk('active', 'green', 'All tasks done');
+
+  const minsLeft = endMin != null ? endMin - nowMin : null;
+  if (minsLeft == null || minsLeft > 120) {
+    // Plenty of time left — no pressure, just show progress.
+    return mk('active', 'green', `${complete}/${total} done · check the rest as you go`);
   }
-  return { ...base, state: 'active', status, reason, complete, pending, start_total: startTotal, start_pending: startPending, mins, bulk };
+  if (complete === 0) {
+    // Nothing checked and the shift is winding down — the real flag.
+    return mk('active', 'red', `Nothing checked yet, ${minsLeft <= 60 ? 'under an hour' : 'under 2 hours'} left in the shift`);
+  }
+  if (minsLeft > 60) {
+    return mk('active', 'amber', `${pending} of ${total} left — finish them before the shift ends`);
+  }
+  return mk('active', 'red', `${pending} of ${total} still not done, under an hour left`);
 }
 
 module.exports = router;

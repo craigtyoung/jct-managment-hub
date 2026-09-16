@@ -1106,19 +1106,12 @@
       </div>
     </div>
 
-    <!-- ── Assistant + Checklist Compliance (side by side) ──────── -->
-    <div class="assist-duo" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px">
-      <div style="flex:1;min-width:260px;display:flex">
-        <button type="button" class="assistant-slim" style="flex:1" onclick="window.jctChat && window.jctChat.open()">
-          <span class="as-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
-          <strong>Ask the Assistant</strong>
-          <span class="as-hint">— who's on, latest notes, anything</span>
-        </button>
-      </div>
-      <div id="checklist-compliance-col" style="flex:1;min-width:220px;display:none">
-        <div id="checklist-compliance"></div>
-      </div>
-    </div>
+    <!-- ── Assistant (opens the AI chat) ──────── -->
+    <button type="button" class="assistant-slim" onclick="window.jctChat && window.jctChat.open()">
+      <span class="as-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
+      <strong>Ask the Assistant</strong>
+      <span class="as-hint">— who's on, latest notes, anything</span>
+    </button>
 
     <!-- Bubble Monitoring + Reach the Team relocated: Bubble → admin duo (below);
          Reach the Team → shared block after the views (below the footer content). -->
@@ -1840,9 +1833,9 @@
       }
     }
 
-    // ── Checklist compliance — one subtle line beside Ask the Assistant ──
-    // Current shift only, a single coloured light + hover message. Friendly, not
-    // "we're watching you." Shown to office staff + management (not pros).
+    // ── Checklist compliance — folded into the "Checklist Today" card ──
+    // One signal. No start-of-shift nagging: the card only warns (amber → red) as the
+    // shift nears its end with tasks still undone. A hover explains why. Not pros.
     async function loadCompliance(me) {
       try {
         if (me && me.role === 'pro') return;   // pros don't run the office checklist
@@ -1856,20 +1849,20 @@
         const cur = shifts.find(s => s.shift === curName);
         if (!cur) return;
 
-        const col = document.getElementById('checklist-compliance-col');
-        const box = document.getElementById('checklist-compliance');
-        if (!col || !box) return;
+        const card = document.getElementById('sc-checklist-card');
+        const dot  = document.getElementById('sc-checklist-dot');
+        const scv  = document.getElementById('sc-checklist-val');
+        const warn = (cur.status === 'amber' || cur.status === 'red');
+        const color = { amber: '#d97706', red: '#dc2626' }[cur.status] || '';
 
-        const color = { green: '#16a34a', amber: '#d97706', red: '#dc2626', neutral: '#8fa0b8' }[cur.status] || '#8fa0b8';
-        const meta  = cur.state === 'upcoming' ? '' : (cur.total ? `${cur.complete}/${cur.total}` : '');
-        const tip   = String(cur.reason || '').replace(/"/g, '&quot;');
-        box.innerHTML = `
-          <a href="/checklist.html" title="${tip}" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;text-decoration:none;cursor:help">
-            <span style="width:11px;height:11px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 0 3px ${color}22"></span>
-            <span style="font-size:13.5px;font-weight:600;color:var(--text)">${cur.label} checklist</span>
-            <span style="margin-left:auto;font-size:12px;color:var(--text-3)">${meta}</span>
-          </a>`;
-        col.style.display = 'block';
+        // Subtle dot cue only when there's a genuine warning; hover explains it.
+        if (dot) dot.style.background = warn ? color : '';
+        if (card) {
+          card.title = `${cur.label} checklist — ${cur.reason}`;
+          card.style.cursor = warn ? 'help' : '';
+        }
+        // Reinforce a real red (shift ending, tasks undone) on the number itself.
+        if (scv) scv.style.color = (cur.status === 'red') ? '#dc2626' : '';
       } catch (e) { /* non-critical */ }
     }
 
