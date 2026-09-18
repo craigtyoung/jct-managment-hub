@@ -1195,6 +1195,13 @@
         <div class="stat-value" id="sc-checkin-val">—</div>
         <div class="stat-sub" id="sc-checkin-sub">Loading…</div>
       </div>
+      <a href="/waitlist.html" class="stat-card live" id="sc-waitlist-card" style="text-decoration:none;color:inherit;display:block">
+        <span class="stat-live-dot"></span>
+        <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></div>
+        <div class="stat-label">Waitlist Needing Fill<span id="sc-waitlist-new" style="display:none;font-size:9px;font-weight:700;color:#fff;background:var(--blue);padding:1px 6px;border-radius:100px;margin-left:6px;letter-spacing:0;text-transform:none;vertical-align:middle">NEW</span></div>
+        <div class="stat-value" id="sc-waitlist-val">—</div>
+        <div class="stat-sub" id="sc-waitlist-sub">Loading…</div>
+      </a>
     </div>
 
     <!-- ── Today's Check-ins (mgmt only) ──────────── -->
@@ -2016,6 +2023,25 @@
           navBadge.textContent = count;
           navBadge.style.display = 'inline-block';
         }
+      } catch (e) { /* non-critical */ }
+
+      // Waitlist stat card — open/working spots still needing a fill, plus a NEW
+      // flag when any of them was logged in roughly the last two shifts (48h) so
+      // staff coming on notice it without a separate per-user read-tracking table.
+      try {
+        const wlr = await fetch('/api/waitlist');
+        const spots = await wlr.json();
+        const needsFill = (spots || []).filter(s => s.status === 'open' || s.status === 'working');
+        const scv = document.getElementById('sc-waitlist-val');
+        const scs = document.getElementById('sc-waitlist-sub');
+        if (scv) {
+          scv.textContent = needsFill.length;
+          scv.className = 'stat-value' + (needsFill.length ? ' accent-amber' : '');
+        }
+        if (scs) scs.textContent = needsFill.length === 1 ? '1 spot open' : `${needsFill.length} spots open`;
+        const isNew = needsFill.some(s => (Date.now() - new Date(s.created_at).getTime()) < 48 * 60 * 60 * 1000);
+        const badge = document.getElementById('sc-waitlist-new');
+        if (badge) badge.style.display = isNew ? 'inline-block' : 'none';
       } catch (e) { /* non-critical */ }
 
       // Oakville weather stat card (Open-Meteo — free, no key)
