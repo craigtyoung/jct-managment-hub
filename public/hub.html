@@ -1932,11 +1932,12 @@
         const today = new Date().toISOString().slice(0, 10);
         const pr = await fetch(`/api/checklist/progress?shift=${shift}&date=${today}`);
         const prog = await pr.json();
-        const pct = prog.total > 0 ? Math.round((prog.complete / prog.total) * 100) : 0;
+        const handled = prog.complete + (prog.not_required || 0);
+        const pct = prog.total > 0 ? Math.round((handled / prog.total) * 100) : 0;
         const footer = document.getElementById('checklist-tile-footer');
         if (footer && prog.total > 0) {
-          footer.textContent = `${shiftLabel} · ${prog.complete}/${prog.total} complete`;
-          footer.style.color = pct === 100 ? '#10b981' : prog.complete > 0 ? '#d97706' : '#8fa0b8';
+          footer.textContent = `${shiftLabel} · ${handled}/${prog.total} complete`;
+          footer.style.color = pct === 100 ? '#10b981' : handled > 0 ? '#d97706' : '#8fa0b8';
         } else if (footer) {
           footer.textContent = `${shiftLabel} shift`;
         }
@@ -1944,8 +1945,8 @@
         const scs = document.getElementById('sc-checklist-sub');
         if (scv) {
           if (prog.total > 0) {
-            scv.textContent = `${prog.complete}/${prog.total}`;
-            scv.className = 'stat-value ' + (pct === 100 ? 'accent-green' : prog.complete > 0 ? 'accent-amber' : '');
+            scv.textContent = `${handled}/${prog.total}`;
+            scv.className = 'stat-value ' + (pct === 100 ? 'accent-green' : handled > 0 ? 'accent-amber' : '');
             scs.textContent = `${shiftLabel} · ${pct}% done`;
           } else {
             scv.textContent = '0/0';

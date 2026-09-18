@@ -326,6 +326,19 @@
       .mnav-sheet-link:active { background: rgba(44,92,156,0.07); }
       .mnav-sheet-link.active { color: #2c5c9c; background: rgba(44,92,156,0.08); }
     }
+    /* Shift-complete celebration */
+    .confetti-layer { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:9999; }
+    .confetti-layer i { position:absolute; top:-16px; width:9px; height:14px; border-radius:2px; opacity:0; animation:confetti-fall linear forwards; }
+    @keyframes confetti-fall {
+      0%   { opacity:1; translate:0 0; rotate:0deg; }
+      100% { opacity:0; translate:var(--drift) 105vh; rotate:720deg; }
+    }
+    .celebrate-banner { position:fixed; top:72px; left:50%; transform:translateX(-50%); z-index:10000; display:flex; align-items:center; gap:12px; padding:14px 22px; background:#fff; border:1px solid #10b981; border-radius:14px; box-shadow:0 12px 40px rgba(12,23,56,0.18); animation:celebrate-in 0.45s cubic-bezier(0.2,1.4,0.4,1); transition:opacity 0.5s, translate 0.5s; }
+    .celebrate-banner.out { opacity:0; translate:0 -12px; }
+    @keyframes celebrate-in { from { opacity:0; transform:translateX(-50%) scale(0.85); } to { opacity:1; transform:translateX(-50%) scale(1); } }
+    .celebrate-emoji { font-size:28px; }
+    .celebrate-title { font-weight:700; color:#0c1738; font-size:15px; }
+    .celebrate-sub { font-size:12px; color:#5a6b85; margin-top:1px; }
   </style>
 </head>
 <body>
@@ -388,6 +401,7 @@
     <div class="date-bar">
       <input type="date" class="date-input" id="date-picker" onchange="onDateChange()">
       <button class="date-today-btn" onclick="goToToday()">Today</button>
+      <button class="date-today-btn" id="celebrate-preview-btn" style="display:none" onclick="celebrate()" title="Management only: preview the shift-complete celebration">Preview celebration</button>
     </div>
 
     <!-- Progress -->
@@ -715,6 +729,41 @@
 
       document.getElementById('progress-summary').textContent =
         pct === 100 ? '✓ Shift complete' : `${counted}/${total} tasks done`;
+
+      // Celebrate only on the live transition to 100% for today's shift, once per shift per browser.
+      const key = `${currentDate}|${currentShift}`;
+      if (key !== lastProgressKey) { lastProgressKey = key; lastProgressPct = null; }
+      if (pct === 100 && total > 0 && lastProgressPct !== null && lastProgressPct < 100 && currentDate === today()) {
+        const seenKey = 'jct-celebrated-' + key;
+        if (!localStorage.getItem(seenKey)) { localStorage.setItem(seenKey, '1'); celebrate(); }
+      }
+      lastProgressPct = pct;
+    }
+
+    let lastProgressKey = null, lastProgressPct = null;
+
+    function celebrate() {
+      const banner = document.createElement('div');
+      banner.className = 'celebrate-banner';
+      banner.innerHTML = '<span class="celebrate-emoji">🎉</span><div><div class="celebrate-title">Shift complete</div><div class="celebrate-sub">Nice work, everything on the list is handled. ✨</div></div>';
+      document.body.appendChild(banner);
+      setTimeout(() => banner.classList.add('out'), 4200);
+      setTimeout(() => banner.remove(), 4800);
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const colors = ['#2c5c9c', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#0c1738'];
+      const layer = document.createElement('div');
+      layer.className = 'confetti-layer';
+      for (let i = 0; i < 70; i++) {
+        const p = document.createElement('i');
+        p.style.left = (Math.random() * 100) + '%';
+        p.style.background = colors[i % colors.length];
+        p.style.animationDelay = (Math.random() * 0.6) + 's';
+        p.style.animationDuration = (2.2 + Math.random() * 1.6) + 's';
+        p.style.setProperty('--drift', (Math.random() * 160 - 80) + 'px');
+        layer.appendChild(p);
+      }
+      document.body.appendChild(layer);
+      setTimeout(() => layer.remove(), 4800);
     }
 
     // ── Actions ──────────────────────────────────────────────────────
@@ -849,6 +898,7 @@
       const _nn=document.getElementById('nav-name'); if(_nn)_nn.textContent=me.name;
       const _nr=document.getElementById('nav-role'); if(_nr)_nr.textContent=me.role;
       const _ang=document.getElementById('admin-nav-group'); if(me.role==='admin'&&_ang)_ang.style.display='block';
+      if (me.role === 'admin' || me.role === 'manager') document.getElementById('celebrate-preview-btn').style.display = 'inline-block';
 
       // Unread comms badge
       try {
