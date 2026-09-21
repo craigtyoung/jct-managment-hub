@@ -119,6 +119,70 @@
     .qnav:hover{background:#eef2f8;color:var(--text);}
     .qnav.qnav-active{background:rgba(44,92,156,0.10);color:var(--blue);}
     @media(max-width:900px){.qnav span{display:none;}}
+
+    /* ── Academy Apparel ── */
+    .ap-mgmt-tag{display:inline-block;vertical-align:middle;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue);background:rgba(44,92,156,0.10);border-radius:100px;padding:3px 10px;}
+    .ps-badge{font-size:10px;font-weight:700;background:#f59e0b;color:#111e40;border-radius:100px;padding:1px 7px;min-width:18px;text-align:center;}
+    .ap-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+    .ap-tab{padding:7px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .ap-tab:hover{color:var(--text);border-color:var(--blue);}
+    .ap-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+    table.ap-grid{border-collapse:collapse;width:100%;min-width:560px;table-layout:fixed;}
+    table.ap-grid th:first-child,table.ap-grid td.ap-rowlbl{width:112px;}
+    table.ap-grid th{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);text-align:center;padding:6px 8px;border-bottom:1px solid var(--border);}
+    table.ap-grid th:first-child,table.ap-grid td.ap-rowlbl{text-align:left;}
+    table.ap-grid td{padding:8px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;}
+    table.ap-grid tr:last-child td{border-bottom:none;}
+    .ap-rowlbl{font-size:13px;font-weight:700;white-space:nowrap;}
+    .ap-rowlbl small{display:block;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;}
+    .ap-c .ap-n{font-size:18px;font-weight:800;color:var(--navy);line-height:1.1;display:block;}
+    .ap-c .ap-sub{font-size:10px;color:var(--text-3);display:block;margin-top:1px;}
+    .ap-c.ap-low .ap-n{color:var(--amber);}
+    .ap-c.ap-zero .ap-n{color:#dc2626;}
+    .ap-c.ap-none{color:var(--border2);}
+    .ap-c.ap-tot .ap-n{color:var(--blue);}
+    .ap-legend{font-size:11px;color:var(--text-3);margin-top:8px;}
+    table.ap-grid input.ap-q{width:100%;min-width:44px;max-width:72px;text-align:center;font-family:inherit;font-size:14px;font-weight:700;padding:7px 4px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);}
+    table.ap-grid input.ap-q:disabled{background:transparent;border-style:dashed;color:var(--text-3);cursor:not-allowed;}
+    .ap-form-top{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+    @media(max-width:760px){.ap-form-top{grid-template-columns:1fr;}}
+    .ap-form-foot{display:flex;align-items:flex-end;gap:12px;margin-top:12px;flex-wrap:wrap;}
+    .ap-form-foot .fld{flex:1;min-width:200px;}
+    .ap-total{font-size:13px;font-weight:700;color:var(--text-2);white-space:nowrap;padding-bottom:9px;}
+    .ap-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+    .ap-chipbtn{padding:6px 12px;border-radius:100px;border:1px solid var(--border2);background:var(--canvas);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .ap-chipbtn.on{background:rgba(44,92,156,0.10);border-color:rgba(44,92,156,0.4);color:var(--blue);}
+    .ap-req{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+    .ap-req:last-child{border-bottom:none;}
+    .ap-req-main{flex:1;min-width:230px;}
+    .ap-req-title{font-size:14px;font-weight:800;}
+    .ap-req-meta{font-size:12px;color:var(--text-2);margin-top:2px;}
+    .ap-req-note{font-size:12px;color:var(--text-2);margin-top:5px;font-style:italic;}
+    .ap-req-lines{margin-top:7px;display:flex;flex-direction:column;gap:4px;}
+    .ap-line{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:12px;font-weight:700;}
+    .ap-line b{min-width:62px;color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;}
+    .ap-qty{border-radius:6px;padding:2px 8px;background:#e8eefb;color:var(--navy);font-weight:700;font-size:12px;}
+    .ap-qty.platinum{background:#e7e9ee;color:#3a4256;}
+    .ap-req-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+    .ap-pill{font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border-radius:100px;padding:3px 10px;white-space:nowrap;}
+    .ap-pill.amber{background:rgba(217,119,6,0.12);color:var(--amber);}
+    .ap-pill.blue{background:rgba(44,92,156,0.12);color:var(--blue);}
+    .ap-pill.green{background:rgba(22,163,74,0.12);color:var(--green);}
+    .ap-pill.red{background:rgba(220,38,38,0.10);color:#dc2626;}
+    .ap-pill.grey{background:#eceff4;color:var(--text-3);}
+    .ap-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+    .ap-btn{padding:6px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .ap-btn:hover{border-color:var(--blue);color:var(--blue);}
+    .ap-btn.pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+    .ap-btn.pri:hover{background:var(--blue);border-color:var(--blue);}
+    .ap-btn.danger:hover{border-color:#dc2626;color:#dc2626;}
+    .ap-set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 16px;}
+    .ap-check{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;cursor:pointer;}
+    .ap-check input{width:15px;height:15px;accent-color:var(--blue);cursor:pointer;}
+    .ap-check small{color:var(--text-3);font-size:11px;}
+    .ap-manage-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 90px 2fr auto;gap:8px;align-items:end;}
+    @media(max-width:860px){.ap-manage-row{grid-template-columns:1fr 1fr;}.ap-manage-row .btn-add{grid-column:1 / -1;}}
+    details.ap-more summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--blue);margin:10px 0 6px;}
   </style>
 </head>
 <body>
@@ -148,6 +212,7 @@
       <nav class="ps-sidenav">
         <div class="ps-sidenav-title">Pro Shop</div>
         <button class="ps-nav-item ps-active" onclick="showSection('stringing',this)">Stringing</button>
+        <button class="ps-nav-item" id="nav-apparel" style="display:none" onclick="showSection('apparel',this)">Academy Apparel <span class="ps-badge" id="apparel-badge" style="display:none"></span></button>
         <button class="ps-nav-item ps-disabled">Rackets <span class="ps-soon">soon</span></button>
         <button class="ps-nav-item ps-disabled">Merchandise <span class="ps-soon">soon</span></button>
         <button class="ps-nav-item ps-disabled">Supplies <span class="ps-soon">soon</span></button>
@@ -200,6 +265,97 @@
           </div>
         </div><!-- /section-stringing -->
 
+        <!-- Section: Academy Apparel -->
+        <div id="section-apparel" style="display:none">
+          <div class="page-head"><h1>Academy Apparel <span class="ap-mgmt-tag">Management only</span></h1></div>
+          <div class="page-sub">Free Performance Academy tees for junior classes and pros. Logged by class (no student names), no money involved.</div>
+
+          <div class="ap-tabs">
+            <button class="ap-tab on" data-tab="overview" onclick="apTab('overview',this)">Overview</button>
+            <button class="ap-tab" data-tab="history" onclick="apTab('history',this)">History</button>
+            <button class="ap-tab" data-tab="manage" id="ap-tab-manage" onclick="apTab('manage',this)" style="display:none">Manage</button>
+          </div>
+
+          <!-- Overview -->
+          <div id="ap-overview">
+            <div class="card">
+              <div class="card-title">Stock available</div>
+              <div class="tbl-wrap"><table class="ap-grid" id="ap-stock"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table></div>
+              <div class="ap-legend">Available = on hand minus approved requests not yet handed out. Hover a number for the on-hand count.</div>
+            </div>
+
+            <div class="card" id="ap-form-card" style="display:none">
+              <div class="card-title">New request</div>
+              <div class="ap-form-top">
+                <div class="fld"><label>For</label><select id="ap-for"></select></div>
+                <div class="fld"><label>Asked by</label><select id="ap-pro" onchange="apProChange()"></select></div>
+                <div class="fld" id="ap-pro-other-wrap" style="display:none"><label>Name</label><input type="text" id="ap-pro-other" placeholder="Coach name" autocomplete="off"></div>
+              </div>
+              <div class="tbl-wrap"><table class="ap-grid" id="ap-matrix"></table></div>
+              <div class="ap-form-foot">
+                <div class="fld"><label>Note (optional)</label><input type="text" id="ap-note" placeholder="e.g. new session starting" autocomplete="off"></div>
+                <div class="ap-total" id="ap-formtotal">0 shirts</div>
+                <button class="btn-add" onclick="apSubmit()">Log request</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Requests</div>
+              <div class="ap-chips" id="ap-chips"></div>
+              <div id="ap-reqs"><div class="empty">Loading…</div></div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div id="ap-history" style="display:none">
+            <div class="card">
+              <div class="card-title">Shirts issued, by class</div>
+              <div class="tbl-wrap">
+                <table class="log">
+                  <thead><tr><th>Class</th><th>Navy</th><th>Platinum</th><th>Total</th><th>Hand-outs</th><th>Last</th></tr></thead>
+                  <tbody id="ap-byclass"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manage (admin + manager) -->
+          <div id="ap-manage" style="display:none">
+            <div class="card">
+              <div class="card-title">Receive stock / correct a count</div>
+              <div class="ap-manage-row">
+                <div class="fld"><label>Type</label><select id="ap-m-type"><option value="received">Received delivery (+)</option><option value="adjust">Adjustment (+ or −)</option></select></div>
+                <div class="fld"><label>Colour</label><select id="ap-m-colour"></select></div>
+                <div class="fld"><label>Size</label><select id="ap-m-size"></select></div>
+                <div class="fld"><label>Qty</label><input type="number" id="ap-m-qty" placeholder="0" autocomplete="off"></div>
+                <div class="fld"><label>Note</label><input type="text" id="ap-m-note" placeholder="Required for adjustments" autocomplete="off"></div>
+                <button class="btn-add" onclick="apAddStock()">Save</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Settings</div>
+              <div class="fld" style="max-width:220px;margin-bottom:14px"><label>Flag a size as low at or below</label><input type="number" id="ap-low" min="0" autocomplete="off"></div>
+              <div class="card-title" style="margin-top:6px">Who can approve requests <span style="text-transform:none;letter-spacing:0;font-weight:600">(admins always can)</span></div>
+              <div class="ap-set-grid" id="ap-approvers"></div>
+              <div class="card-title" style="margin-top:16px">Programs that count as Performance Academy</div>
+              <div class="ap-set-grid" id="ap-progs-on"></div>
+              <details class="ap-more"><summary id="ap-progs-more-sum">Other programs on the schedule</summary><div class="ap-set-grid" id="ap-progs-off"></div></details>
+              <div style="margin-top:14px"><button class="btn-add" onclick="apSaveSettings()">Save settings</button></div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Stock movements (latest 100)</div>
+              <div class="tbl-wrap">
+                <table class="log">
+                  <thead><tr><th>When</th><th>Type</th><th>Colour</th><th>Size</th><th>Qty</th><th>Detail</th><th>By</th></tr></thead>
+                  <tbody id="ap-moves"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div><!-- /section-apparel -->
+
       </div><!-- /ps-content -->
     </div><!-- /ps-layout -->
   </main>
@@ -242,7 +398,7 @@
     }
     window.onLiveUpdate = loadAll;
 
-    async function loadAll(){ await Promise.all([loadCounts(), loadLog()]); }
+    async function loadAll(){ await Promise.all([loadCounts(), loadLog(), apRefresh()]); }
 
     async function loadCounts(){
       let rows=[]; try{ rows=await (await fetch('/api/proshop/strings/counts')).json(); }catch(e){}
@@ -321,12 +477,197 @@
       if(r.ok){ loadAll(); toast('Removed'); }
     }
 
+    // ───────── Academy Apparel ─────────
+    const AP = { sum:null, classes:[], pros:[], reqs:[], byClass:[], settings:null, filter:null, tab:'overview', formBuilt:false };
+    const AP_STATUS = { requested:['Awaiting approval','amber'], approved:['Approved · hand out','blue'], issued:['Issued','green'], declined:['Declined','red'], cancelled:['Cancelled','grey'], reversed:['Reversed','grey'] };
+    const $ = id => document.getElementById(id);
+    const apColour = k => { const c=((AP.sum&&AP.sum.colours)||[]).find(x=>x.key===k); return c?c.label:k; };
+    async function apJson(url){ try{ const r=await fetch(url); return r.ok ? await r.json() : null; }catch(e){ return null; } }
+    async function apSend(method,url,body){
+      const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+      let d={}; try{ d=await r.json(); }catch(e){}
+      if(!r.ok){ toast(d.error||'Could not save'); return null; }
+      return d;
+    }
+
+    // Management only for now (admin + manager) — mirrors DESK_ROLES in routes/apparel.js.
+    const apAllowed = () => !!me && ['admin','manager'].includes(me.role);
+    async function apRefresh(){
+      if(!apAllowed()) return;
+      $('nav-apparel').style.display='';
+      if(!AP.hashHandled){ AP.hashHandled=true; if(location.hash==='#apparel') showSection('apparel',$('nav-apparel')); }   // deep link, once we know the user is allowed
+      const [sum,reqs,byClass]=await Promise.all([apJson('/api/apparel/summary'),apJson('/api/apparel/requests'),apJson('/api/apparel/by-class')]);
+      if(!sum) return;
+      AP.sum=sum; AP.reqs=reqs||[]; AP.byClass=byClass||[];
+      const p=sum.perms;
+      $('ap-form-card').style.display=p.desk?'':'none';
+      $('ap-tab-manage').style.display=p.manage?'':'none';
+      if(p.desk && !AP.formBuilt){
+        const [classes,pros]=await Promise.all([apJson('/api/apparel/classes'),apJson('/api/apparel/pros')]);
+        AP.classes=classes||[]; AP.pros=pros||[]; apBuildForm(); AP.formBuilt=true;
+      }
+      apRenderStock(); apRenderReqs(); apRenderByClass();
+      const n=p.approve?sum.pending:sum.ready, b=$('apparel-badge');
+      b.textContent=n; b.style.display=n>0?'':'none';
+      b.title=p.approve?'Requests awaiting approval':'Approved requests ready to hand out';
+      if(p.manage && AP.tab==='manage') apLoadManage();
+    }
+
+    function apRenderStock(){
+      const s=AP.sum, low=s.low_threshold;
+      const cell=(c,size)=>{
+        const x=s.stock.find(y=>y.colour===c&&y.size===size);
+        if(!x) return '<td class="ap-c ap-none">—</td>';
+        const cls=x.available<=0?'ap-zero':(x.available<=low?'ap-low':'');
+        return `<td class="ap-c ${cls}" title="On hand ${x.on_hand}${x.reserved?' · reserved '+x.reserved:''}"><span class="ap-n">${x.available}</span>${x.reserved?`<span class="ap-sub">${x.on_hand} on hand</span>`:''}</td>`;
+      };
+      $('ap-stock').innerHTML='<thead><tr><th></th>'+s.sizes.map(z=>`<th>${z}</th>`).join('')+'<th>Total</th></tr></thead><tbody>'+
+        s.colours.map(c=>{
+          const tot=s.stock.filter(y=>y.colour===c.key).reduce((n,y)=>n+y.available,0);
+          return `<tr><td class="ap-rowlbl">${esc(c.label)}<small>${esc(c.for)}</small></td>${s.sizes.map(z=>cell(c.key,z)).join('')}<td class="ap-c ap-tot"><span class="ap-n">${tot}</span></td></tr>`;
+        }).join('')+'</tbody>';
+      // Request-form inputs: only sizes that have ever been stocked can be requested.
+      document.querySelectorAll('.ap-q').forEach(i=>{ i.disabled=!s.stock.some(y=>y.colour===i.dataset.c&&y.size===i.dataset.s); if(i.disabled) i.value=''; });
+      apFormTotal();
+    }
+
+    function apBuildForm(){
+      const byProg={}; AP.classes.forEach(c=>(byProg[c.program]=byProg[c.program]||[]).push(c));
+      $('ap-for').innerHTML='<option value="">— pick a class —</option>'+
+        Object.keys(byProg).map(p=>`<optgroup label="${esc(p)}">${byProg[p].map(c=>`<option value="c:${c.slot_id}">${esc(c.day+' '+c.time_label)}</option>`).join('')}</optgroup>`).join('')+
+        '<optgroup label="Other"><option value="pro">Pro / staff shirts (no class)</option></optgroup>';
+      $('ap-pro').innerHTML='<option value="">— who is asking —</option>'+AP.pros.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')+'<option value="other">Someone else…</option>';
+      const s=AP.sum;
+      $('ap-matrix').innerHTML='<thead><tr><th></th>'+s.sizes.map(z=>`<th>${z}</th>`).join('')+'</tr></thead><tbody>'+
+        s.colours.map(c=>`<tr><td class="ap-rowlbl">${esc(c.label)}<small>${esc(c.for)}</small></td>${s.sizes.map(z=>`<td><input class="ap-q" type="number" min="0" inputmode="numeric" data-c="${c.key}" data-s="${z}" placeholder="0" oninput="apFormTotal()" autocomplete="off"></td>`).join('')}</tr>`).join('')+'</tbody>';
+    }
+    function apProChange(){ $('ap-pro-other-wrap').style.display=$('ap-pro').value==='other'?'':'none'; }
+    function apFormTotal(){
+      let n=0; document.querySelectorAll('.ap-q').forEach(i=>{ n+=Math.max(parseInt(i.value)||0,0); });
+      const el=$('ap-formtotal'); if(el) el.textContent=n+(n===1?' shirt':' shirts');
+    }
+    async function apSubmit(){
+      const f=$('ap-for').value, pro=$('ap-pro').value;
+      if(!f){ toast('Pick a class'); return; }
+      if(!pro){ toast('Pick who is asking'); return; }
+      const lines=[]; document.querySelectorAll('.ap-q').forEach(i=>{ const q=parseInt(i.value); if(q>0) lines.push({colour:i.dataset.c,size:i.dataset.s,qty:q}); });
+      if(!lines.length){ toast('Enter at least one size'); return; }
+      const d=await apSend('POST','/api/apparel/requests',{
+        target:f==='pro'?'pro':'class', slot_id:f.startsWith('c:')?f.slice(2):null,
+        pro_id:pro==='other'?null:pro, pro_name:pro==='other'?$('ap-pro-other').value.trim():'',
+        note:$('ap-note').value.trim(), lines });
+      if(!d) return;
+      document.querySelectorAll('.ap-q').forEach(i=>i.value=''); $('ap-note').value=''; $('ap-pro-other').value='';
+      AP.filter='awaiting';
+      await apRefresh(); toast('Request logged');
+    }
+
+    function apLinesHtml(lines){
+      const by={}; lines.forEach(l=>(by[l.colour]=by[l.colour]||[]).push(l));
+      return Object.keys(by).map(c=>`<div class="ap-line"><b>${esc(apColour(c))}</b>${by[c].map(l=>`<span class="ap-qty ${c}">${l.qty} × ${esc(l.size)}</span>`).join('')}</div>`).join('');
+    }
+    function apDay(iso){ return iso?fmtDate(String(iso).slice(0,10)):''; }
+    function apRenderReqs(){
+      const p=AP.sum.perms, R=AP.reqs;
+      const G={ awaiting:R.filter(r=>r.status==='requested'), handout:R.filter(r=>r.status==='approved'), issued:R.filter(r=>r.status==='issued'), closed:R.filter(r=>['declined','cancelled','reversed'].includes(r.status)) };
+      const LBL={ awaiting:'Awaiting approval', handout:'Approved · to hand out', issued:'Issued', closed:'Declined / cancelled' };
+      const cur=AP.filter||(G.awaiting.length?'awaiting':G.handout.length?'handout':'issued');
+      $('ap-chips').innerHTML=Object.keys(G).map(k=>`<button class="ap-chipbtn ${k===cur?'on':''}" onclick="apFilter('${k}')">${LBL[k]} (${G[k].length})</button>`).join('');
+      const rows=G[cur];
+      if(!rows.length){ $('ap-reqs').innerHTML=`<div class="empty">Nothing here.</div>`; return; }
+      $('ap-reqs').innerHTML=rows.map(r=>{
+        const st=AP_STATUS[r.status]||[r.status,'grey'];
+        const acts=[];
+        if(r.status==='requested'){ if(p.approve) acts.push(`<button class="ap-btn pri" onclick="apAct(${r.id},'approve')">Approve</button><button class="ap-btn danger" onclick="apAct(${r.id},'decline')">Decline</button>`); if(p.desk) acts.push(`<button class="ap-btn" onclick="apAct(${r.id},'cancel')">Cancel</button>`); }
+        if(r.status==='approved'){ if(p.desk) acts.push(`<button class="ap-btn pri" onclick="apAct(${r.id},'issue')">Mark issued</button><button class="ap-btn" onclick="apAct(${r.id},'cancel')">Cancel</button>`); }
+        if(r.status==='issued' && p.manage) acts.push(`<button class="ap-btn danger" onclick="apAct(${r.id},'reverse')">Reverse</button>`);
+        let trail=`Logged ${apDay(r.requested_at)}${r.requested_by_name?' by '+esc(r.requested_by_name):''}`;
+        if(r.approved_at && r.status!=='declined') trail+=` · approved ${apDay(r.approved_at)}${r.approved_by_name?' by '+esc(r.approved_by_name):''}`;
+        if(r.status==='declined') trail+=` · declined ${apDay(r.approved_at)}${r.approved_by_name?' by '+esc(r.approved_by_name):''}`;
+        if(r.issued_at) trail+=` · issued ${apDay(r.issued_at)}${r.issued_by_name?' by '+esc(r.issued_by_name):''}`;
+        return `<div class="ap-req"><div class="ap-req-main">
+          <div class="ap-req-title">${esc(r.class_label)}</div>
+          <div class="ap-req-meta">${r.target==='pro'?'For':'Asked by'} ${esc(r.pro_display)||'—'} · ${r.total} ${r.total===1?'shirt':'shirts'}</div>
+          <div class="ap-req-lines">${apLinesHtml(r.lines)}</div>
+          ${r.note?`<div class="ap-req-note">“${esc(r.note)}”</div>`:''}
+          ${r.closed_note?`<div class="ap-req-note">${esc(r.closed_note)}</div>`:''}
+          <div class="ap-req-meta" style="margin-top:6px;color:var(--text-3)">${trail}</div>
+        </div><div class="ap-req-side"><span class="ap-pill ${st[1]}">${st[0]}</span><div class="ap-acts">${acts.join('')}</div></div></div>`;
+      }).join('');
+    }
+    function apFilter(k){ AP.filter=k; apRenderReqs(); }
+    async function apAct(id,action){
+      let body={};
+      if(action==='decline'){ const why=prompt('Reason for declining (optional):'); if(why===null) return; body={reason:why}; }
+      if(action==='cancel' && !confirm('Cancel this request?')) return;
+      if(action==='reverse' && !confirm('Reverse this hand-out? The shirts go back into stock.')) return;
+      const d=await apSend('POST',`/api/apparel/requests/${id}/${action}`,body);
+      if(!d) { await apRefresh(); return; }
+      AP.filter=null;
+      toast({approve:'Approved',decline:'Declined',cancel:'Cancelled',issue:'Issued — stock updated',reverse:'Reversed — shirts back in stock'}[action]||'Done');
+      await apRefresh();
+    }
+
+    function apRenderByClass(){
+      const rows=AP.byClass;
+      if(!rows.length){ $('ap-byclass').innerHTML='<tr><td colspan="6" class="empty">Nothing issued yet.</td></tr>'; return; }
+      const sum=k=>rows.reduce((n,r)=>n+(r[k]||0),0);
+      $('ap-byclass').innerHTML=rows.map(r=>`<tr><td style="font-weight:600">${esc(r.label)}</td><td>${r.navy||0}</td><td>${r.platinum||0}</td><td style="font-weight:800">${r.total}</td><td>${r.requests}</td><td>${esc(apDay(r.last))}</td></tr>`).join('')+
+        `<tr><td style="font-weight:800">All classes</td><td style="font-weight:800">${sum('navy')}</td><td style="font-weight:800">${sum('platinum')}</td><td style="font-weight:800">${sum('total')}</td><td style="font-weight:800">${sum('requests')}</td><td></td></tr>`;
+    }
+
+    function apTab(t,btn){
+      AP.tab=t;
+      document.querySelectorAll('.ap-tab').forEach(b=>b.classList.toggle('on',b===btn));
+      ['overview','history','manage'].forEach(k=>{ $('ap-'+k).style.display=k===t?'':'none'; });
+      if(t==='manage') apLoadManage();
+    }
+
+    // Manage tab (admin + manager)
+    async function apLoadManage(){
+      const [settings,moves]=await Promise.all([apJson('/api/apparel/settings'),apJson('/api/apparel/moves')]);
+      if(!settings) return;
+      const s=AP.sum;
+      if(!$('ap-m-colour').options.length){
+        $('ap-m-colour').innerHTML=s.colours.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join('');
+        $('ap-m-size').innerHTML=s.sizes.map(z=>`<option>${z}</option>`).join('');
+      }
+      // Don't clobber settings the manager is mid-edit on when a live refresh lands.
+      if(!AP.settingsDirty){
+        $('ap-low').value=settings.low_threshold;
+        const managers=(staff||[]).filter(x=>x.role==='manager');
+        $('ap-approvers').innerHTML=managers.map(m=>`<label class="ap-check"><input type="checkbox" data-approver="${m.id}" ${settings.approver_ids.includes(m.id)?'checked':''} onchange="AP.settingsDirty=true"> ${esc(m.name)}</label>`).join('')||'<div class="empty">No managers found.</div>';
+        const chk=p=>`<label class="ap-check"><input type="checkbox" data-program="${esc(p.program)}" ${p.enabled?'checked':''} onchange="AP.settingsDirty=true"> ${esc(p.program)} <small>${p.slots?p.slots+' slot'+(p.slots===1?'':'s'):'not on schedule'}</small></label>`;
+        $('ap-progs-on').innerHTML=settings.programs.filter(p=>p.enabled).map(chk).join('')||'<div class="empty">None selected.</div>';
+        const off=settings.programs.filter(p=>!p.enabled);
+        $('ap-progs-off').innerHTML=off.map(chk).join('');
+        $('ap-progs-more-sum').textContent=`Other programs on the schedule (${off.length})`;
+      }
+      const TYPE={received:'Received',adjust:'Adjustment',issued:'Issued',return:'Returned'};
+      $('ap-moves').innerHTML=(moves||[]).map(m=>`<tr><td>${esc(apDay(m.created_at))}</td><td>${TYPE[m.type]||esc(m.type)}</td><td>${esc(apColour(m.colour))}</td><td>${esc(m.size)}</td><td style="font-weight:700;color:${m.qty<0?'#dc2626':'var(--green)'}">${m.qty>0?'+':''}${m.qty}</td><td>${esc(m.class_label||m.note||'')}</td><td>${esc(m.by_name||'—')}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No movements yet.</td></tr>';
+    }
+    async function apAddStock(){
+      const d=await apSend('POST','/api/apparel/stock',{ type:$('ap-m-type').value, colour:$('ap-m-colour').value, size:$('ap-m-size').value, qty:$('ap-m-qty').value, note:$('ap-m-note').value.trim() });
+      if(!d) return;
+      $('ap-m-qty').value=''; $('ap-m-note').value='';
+      await apRefresh(); toast('Stock updated');
+    }
+    async function apSaveSettings(){
+      const programs=[...document.querySelectorAll('[data-program]')].filter(i=>i.checked).map(i=>i.dataset.program);
+      const approver_ids=[...document.querySelectorAll('[data-approver]')].filter(i=>i.checked).map(i=>parseInt(i.dataset.approver));
+      const d=await apSend('PUT','/api/apparel/settings',{ programs, approver_ids, low_threshold:$('ap-low').value });
+      if(!d) return;
+      AP.settingsDirty=false; AP.formBuilt=false;   // class dropdown must re-read the program list
+      await apRefresh(); toast('Settings saved');
+    }
+
     function showSection(id, btn) {
       document.querySelectorAll('.ps-nav-item').forEach(b => b.classList.remove('ps-active'));
       if (btn) btn.classList.add('ps-active');
       document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
       const el = document.getElementById('section-' + id);
       if (el) el.style.display = '';
+      history.replaceState(null, '', id === 'stringing' ? location.pathname : '#' + id);
     }
 
     init();

@@ -401,6 +401,38 @@ if (!Array.isArray(_data.string_logs)) {
   save();
 }
 
+// Pro Shop → Academy Apparel: free performance tees issued to Performance Academy classes + pros.
+// Stock is an append-only movement ledger (on-hand = sum of qty); requests move
+// requested → approved → issued. Counts only, no dollar amounts.
+const APPAREL_COLOURS = [
+  { key: 'navy',     label: 'Navy',     for: 'Students' },
+  { key: 'platinum', label: 'Platinum', for: 'Pros' },
+];
+const APPAREL_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+const APPAREL_DEFAULT_PROGRAMS = [
+  'National Program', 'Performance Program (Afternoon)', 'National Transition', 'National Transition B',
+  'U9', 'U10', 'U13', 'U9 Performance', 'U10 Performance',
+];
+if (!Array.isArray(_data.apparel_moves))    { _data._seq.apparel_moves = 0;    _data.apparel_moves = [];    save(); }
+if (!Array.isArray(_data.apparel_requests)) { _data._seq.apparel_requests = 0; _data.apparel_requests = []; save(); }
+// Seed ONCE (flag-gated): eligible programs, David + Victor as approvers, opening stock from the two
+// artwork proofs (Core365 CE10). Quantities are the ORDER quantities — adjust on delivery.
+if (!_data._migrations.apparelSeed2026v1) {
+  const approvers = (_data.staff || []).filter(s => s.role === 'manager' && ['david', 'victor'].includes(String(s.name || '').trim().toLowerCase()));
+  _data.apparel_settings = { programs: APPAREL_DEFAULT_PROGRAMS.slice(), low_threshold: 3, approver_ids: approvers.map(s => s.id) };
+  if (!_data.apparel_moves.length) {
+    const opening = { navy: { XS: 20, S: 20, M: 60, L: 30 }, platinum: { L: 5, XL: 10, '2XL': 5, '3XL': 2 } };
+    const at = new Date().toISOString();
+    for (const colour of Object.keys(opening)) for (const size of Object.keys(opening[colour])) {
+      _data._seq.apparel_moves = (_data._seq.apparel_moves || 0) + 1;
+      _data.apparel_moves.push({ id: _data._seq.apparel_moves, type: 'received', colour, size, qty: opening[colour][size],
+        request_id: null, note: 'Opening stock per artwork proofs (order qty) — adjust to actual on delivery', by: null, created_at: at, active: true });
+    }
+  }
+  _data._migrations.apparelSeed2026v1 = true;
+  save();
+}
+
 // Migration: knowledge base — club docs (rules, pricing, membership, FAQs) the AI
 // assistant reads so it can answer staff questions accurately.
 if (!Array.isArray(_data.knowledge_docs)) {
@@ -2954,6 +2986,250 @@ function getStringCounts(start, end) {
   return Object.values(map).sort((a, b) => b.total - a.total);
 }
 
+// ─── Pro Shop: Academy Apparel ────────────────────────────────────────────────
+function _apparelSettings() {
+  if (!_data.apparel_settings || typeof _data.apparel_settings !== 'object') {
+    _data.apparel_settings = { programs: APPAREL_DEFAULT_PROGRAMS.slice(), low_threshold: 3, approver_ids: [] };
+  }
+  return _data.apparel_settings;
+}
+const _apKey = (colour, size) => colour + '|' + size;
+const _staffName = id => { const s = id ? getStaffById(id) : null; return s ? s.name : ''; };
+
+function _apparelOnHand() {
+  const m = {};
+  for (const mv of _data.apparel_moves || []) {
+    if (mv.active === false) continue;
+    const k = _apKey(mv.colour, mv.size); m[k] = (m[k] || 0) + mv.qty;
+  }
+  return m;
+}
+// Shirts on approved-but-not-yet-issued requests.
+function _apparelReserved() {
+  const m = {};
+  for (const r of _data.apparel_requests || []) {
+    if (r.active === false || r.status !== 'approved') continue;
+    for (const l of r.lines) { const k = _apKey(l.colour, l.size); m[k] = (m[k] || 0) + l.qty; }
+  }
+  return m;
+}
+
+function getApparelSummary() {
+  const onHand = _apparelOnHand(), reserved = _apparelReserved();
+  const stock = [];
+  for (const c of APPAREL_COLOURS) for (const size of APPAREL_SIZES) {
+    const k = _apKey(c.key, size);
+    if (!(k in onHand) && !(k in reserved)) continue;   // never stocked → not shown
+    const oh = onHand[k] || 0, rs = reserved[k] || 0;
+    stock.push({ colour: c.key, size, on_hand: oh, reserved: rs, available: oh - rs });
+  }
+  const reqs = (_data.apparel_requests || []).filter(r => r.active !== false);
+  return {
+    colours: APPAREL_COLOURS, sizes: APPAREL_SIZES, stock,
+    low_threshold: _apparelSettings().low_threshold,
+    pending: reqs.filter(r => r.status === 'requested').length,
+    ready: reqs.filter(r => r.status === 'approved').length,
+  };
+}
+
+// Classes shown in the request dropdown: active court-schedule class slots whose program is
+// flagged as Performance Academy (matched by program name so a new season's slots follow).
+function getApparelClasses() {
+  const enabled = new Set(_apparelSettings().programs.map(p => String(p).trim().toLowerCase()));
+  return getProScheduleSlots()
+    .filter(s => s.kind === 'class' && enabled.has(String(s.program).trim().toLowerCase()))
+    .map(s => {
+      const when = s.time_label || `${s.start || ''}–${s.end || ''}`;
+      return { slot_id: s.id, program: s.program, day: s.day, time_label: when, label: `${s.program} — ${s.day} ${when}` };
+    })
+    .sort((a, b) => a.program.localeCompare(b.program)); // stable: keeps day/time order within a program
+}
+
+// Every class program on the schedule + whether it counts as Performance Academy (settings UI).
+function getApparelProgramChoices() {
+  const enabled = new Set(_apparelSettings().programs.map(p => String(p).trim().toLowerCase()));
+  const map = {};
+  for (const s of getProScheduleSlots()) {
+    if (s.kind !== 'class') continue;
+    const k = String(s.program).trim().toLowerCase();
+    map[k] = map[k] || { program: s.program, category: s.category || '', slots: 0 };
+    map[k].slots++;
+  }
+  for (const p of _apparelSettings().programs) {
+    const k = String(p).trim().toLowerCase();
+    if (!map[k]) map[k] = { program: p, category: '', slots: 0 };   // flagged but not on the current schedule
+  }
+  return Object.values(map)
+    .map(x => ({ ...x, enabled: enabled.has(String(x.program).trim().toLowerCase()) }))
+    .sort((a, b) => (b.enabled - a.enabled) || a.program.localeCompare(b.program));
+}
+
+function getApparelSettings() {
+  const s = _apparelSettings();
+  return { programs: getApparelProgramChoices(), low_threshold: s.low_threshold, approver_ids: s.approver_ids || [] };
+}
+function updateApparelSettings(f) {
+  const s = _apparelSettings();
+  if (Array.isArray(f.programs)) s.programs = [...new Set(f.programs.map(p => String(p).trim().slice(0, 80)).filter(Boolean))];
+  if (f.low_threshold !== undefined) { const n = parseInt(f.low_threshold); if (n >= 0 && n <= 500) s.low_threshold = n; }
+  if (Array.isArray(f.approver_ids)) s.approver_ids = [...new Set(f.approver_ids.map(x => parseInt(x)).filter(id => getStaffById(id)))];
+  save();
+  return getApparelSettings();
+}
+function canApproveApparel(staffId) {
+  const s = getStaffById(staffId);
+  return !!s && (s.role === 'admin' || (_apparelSettings().approver_ids || []).includes(s.id));
+}
+
+// Normalise request lines → [{colour,size,qty}] (valid colour/size, qty ≥ 1, duplicates merged).
+function _apparelCleanLines(lines) {
+  const acc = {};
+  for (const l of Array.isArray(lines) ? lines : []) {
+    const colour = String(l.colour || '').toLowerCase();
+    const size = String(l.size || '').toUpperCase();
+    const qty = parseInt(l.qty);
+    if (!APPAREL_COLOURS.some(c => c.key === colour) || !APPAREL_SIZES.includes(size) || !(qty > 0)) continue;
+    const k = _apKey(colour, size); acc[k] = (acc[k] || 0) + Math.min(qty, 500);
+  }
+  const out = [];
+  for (const c of APPAREL_COLOURS) for (const size of APPAREL_SIZES) { const q = acc[_apKey(c.key, size)]; if (q) out.push({ colour: c.key, size, qty: q }); }
+  return out;
+}
+
+function _apparelPostMove(type, colour, size, qty, requestId, note, by) {
+  const id = nextId('apparel_moves');
+  _data.apparel_moves.push({ id, type, colour, size, qty, request_id: requestId || null, note: String(note || '').slice(0, 200), by: by || null, created_at: now(), active: true });
+  return id;
+}
+
+function _apparelReq(r) {
+  return {
+    ...r,
+    total: r.lines.reduce((n, l) => n + l.qty, 0),
+    pro_display: r.pro_id ? _staffName(r.pro_id) : (r.pro_name || ''),
+    requested_by_name: _staffName(r.requested_by), approved_by_name: _staffName(r.approved_by),
+    issued_by_name: _staffName(r.issued_by),
+  };
+}
+function getApparelRequests() {
+  return (_data.apparel_requests || []).filter(r => r.active !== false).slice().sort((a, b) => b.id - a.id).map(_apparelReq);
+}
+
+function addApparelRequest(f, staffId) {
+  const lines = _apparelCleanLines(f.lines);
+  if (!lines.length) return { error: 'Add at least one shirt' };
+  const target = f.target === 'pro' ? 'pro' : 'class';
+  let slot = null;
+  if (target === 'class') {
+    slot = getApparelClasses().find(c => c.slot_id === parseInt(f.slot_id));
+    if (!slot) return { error: 'Pick a class from the list' };
+  }
+  const proId = parseInt(f.pro_id) || null;
+  const proName = String(f.pro_name || '').trim().slice(0, 80);
+  if (!(proId && getStaffById(proId)) && !proName) return { error: 'Pick who is asking' };
+  const id = nextId('apparel_requests');
+  _data.apparel_requests.push({
+    id, target, slot_id: slot ? slot.slot_id : null,
+    class_label: slot ? slot.label : 'Pro / staff shirts', program: slot ? slot.program : '',   // snapshot: survives a season-grid swap
+    pro_id: proId && getStaffById(proId) ? proId : null, pro_name: proId && getStaffById(proId) ? '' : proName,
+    lines, note: String(f.note || '').trim().slice(0, 300), status: 'requested',
+    requested_by: staffId, requested_at: now(),
+    approved_by: null, approved_at: null, issued_by: null, issued_at: null, closed_note: '', active: true,
+  });
+  save();
+  return { ok: true, id };
+}
+
+function _apparelOpenReq(id) { return (_data.apparel_requests || []).find(r => r.id === parseInt(id) && r.active !== false); }
+
+function approveApparelRequest(id, staffId) {
+  const r = _apparelOpenReq(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.status !== 'requested') return { error: 'This request is not awaiting approval', status: 409 };
+  const onHand = _apparelOnHand(), reserved = _apparelReserved();
+  const short = r.lines.map(l => ({ ...l, available: Math.max((onHand[_apKey(l.colour, l.size)] || 0) - (reserved[_apKey(l.colour, l.size)] || 0), 0) }))
+    .filter(l => l.available < l.qty);
+  if (short.length) return { error: 'Not enough stock: ' + short.map(l => `${l.qty}× ${l.colour} ${l.size} (${l.available} available)`).join(', '), status: 409, short };
+  r.status = 'approved'; r.approved_by = staffId; r.approved_at = now();
+  save();
+  return { ok: true };
+}
+function declineApparelRequest(id, staffId, reason) {
+  const r = _apparelOpenReq(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.status !== 'requested') return { error: 'This request is not awaiting approval', status: 409 };
+  r.status = 'declined'; r.approved_by = staffId; r.approved_at = now(); r.closed_note = String(reason || '').trim().slice(0, 200);
+  save();
+  return { ok: true };
+}
+function cancelApparelRequest(id, staffId) {
+  const r = _apparelOpenReq(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (!['requested', 'approved'].includes(r.status)) return { error: 'Only open requests can be cancelled', status: 409 };
+  r.status = 'cancelled'; r.closed_note = 'Cancelled by ' + (_staffName(staffId) || 'staff');
+  save();
+  return { ok: true };
+}
+// Hand-out: stock only drops here (not at request/approval).
+function issueApparelRequest(id, staffId) {
+  const r = _apparelOpenReq(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.status !== 'approved') return { error: 'Only approved requests can be issued', status: 409 };
+  const onHand = _apparelOnHand();
+  const short = r.lines.filter(l => (onHand[_apKey(l.colour, l.size)] || 0) < l.qty);
+  if (short.length) return { error: 'Not enough on hand for: ' + short.map(l => `${l.colour} ${l.size}`).join(', '), status: 409 };
+  for (const l of r.lines) _apparelPostMove('issued', l.colour, l.size, -l.qty, r.id, r.class_label, staffId);
+  r.status = 'issued'; r.issued_by = staffId; r.issued_at = now();
+  save();
+  return { ok: true };
+}
+// Undo a mistaken issue — shirts go back into stock via 'return' movements (nothing is deleted).
+function reverseApparelRequest(id, staffId) {
+  const r = _apparelOpenReq(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.status !== 'issued') return { error: 'Only issued requests can be reversed', status: 409 };
+  for (const l of r.lines) _apparelPostMove('return', l.colour, l.size, l.qty, r.id, 'Reversed: ' + r.class_label, staffId);
+  r.status = 'reversed'; r.closed_note = 'Reversed by ' + (_staffName(staffId) || 'staff');
+  save();
+  return { ok: true };
+}
+
+// Receive new stock (positive) or correct a count (signed, note required).
+function addApparelStock({ type, colour, size, qty, note }, staffId) {
+  colour = String(colour || '').toLowerCase(); size = String(size || '').toUpperCase(); qty = parseInt(qty);
+  if (!APPAREL_COLOURS.some(c => c.key === colour) || !APPAREL_SIZES.includes(size)) return { error: 'Pick a colour and size' };
+  if (!qty) return { error: 'Enter a quantity' };
+  if (type === 'received') { if (qty < 0) return { error: 'Received quantity must be positive' }; }
+  else { type = 'adjust'; if (!String(note || '').trim()) return { error: 'Add a note explaining the adjustment' }; }
+  if (Math.abs(qty) > 5000) return { error: 'Quantity looks too large' };
+  const onHand = _apparelOnHand()[_apKey(colour, size)] || 0;
+  if (onHand + qty < 0) return { error: `Only ${onHand} on hand — that would go negative` };
+  _apparelPostMove(type, colour, size, qty, null, note, staffId);
+  save();
+  return { ok: true };
+}
+function getApparelMoves(limit) {
+  const reqById = {}; (_data.apparel_requests || []).forEach(r => reqById[r.id] = r);
+  return (_data.apparel_moves || []).filter(m => m.active !== false).slice().sort((a, b) => b.id - a.id).slice(0, limit || 100)
+    .map(m => ({ ...m, by_name: _staffName(m.by), class_label: m.request_id && reqById[m.request_id] ? reqById[m.request_id].class_label : '' }));
+}
+// Issued shirts grouped by class (label snapshot) — "who got what".
+function getApparelByClass() {
+  const map = {};
+  for (const r of (_data.apparel_requests || [])) {
+    if (r.active === false || r.status !== 'issued') continue;
+    const g = map[r.class_label] = map[r.class_label] || { label: r.class_label, total: 0, navy: 0, platinum: 0, requests: 0, last: '' };
+    for (const l of r.lines) { g.total += l.qty; g[l.colour] = (g[l.colour] || 0) + l.qty; }
+    g.requests++; if ((r.issued_at || '') > g.last) g.last = r.issued_at;
+  }
+  return Object.values(map).sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+}
+// Staff who can be named as the pro asking for shirts (pros + managers; anyone else via free text).
+function getApparelPros() {
+  return (_data.staff || []).filter(s => ['pro', 'manager'].includes(s.role))
+    .map(s => ({ id: s.id, name: s.name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // ─── Knowledge base (feeds the AI assistant) ───────────────────────────────────
 
 function getKnowledgeDocs() {
@@ -4170,6 +4446,10 @@ module.exports = {
   updateStringLog,
   deleteStringLog,
   getStringCounts,
+  getApparelSummary, getApparelClasses, getApparelSettings, updateApparelSettings, canApproveApparel,
+  getApparelRequests, addApparelRequest, approveApparelRequest, declineApparelRequest,
+  cancelApparelRequest, issueApparelRequest, reverseApparelRequest,
+  addApparelStock, getApparelMoves, getApparelByClass, getApparelPros,
   getKnowledgeDocs,
   getKnowledgeForPrompt,
   createKnowledgeDoc,
