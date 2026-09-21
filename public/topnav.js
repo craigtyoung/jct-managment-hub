@@ -22,7 +22,7 @@
     cal: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
     clock: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
     chat: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-    bulb: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>',
+    bag: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
     lessons: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2.6h6V4"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>',
   };
 
@@ -34,9 +34,9 @@
     { href: '/timesheet.html',    label: 'Timesheets', icon: I.clock },
     { href: '/comms.html',        label: 'Comms',      icon: I.chat },
     { href: '/lesson-waitlist.html', label: 'Lessons',  icon: I.lessons },
-    { href: '/ideas.html',        label: 'Idea Board', icon: I.bulb },
+    { href: '/proshop.html',      label: 'Pro Shop',   icon: I.bag },
   ];
-  // Pro nav is deliberately lean — Idea Board is an admin thing, not for pros.
+  // Pro nav is deliberately lean.
   var PRO = [
     { href: '/hub.html',                label: 'Dashboard',    icon: I.home },
     { href: '/pro-schedule-view.html',  label: 'Pro Schedule', icon: I.cal },
@@ -89,6 +89,13 @@
     var html = buildHTML(me);
     var existing = document.querySelectorAll('.qnav');
     if (existing.length) {
+      // A page that isn't in the shared list (Waitlist, Knowledge Base, Idea Board…) keeps its own
+      // highlighted tab at the end, so you can still see where you are.
+      var here = norm(location.pathname);
+      var inList = (getMode(me) === 'pro' ? PRO : OFFICE).some(function (l) { return norm(l.href) === here; });
+      if (!inList) {
+        existing.forEach(function (n) { if (n.classList.contains('qnav-active')) html += n.outerHTML; });
+      }
       // Replace the page's hard-coded qnav in place (keeps clock/user/signout siblings).
       var parent = existing[0].parentNode;
       var marker = document.createComment('topnav');
@@ -99,6 +106,11 @@
       wrap.innerHTML = html;
       parent.insertBefore(wrap, marker);
       parent.removeChild(marker);
+      // Comms' unread badge is a sibling of the links; keep it glued to the Comms link
+      // (it used to drift to whichever link happened to be last).
+      var pill = document.getElementById('unread-pill');
+      var comms = wrap.querySelector('a[href^="/comms.html"], .qnav-active[title*="Comms"]');
+      if (pill && comms) comms.parentNode.insertBefore(pill, comms.nextSibling);
     } else {
       // No top nav on this page — inject a bar so it isn't stranded.
       injectStyleOnce();

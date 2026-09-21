@@ -10,7 +10,7 @@
       --spine-w:0px; --nav-w:214px; --total-nav:calc(var(--spine-w) + var(--nav-w));
       --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
       --blue:#2c5c9c; --powder:#b1c9fb;
-      --bg:#f0f4f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border2:#d4dae6; --border-nav:rgba(177,201,251,0.07);
+      --bg:#f1f5f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border2:#d4dae6; --border-nav:rgba(177,201,251,0.07);
       --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8; --canvas:#f8fafc;
       --green:#16a34a; --amber:#d97706;
       --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -98,17 +98,27 @@
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
     .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
-    /* ProShop two-column layout — sidebar matches hub nav style */
-    .ps-layout{display:flex;align-items:flex-start;gap:20px;}
-    .ps-sidenav{flex-shrink:0;width:174px;background:#111e40;border-radius:14px;padding:6px 0 10px;position:sticky;top:70px;overflow:hidden;}
-    .ps-sidenav-title{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:12px 16px 5px;}
-    .ps-nav-item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 16px 8px 14px;border-left:2px solid transparent;text-decoration:none;color:rgba(177,201,251,0.55);font-size:13px;font-weight:400;cursor:pointer;background:none;border-top:none;border-right:none;border-bottom:none;border-left:2px solid transparent;font-family:inherit;width:100%;text-align:left;transition:color .15s,background .15s,border-color .15s;}
-    .ps-nav-item:hover{color:rgba(240,244,255,0.88);background:rgba(177,201,251,0.07);}
-    .ps-nav-item.ps-active{color:#b1c9fb;border-left-color:#b1c9fb;background:rgba(177,201,251,0.07);font-weight:500;}
-    .ps-nav-item.ps-disabled{color:rgba(177,201,251,0.25);cursor:default;pointer-events:none;}
-    .ps-soon{font-size:9px;font-weight:600;letter-spacing:0.03em;background:rgba(177,201,251,0.08);color:rgba(177,201,251,0.30);border-radius:5px;padding:1px 5px;white-space:nowrap;}
-    .ps-content{flex:1;min-width:0;}
-    @media(max-width:680px){.ps-layout{flex-direction:column;}.ps-sidenav{width:100%;position:static;border-radius:10px;padding:6px;display:flex;flex-wrap:wrap;gap:0;}.ps-sidenav-title{display:none;}.ps-nav-item{width:auto;border-left:none;border-radius:8px;padding:7px 12px;}}
+    /* Pro Shop layout — sidebar matches the Communications log: white column on a grey page,
+       coloured dots, blue tint on the active item */
+    .main{padding:0;}
+    .ps-layout{display:flex;align-items:flex-start;min-height:calc(100vh - 56px);}
+    .ps-sidebar{width:224px;flex-shrink:0;background:#fff;border-right:1px solid rgba(0,0,0,0.07);padding:18px 12px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;}
+    .sb-label{font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#94a3b8;margin:0 6px 8px;}
+    .sb-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;border:none;background:transparent;color:#475569;font-size:15px;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;}
+    .sb-btn:hover{background:rgba(44,92,156,0.07);color:var(--text);}
+    .sb-btn.active{background:rgba(44,92,156,0.1);color:#2c5c9c;font-weight:600;}
+    .sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .sb-pill{margin-left:auto;background:#2c5c9c;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:100px;}
+    .ps-content{flex:1;min-width:0;padding:24px 32px 80px;}
+    .mf-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+    .mf-tab{display:inline-flex;align-items:center;padding:8px 14px;border-radius:100px;border:1.5px solid rgba(44,92,156,0.2);background:var(--surface);color:#475569;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+    .mf-tab.on{background:rgba(44,92,156,0.1);border-color:rgba(44,92,156,0.4);color:#2c5c9c;}
+    @media(max-width:680px){
+      .ps-layout{flex-direction:column;align-items:stretch;}
+      .ps-sidebar{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid rgba(0,0,0,0.07);padding:10px 12px;display:flex;flex-wrap:wrap;gap:4px;}
+      .sb-label{display:none;}.sb-btn{width:auto;}
+      .ps-content{padding:16px 14px 80px;}
+    }
 
     /* Global nav moved into the top strip (no left hub sidenav) — full content width */
     body{padding-left:0;}
@@ -122,7 +132,6 @@
 
     /* ── Academy Apparel ── */
     .ap-mgmt-tag{display:inline-block;vertical-align:middle;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--blue);background:rgba(44,92,156,0.10);border-radius:100px;padding:3px 10px;}
-    .ps-badge{font-size:10px;font-weight:700;background:#f59e0b;color:#111e40;border-radius:100px;padding:1px 7px;min-width:18px;text-align:center;}
     .ap-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
     .ap-tab{padding:7px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
     .ap-tab:hover{color:var(--text);border-color:var(--blue);}
@@ -209,14 +218,10 @@
     <div class="ps-layout">
 
       <!-- Sidebar nav -->
-      <nav class="ps-sidenav">
-        <div class="ps-sidenav-title">Pro Shop</div>
-        <button class="ps-nav-item ps-active" onclick="showSection('stringing',this)">Stringing</button>
-        <button class="ps-nav-item" id="nav-apparel" style="display:none" onclick="showSection('apparel',this)">Academy Apparel <span class="ps-badge" id="apparel-badge" style="display:none"></span></button>
-        <button class="ps-nav-item ps-disabled">Rackets <span class="ps-soon">soon</span></button>
-        <button class="ps-nav-item ps-disabled">Merchandise <span class="ps-soon">soon</span></button>
-        <button class="ps-nav-item ps-disabled">Supplies <span class="ps-soon">soon</span></button>
-        <button class="ps-nav-item ps-disabled">Drinks &amp; Snacks <span class="ps-soon">soon</span></button>
+      <nav class="ps-sidebar">
+        <div class="sb-label">Pro Shop</div>
+        <button class="sb-btn active" id="nav-stringing" onclick="showSection('stringing',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Stringing</button>
+        <button class="sb-btn" id="nav-merch" style="display:none" onclick="showSection('merchandise',this)"><span class="sb-dot" style="background:#d97706"></span>Merchandise <span class="sb-pill" id="apparel-badge" style="display:none"></span></button>
       </nav>
 
       <!-- Content -->
@@ -265,9 +270,17 @@
           </div>
         </div><!-- /section-stringing -->
 
-        <!-- Section: Academy Apparel -->
-        <div id="section-apparel" style="display:none">
-          <div class="page-head"><h1>Academy Apparel <span class="ap-mgmt-tag">Management only</span></h1></div>
+        <!-- Section: Merchandise -->
+        <div id="section-merchandise" style="display:none">
+          <div class="page-head"><h1>Merchandise</h1></div>
+          <div class="page-sub">Pro shop merchandise and issued apparel.</div>
+
+          <div class="mf-tabs">
+            <button class="mf-tab on" type="button">Performance Academy T-Shirts</button>
+            <span class="ap-mgmt-tag" style="margin-left:0">Management only</span>
+          </div>
+
+          <div id="mf-tshirts">
           <div class="page-sub">Free Performance Academy tees for junior classes and pros. Logged by class (no student names), no money involved.</div>
 
           <div class="ap-tabs">
@@ -354,7 +367,8 @@
               </div>
             </div>
           </div>
-        </div><!-- /section-apparel -->
+          </div><!-- /mf-tshirts -->
+        </div><!-- /section-merchandise -->
 
       </div><!-- /ps-content -->
     </div><!-- /ps-layout -->
@@ -494,8 +508,8 @@
     const apAllowed = () => !!me && ['admin','manager'].includes(me.role);
     async function apRefresh(){
       if(!apAllowed()) return;
-      $('nav-apparel').style.display='';
-      if(!AP.hashHandled){ AP.hashHandled=true; if(location.hash==='#apparel') showSection('apparel',$('nav-apparel')); }   // deep link, once we know the user is allowed
+      $('nav-merch').style.display='';
+      if(!AP.hashHandled){ AP.hashHandled=true; if(/^#(merchandise|apparel)$/.test(location.hash)) showSection('merchandise',$('nav-merch')); }   // deep link, once we know the user is allowed
       const [sum,reqs,byClass]=await Promise.all([apJson('/api/apparel/summary'),apJson('/api/apparel/requests'),apJson('/api/apparel/by-class')]);
       if(!sum) return;
       AP.sum=sum; AP.reqs=reqs||[]; AP.byClass=byClass||[];
@@ -662,8 +676,8 @@
     }
 
     function showSection(id, btn) {
-      document.querySelectorAll('.ps-nav-item').forEach(b => b.classList.remove('ps-active'));
-      if (btn) btn.classList.add('ps-active');
+      document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
       document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
       const el = document.getElementById('section-' + id);
       if (el) el.style.display = '';
@@ -675,5 +689,7 @@
   <script src="/live-sync.js"></script>
   <script src="/app-version.js"></script>
   <script src="/chat-widget.js"></script>
+  <script src="/topnav.js"></script>
+  <script src="/notif-bell.js"></script>
 </body>
 </html>
