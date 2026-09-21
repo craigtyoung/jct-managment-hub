@@ -3245,6 +3245,90 @@ function getApparelPros() {
     .map(s => ({ id: s.id, name: s.name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// ─── Office inbox alert ───────────────────────────────────────────────────────
+// A Google Apps Script running INSIDE the shared office Gmail account posts the unread list
+// (sender, subject, time only — never bodies) to the hub every minute, guarded by a shared secret.
+// No Gmail password is ever stored. We keep just the latest snapshot + a bounded list of seen ids.
+const OFFICE_MAIL_STALE_MS = 10 * 60 * 1000;      // no sync for 10 min → the card says "not checking"
+const OFFICE_MAIL_ALERT_WINDOW_MS = 60 * 60 * 1000; // only ping for mail that arrived in the last hour
+function _officeMail() {
+  if (!_data.office_mail || typeof _data.office_mail !== 'object') {
+    _data.office_mail = { secret: '', mailbox: 'jctennisoffice@gmail.com', notify_roles: ['staff', 'manager'], last_sync_at: null, unread_count: 0, threads: [], seen_ids: [] };
+  }
+  return _data.office_mail;
+}
+function getOfficeMailSetup() {
+  const m = _officeMail();
+  if (!m.secret) { m.secret = require('crypto').randomBytes(24).toString('hex'); save(); }   // created the first time an admin opens setup
+  return { secret: m.secret, mailbox: m.mailbox, notify_roles: m.notify_roles, last_sync_at: m.last_sync_at, unread_count: m.unread_count };
+}
+function regenerateOfficeMailSecret() {
+  const m = _officeMail(); m.secret = require('crypto').randomBytes(24).toString('hex'); save();
+  return getOfficeMailSetup();
+}
+function updateOfficeMailSettings(f) {
+  const m = _officeMail();
+  if (typeof f.mailbox === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.mailbox.trim())) m.mailbox = f.mailbox.trim().slice(0, 120);
+  if (Array.isArray(f.notify_roles)) m.notify_roles = f.notify_roles.filter(r => ['admin', 'manager', 'staff'].includes(r));
+  save();
+  return getOfficeMailSetup();
+}
+// Constant-time check; an empty/unset secret never matches, so the endpoint is closed until an admin opens setup.
+function checkOfficeMailSecret(candidate) {
+  const m = _officeMail();
+  if (!m.secret || typeof candidate !== 'string' || !candidate) return false;
+  const crypto = require('crypto');
+  const a = crypto.createHash('sha256').update(candidate).digest(), b = crypto.createHash('sha256').update(m.secret).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+function _mailFrom(raw) {
+  const s = String(raw || '').trim();
+  const named = s.match(/^\s*"?([^"<]+?)"?\s*<[^>]*>\s*$/);   // "Name" <addr>  →  Name
+  return (named ? named[1] : s.replace(/[<>]/g, '')).trim().slice(0, 80) || 'Unknown sender';
+}
+// Store the latest snapshot. Returns which threads are NEW to us (for pings) and whether anything changed.
+function recordOfficeMailSync(p) {
+  if (!p || typeof p !== 'object') return { error: 'Bad payload' };
+  const count = parseInt(p.unread_count);
+  if (!(count >= 0) || count > 100000) return { error: 'Bad unread_count' };
+  const raw = Array.isArray(p.threads) ? p.threads.slice(0, 25) : [];
+  const threads = raw.map(t => ({
+    id: String((t && t.id) || '').slice(0, 64),
+    from: _mailFrom(t && t.from),
+    subject: String((t && t.subject) || '(no subject)').replace(/\s+/g, ' ').trim().slice(0, 160) || '(no subject)',
+    received_at: (t && !isNaN(Date.parse(t.received_at))) ? new Date(t.received_at).toISOString() : null,
+  })).filter(t => t.id);
+  const m = _officeMail();
+  const first = !m.last_sync_at;
+  const seen = new Set(m.seen_ids || []);
+  const prevIds = (m.threads || []).map(t => t.id).join(',');
+  const fresh = threads.filter(t => !seen.has(t.id));
+  m.threads = threads; m.unread_count = count; m.last_sync_at = now();
+  m.seen_ids = [...new Set([...(m.seen_ids || []), ...threads.map(t => t.id)])].slice(-400);
+  const changed = first || fresh.length > 0 || prevIds !== threads.map(t => t.id).join(',');
+  save();
+  // No pings on the very first sync (existing backlog) and none for old mail the hub is only now learning about.
+  const cutoff = Date.now() - OFFICE_MAIL_ALERT_WINDOW_MS;
+  const newThreads = first ? [] : fresh.filter(t => t.received_at && Date.parse(t.received_at) >= cutoff);
+  return { ok: true, changed, newThreads };
+}
+function getOfficeMailStatus() {
+  const m = _officeMail();
+  const last = m.last_sync_at ? Date.parse(m.last_sync_at) : null;
+  const times = (m.threads || []).map(t => t.received_at).filter(Boolean).sort();
+  return {
+    configured: !!last, mailbox: m.mailbox, last_sync_at: m.last_sync_at,
+    stale: last ? (Date.now() - last > OFFICE_MAIL_STALE_MS) : false,
+    unread_count: m.unread_count || 0,
+    oldest_at: times[0] || null, newest_at: times[times.length - 1] || null,
+    threads: (m.threads || []).slice(0, 5).map(t => ({ from: t.from, subject: t.subject, received_at: t.received_at })),
+  };
+}
+function getOfficeMailRecipients() {
+  const roles = _officeMail().notify_roles || [];
+  return (_data.staff || []).filter(s => roles.includes(s.role)).map(s => s.id);
+}
+
 // ─── Knowledge base (feeds the AI assistant) ───────────────────────────────────
 
 function getKnowledgeDocs() {
@@ -4465,6 +4549,8 @@ module.exports = {
   getApparelRequests, addApparelRequest, approveApparelRequest, declineApparelRequest,
   cancelApparelRequest, issueApparelRequest, reverseApparelRequest,
   addApparelStock, getApparelMoves, getApparelByClass, getApparelPros,
+  getOfficeMailSetup, regenerateOfficeMailSecret, updateOfficeMailSettings, checkOfficeMailSecret,
+  recordOfficeMailSync, getOfficeMailStatus, getOfficeMailRecipients,
   getKnowledgeDocs,
   getKnowledgeForPrompt,
   createKnowledgeDoc,

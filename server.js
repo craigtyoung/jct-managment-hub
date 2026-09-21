@@ -49,6 +49,7 @@ const coverageRoutes    = require('./routes/coverage');
 const waitlistRoutes    = require('./routes/waitlist');
 const proshopRoutes     = require('./routes/proshop');
 const apparelRoutes     = require('./routes/apparel');
+const officeMailRoutes  = require('./routes/office-mail');
 const knowledgeRoutes   = require('./routes/knowledge');
 const bubbleRoutes      = require('./routes/bubble');
 const contractorRoutes  = require('./routes/contractor');
@@ -63,6 +64,10 @@ const membersRoutes     = require('./routes/members');
 const lessonWaitlistRoutes = require('./routes/lesson-waitlist');
 
 app.use('/api/auth', authRoutes);
+
+// Public but secret-guarded: the office Gmail's Apps Script posts the unread list here (no session
+// possible from Google). Mounted before the /api login guard; refuses anything without the secret.
+app.post('/api/office-mail/webhook', officeMailRoutes.webhook);
 
 // Public (no-login) read-only pro schedule — feeds the shareable /pro-schedule-view.html
 // page so pros can glance at times without signing in. First names + class/court/time
@@ -125,6 +130,7 @@ app.use('/api/coverage',     requireAuth, coverageRoutes);
 app.use('/api/waitlist',     requireAuth, waitlistRoutes);
 app.use('/api/proshop',      requireAuth, proshopRoutes);
 app.use('/api/apparel',       requireAuth, apparelRoutes);
+app.use('/api/office-mail',   requireAuth, officeMailRoutes);
 app.use('/api/knowledge',    requireAuth, knowledgeRoutes);
 app.use('/api/bubble',       requireAuth, bubbleRoutes);
 app.use('/api/contractor',   requireAuth, contractorRoutes);

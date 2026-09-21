@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Office Inbox Link · JCT</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root{
+      --navy:#0c1738; --blue:#2c5c9c;
+      --bg:#f1f5f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border2:#d4dae6;
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8; --canvas:#f8fafc;
+      --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;}
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100;}
+    .qnav-wrap{display:flex;align-items:center;gap:2px;flex-wrap:wrap;min-width:0;}
+    .qnav{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;text-decoration:none;color:var(--text-2);font-size:13px;font-weight:600;border:1px solid transparent;transition:all .15s;}
+    .qnav svg{width:16px;height:16px;}
+    .qnav:hover{background:#eef2f8;color:var(--text);}
+    .qnav.qnav-active{background:rgba(44,92,156,0.10);color:var(--blue);}
+    .ts-right{display:flex;align-items:center;gap:10px;}
+    .ts-signout{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-3);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+    .ts-signout:hover{color:var(--red);border-color:rgba(220,38,38,0.3);}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;overflow:hidden;}
+    @media(max-width:900px){.qnav span{display:none;}}
+
+    .main{max-width:880px;margin:0 auto;padding:24px 20px 80px;}
+    h1{font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+    .sub{color:var(--text-2);font-size:13px;margin:4px 0 18px;line-height:1.5;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;}
+    .status{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--text-3);flex-shrink:0;}
+    .dot.ok{background:var(--green);} .dot.bad{background:var(--red);}
+    .status small{font-weight:500;color:var(--text-2);}
+    ol.steps{padding-left:20px;display:flex;flex-direction:column;gap:11px;font-size:14px;line-height:1.5;}
+    ol.steps li b{font-weight:700;}
+    ol.steps .note{display:block;font-size:12.5px;color:var(--text-2);margin-top:3px;}
+    textarea.script{width:100%;height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--canvas);color:var(--text);resize:vertical;margin:12px 0 10px;}
+    .btn{padding:9px 16px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+    .btn:hover{background:var(--blue);border-color:var(--blue);}
+    .btn.ghost{background:transparent;color:var(--text-2);border-color:var(--border2);}
+    .btn.ghost:hover{color:var(--red);border-color:var(--red);background:transparent;}
+    .fld{display:flex;flex-direction:column;gap:4px;max-width:360px;margin-bottom:12px;}
+    .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+    .fld input{font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);}
+    .check{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;cursor:pointer;}
+    .check input{width:15px;height:15px;accent-color:var(--blue);}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .denied{padding:40px;text-align:center;color:var(--text-2);}
+  </style>
+</head>
+<body>
+  <div class="topstrip">
+    <div class="qnav-wrap">
+      <a href="/hub.html" class="qnav" title="Dashboard"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg><span>Dashboard</span></a>
+      <span class="qnav qnav-active" title="Office inbox link"><span>Office inbox link</span></span>
+    </div>
+    <div class="ts-right">
+      <div class="sidenav-avatar" id="nav-avatar"></div>
+      <button class="ts-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <main class="main" id="main" style="display:none">
+    <h1>Office inbox link</h1>
+    <p class="sub">Shows front desk when new email lands in the shared office inbox. A small script inside that Gmail account tells the hub the sender, subject and time of unread mail. <b>Email bodies never leave Gmail, and no Gmail password is used or stored here.</b> Admins only.</p>
+
+    <div class="card">
+      <div class="card-title">Status</div>
+      <div class="status"><span class="dot" id="st-dot"></span><span id="st-text">Loading…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Set it up (about ten minutes, once)</div>
+      <ol class="steps">
+        <li><b>Sign in to Gmail as the office account</b> (<span id="mb1">jctennisoffice@gmail.com</span>) in a browser.</li>
+        <li><b>Open <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> → New project.</b> Delete the sample code, click <b>Copy script</b> below, paste it in, and save (name it "JCT Hub inbox alert").</li>
+        <li><b>Pick <code>setup</code> in the toolbar's function menu and click Run.</b> Google asks for permission.
+          <span class="note">Google will say "Google hasn't verified this app". That's normal for your own script: click <b>Advanced → Go to JCT Hub inbox alert → Allow</b>. Google's wording ("read, compose, send…") is its standard text for anything touching Gmail. This script only reads sender, subject and time, and you can read every line of it below.</span></li>
+        <li><b>Come back here.</b> The status above turns green within a minute or two.</li>
+        <li><b>Send a test email</b> to the office address. The dashboard card and a phone ping should show up within about a minute.</li>
+      </ol>
+      <textarea class="script" id="script" readonly spellcheck="false"></textarea>
+      <button class="btn" onclick="copyScript()">Copy script</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Settings</div>
+      <div class="fld"><label>Office mailbox</label><input type="email" id="mailbox" autocomplete="off"></div>
+      <div class="card-title" style="margin-top:6px">Who gets a phone ping for new mail</div>
+      <label class="check"><input type="checkbox" data-role="staff"> Front desk staff</label>
+      <label class="check"><input type="checkbox" data-role="manager"> Managers</label>
+      <label class="check"><input type="checkbox" data-role="admin"> Admins</label>
+      <div style="font-size:12px;color:var(--text-3);margin:6px 0 12px">Only people who have turned on the bell (top right) get pings.</div>
+      <button class="btn" onclick="saveSettings()">Save settings</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Reset</div>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:10px">Make a new secret if the script was ever shared or you want to start over. The old script stops working, and you paste the new one in (steps 2–3).</p>
+      <button class="btn ghost" onclick="regenerate()">Make a new secret</button>
+    </div>
+  </main>
+  <div class="denied" id="denied" style="display:none">This page is for admins only.</div>
+  <div class="toast" id="toast"></div>
+
+  <!-- Script template. __HUB_URL__ and __SECRET__ are filled in by this page. -->
+  <script type="text/plain" id="tpl">/**
+ * JCT Staff Hub: office inbox alert.
+ * Runs inside the shared office Gmail account. Once a minute it tells the hub how many
+ * unread emails there are, plus sender, subject and time for the newest ones.
+ * Email bodies are never sent. To stop it: delete the trigger (clock icon) or this project.
+ */
+var HUB_URL = '__HUB_URL__';
+var HUB_SECRET = '__SECRET__';
+var MAX_SENT = 20;       // newest unread conversations described to the hub
+var MAX_COUNTED = 100;   // unread count is capped here
+
+// Run this ONCE (pick "setup" in the toolbar, then Run). It creates the every-minute timer.
+function setup() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('checkInbox').timeBased().everyMinutes(1).create();
+  checkInbox();
+}
+
+function checkInbox() {
+  var props = PropertiesService.getScriptProperties();
+  var known = {};
+  try { known = JSON.parse(props.getProperty('known') || '{}'); } catch (e) {}
+
+  // Unread conversations in the inbox, ignoring the Promotions / Social / Updates / Forums tabs.
+  var threads = GmailApp.search('in:inbox is:unread -category:promotions -category:social -category:updates -category:forums', 0, MAX_COUNTED);
+  var next = {}, items = [];
+  threads.slice(0, MAX_SENT).forEach(function (t) {
+    // A new message in an old conversation counts as new mail, so the id includes the last-message time.
+    var key = t.getId() + ':' + t.getLastMessageDate().getTime();
+    var info = known[key];
+    if (!info) {
+      var msgs = t.getMessages();
+      var unread = msgs.filter(function (m) { return m.isUnread(); });
+      var m = unread.length ? unread[unread.length - 1] : msgs[msgs.length - 1];
+      info = { id: key, from: String(m.getFrom()).slice(0, 80), subject: String(t.getFirstMessageSubject()).slice(0, 120), received_at: m.getDate().toISOString() };
+    }
+    next[key] = info;
+    items.push(info);
+  });
+  props.setProperty('known', JSON.stringify(next));
+
+  UrlFetchApp.fetch(HUB_URL, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'X-Hub-Secret': HUB_SECRET },
+    payload: JSON.stringify({ unread_count: threads.length, threads: items }),
+    muteHttpExceptions: true
+  });
+}
+</script>
+
+  <script src="/staff-avatar.js"></script>
+  <script>
+    let me=null;
+    const $=id=>document.getElementById(id);
+    function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+    async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}location.href='/login.html';}
+    async function send(method,url,body){
+      const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+      let d={}; try{d=await r.json();}catch(e){}
+      if(!r.ok){ toast(d.error||'Could not save'); return null; }
+      return d;
+    }
+    function fill(setup){
+      $('mailbox').value=setup.mailbox; $('mb1').textContent=setup.mailbox;
+      document.querySelectorAll('[data-role]').forEach(c=>{ c.checked=setup.notify_roles.includes(c.dataset.role); });
+      $('script').value=$('tpl').textContent.replace('__HUB_URL__',location.origin+'/api/office-mail/webhook').replace('__SECRET__',setup.secret);
+    }
+    async function status(){
+      const r=await fetch('/api/office-mail/status'); if(!r.ok) return;
+      const s=await r.json(); const dot=$('st-dot'), txt=$('st-text');
+      if(!s.configured){ dot.className='dot'; txt.innerHTML='Waiting for the first check <small>· finish the steps below</small>'; return; }
+      const mins=Math.round((Date.now()-Date.parse(s.last_sync_at))/60000);
+      const ago=mins<1?'just now':mins+' min ago';
+      if(s.stale){ dot.className='dot bad'; txt.innerHTML='Not checking <small>· last check '+ago+'. Is the script still set up?</small>'; }
+      else { dot.className='dot ok'; txt.innerHTML='Connected <small>· last check '+ago+' · '+s.unread_count+' unread</small>'; }
+    }
+    async function copyScript(){
+      const ta=$('script'); ta.select();
+      try{ await navigator.clipboard.writeText(ta.value); toast('Script copied'); }
+      catch(e){ document.execCommand('copy'); toast('Script copied'); }
+    }
+    async function saveSettings(){
+      const roles=[...document.querySelectorAll('[data-role]')].filter(c=>c.checked).map(c=>c.dataset.role);
+      const d=await send('PUT','/api/office-mail/settings',{mailbox:$('mailbox').value.trim(),notify_roles:roles});
+      if(d){ fill(d); toast('Saved'); }
+    }
+    async function regenerate(){
+      if(!confirm('Make a new secret? The current script will stop working until you paste the new one in.')) return;
+      const d=await send('POST','/api/office-mail/setup/regenerate'); if(d){ fill(d); toast('New secret made. Copy the new script.'); }
+    }
+    (async function init(){
+      let r; try{ r=await fetch('/api/me'); }catch(e){}
+      if(!r||!r.ok){ location.href='/login.html'; return; }
+      me=await r.json();
+      if(window.staffAvatar) staffAvatar($('nav-avatar'),me.id,me.name,me.color||'#2c5c9c');
+      if(me.role!=='admin'){ $('denied').style.display='block'; return; }
+      const s=await fetch('/api/office-mail/setup'); if(!s.ok){ $('denied').style.display='block'; return; }
+      fill(await s.json()); $('main').style.display='block';
+      status(); setInterval(status,30000);
+    })();
+    window.onLiveUpdate=status;
+  </script>
+  <script src="/live-sync.js"></script>
+  <script src="/app-version.js"></script>
+  <script src="/topnav.js"></script>
+  <script src="/notif-bell.js"></script>
+</body>
+</html>
