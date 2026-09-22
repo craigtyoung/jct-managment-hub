@@ -127,25 +127,43 @@ router.post('/:id/read', (req, res) => {
   res.json({ ok: true });
 });
 
-// POST reply
+// POST reply — optionally addressed to a specific earlier reply (a threaded reply-to-
+// reply) via `parentReplyId`; omitted/falsy means it replies to the root note.
 router.post('/:id/reply', (req, res) => {
-  const { content } = req.body;
+  const { content, parentReplyId } = req.body;
   if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
   const msg = db.getMessage(req.params.id);
   if (!msg) return res.status(404).json({ error: 'Message not found' });
-  db.createReply({ messageId: req.params.id, staffId: req.actingStaffId, content: content.trim() });
-  // Notify the original author when someone else replies to their note (push).
-  try {
-    if (msg.staff_id && msg.staff_id !== req.actingStaffId) {
+
+  // Resolve who this reply is directed at: the author of the specific reply being
+  // answered, or the note's original author when replying to the root note.
+  let targetStaffId = msg.staff_id;
+  let resolvedParentId = null;
+  if (parentReplyId) {
+    const parent = db.getReply(parentReplyId);
+    if (parent && parent.message_id === parseInt(req.params.id)) {
+      targetStaffId = parent.staff_id;
+      resolvedParentId = parent.id;
+    }
+  }
+
+  db.createReply({ messageId: req.params.id, staffId: req.actingStaffId, content: content.trim(), parentReplyId: resolvedParentId });
+
+  // Notify only the person being replied to — never the whole thread — by resurfacing
+  // the note as unread for them (dashboard/comms badge) and pushing a ping. Skip when
+  // replying to yourself.
+  if (targetStaffId && targetStaffId !== req.actingStaffId) {
+    db.markUnread(req.params.id, targetStaffId);
+    try {
       const replier = db.getStaffById(req.actingStaffId);
-      push.sendToStaff([msg.staff_id], {
-        title: (replier ? replier.name : 'Someone') + ' replied to your note',
+      push.sendToStaff([targetStaffId], {
+        title: (replier ? replier.name : 'Someone') + ' replied to your ' + (resolvedParentId ? 'reply' : 'note'),
         body: content.trim().slice(0, 140),
         url: '/comms.html',
         tag: 'jct-comms-reply-' + req.params.id,
       });
-    }
-  } catch (e) { console.error('reply push failed:', e.message); }
+    } catch (e) { console.error('reply push failed:', e.message); }
+  }
   sse.broadcast('update');
   res.json({ ok: true });
 });

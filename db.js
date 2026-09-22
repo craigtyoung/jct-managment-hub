@@ -230,7 +230,7 @@ if (!_data) {
     ],
     messages: [],
     reads: [],    // { id, message_id, staff_id, read_at }
-    replies: [],  // { id, message_id, staff_id, content, created_at }
+    replies: [],  // { id, message_id, staff_id, content, parent_reply_id, created_at }
   };
   save();
   console.log('Data store created. Default password for all: jct2026');
@@ -2041,13 +2041,25 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
       })
       .sort((a, b) => new Date(a.read_at) - new Date(b.read_at));
 
-    const replies = _data.replies
+    const rawReplies = _data.replies
       .filter(r => r.message_id === msg.id)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(r => {
-        const rs = allStaff.find(s => s.id === r.staff_id) || {};
-        return { id: r.id, content: r.content, created_at: r.created_at, author_id: rs.id, author_name: rs.name, author_color: rs.color };
-      });
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const replyById = new Map(rawReplies.map(r => [r.id, r]));
+    const replies = rawReplies.map(r => {
+      const rs = allStaff.find(s => s.id === r.staff_id) || {};
+      const parent = r.parent_reply_id ? replyById.get(r.parent_reply_id) : null;
+      const parentAuthor = parent ? (allStaff.find(s => s.id === parent.staff_id) || {}) : null;
+      return {
+        id: r.id,
+        content: r.content,
+        created_at: r.created_at,
+        author_id: rs.id,
+        author_name: rs.name,
+        author_color: rs.color,
+        parent_reply_id: r.parent_reply_id || null,
+        parent_author_name: parentAuthor ? parentAuthor.name : null,
+      };
+    });
 
     const is_read_by_me = _data.reads.some(r => r.message_id === msg.id && r.staff_id === parseInt(staffId));
 
@@ -2137,6 +2149,15 @@ function markRead(messageId, staffId) {
   }
 }
 
+// Resurface a note as unread for one specific person — used when a reply lands that's
+// addressed to them, so it reappears in their unread badge/feed without notifying
+// anyone else on the thread.
+function markUnread(messageId, staffId) {
+  const mid = parseInt(messageId), sid = parseInt(staffId);
+  _data.reads = _data.reads.filter(r => !(r.message_id === mid && r.staff_id === sid));
+  save();
+}
+
 function getUnreadCount(staffId, audience) {
   const sid = parseInt(staffId);
   const viewer = _data.staff.find(s => s.id === sid);
@@ -2148,24 +2169,36 @@ function getUnreadCount(staffId, audience) {
   const todayStr = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   return _data.messages.filter(msg => {
     if ((msg.audience || 'office') !== aud) return false;    // other audience's log
-    if (msg.staff_id === sid) return false;                 // own messages don't count
     if (msg.show_on && msg.show_on > todayStr) return false; // scheduled for a future day
-    const isRecipient = msg.recipients
-      ? (Array.isArray(msg.recipients) && msg.recipients.includes(sid))
-      : true;                                                // everyone within this audience
-    if (!isRecipient) return false;                          // not relevant to this person
+    // Reaches this person if they authored it, it targets them, or it's an everyone-note
+    // within their audience. Authored notes are included (not auto-excluded) because a
+    // reply addressed to the author resurfaces their own note as unread — see markUnread.
+    const reachesMe = msg.staff_id === sid
+      || (Array.isArray(msg.recipients) ? msg.recipients.includes(sid) : true);
+    if (!reachesMe) return false;
     return !_data.reads.some(r => r.message_id === msg.id && r.staff_id === sid);
   }).length;
 }
 
 // ─── Replies ──────────────────────────────────────────────────────────────────
 
-function createReply({ messageId, staffId, content }) {
+function createReply({ messageId, staffId, content, parentReplyId }) {
   const id = nextId('replies');
-  _data.replies.push({ id, message_id: parseInt(messageId), staff_id: parseInt(staffId), content, created_at: now() });
+  _data.replies.push({
+    id,
+    message_id: parseInt(messageId),
+    staff_id: parseInt(staffId),
+    content,
+    parent_reply_id: parentReplyId ? parseInt(parentReplyId) : null,
+    created_at: now(),
+  });
   markRead(messageId, staffId);
   save();
   return id;
+}
+
+function getReply(id) {
+  return _data.replies.find(r => r.id === parseInt(id));
 }
 
 // ─── Delete / Admin ───────────────────────────────────────────────────────────
@@ -4913,8 +4946,10 @@ module.exports = {
   setMessageImage,
   getMessage,
   markRead,
+  markUnread,
   getUnreadCount,
   createReply,
+  getReply,
   deleteMessage,
   editMessage,
   setUrgentCleared,

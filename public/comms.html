@@ -225,32 +225,21 @@
     .receipt-check svg { width: 8px; height: 8px; stroke: white; stroke-width: 2.5; }
     .receipts-label { font-size: 12px; color: var(--text3); font-weight: 500; }
 
-    /* ── Two-column body: note on the left, per-person read/reply rail on the right ── */
+    /* ── Message body: per-person read rail on top, note + reply thread below ── */
     .msg-body-grid {
       display: grid;
-      grid-template-columns: var(--note-pct, 56%) 16px minmax(150px, 1fr);
-      grid-template-areas: "team team team" "note gutter detail";
-      column-gap: 0; row-gap: 14px; align-items: start;
-    }
-    @media (max-width: 900px) {
-      .msg-body-grid { grid-template-columns: 1fr; grid-template-areas: "team" "note" "detail"; }
-      .msg-gutter { display: none; }
+      grid-template-columns: 1fr;
+      grid-template-areas: "team" "note";
+      row-gap: 14px; align-items: start;
     }
     .msg-col-team   { grid-area: team; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 13px; border-bottom: 1px solid var(--border2); }
-    .msg-col-note   { grid-area: note; min-width: 0; padding-right: 10px; }
-    .msg-col-detail { grid-area: detail; min-width: 0; padding-left: 10px; }
-    /* Draggable divider between the note and the comments */
-    .msg-gutter { grid-area: gutter; position: relative; cursor: col-resize; align-self: stretch; }
-    .msg-gutter::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border2); transform: translateX(-50%); transition: background 0.15s, width 0.15s; }
-    .msg-gutter:hover::before, .msg-gutter.dragging::before { background: #2c5c9c; width: 3px; }
+    .msg-col-note   { grid-area: note; min-width: 0; }
     .team-label { margin: 0; flex-shrink: 0; }
     .rail-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
     .rail-person { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 13px; }
     .rail-person-info { min-width: 0; flex: 1; }
     .rail-person-name { font-size: 13px; font-weight: 700; }
     .rail-person-status { font-size: 11px; color: var(--text3); margin-top: 1px; }
-    .rail-comment { font-size: 13px; color: var(--text); line-height: 1.45; background: var(--input-bg); border: 1px solid var(--border2); border-radius: 9px; padding: 6px 10px; margin-top: 6px; white-space: pre-wrap; word-break: break-word; }
-    .rail-comment-time { display: block; font-size: 10px; color: var(--text3); margin-top: 3px; }
     /* Named chips for who's seen the note — a horizontal line at the top */
     .rail-avatars { display: flex; flex-wrap: wrap; gap: 8px; }
     .seen-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border: 1px solid var(--border2); border-radius: 100px; }
@@ -259,28 +248,23 @@
     .seen-check { width: 15px; height: 15px; border-radius: 50%; background: #10b981; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .seen-check svg { width: 9px; height: 9px; stroke: white; stroke-width: 2.5; }
     .seen-dot { width: 9px; height: 9px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; }
-    /* Comments panel (column 3) — all comments in order, scrollable when long */
-    .detail-panel { background: var(--input-bg); border: 1px solid var(--border2); border-radius: 12px; padding: 6px 14px; min-height: 60px; max-height: 240px; overflow-y: auto; }
-    .detail-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 8px 0; }
-    .detail-comment-item { padding: 9px 0; border-bottom: 1px solid var(--border2); }
-    .detail-comment-item:last-child { border-bottom: none; }
-    .dci-head { display: flex; align-items: baseline; gap: 8px; }
-    .dci-name { font-weight: 700; font-size: 13px; }
-    .dci-time { font-size: 11px; color: var(--text3); }
-    .dci-text { font-size: 14px; color: var(--text); line-height: 1.5; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
-    .rail-comments-expand { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .rail-comment-card { background: var(--input-bg); border: 1px solid var(--border2); border-radius: 10px; padding: 8px 11px; }
-    .rcc-name { font-weight: 700; font-size: 12px; }
-    .rcc-line { margin-top: 3px; }
-    .rcc-time { font-size: 10px; color: var(--text3); }
-    .rcc-text { font-size: 13px; color: var(--text); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 
-    /* ── Replies ── */
-    .replies-wrap { border-top: 1px solid var(--border2); padding-top: 12px; margin-bottom: 10px; }
-    .reply-item { display: flex; gap: 10px; margin-bottom: 10px; }
+    /* ── Replies thread (below the note, collapsible) ── */
+    .replies-toggle { display: flex; align-items: center; gap: 6px; background: transparent; border: none; padding: 8px 0; margin-top: 4px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--text2); user-select: none; }
+    .replies-toggle .chevron { width: 14px; height: 14px; margin-top: 0; }
+    .replies-wrap { border-top: 1px solid var(--border2); padding-top: 4px; margin-top: 4px; margin-bottom: 10px; }
+    .reply-item { display: flex; gap: 10px; padding: 10px 0; }
+    .reply-item + .reply-item { border-top: 1px solid var(--border2); }
+    .reply-parent-tag { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 2px; }
+    .reply-meta { display: flex; align-items: baseline; gap: 7px; }
     .reply-name { font-size: 14px; font-weight: 700; }
     .reply-time-txt { font-size: 12px; color: var(--text3); }
-    .reply-body { font-size: 14px; color: var(--text2); line-height: 1.55; }
+    .reply-body { font-size: 14px; color: var(--text2); line-height: 1.55; white-space: pre-wrap; word-break: break-word; margin-top: 2px; }
+    .reply-to-btn { background: transparent; border: none; padding: 4px 0 0; margin: 0; color: var(--text3); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .reply-to-btn:hover { color: #2c5c9c; }
+    .reply-parent-indicator { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); background: var(--input-bg); border: 1px solid var(--border2); border-radius: 8px; padding: 5px 9px; margin-bottom: 6px; }
+    .reply-parent-indicator button { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; margin-left: auto; }
+    .reply-parent-indicator button:hover { color: var(--text); }
 
     /* ── Actions ── */
     .msg-actions { display: flex; gap: 7px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border2); }
@@ -722,44 +706,6 @@
     const sel = document.getElementById('viewas-select');
     sel.style.display = (sel.style.display === 'none') ? '' : 'none';
     if (sel.style.display !== 'none') sel.focus();
-  }
-
-  // ── Draggable note/comments divider (shared split, persisted) ────────────────
-  (function () {
-    const saved = localStorage.getItem('jct-note-split');
-    const f = document.getElementById('feed');
-    if (saved && f) f.style.setProperty('--note-pct', saved);
-  })();
-
-  let gutterDrag = null;
-  function startGutterDrag(e) {
-    e.preventDefault();
-    const grid = e.currentTarget.closest('.msg-body-grid');
-    if (!grid) return;
-    gutterDrag = { grid, el: e.currentTarget };
-    e.currentTarget.classList.add('dragging');
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', onGutterMove);
-    window.addEventListener('mouseup', endGutterDrag);
-  }
-  function onGutterMove(e) {
-    if (!gutterDrag) return;
-    const rect = gutterDrag.grid.getBoundingClientRect();
-    let pct = ((e.clientX - rect.left) / rect.width) * 100;
-    pct = Math.max(32, Math.min(78, pct));
-    document.getElementById('feed').style.setProperty('--note-pct', pct.toFixed(1) + '%');
-  }
-  function endGutterDrag() {
-    if (!gutterDrag) return;
-    gutterDrag.el.classList.remove('dragging');
-    gutterDrag = null;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', onGutterMove);
-    window.removeEventListener('mouseup', endGutterDrag);
-    const v = document.getElementById('feed').style.getPropertyValue('--note-pct');
-    if (v) localStorage.setItem('jct-note-split', v.trim());
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1255,7 +1201,7 @@
     const readIds    = new Set((msg.reads||[]).map(r => r.id));
 
     // Unified per-person rail: everyone relevant to this note, each with their
-    // read status and any comment(s) they've left. Avatar hover shows their comment.
+    // read status and whether they've replied.
     const repliesByAuthor = {};
     (msg.replies||[]).forEach(r => { (repliesByAuthor[r.author_id] = repliesByAuthor[r.author_id] || []).push(r); });
 
@@ -1274,23 +1220,27 @@
       return `<div class="seen-chip ${hasRead?'':'unread-r'}" title="${esc(s.name + ' · ' + statusTxt)}">
         ${hasRead?`<span class="seen-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5"/></svg></span>`:''}
         <span class="seen-name" style="color:${s.color}">${esc(s.name)}</span>
-        ${hasComment?`<span class="seen-dot" title="left a comment"></span>`:''}
+        ${hasComment?`<span class="seen-dot" title="left a reply"></span>`:''}
       </div>`;
     }).join('');
 
     const railTitle = isTargeted ? 'Sent to' : 'Seen by';
 
-    // Detail column: all comments left on this note, in the order made (scrollable if long).
-    const detailComments = (msg.replies||[]).length
-      ? (msg.replies||[]).map(r => `
-          <div class="detail-comment-item">
-            <div class="dci-head">
-              <span class="dci-name" style="color:${r.author_color}">${esc(r.author_name)}</span>
-              <span class="dci-time">${new Date(r.created_at).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})}</span>
-            </div>
-            <div class="dci-text">${esc(r.content)}</div>
-          </div>`).join('')
-      : '<div class="detail-empty">No comments yet.</div>';
+    // Reply thread, rendered below the note — chronological, with a small tag on any
+    // reply that was itself aimed at an earlier reply rather than the root note.
+    const repliesThread = (msg.replies||[]).map(r => `
+      <div class="reply-item" data-reply-id="${r.id}">
+        <div class="avatar" style="width:28px;height:28px;font-size:11px;background:${r.author_color}18;color:${r.author_color};flex-shrink:0">${initials(r.author_name)}</div>
+        <div style="flex:1;min-width:0">
+          ${r.parent_author_name?`<div class="reply-parent-tag">↳ replying to ${esc(r.parent_author_name)}</div>`:''}
+          <div class="reply-meta">
+            <span class="reply-name" style="color:${r.author_color}">${esc(r.author_name)}</span>
+            <span class="reply-time-txt">${relTime(r.created_at)}</span>
+          </div>
+          <div class="reply-body">${esc(r.content)}</div>
+          <button type="button" class="reply-to-btn" onclick="event.stopPropagation();openReplyBox(${msg.id},${r.id})">Reply</button>
+        </div>
+      </div>`).join('');
 
     const toLabel = msg.recipients
       ? `<span class="msg-to">→ ${(msg.receipt_staff||[]).map(s=>s.name).join(', ')}</span>`
@@ -1333,6 +1283,12 @@
             <div class="msg-col-note">
               <div class="msg-content" id="content-${msg.id}">${esc(msg.content)}</div>
               ${msg.has_image ? `<img class="msg-image" src="/api/messages/${msg.id}/image" alt="attachment" loading="lazy" onclick="event.stopPropagation();window.open('/api/messages/${msg.id}/image','_blank')" style="margin-top:10px;max-width:100%;max-height:340px;border-radius:10px;border:1px solid var(--input-border);cursor:zoom-in;display:block">` : ''}
+              ${(msg.replies||[]).length ? `
+              <button type="button" class="replies-toggle" onclick="event.stopPropagation();toggleSection('replies-${msg.id}')">
+                <svg id="sec-chevron-replies-${msg.id}" class="chevron" style="transform:rotate(-90deg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+                Replies (${msg.replies.length})
+              </button>
+              <div class="replies-wrap" id="section-body-replies-${msg.id}" style="display:none">${repliesThread}</div>` : ''}
               <div class="msg-actions">
                 ${unread ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();markRead(${msg.id})">Mark as read</button>` : ''}
                 <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openReplyBox(${msg.id})">Reply</button>
@@ -1346,6 +1302,10 @@
                 </button>` : ''}
               </div>
               <div id="reply-box-${msg.id}" style="display:none;margin-top:10px">
+                <div class="reply-parent-indicator" id="reply-parent-indicator-${msg.id}">
+                  <span>Replying to <strong id="reply-parent-name-${msg.id}"></strong></span>
+                  <button type="button" onclick="event.stopPropagation();openReplyBox(${msg.id},null)" title="Reply to the note instead">✕</button>
+                </div>
                 <div class="reply-box-wrap">
                   <textarea class="reply-input" rows="2" placeholder="Write a reply..." id="reply-txt-${msg.id}"></textarea>
                   <div style="display:flex;flex-direction:column;gap:5px">
@@ -1355,11 +1315,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="msg-gutter" onmousedown="startGutterDrag(event)" title="Drag to resize"></div>
-            <div class="msg-col-detail">
-              <div class="rail-title">Comments</div>
-              <div class="detail-panel" id="detail-${msg.id}">${detailComments}</div>
             </div>
           </div>
         </div>
@@ -1377,28 +1332,25 @@
     if (prev) prev.style.display = open ? '' : 'none';
   }
 
-  // Populate a note's detail panel (column 3) with the hovered/tapped person's read status + comment.
-  function showDetail(msgId, staffId) {
-    const msg = messages.find(m => m.id === msgId); if (!msg) return;
-    const panel = document.getElementById('detail-' + msgId); if (!panel) return;
-    const s = (msg.receipt_staff||[]).find(x => x.id === staffId)
-           || allStaff.find(x => x.id === staffId) || { name:'', color:'var(--text)' };
-    const read = (msg.reads||[]).find(r => r.id === staffId);
-    const replies = (msg.replies||[]).filter(r => r.author_id === staffId);
-    const readTxt = read
-      ? '✓ read ' + new Date(read.read_at).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true})
-      : 'not yet read';
-    panel.innerHTML =
-      `<div class="detail-name" style="color:${s.color}">${esc(s.name)}</div>
-       <div class="detail-status">${readTxt}</div>` +
-      (replies.length
-        ? replies.map(r => `<div class="detail-comment">${esc(r.content)}<span class="detail-time">${relTime(r.created_at)}</span></div>`).join('')
-        : '<div class="detail-comment detail-empty">No comment left.</div>');
-  }
-
-  function openReplyBox(id) {
+  // Open the reply box for a note. Pass a parentReplyId to address the reply at a
+  // specific earlier reply (shown as a removable "Replying to X" indicator) instead of
+  // the root note.
+  function openReplyBox(id, parentReplyId) {
     const box = document.getElementById('reply-box-'+id);
     box.style.display = 'block';
+    box.dataset.parentReplyId = parentReplyId || '';
+    const indicator = document.getElementById('reply-parent-indicator-'+id);
+    const nameEl = document.getElementById('reply-parent-name-'+id);
+    if (indicator && nameEl) {
+      if (parentReplyId) {
+        const msg = messages.find(m => m.id === id);
+        const parent = msg && (msg.replies||[]).find(r => r.id === parentReplyId);
+        nameEl.textContent = parent ? parent.author_name : 'this reply';
+        indicator.style.display = 'flex';
+      } else {
+        indicator.style.display = 'none';
+      }
+    }
     const ta = document.getElementById('reply-txt-'+id);
     if (ta) ta.focus();
   }
@@ -1412,9 +1364,11 @@
     const ta = document.getElementById('reply-txt-'+id);
     const content = ta ? ta.value.trim() : '';
     if (!content) return;
+    const box = document.getElementById('reply-box-'+id);
+    const parentReplyId = box && box.dataset.parentReplyId ? parseInt(box.dataset.parentReplyId) : null;
     await fetch(`/api/messages/${id}/reply`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({content})
+      body: JSON.stringify({content, parentReplyId})
     });
     await loadAll();
   }
