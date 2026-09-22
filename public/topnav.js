@@ -34,9 +34,6 @@
     { href: '/schedule.html',     label: 'Schedule',   icon: I.cal },
     { href: '/timesheet.html',    label: 'Timesheets', icon: I.clock },
     { href: '/comms.html',        label: 'Comms',      icon: I.chat },
-    { href: '/lesson-waitlist.html', label: 'Lessons',  icon: I.lessons },
-    { href: '/proshop.html',      label: 'Pro Shop',   icon: I.bag },
-    { href: '/house-league.html', label: 'House League', icon: I.league },
   ];
   // Pro nav is deliberately lean.
   var PRO = [
