@@ -47,13 +47,6 @@
     .week-picker{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
     .week-picker select{flex:1;font-family:inherit;font-size:14px;font-weight:700;padding:10px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--navy);}
 
-    .att-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:13px;}
-    .att-row:last-child{border-bottom:none;}
-    .att-badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;padding:3px 9px;border-radius:100px;}
-    .att-badge.in{background:rgba(22,163,74,0.12);color:var(--green);}
-    .att-badge.bye{background:rgba(217,119,6,0.12);color:var(--amber);}
-    .att-badge.na{background:rgba(220,38,38,0.10);color:var(--red);}
-
     .court-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--canvas);}
     .court-label{font-size:11px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
     .team-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;}
@@ -62,6 +55,25 @@
     .vs-line{text-align:center;font-size:10px;color:var(--text-3);font-weight:700;margin:2px 0;}
 
     .empty{padding:22px;text-align:center;color:var(--text-3);font-size:13px;}
+
+    /* Season grid (Schedule + Results) — no horizontal scroll, paginated 4 weeks at a time */
+    .grid-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+    .sess-tabs{display:flex;gap:6px;}
+    .sess-tab{padding:7px 13px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .sess-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+    .block-nav{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--text-2);}
+    .block-nav button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-2);}
+    table.grid-table{border-collapse:collapse;width:100%;table-layout:fixed;}
+    table.grid-table th,table.grid-table td{padding:7px 4px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;}
+    table.grid-table th{font-weight:700;color:var(--text-2);white-space:nowrap;}
+    table.grid-table td.name-cell,table.grid-table th.name-th{text-align:left;font-weight:600;position:sticky;left:0;background:var(--surface);width:96px;font-size:12px;}
+    table.grid-table tr:last-child td{border-bottom:none;}
+    .grid-badge{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;padding:3px 5px;border-radius:5px;}
+    .grid-badge.in{background:rgba(22,163,74,0.15);color:var(--green);}
+    .grid-badge.bye{background:rgba(217,119,6,0.15);color:var(--amber);}
+    .grid-badge.na{background:rgba(220,38,38,0.12);color:var(--red);}
+    .score-cell{font-weight:800;color:var(--navy);}
+    .avg-cell{font-weight:800;color:var(--blue);background:rgba(44,92,156,0.06);}
   </style>
 </head>
 <body>
@@ -87,21 +99,44 @@
         <button class="lg-tab" id="lg-WHL" onclick="switchLeague('WHL')">Women's League</button>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn on" id="tab-weekly" onclick="showTab('weekly')">This Week</button>
+        <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
+        <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
         <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
       </div>
 
-      <div id="view-weekly">
+      <div id="view-schedule">
+        <div class="grid-toolbar">
+          <div class="sess-tabs" id="sched-sess-tabs"></div>
+          <div class="block-nav">
+            <button onclick="schedBlock(-1)">‹</button>
+            <span id="sched-block-label"></span>
+            <button onclick="schedBlock(1)">›</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="grid-table" id="sched-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+        </div>
+
         <div class="week-picker">
           <select id="week-select" onchange="renderWeek()"></select>
         </div>
         <div class="card">
-          <div class="card-title">Who's playing</div>
-          <div id="att-list"><div class="empty">Loading…</div></div>
+          <div class="card-title">Courts &amp; scores this week</div>
+          <div id="courts-list"><div class="empty">No pairings posted for this week yet.</div></div>
+        </div>
+      </div>
+
+      <div id="view-results" style="display:none">
+        <div class="grid-toolbar">
+          <div class="sess-tabs" id="res-sess-tabs"></div>
+          <div class="block-nav">
+            <button onclick="resBlock(-1)">‹</button>
+            <span id="res-block-label"></span>
+            <button onclick="resBlock(1)">›</button>
+          </div>
         </div>
         <div class="card">
-          <div class="card-title">Courts &amp; scores</div>
-          <div id="courts-list"><div class="empty">No pairings posted for this week yet.</div></div>
+          <table class="grid-table" id="res-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
         </div>
       </div>
 
@@ -116,6 +151,8 @@
 
   <script>
     let league = 'MHL', data = { players: [], weeks: [], attendance: {}, pairings: [] };
+    let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
+    const BLOCK_SIZE = 4;
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function token(){ return localStorage.getItem('hl-token') || ''; }
 
@@ -145,24 +182,19 @@
       const r = await fetch('/api/public/house-league/' + league, { headers: { 'x-hl-token': token() } });
       if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
       data = await r.json();
+      schedBlockIdx = 0; resBlockIdx = 0; schedSession = 1; resSession = 1;
       const sel = document.getElementById('week-select');
       sel.innerHTML = data.weeks.map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
       if (data.weeks.length) sel.value = data.weeks[0].id;
       renderWeek();
       renderContacts();
+      renderScheduleTabs(); renderScheduleGrid();
+      renderResultsTabs(); renderResultsGrid();
     }
 
     function renderWeek(){
       const weekId = parseInt(document.getElementById('week-select').value);
       const players = data.players;
-      const rows = players.map(p => {
-        const status = data.attendance[weekId + ':' + p.id];
-        if (!status) return null;
-        const label = status === 'in' ? 'Playing' : status === 'bye' ? 'Bye' : 'Unavailable';
-        return `<div class="att-row"><span>${esc(p.name)}</span><span class="att-badge ${status}">${label}</span></div>`;
-      }).filter(Boolean).join('');
-      document.getElementById('att-list').innerHTML = rows || '<div class="empty">No attendance posted for this week yet.</div>';
-
       const byId = {}; players.forEach(p => byId[p.id] = p.name);
       const courts = (data.pairings || []).filter(p => p.week_id === weekId).sort((a,b)=>a.court-b.court);
       document.getElementById('courts-list').innerHTML = courts.length ? courts.map(c => `
@@ -172,6 +204,82 @@
           <div class="vs-line">vs.</div>
           <div class="team-row"><span class="team-names">${(c.team2||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ') || '—'}</span><span class="team-score">${c.score2==null?'':c.score2}</span></div>
         </div>`).join('') : '<div class="empty">No pairings posted for this week yet.</div>';
+    }
+
+    function weeksForSession(session){ return data.weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
+    function maxBlocks(arr){ return Math.max(1, Math.ceil(arr.length / BLOCK_SIZE)); }
+    function blockWeeks(arr, idx){ return arr.slice(idx*BLOCK_SIZE, idx*BLOCK_SIZE + BLOCK_SIZE); }
+    function sessionsPresent(){ const s = new Set(data.weeks.map(w=>w.session)); return [...s].sort(); }
+    function findPlayerScore(playerId, weekId){
+      const p = (data.pairings||[]).find(x => x.week_id === weekId && ((x.team1||[]).includes(playerId) || (x.team2||[]).includes(playerId)));
+      if (!p) return null;
+      const val = (p.team1||[]).includes(playerId) ? p.score1 : p.score2;
+      return (val === null || val === undefined) ? null : val;
+    }
+    function sessionAverage(playerId, session){
+      const scores = weeksForSession(session).map(w => findPlayerScore(playerId, w.id)).filter(s => s !== null);
+      if (!scores.length) return '—';
+      return (scores.reduce((a,b)=>a+Number(b),0) / scores.length).toFixed(1);
+    }
+
+    function renderScheduleTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(schedSession)) schedSession = sessions[0] || 1;
+      document.getElementById('sched-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===schedSession?'on':''}" onclick="setSchedSession(${s})">Session ${s}</button>`).join('');
+    }
+    function setSchedSession(s){ schedSession = s; schedBlockIdx = 0; renderScheduleTabs(); renderScheduleGrid(); }
+    function schedBlock(delta){
+      const max = maxBlocks(weeksForSession(schedSession));
+      schedBlockIdx = Math.min(max - 1, Math.max(0, schedBlockIdx + delta));
+      renderScheduleGrid();
+    }
+    function renderScheduleGrid(){
+      const sessionWeeks = weeksForSession(schedSession);
+      const block = blockWeeks(sessionWeeks, schedBlockIdx);
+      document.getElementById('sched-block-label').textContent = sessionWeeks.length
+        ? `${schedBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, schedBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : '—';
+      const table = document.getElementById('sched-grid');
+      if (!block.length || !data.players.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '</tr>';
+      const body = data.players.map(p => {
+        const cells = block.map(w => {
+          const status = data.attendance[w.id + ':' + p.id];
+          return `<td>${status ? `<span class="grid-badge ${status}">${status.toUpperCase()}</span>` : '—'}</td>`;
+        }).join('');
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}</tr>`;
+      }).join('');
+      table.innerHTML = head + body;
+    }
+
+    function renderResultsTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(resSession)) resSession = sessions[0] || 1;
+      document.getElementById('res-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===resSession?'on':''}" onclick="setResSession(${s})">Session ${s}</button>`).join('');
+    }
+    function setResSession(s){ resSession = s; resBlockIdx = 0; renderResultsTabs(); renderResultsGrid(); }
+    function resBlock(delta){
+      const max = maxBlocks(weeksForSession(resSession));
+      resBlockIdx = Math.min(max - 1, Math.max(0, resBlockIdx + delta));
+      renderResultsGrid();
+    }
+    function renderResultsGrid(){
+      const sessionWeeks = weeksForSession(resSession);
+      const block = blockWeeks(sessionWeeks, resBlockIdx);
+      document.getElementById('res-block-label').textContent = sessionWeeks.length
+        ? `${resBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, resBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : '—';
+      const table = document.getElementById('res-grid');
+      if (!block.length || !data.players.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Avg</th></tr>';
+      const body = data.players.map(p => {
+        const cells = block.map(w => {
+          const score = findPlayerScore(p.id, w.id);
+          return `<td class="score-cell">${score===null?'—':score}</td>`;
+        }).join('');
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
+      }).join('');
+      table.innerHTML = head + body;
     }
 
     function renderContacts(){
@@ -187,10 +295,10 @@
     }
 
     function showTab(id){
-      document.getElementById('tab-weekly').classList.toggle('on', id==='weekly');
-      document.getElementById('tab-contacts').classList.toggle('on', id==='contacts');
-      document.getElementById('view-weekly').style.display = id==='weekly' ? '' : 'none';
-      document.getElementById('view-contacts').style.display = id==='contacts' ? '' : 'none';
+      ['schedule','results','contacts'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('on', id===t);
+        document.getElementById('view-' + t).style.display = id===t ? '' : 'none';
+      });
     }
 
     if (token()) enterApp(); else { document.getElementById('login-screen').style.display=''; }

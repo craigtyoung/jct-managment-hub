@@ -49,7 +49,15 @@ router.put('/:league/attendance', (req, res) => {
   const { weekId, playerId, status } = req.body || {};
   reply(res, db.setHouseAttendance(req.params.league, weekId, playerId, status));
 });
+router.delete('/:league/attendance', (req, res) => {
+  const { weekId, playerId } = req.body || {};
+  reply(res, db.clearHouseAttendance(req.params.league, weekId, playerId));
+});
 
+router.get('/:league/pairings', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  res.json(db.getAllHousePairings(req.params.league));
+});
 router.get('/:league/weeks/:weekId/pairings', (req, res) => res.json(db.getHousePairings(req.params.league, req.params.weekId)));
 router.post('/:league/weeks/:weekId/pairings', (req, res) => reply(res, db.addHousePairing(req.params.league, req.params.weekId, req.body || {})));
 router.put('/pairings/:id', (req, res) => reply(res, db.updateHousePairing(req.params.id, req.body || {})));

@@ -80,14 +80,26 @@
     .week-picker select{font-family:inherit;font-size:14px;font-weight:700;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--navy);}
     .sess-pill{font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;background:rgba(44,92,156,0.1);color:var(--blue);padding:3px 9px;border-radius:100px;}
 
-    .att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;}
-    .att-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:9px;background:var(--canvas);}
-    .att-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .att-toggle{display:flex;gap:3px;flex-shrink:0;}
-    .att-btn{width:30px;height:24px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:10px;font-weight:800;cursor:pointer;color:var(--text-3);}
-    .att-btn.in.on{background:rgba(22,163,74,0.15);border-color:var(--green);color:var(--green);}
-    .att-btn.bye.on{background:rgba(217,119,6,0.15);border-color:var(--amber);color:var(--amber);}
-    .att-btn.na.on{background:rgba(220,38,38,0.12);border-color:var(--red);color:var(--red);}
+    /* Season grid (Schedule + Results): players down the side, weeks across, no
+       horizontal scroll — paginated 4 weeks at a time within a session. */
+    .grid-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+    .sess-tabs{display:flex;gap:6px;}
+    .sess-tab{padding:7px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .sess-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+    .block-nav{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text-2);}
+    .block-nav button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-size:15px;cursor:pointer;color:var(--text-2);}
+    .block-nav button:hover{border-color:var(--blue);color:var(--blue);}
+    table.grid-table{border-collapse:collapse;width:100%;table-layout:fixed;}
+    table.grid-table th,table.grid-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:12px;}
+    table.grid-table th{font-weight:700;color:var(--text-2);white-space:nowrap;}
+    table.grid-table td.name-cell,table.grid-table th.name-th{text-align:left;font-weight:600;position:sticky;left:0;background:var(--surface);width:150px;}
+    table.grid-table tr:last-child td{border-bottom:none;}
+    .cell-btn{width:100%;padding:6px 2px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:10px;font-weight:800;cursor:pointer;color:var(--text-3);}
+    .cell-btn.in{background:rgba(22,163,74,0.15);border-color:var(--green);color:var(--green);}
+    .cell-btn.bye{background:rgba(217,119,6,0.15);border-color:var(--amber);color:var(--amber);}
+    .cell-btn.na{background:rgba(220,38,38,0.12);border-color:var(--red);color:var(--red);}
+    .score-cell{font-weight:800;color:var(--navy);}
+    .avg-cell{font-weight:800;color:var(--blue);background:rgba(44,92,156,0.06);}
 
     .court-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--canvas);}
     .court-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -120,7 +132,8 @@
       <nav class="hl-sidebar">
         <div class="sb-label">House League</div>
         <button class="sb-btn active" id="nav-roster" onclick="showSection('roster',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Roster</button>
-        <button class="sb-btn" id="nav-weekly" onclick="showSection('weekly',this)"><span class="sb-dot" style="background:#16a34a"></span>Weekly</button>
+        <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule</button>
+        <button class="sb-btn" id="nav-results" onclick="showSection('results',this)"><span class="sb-dot" style="background:#7c3aed"></span>Results</button>
         <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
       </nav>
 
@@ -157,25 +170,54 @@
           </div>
         </div>
 
-        <!-- Weekly: attendance + pairings/scores -->
-        <div id="section-weekly" style="display:none">
-          <div class="page-head"><h1>Weekly</h1></div>
-          <div class="page-sub">Mark who's in, build court pairings, enter scores as they come off the court.</div>
+        <!-- Schedule: season attendance grid + per-week court pairings/scores -->
+        <div id="section-schedule" style="display:none">
+          <div class="page-head"><h1>Schedule</h1></div>
+          <div class="page-sub">Click a cell to cycle a player's status for that week: IN → BYE → NA → blank.</div>
 
-          <div class="week-picker">
-            <select id="week-select" onchange="loadWeek()"></select>
-            <span class="sess-pill" id="week-session"></span>
+          <div class="grid-toolbar">
+            <div class="sess-tabs" id="sched-sess-tabs"></div>
+            <div class="block-nav">
+              <button class="btn-ghost" onclick="schedBlock(-1)">‹</button>
+              <span id="sched-block-label"></span>
+              <button class="btn-ghost" onclick="schedBlock(1)">›</button>
+            </div>
             <button class="btn-ghost" onclick="addWeek()">+ Add week</button>
           </div>
 
           <div class="card">
-            <div class="card-title">Attendance <span id="att-summary" style="text-transform:none;letter-spacing:0;font-weight:600"></span></div>
-            <div class="att-grid" id="att-grid"><div class="empty">Loading…</div></div>
+            <div class="tbl-wrap">
+              <table class="grid-table" id="sched-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+            </div>
           </div>
 
           <div class="card">
-            <div class="card-title">Court pairings <button class="btn-ghost" onclick="addCourt()">+ Add court</button></div>
+            <div class="card-title">Court pairings for
+              <select id="week-select" onchange="loadWeek()" style="display:inline-block;width:auto;margin-left:6px"></select>
+              <button class="btn-ghost" onclick="addCourt()" style="margin-left:auto">+ Add court</button>
+            </div>
             <div id="courts-wrap"><div class="empty">No courts yet — add one above.</div></div>
+          </div>
+        </div>
+
+        <!-- Results: season score grid with session averages -->
+        <div id="section-results" style="display:none">
+          <div class="page-head"><h1>Results</h1></div>
+          <div class="page-sub">Scores roll up from the court pairings entered in Schedule. Session average ignores blank weeks.</div>
+
+          <div class="grid-toolbar">
+            <div class="sess-tabs" id="res-sess-tabs"></div>
+            <div class="block-nav">
+              <button class="btn-ghost" onclick="resBlock(-1)">‹</button>
+              <span id="res-block-label"></span>
+              <button class="btn-ghost" onclick="resBlock(1)">›</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="tbl-wrap">
+              <table class="grid-table" id="res-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+            </div>
           </div>
         </div>
 
@@ -200,7 +242,11 @@
 
   <script src="/staff-avatar.js"></script>
   <script>
-    let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [];
+    let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [];
+    let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
+    const BLOCK_SIZE = 4;
+    const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
+    const STATUS_LABEL = { in: 'IN', bye: 'BYE', na: 'NA' };
 
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
@@ -229,10 +275,14 @@
       league = lg;
       document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
       document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
+      schedBlockIdx = 0; resBlockIdx = 0; schedSession = 1; resSession = 1;
       await loadGrid();
+      await loadAllPairings();
       renderRoster();
       populateWeekSelect();
       if (weeks.length) loadWeek();
+      renderScheduleTabs(); renderScheduleGrid();
+      renderResultsTabs(); renderResultsGrid();
       if (document.getElementById('nav-settings').style.display !== 'none') loadSettings();
     }
 
@@ -240,6 +290,28 @@
       const d = await jfetch('/api/house-league/' + league + '/grid');
       if (!d) return;
       grid = d; roster = d.players; weeks = d.weeks;
+    }
+    async function loadAllPairings(){
+      allPairings = await jfetch('/api/house-league/' + league + '/pairings') || [];
+    }
+
+    function weeksForSession(session){ return weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
+    function maxBlocks(arr){ return Math.max(1, Math.ceil(arr.length / BLOCK_SIZE)); }
+    function blockWeeks(arr, idx){ return arr.slice(idx*BLOCK_SIZE, idx*BLOCK_SIZE + BLOCK_SIZE); }
+    function sessionsPresent(){ const s = new Set(weeks.map(w=>w.session)); return [...s].sort(); }
+
+    function findPlayerScore(playerId, weekId){
+      const p = allPairings.find(x => x.week_id === weekId && ((x.team1||[]).includes(playerId) || (x.team2||[]).includes(playerId)));
+      if (!p) return null;
+      const onTeam1 = (p.team1||[]).includes(playerId);
+      const val = onTeam1 ? p.score1 : p.score2;
+      return (val === null || val === undefined) ? null : val;
+    }
+    function sessionAverage(playerId, session){
+      const wks = weeksForSession(session);
+      const scores = wks.map(w => findPlayerScore(playerId, w.id)).filter(s => s !== null && s !== '');
+      if (!scores.length) return '—';
+      return (scores.reduce((a,b)=>a+Number(b),0) / scores.length).toFixed(1);
     }
 
     function renderRoster(){
@@ -270,7 +342,8 @@
       const d = await jfetch('/api/house-league/players/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
       if (!d) return;
       await loadGrid(); renderRoster();
-      if (document.getElementById('section-weekly').style.display !== 'none') renderAttendance();
+      if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();
+      if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
 
     function populateWeekSelect(){
@@ -287,49 +360,107 @@
       const d = await jfetch('/api/house-league/' + league + '/weeks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label, session }) });
       if (!d) return;
       toast('Week added'); await loadGrid(); populateWeekSelect(); currentWeekId = d.week.id; document.getElementById('week-select').value = currentWeekId; loadWeek();
+      renderScheduleTabs(); renderScheduleGrid(); renderResultsTabs(); renderResultsGrid();
     }
 
     async function loadWeek(){
       currentWeekId = parseInt(document.getElementById('week-select').value);
-      const w = weeks.find(x => x.id === currentWeekId);
-      document.getElementById('week-session').textContent = w ? ('Session ' + w.session) : '';
-      renderAttendance();
       pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
       renderCourts();
     }
 
-    function renderAttendance(){
-      const active = roster.filter(p => p.active !== false);
-      let inCount = 0, byeCount = 0, naCount = 0;
-      const html = active.map(p => {
-        const status = grid.attendance[currentWeekId + ':' + p.id] || null;
-        if (status === 'in') inCount++; else if (status === 'bye') byeCount++; else if (status === 'na') naCount++;
-        return `<div class="att-row">
-          <span class="att-name" title="${esc(p.name)}">${esc(p.name)}</span>
-          <span class="att-toggle">
-            <button class="att-btn in ${status==='in'?'on':''}" onclick="setAtt(${p.id},'in')">IN</button>
-            <button class="att-btn bye ${status==='bye'?'on':''}" onclick="setAtt(${p.id},'bye')">BYE</button>
-            <button class="att-btn na ${status==='na'?'on':''}" onclick="setAtt(${p.id},'na')">NA</button>
-          </span>
-        </div>`;
-      }).join('');
-      document.getElementById('att-grid').innerHTML = html || '<div class="empty">No active players.</div>';
-      document.getElementById('att-summary').textContent = `— ${inCount} in, ${byeCount} bye, ${naCount} unavailable`;
+    // ── Schedule tab: season attendance grid (players × weeks, paginated) ──
+    function renderScheduleTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(schedSession)) schedSession = sessions[0] || 1;
+      document.getElementById('sched-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===schedSession?'on':''}" onclick="setSchedSession(${s})">Session ${s}</button>`).join('');
     }
+    function setSchedSession(s){ schedSession = s; schedBlockIdx = 0; renderScheduleTabs(); renderScheduleGrid(); }
+    function schedBlock(delta){
+      const wks = weeksForSession(schedSession);
+      const max = maxBlocks(wks);
+      schedBlockIdx = Math.min(max - 1, Math.max(0, schedBlockIdx + delta));
+      renderScheduleGrid();
+    }
+    function renderScheduleGrid(){
+      const sessionWeeks = weeksForSession(schedSession);
+      const block = blockWeeks(sessionWeeks, schedBlockIdx);
+      const max = maxBlocks(sessionWeeks);
+      document.getElementById('sched-block-label').textContent = sessionWeeks.length
+        ? `Weeks ${schedBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, schedBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : 'No weeks yet';
+      const navBtns = document.querySelectorAll('#section-schedule .block-nav button');
+      if (navBtns[0]) navBtns[0].disabled = schedBlockIdx === 0;
+      if (navBtns[1]) navBtns[1].disabled = schedBlockIdx >= max - 1;
 
-    async function setAtt(playerId, status){
-      const key = currentWeekId + ':' + playerId;
-      const current = grid.attendance[key];
-      const next = current === status ? null : status; // click again to clear
-      if (next === null) { delete grid.attendance[key]; renderAttendance();
-        // Clearing isn't a distinct API state (in/bye/na only) — treat as "in" cleared back to blank by re-toggling off; simplest is to leave last state until changed to another.
-      }
-      if (next) {
-        const d = await jfetch('/api/house-league/' + league + '/attendance', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weekId: currentWeekId, playerId, status: next }) });
+      const active = roster.filter(p => p.active !== false);
+      const table = document.getElementById('sched-grid');
+      if (!block.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '</tr>';
+      const body = active.map(p => {
+        const cells = block.map(w => {
+          const status = grid.attendance[w.id + ':' + p.id] || null;
+          const cls = status ? status : '';
+          const label = status ? STATUS_LABEL[status] : '—';
+          return `<td><button class="cell-btn ${cls}" onclick="cycleAttCell(${p.id},${w.id})">${label}</button></td>`;
+        }).join('');
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}</tr>`;
+      }).join('');
+      table.innerHTML = head + body;
+    }
+    async function cycleAttCell(playerId, weekId){
+      const key = weekId + ':' + playerId;
+      const current = grid.attendance[key] || null;
+      const idx = STATUS_CYCLE.indexOf(current);
+      const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+      if (next === null) {
+        const d = await jfetch('/api/house-league/' + league + '/attendance', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weekId, playerId }) });
+        if (!d) return;
+        delete grid.attendance[key];
+      } else {
+        const d = await jfetch('/api/house-league/' + league + '/attendance', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weekId, playerId, status: next }) });
         if (!d) return;
         grid.attendance[key] = next;
       }
-      renderAttendance();
+      renderScheduleGrid();
+    }
+
+    // ── Results tab: season score grid + session average (read-only rollup) ──
+    function renderResultsTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(resSession)) resSession = sessions[0] || 1;
+      document.getElementById('res-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===resSession?'on':''}" onclick="setResSession(${s})">Session ${s}</button>`).join('');
+    }
+    function setResSession(s){ resSession = s; resBlockIdx = 0; renderResultsTabs(); renderResultsGrid(); }
+    function resBlock(delta){
+      const wks = weeksForSession(resSession);
+      const max = maxBlocks(wks);
+      resBlockIdx = Math.min(max - 1, Math.max(0, resBlockIdx + delta));
+      renderResultsGrid();
+    }
+    function renderResultsGrid(){
+      const sessionWeeks = weeksForSession(resSession);
+      const block = blockWeeks(sessionWeeks, resBlockIdx);
+      const max = maxBlocks(sessionWeeks);
+      document.getElementById('res-block-label').textContent = sessionWeeks.length
+        ? `Weeks ${resBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, resBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : 'No weeks yet';
+      const navBtns = document.querySelectorAll('#section-results .block-nav button');
+      if (navBtns[0]) navBtns[0].disabled = resBlockIdx === 0;
+      if (navBtns[1]) navBtns[1].disabled = resBlockIdx >= max - 1;
+
+      const active = roster.filter(p => p.active !== false);
+      const table = document.getElementById('res-grid');
+      if (!block.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Session Avg</th></tr>';
+      const body = active.map(p => {
+        const cells = block.map(w => {
+          const score = findPlayerScore(p.id, w.id);
+          return `<td class="score-cell">${score===null?'—':score}</td>`;
+        }).join('');
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
+      }).join('');
+      table.innerHTML = head + body;
     }
 
     function playerOptions(selectedId){
@@ -365,17 +496,22 @@
     async function addCourt(){
       const d = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
       if (!d) return;
-      pairings.push(d.pairing); renderCourts();
+      pairings.push(d.pairing); allPairings.push(d.pairing); renderCourts();
     }
     async function updatePairing(id, field, value){
       const d = await jfetch('/api/house-league/pairings/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
       if (!d) return;
       const idx = pairings.findIndex(p => p.id === id); if (idx > -1) pairings[idx] = d.pairing;
+      const aidx = allPairings.findIndex(p => p.id === id); if (aidx > -1) allPairings[aidx] = d.pairing;
+      if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
     async function removeCourt(id){
       const d = await jfetch('/api/house-league/pairings/' + id, { method:'DELETE' });
       if (!d) return;
-      pairings = pairings.filter(p => p.id !== id); renderCourts();
+      pairings = pairings.filter(p => p.id !== id);
+      allPairings = allPairings.filter(p => p.id !== id);
+      renderCourts();
+      if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
 
     async function loadSettings(){
@@ -398,11 +534,18 @@
       if (btn) btn.classList.add('active');
       document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
       document.getElementById('section-' + id).style.display = '';
-      if (id === 'weekly') loadWeek();
+      if (id === 'schedule') { renderScheduleTabs(); renderScheduleGrid(); loadWeek(); }
+      if (id === 'results') { renderResultsTabs(); renderResultsGrid(); }
       if (id === 'settings') loadSettings();
     }
 
-    window.onLiveUpdate = () => { loadGrid().then(() => { renderRoster(); if (document.getElementById('section-weekly').style.display !== 'none') renderAttendance(); }); };
+    window.onLiveUpdate = () => {
+      Promise.all([loadGrid(), loadAllPairings()]).then(() => {
+        renderRoster();
+        if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();
+        if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
+      });
+    };
     init();
   </script>
   <script src="/live-sync.js"></script>

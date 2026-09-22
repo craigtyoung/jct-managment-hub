@@ -4623,6 +4623,14 @@ function deleteHousePlayer(id) {
   return { ok: true };
 }
 
+function clearHouseAttendance(league, weekId, playerId) {
+  weekId = parseInt(weekId); playerId = parseInt(playerId);
+  _data.hl_attendance = _data.hl_attendance.filter(function (a) {
+    return !(a.league === league && a.week_id === weekId && a.player_id === playerId);
+  });
+  save();
+  return { ok: true };
+}
 function setHouseAttendance(league, weekId, playerId, status) {
   weekId = parseInt(weekId); playerId = parseInt(playerId);
   if (['in', 'bye', 'na'].indexOf(status) === -1) return { error: 'Invalid status', status: 400 };
@@ -4656,6 +4664,9 @@ function getHousePairings(league, weekId) {
   weekId = parseInt(weekId);
   return _data.hl_pairings.filter(function (p) { return p.league === league && p.week_id === weekId; })
     .sort(function (a, b) { return a.court - b.court; });
+}
+function getAllHousePairings(league) {
+  return _data.hl_pairings.filter(function (p) { return p.league === league; });
 }
 function addHousePairing(league, weekId, data) {
   weekId = parseInt(weekId);
@@ -4728,9 +4739,11 @@ module.exports = {
   updateHousePlayer,
   deleteHousePlayer,
   setHouseAttendance,
+  clearHouseAttendance,
   addHouseWeek,
   deleteHouseWeek,
   getHousePairings,
+  getAllHousePairings,
   addHousePairing,
   updateHousePairing,
   deleteHousePairing,
