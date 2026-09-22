@@ -74,13 +74,25 @@
     .grid-badge.na{background:rgba(220,38,38,0.12);color:var(--red);}
     .score-cell{font-weight:800;color:var(--navy);}
     .avg-cell{font-weight:800;color:var(--blue);background:rgba(44,92,156,0.06);}
+    .score-cell.clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
+
+    .match-overlay{display:none;position:fixed;inset:0;background:rgba(12,23,56,0.45);z-index:300;align-items:center;justify-content:center;padding:16px;}
+    .match-overlay.show{display:flex;}
+    .match-box{background:#fff;border-radius:14px;padding:20px 22px;width:100%;max-width:320px;box-shadow:0 12px 40px rgba(0,0,0,0.25);}
+    .match-box h3{font-size:15px;font-weight:800;}
+    .match-box .sub{font-size:12px;color:var(--text-2);margin-bottom:10px;}
+    .match-team{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:14px;font-weight:700;border-bottom:1px solid var(--border);}
+    .match-team:last-of-type{border-bottom:none;}
+    .match-team .mine{color:var(--blue);}
+    .match-vs{text-align:center;font-size:10px;color:var(--text-3);font-weight:700;padding:2px 0;}
+    .match-close{margin-top:14px;width:100%;padding:9px;border-radius:9px;border:1px solid var(--border2);background:var(--canvas);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>Joshua Creek Tennis — House League</h1>
-      <p>Roster, weekly schedule, and scores.</p>
+      <p>Roster, weekly schedule, and scores. All matches are played at 7:30 PM.</p>
     </header>
 
     <div id="login-screen">
@@ -102,6 +114,7 @@
         <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
         <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
         <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
+        <button class="tab-btn" id="tab-rules" onclick="showTab('rules')">Rules</button>
       </div>
 
       <div id="view-schedule">
@@ -146,6 +159,24 @@
           <div id="contact-list"><div class="empty">Loading…</div></div>
         </div>
       </div>
+
+      <div id="view-rules" style="display:none">
+        <div class="card">
+          <div class="card-title">House League Rules</div>
+          <div class="empty">Rules coming soon.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="match-overlay" id="match-modal" onclick="if(event.target===this)closeMatchModal()">
+    <div class="match-box">
+      <h3 id="match-modal-title"></h3>
+      <div class="sub" id="match-modal-sub"></div>
+      <div class="match-team" id="match-team1"></div>
+      <div class="match-vs">vs.</div>
+      <div class="match-team" id="match-team2"></div>
+      <button class="match-close" onclick="closeMatchModal()">Close</button>
     </div>
   </div>
 
@@ -275,12 +306,27 @@
       const body = data.players.map(p => {
         const cells = block.map(w => {
           const score = findPlayerScore(p.id, w.id);
-          return `<td class="score-cell">${score===null?'—':score}</td>`;
+          const clickable = score !== null;
+          return `<td class="score-cell${clickable?' clickable':''}" ${clickable?`onclick="showMatchModal(${w.id},${p.id})"`:''}>${score===null?'—':score}</td>`;
         }).join('');
         return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
       }).join('');
       table.innerHTML = head + body;
     }
+
+    function showMatchModal(weekId, playerId){
+      const week = data.weeks.find(w => w.id === weekId);
+      const p = (data.pairings||[]).find(x => x.week_id === weekId && ((x.team1||[]).includes(playerId) || (x.team2||[]).includes(playerId)));
+      if (!p) return;
+      const byId = {}; data.players.forEach(pl => byId[pl.id] = pl.name);
+      const onTeam1 = (p.team1||[]).includes(playerId);
+      document.getElementById('match-modal-title').textContent = week ? week.label : '';
+      document.getElementById('match-modal-sub').textContent = 'Court ' + p.court;
+      document.getElementById('match-team1').innerHTML = `<span class="${onTeam1?'mine':''}">${(p.team1||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ')}</span><span>${p.score1==null?'—':p.score1}</span>`;
+      document.getElementById('match-team2').innerHTML = `<span class="${!onTeam1?'mine':''}">${(p.team2||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ')}</span><span>${p.score2==null?'—':p.score2}</span>`;
+      document.getElementById('match-modal').classList.add('show');
+    }
+    function closeMatchModal(){ document.getElementById('match-modal').classList.remove('show'); }
 
     function renderContacts(){
       const rows = data.players.map(p => `
@@ -295,7 +341,7 @@
     }
 
     function showTab(id){
-      ['schedule','results','contacts'].forEach(t => {
+      ['schedule','results','contacts','rules'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('on', id===t);
         document.getElementById('view-' + t).style.display = id===t ? '' : 'none';
       });
