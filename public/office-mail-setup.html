@@ -83,7 +83,7 @@
         <li><b>Pick <code>setup</code> in the toolbar's function menu and click Run.</b> Google asks for permission.
           <span class="note">Google will say "Google hasn't verified this app". That's normal for your own script: click <b>Advanced → Go to JCT Hub inbox alert → Allow</b>. Google's wording ("read, compose, send…") is its standard text for anything touching Gmail. This script only reads sender, subject and time, and you can read every line of it below.</span></li>
         <li><b>Come back here.</b> The status above turns green within a minute or two.</li>
-        <li><b>Send a test email</b> to the office address. The dashboard card and a phone ping should show up within about a minute.</li>
+        <li><b>Send a test email</b> to the office address. The dashboard card should show it within about a minute.</li>
       </ol>
       <textarea class="script" id="script" readonly spellcheck="false"></textarea>
       <button class="btn" onclick="copyScript()">Copy script</button>
@@ -92,11 +92,6 @@
     <div class="card">
       <div class="card-title">Settings</div>
       <div class="fld"><label>Office mailbox</label><input type="email" id="mailbox" autocomplete="off"></div>
-      <div class="card-title" style="margin-top:6px">Who gets a phone ping for new mail</div>
-      <label class="check"><input type="checkbox" data-role="staff"> Front desk staff</label>
-      <label class="check"><input type="checkbox" data-role="manager"> Managers</label>
-      <label class="check"><input type="checkbox" data-role="admin"> Admins</label>
-      <div style="font-size:12px;color:var(--text-3);margin:6px 0 12px">Only people who have turned on the bell (top right) get pings.</div>
       <button class="btn" onclick="saveSettings()">Save settings</button>
     </div>
 
@@ -175,7 +170,6 @@ function checkInbox() {
     }
     function fill(setup){
       $('mailbox').value=setup.mailbox; $('mb1').textContent=setup.mailbox;
-      document.querySelectorAll('[data-role]').forEach(c=>{ c.checked=setup.notify_roles.includes(c.dataset.role); });
       $('script').value=$('tpl').textContent.replace('__HUB_URL__',location.origin+'/api/office-mail/webhook').replace('__SECRET__',setup.secret);
     }
     async function status(){
@@ -193,8 +187,7 @@ function checkInbox() {
       catch(e){ document.execCommand('copy'); toast('Script copied'); }
     }
     async function saveSettings(){
-      const roles=[...document.querySelectorAll('[data-role]')].filter(c=>c.checked).map(c=>c.dataset.role);
-      const d=await send('PUT','/api/office-mail/settings',{mailbox:$('mailbox').value.trim(),notify_roles:roles});
+      const d=await send('PUT','/api/office-mail/settings',{mailbox:$('mailbox').value.trim()});
       if(d){ fill(d); toast('Saved'); }
     }
     async function regenerate(){

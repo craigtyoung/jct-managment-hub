@@ -1,5 +1,5 @@
 /**
- * office-mail.js — "new email" alert for the shared office Gmail inbox.
+ * office-mail.js — "new email" alert for the shared office Gmail inbox (dashboard card only, no phone pings).
  *
  * A Google Apps Script running inside the office account POSTs the unread list (sender, subject,
  * time — never bodies) to /api/office-mail/webhook every minute. That one endpoint is PUBLIC but
@@ -11,7 +11,6 @@
 const express = require('express');
 const db = require('../db');
 const sse = require('../sse');
-const push = require('../push');
 const router = express.Router();
 
 const OFFICE_ROLES = ['admin', 'manager', 'staff'];   // pros and contractors never see the inbox
@@ -36,18 +35,7 @@ function webhook(req, res) {
   const r = db.recordOfficeMailSync(req.body);
   if (r.error) return res.status(400).json({ error: r.error });
 
-  if (r.newThreads.length) {
-    try {
-      const n = r.newThreads.length, first = r.newThreads[0];
-      push.sendToStaff(db.getOfficeMailRecipients(), {
-        title: n === 1 ? 'New office email' : `${n} new office emails`,
-        body: n === 1 ? `${first.from}: ${first.subject}`.slice(0, 140) : `${first.from}: ${first.subject} (+${n - 1} more)`.slice(0, 140),
-        url: `https://mail.google.com/mail/?authuser=${encodeURIComponent(db.getOfficeMailSetup().mailbox)}`,
-        tag: 'jct-office-mail',
-      });
-    } catch (e) { console.error('office mail push failed:', e.message); }
-  }
-  if (r.changed) sse.broadcast('update');
+  if (r.changed) sse.broadcast('update');   // open dashboards refresh the card right away
   res.json({ ok: true });
 }
 
