@@ -53,6 +53,7 @@
     .sess-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
     .block-nav{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--text-2);}
     .block-nav button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-size:14px;cursor:pointer;color:var(--text-2);}
+    .btn-ghost{padding:7px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
     table.grid-table{border-collapse:collapse;width:100%;table-layout:fixed;}
     table.grid-table th,table.grid-table td{padding:7px 4px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;}
     table.grid-table th{font-weight:700;color:var(--text-2);white-space:nowrap;}
@@ -67,6 +68,16 @@
     .score-cell.clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
     .pending-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);opacity:0.5;}
     .legend{font-size:11px;color:var(--text-3);padding:10px 2px 2px;}
+
+    /* Match view: a simple stylized "court" card, not a literal diagram */
+    .court-visual{position:relative;border-radius:14px;background:linear-gradient(180deg,#1a7a4c,#15653e);padding:18px 16px 14px;margin-bottom:12px;color:#fff;overflow:hidden;}
+    .court-visual::before{content:'';position:absolute;inset:6px;border:2px solid rgba(255,255,255,0.35);border-radius:8px;pointer-events:none;}
+    .cv-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.65);margin-bottom:8px;position:relative;z-index:1;}
+    .cv-team{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;padding:4px 0;}
+    .cv-names{font-size:14px;font-weight:700;}
+    .cv-names.tbd{opacity:0.5;font-style:italic;}
+    .cv-score{font-size:22px;font-weight:800;min-width:28px;text-align:right;}
+    .cv-net{height:2px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.9) 0 6px,transparent 6px 12px);margin:8px 0;position:relative;z-index:1;}
 
     .match-overlay{display:none;position:fixed;inset:0;background:rgba(12,23,56,0.45);z-index:300;align-items:center;justify-content:center;padding:16px;}
     .match-overlay.show{display:flex;}
@@ -104,6 +115,7 @@
       </div>
       <div class="tab-bar">
         <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
+        <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
         <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
         <button class="tab-btn" id="tab-rules" onclick="showTab('rules')">Rules</button>
       </div>
@@ -121,6 +133,15 @@
           <table class="grid-table" id="sched-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
           <div class="legend">BYE / NA = not playing that week · a score = tap it to see the match · a dot = playing, no score posted yet</div>
         </div>
+      </div>
+
+      <div id="view-results" style="display:none">
+        <div class="grid-toolbar">
+          <button class="btn-ghost" onclick="matchWeekNav(-1)">‹ Previous</button>
+          <span id="match-week-label" style="font-weight:700;color:var(--navy)"></span>
+          <button class="btn-ghost" onclick="matchWeekNav(1)">Next ›</button>
+        </div>
+        <div id="match-cards-wrap"><div class="empty">No weeks yet.</div></div>
       </div>
 
       <div id="view-contacts" style="display:none">
@@ -183,9 +204,10 @@
       const r = await fetch('/api/public/house-league/' + league, { headers: { 'x-hl-token': token() } });
       if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
       data = await r.json();
-      schedBlockIdx = 0; schedSession = 1;
+      schedBlockIdx = 0; schedSession = 1; matchWeekIdx = -1;
       renderContacts();
       renderScheduleTabs(); renderScheduleGrid();
+      if (document.getElementById('view-results').style.display !== 'none') renderMatchCards();
     }
 
     function weeksForSession(session){ return data.weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
@@ -252,6 +274,41 @@
     }
     function closeMatchModal(){ document.getElementById('match-modal').classList.remove('show'); }
 
+    // ── Results tab: visual court-by-court browser, week to week ──
+    let matchWeekIdx = -1; // -1 = not yet defaulted
+    function allWeeksChrono(){ return data.weeks.slice().sort((a,b)=>a.order-b.order); }
+    function matchWeekNav(delta){
+      const all = allWeeksChrono();
+      matchWeekIdx = Math.min(all.length - 1, Math.max(0, matchWeekIdx + delta));
+      renderMatchCards();
+    }
+    function courtVisual(pairing){
+      const byId = {}; data.players.forEach(pl => byId[pl.id] = pl.name);
+      const names = ids => (ids||[]).length ? esc(ids.map(id=>byId[id]||'?').join(' & ')) : '<span class="cv-names tbd">TBD</span>';
+      return `<div class="court-visual">
+        <div class="cv-label">Court ${pairing.court}</div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team1)}</span><span class="cv-score">${pairing.score1==null?'':pairing.score1}</span></div>
+        <div class="cv-net"></div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team2)}</span><span class="cv-score">${pairing.score2==null?'':pairing.score2}</span></div>
+      </div>`;
+    }
+    function renderMatchCards(){
+      const all = allWeeksChrono();
+      if (!all.length) { document.getElementById('match-week-label').textContent = ''; document.getElementById('match-cards-wrap').innerHTML = '<div class="empty">No weeks yet.</div>'; return; }
+      if (matchWeekIdx === -1) {
+        let d = all.length - 1;
+        for (let i = all.length - 1; i >= 0; i--) {
+          if ((data.pairings||[]).some(p => p.week_id === all[i].id && (p.score1 != null || p.score2 != null))) { d = i; break; }
+        }
+        matchWeekIdx = d;
+      }
+      matchWeekIdx = Math.min(matchWeekIdx, all.length - 1);
+      const week = all[matchWeekIdx];
+      document.getElementById('match-week-label').textContent = `${week.label} — Session ${week.session}`;
+      const courts = (data.pairings||[]).filter(p => p.week_id === week.id).sort((a,b)=>a.court-b.court);
+      document.getElementById('match-cards-wrap').innerHTML = courts.length ? courts.map(courtVisual).join('') : '<div class="empty">No courts posted for this week.</div>';
+    }
+
     function renderContacts(){
       const rows = data.players.map(p => `
         <div class="contact-row">
@@ -265,7 +322,8 @@
     }
 
     function showTab(id){
-      ['schedule','contacts','rules'].forEach(t => {
+      if (id === 'results') renderMatchCards();
+      ['schedule','results','contacts','rules'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('on', id===t);
         document.getElementById('view-' + t).style.display = id===t ? '' : 'none';
       });
