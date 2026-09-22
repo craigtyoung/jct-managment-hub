@@ -113,6 +113,19 @@
     .pairing-vs{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);}
     @media(max-width:600px){.pairing-row{grid-template-columns:1fr;}.pairing-row .pairing-vs{display:none;}}
 
+    /* Matches: drag-and-drop lineup builder — mirrors the Pro Schedule pattern, desktop only */
+    .player-rail{display:flex;flex-wrap:wrap;gap:8px;}
+    .p-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;color:#fff;background:var(--blue);cursor:grab;user-select:none;}
+    .p-chip:active{cursor:grabbing;}
+    .p-chip.dragging{opacity:0.4;}
+    .p-chip.warn{background:#94a3b8;}
+    .p-chip .tag{font-size:9px;font-weight:800;text-transform:uppercase;background:rgba(255,255,255,0.3);padding:1px 5px;border-radius:100px;}
+    .team-zone{min-height:52px;border:1.5px dashed var(--border2);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;background:var(--surface);transition:all .12s;}
+    .team-zone.drop-hot{border-color:var(--blue);background:rgba(44,92,156,0.10);}
+    .team-zone .p-chip{background:var(--green);}
+    .team-zone .p-chip .rm{cursor:pointer;background:rgba(255,255,255,0.3);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
+    .team-label{font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
     .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
     .link-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--canvas);border:1px solid var(--border2);border-radius:9px;padding:10px 12px;font-size:13px;word-break:break-all;}
@@ -138,6 +151,7 @@
         <div class="sb-label">House League</div>
         <button class="sb-btn active" id="nav-roster" onclick="showSection('roster',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Roster</button>
         <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule</button>
+        <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Matches</button>
         <button class="sb-btn" id="nav-results" onclick="showSection('results',this)"><span class="sb-dot" style="background:#7c3aed"></span>Results</button>
         <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
       </nav>
@@ -202,12 +216,26 @@
               <table class="grid-table" id="sched-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
             </div>
           </div>
+        </div>
+
+        <!-- Matches: drag-and-drop lineup builder for a single week (desktop only) -->
+        <div id="section-matches" style="display:none">
+          <div class="page-head"><h1>Matches</h1></div>
+          <div class="page-sub">Drag a player onto a team, then add the score once it's played. Desktop tool — not built for touch.</div>
+
+          <div class="week-picker">
+            <span style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Week</span>
+            <select id="week-select" onchange="loadWeek()"></select>
+            <button class="btn-ghost" onclick="addCourt()">+ Add court</button>
+          </div>
 
           <div class="card">
-            <div class="card-title">Court pairings for
-              <select id="week-select" onchange="loadWeek()" style="display:inline-block;width:auto;margin-left:6px"></select>
-              <button class="btn-ghost" onclick="addCourt()" style="margin-left:auto">+ Add court</button>
-            </div>
+            <div class="card-title">Players — drag onto a team below <span style="text-transform:none;letter-spacing:0;font-weight:600" id="rail-hint"></span></div>
+            <div class="player-rail" id="player-rail"><div class="empty">Loading…</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Courts</div>
             <div id="courts-wrap"><div class="empty">No courts yet — add one above.</div></div>
           </div>
         </div>
@@ -215,7 +243,7 @@
         <!-- Results: season score grid with session averages -->
         <div id="section-results" style="display:none">
           <div class="page-head"><h1>Results</h1></div>
-          <div class="page-sub">Scores roll up from the court pairings entered in Schedule. Session average ignores blank weeks.</div>
+          <div class="page-sub">Scores roll up from the court pairings entered in Matches. Session average ignores blank weeks.</div>
 
           <div class="grid-toolbar">
             <div class="sess-tabs" id="res-sess-tabs"></div>
@@ -378,6 +406,7 @@
       if (!d) return;
       await loadGrid(); renderRoster();
       if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();
+      if (document.getElementById('section-matches').style.display !== 'none') { renderCourts(); renderPlayerRail(); }
       if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
 
@@ -402,6 +431,7 @@
       currentWeekId = parseInt(document.getElementById('week-select').value);
       pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
       renderCourts();
+      renderPlayerRail();
     }
 
     // ── Schedule tab: season attendance grid (players × weeks, paginated) ──
@@ -498,14 +528,57 @@
       table.innerHTML = head + body;
     }
 
-    function playerOptions(selectedId){
-      const active = roster.filter(p => p.active !== false);
-      return '<option value="">— select —</option>' + active.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${esc(p.name)}</option>`).join('');
+    // ── Matches: drag-and-drop lineup builder (desktop only, mirrors Pro Schedule) ──
+    let dragPlayerId = null;
+
+    function assignedPlayerIds(){
+      const ids = new Set();
+      pairings.forEach(p => { (p.team1||[]).forEach(id=>ids.add(id)); (p.team2||[]).forEach(id=>ids.add(id)); });
+      return ids;
     }
 
-    function teamFromSlots(pid, a, b){
-      const va = document.getElementById(a).value, vb = document.getElementById(b).value;
-      return [va, vb].filter(Boolean).map(Number);
+    function renderPlayerRail(){
+      const assigned = assignedPlayerIds();
+      const active = roster.filter(p => p.active !== false && !assigned.has(p.id));
+      const rail = document.getElementById('player-rail');
+      if (!active.length) { rail.innerHTML = '<div class="empty">Everyone active is assigned to a court.</div>'; document.getElementById('rail-hint').textContent=''; return; }
+      document.getElementById('rail-hint').textContent = `— ${active.length} unassigned`;
+      rail.innerHTML = active.map(p => {
+        const status = grid.attendance[currentWeekId + ':' + p.id];
+        const warn = status === 'bye' ? 'BYE' : status === 'na' ? 'NA' : '';
+        return `<span class="p-chip ${warn?'warn':''}" draggable="true" data-player="${p.id}" ondragstart="dragPlayer(event,${p.id})" ondragend="dragEnd(event)" title="${esc(p.name)}${warn?' — marked '+warn+' this week':''}">${esc(p.name)}${warn?`<span class="tag">${warn}</span>`:''}</span>`;
+      }).join('');
+    }
+
+    function dragPlayer(e, id){
+      dragPlayerId = id;
+      try { e.dataTransfer.setData('text/plain', String(id)); e.dataTransfer.effectAllowed = 'move'; } catch(err){}
+      e.currentTarget.classList.add('dragging');
+    }
+    function dragEnd(e){ e.currentTarget.classList.remove('dragging'); dragPlayerId = null; }
+    function dzOver(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} e.currentTarget.classList.add('drop-hot'); }
+    function dzLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
+    async function dzDrop(e, pairingId, team){
+      e.preventDefault();
+      e.currentTarget.classList.remove('drop-hot');
+      let id = dragPlayerId;
+      try { id = parseInt(e.dataTransfer.getData('text/plain')) || dragPlayerId; } catch(err){}
+      if (!id) return;
+      const p = pairings.find(x => x.id === pairingId);
+      if (!p) return;
+      const current = (p[team] || []).slice();
+      if (current.includes(id)) return;
+      if (current.length >= 2) { toast('That team already has 2 players'); return; }
+      current.push(id);
+      await updatePairing(pairingId, team, current);
+      renderPlayerRail();
+    }
+    async function removeFromTeam(pairingId, team, playerId){
+      const p = pairings.find(x => x.id === pairingId);
+      if (!p) return;
+      const next = (p[team] || []).filter(id => id !== playerId);
+      await updatePairing(pairingId, team, next);
+      renderPlayerRail();
     }
 
     function renderCourts(){
@@ -515,15 +588,22 @@
         <div class="court-card">
           <div class="court-head"><span class="court-label">Court ${p.court}</span><button class="btn-ghost danger" onclick="removeCourt(${p.id})">Remove</button></div>
           <div class="pairing-row">
-            <select id="p${p.id}-t1a" onchange="updatePairing(${p.id},'team1',teamFromSlots(${p.id},'p${p.id}-t1a','p${p.id}-t1b'))">${playerOptions((p.team1||[])[0])}</select>
-            <select id="p${p.id}-t1b" onchange="updatePairing(${p.id},'team1',teamFromSlots(${p.id},'p${p.id}-t1a','p${p.id}-t1b'))">${playerOptions((p.team1||[])[1])}</select>
-            <input type="number" placeholder="Score" value="${p.score1==null?'':p.score1}" onchange="updatePairing(${p.id},'score1',this.value)">
+            <div>
+              <div class="team-label">Team 1</div>
+              <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team1')">
+                ${(p.team1||[]).map(id => `<span class="p-chip">${esc((roster.find(r=>r.id===id)||{}).name||'?')}<span class="rm" onclick="removeFromTeam(${p.id},'team1',${id})">✕</span></span>`).join('') || ''}
+              </div>
+            </div>
+            <div>
+              <div class="team-label">Team 2</div>
+              <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team2')">
+                ${(p.team2||[]).map(id => `<span class="p-chip">${esc((roster.find(r=>r.id===id)||{}).name||'?')}<span class="rm" onclick="removeFromTeam(${p.id},'team2',${id})">✕</span></span>`).join('') || ''}
+              </div>
+            </div>
           </div>
-          <div class="pairing-vs">vs.</div>
-          <div class="pairing-row">
-            <select id="p${p.id}-t2a" onchange="updatePairing(${p.id},'team2',teamFromSlots(${p.id},'p${p.id}-t2a','p${p.id}-t2b'))">${playerOptions((p.team2||[])[0])}</select>
-            <select id="p${p.id}-t2b" onchange="updatePairing(${p.id},'team2',teamFromSlots(${p.id},'p${p.id}-t2a','p${p.id}-t2b'))">${playerOptions((p.team2||[])[1])}</select>
-            <input type="number" placeholder="Score" value="${p.score2==null?'':p.score2}" onchange="updatePairing(${p.id},'score2',this.value)">
+          <div class="pairing-row" style="margin-top:6px">
+            <input type="number" placeholder="Team 1 score" value="${p.score1==null?'':p.score1}" onchange="updatePairing(${p.id},'score1',this.value)">
+            <input type="number" placeholder="Team 2 score" value="${p.score2==null?'':p.score2}" onchange="updatePairing(${p.id},'score2',this.value)">
           </div>
         </div>`).join('');
     }
@@ -531,13 +611,14 @@
     async function addCourt(){
       const d = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
       if (!d) return;
-      pairings.push(d.pairing); allPairings.push(d.pairing); renderCourts();
+      pairings.push(d.pairing); allPairings.push(d.pairing); renderCourts(); renderPlayerRail();
     }
     async function updatePairing(id, field, value){
       const d = await jfetch('/api/house-league/pairings/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
       if (!d) return;
       const idx = pairings.findIndex(p => p.id === id); if (idx > -1) pairings[idx] = d.pairing;
       const aidx = allPairings.findIndex(p => p.id === id); if (aidx > -1) allPairings[aidx] = d.pairing;
+      renderCourts();
       if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
     async function removeCourt(id){
@@ -545,7 +626,7 @@
       if (!d) return;
       pairings = pairings.filter(p => p.id !== id);
       allPairings = allPairings.filter(p => p.id !== id);
-      renderCourts();
+      renderCourts(); renderPlayerRail();
       if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
 
@@ -569,15 +650,20 @@
       if (btn) btn.classList.add('active');
       document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
       document.getElementById('section-' + id).style.display = '';
-      if (id === 'schedule') { renderScheduleTabs(); renderScheduleGrid(); loadWeek(); }
+      if (id === 'schedule') { renderScheduleTabs(); renderScheduleGrid(); }
+      if (id === 'matches') { loadWeek(); }
       if (id === 'results') { renderResultsTabs(); renderResultsGrid(); }
       if (id === 'settings') loadSettings();
     }
 
     window.onLiveUpdate = () => {
-      Promise.all([loadGrid(), loadAllPairings()]).then(() => {
+      Promise.all([loadGrid(), loadAllPairings()]).then(async () => {
         renderRoster();
         if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();
+        if (document.getElementById('section-matches').style.display !== 'none' && currentWeekId) {
+          pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
+          renderCourts(); renderPlayerRail();
+        }
         if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
       });
     };
