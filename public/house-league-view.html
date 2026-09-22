@@ -44,16 +44,6 @@
     .contact-links{display:flex;flex-direction:column;gap:2px;}
     .contact-links a{font-size:12px;color:var(--blue);text-decoration:none;font-weight:600;}
 
-    .week-picker{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
-    .week-picker select{flex:1;font-family:inherit;font-size:14px;font-weight:700;padding:10px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--navy);}
-
-    .court-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--canvas);}
-    .court-label{font-size:11px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
-    .team-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;}
-    .team-names{font-weight:600;}
-    .team-score{font-weight:800;color:var(--navy);}
-    .vs-line{text-align:center;font-size:10px;color:var(--text-3);font-weight:700;margin:2px 0;}
-
     .empty{padding:22px;text-align:center;color:var(--text-3);font-size:13px;}
 
     /* Season grid (Schedule + Results) — no horizontal scroll, paginated 4 weeks at a time */
@@ -75,6 +65,8 @@
     .score-cell{font-weight:800;color:var(--navy);}
     .avg-cell{font-weight:800;color:var(--blue);background:rgba(44,92,156,0.06);}
     .score-cell.clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
+    .pending-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);opacity:0.5;}
+    .legend{font-size:11px;color:var(--text-3);padding:10px 2px 2px;}
 
     .match-overlay{display:none;position:fixed;inset:0;background:rgba(12,23,56,0.45);z-index:300;align-items:center;justify-content:center;padding:16px;}
     .match-overlay.show{display:flex;}
@@ -112,7 +104,6 @@
       </div>
       <div class="tab-bar">
         <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
-        <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
         <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
         <button class="tab-btn" id="tab-rules" onclick="showTab('rules')">Rules</button>
       </div>
@@ -128,28 +119,7 @@
         </div>
         <div class="card">
           <table class="grid-table" id="sched-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
-        </div>
-
-        <div class="week-picker">
-          <select id="week-select" onchange="renderWeek()"></select>
-        </div>
-        <div class="card">
-          <div class="card-title">Match details for the selected week</div>
-          <div id="courts-list"><div class="empty">No pairings posted for this week yet.</div></div>
-        </div>
-      </div>
-
-      <div id="view-results" style="display:none">
-        <div class="grid-toolbar">
-          <div class="sess-tabs" id="res-sess-tabs"></div>
-          <div class="block-nav">
-            <button onclick="resBlock(-1)">‹</button>
-            <span id="res-block-label"></span>
-            <button onclick="resBlock(1)">›</button>
-          </div>
-        </div>
-        <div class="card">
-          <table class="grid-table" id="res-grid"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+          <div class="legend">BYE / NA = not playing that week · a score = tap it to see the match · a dot = playing, no score posted yet</div>
         </div>
       </div>
 
@@ -182,7 +152,7 @@
 
   <script>
     let league = 'MHL', data = { players: [], weeks: [], attendance: {}, pairings: [] };
-    let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
+    let schedSession = 1, schedBlockIdx = 0;
     const BLOCK_SIZE = window.innerWidth >= 900 ? 8 : 4; // wider screens show more weeks per page
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function token(){ return localStorage.getItem('hl-token') || ''; }
@@ -213,28 +183,9 @@
       const r = await fetch('/api/public/house-league/' + league, { headers: { 'x-hl-token': token() } });
       if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
       data = await r.json();
-      schedBlockIdx = 0; resBlockIdx = 0; schedSession = 1; resSession = 1;
-      const sel = document.getElementById('week-select');
-      sel.innerHTML = data.weeks.map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
-      if (data.weeks.length) sel.value = data.weeks[0].id;
-      renderWeek();
+      schedBlockIdx = 0; schedSession = 1;
       renderContacts();
       renderScheduleTabs(); renderScheduleGrid();
-      renderResultsTabs(); renderResultsGrid();
-    }
-
-    function renderWeek(){
-      const weekId = parseInt(document.getElementById('week-select').value);
-      const players = data.players;
-      const byId = {}; players.forEach(p => byId[p.id] = p.name);
-      const courts = (data.pairings || []).filter(p => p.week_id === weekId).sort((a,b)=>a.court-b.court);
-      document.getElementById('courts-list').innerHTML = courts.length ? courts.map(c => `
-        <div class="court-card">
-          <div class="court-label">Court ${c.court}</div>
-          <div class="team-row"><span class="team-names">${(c.team1||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ') || '—'}</span><span class="team-score">${c.score1==null?'':c.score1}</span></div>
-          <div class="vs-line">vs.</div>
-          <div class="team-row"><span class="team-names">${(c.team2||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ') || '—'}</span><span class="team-score">${c.score2==null?'':c.score2}</span></div>
-        </div>`).join('') : '<div class="empty">No pairings posted for this week yet.</div>';
     }
 
     function weeksForSession(session){ return data.weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
@@ -272,44 +223,17 @@
         ? `${schedBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, schedBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : '—';
       const table = document.getElementById('sched-grid');
       if (!block.length || !data.players.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
-      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '</tr>';
+      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Session Avg</th></tr>';
       const body = data.players.map(p => {
         const cells = block.map(w => {
           const status = data.attendance[w.id + ':' + p.id];
-          return `<td>${status ? `<span class="grid-badge ${status}">${status.toUpperCase()}</span>` : '—'}</td>`;
-        }).join('');
-        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}</tr>`;
-      }).join('');
-      table.innerHTML = head + body;
-    }
-
-    function renderResultsTabs(){
-      const sessions = sessionsPresent();
-      if (!sessions.includes(resSession)) resSession = sessions[0] || 1;
-      document.getElementById('res-sess-tabs').innerHTML = sessions.map(s =>
-        `<button class="sess-tab ${s===resSession?'on':''}" onclick="setResSession(${s})">Session ${s}</button>`).join('');
-    }
-    function setResSession(s){ resSession = s; resBlockIdx = 0; renderResultsTabs(); renderResultsGrid(); }
-    function resBlock(delta){
-      const max = maxBlocks(weeksForSession(resSession));
-      resBlockIdx = Math.min(max - 1, Math.max(0, resBlockIdx + delta));
-      renderResultsGrid();
-    }
-    function renderResultsGrid(){
-      const sessionWeeks = weeksForSession(resSession);
-      const block = blockWeeks(sessionWeeks, resBlockIdx);
-      document.getElementById('res-block-label').textContent = sessionWeeks.length
-        ? `${resBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, resBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : '—';
-      const table = document.getElementById('res-grid');
-      if (!block.length || !data.players.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
-      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Avg</th></tr>';
-      const body = data.players.map(p => {
-        const cells = block.map(w => {
+          if (status === 'bye' || status === 'na') return `<td><span class="grid-badge ${status}">${status.toUpperCase()}</span></td>`;
           const score = findPlayerScore(p.id, w.id);
-          const clickable = score !== null;
-          return `<td class="score-cell${clickable?' clickable':''}" ${clickable?`onclick="showMatchModal(${w.id},${p.id})"`:''}>${score===null?'—':score}</td>`;
+          if (score !== null) return `<td class="score-cell clickable" onclick="showMatchModal(${w.id},${p.id})">${score}</td>`;
+          if (status === 'in') return `<td><span class="pending-dot" title="Playing — no score posted yet"></span></td>`;
+          return `<td>—</td>`;
         }).join('');
-        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, schedSession)}</td></tr>`;
       }).join('');
       table.innerHTML = head + body;
     }
@@ -341,7 +265,7 @@
     }
 
     function showTab(id){
-      ['schedule','results','contacts','rules'].forEach(t => {
+      ['schedule','contacts','rules'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('on', id===t);
         document.getElementById('view-' + t).style.display = id===t ? '' : 'none';
       });
