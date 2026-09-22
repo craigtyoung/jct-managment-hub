@@ -39,6 +39,7 @@
     .sb-btn:hover{background:rgba(44,92,156,0.07);color:var(--text);}
     .sb-btn.active{background:rgba(44,92,156,0.1);color:#2c5c9c;font-weight:600;}
     .sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .sb-pill{margin-left:auto;background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:100px;}
     .hl-content{flex:1;min-width:0;padding:24px 32px 80px;}
     .page-head{margin-bottom:6px;}
     .page-head h1{font-size:24px;font-weight:800;letter-spacing:-0.01em;}
@@ -138,6 +139,10 @@
     .team-zone.drop-hot{border-color:var(--blue);background:rgba(44,92,156,0.10);}
     .team-zone .p-chip .rm{cursor:pointer;background:rgba(255,255,255,0.3);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
     .team-label{font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+    .sub-req-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;flex-wrap:wrap;}
+    .sub-req-row:last-child{border-bottom:none;}
+    .sub-req-note{color:var(--text-3);font-style:italic;}
+    .sub-req-acts{display:flex;gap:6px;flex-shrink:0;}
     .drag-hint-bar{font-size:12px;font-weight:600;color:var(--navy);background:rgba(44,92,156,0.08);border:1px dashed rgba(44,92,156,0.3);border-radius:9px;padding:8px 12px;margin-bottom:12px;}
 
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
@@ -165,7 +170,7 @@
         <div class="sb-label">House League</div>
         <button class="sb-btn active" id="nav-roster" onclick="showSection('roster',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Roster</button>
         <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule</button>
-        <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Match Builder</button>
+        <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Match Builder <span class="sb-pill" id="sub-req-badge" style="display:none"></span></button>
         <button class="sb-btn" id="nav-results" onclick="showSection('results',this)"><span class="sb-dot" style="background:#7c3aed"></span>Results</button>
         <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
       </nav>
@@ -237,6 +242,11 @@
             <span style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Week</span>
             <select id="week-select" onchange="loadWeek()"></select>
             <button class="btn-ghost" onclick="addCourt()">+ Add court</button>
+          </div>
+
+          <div class="card" id="sub-requests-card" style="display:none">
+            <div class="card-title">Coverage requests</div>
+            <div id="sub-requests-list"></div>
           </div>
 
           <div class="card">
@@ -359,6 +369,7 @@
       renderScheduleTabs(); renderScheduleGrid();
       renderResultsTabs(); renderResultsGrid();
       if (resView === 'matches') renderMatchCards();
+      loadSubRequests();
       if (document.getElementById('nav-settings').style.display !== 'none') loadSettings();
     }
 
@@ -467,6 +478,46 @@
       pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
       renderCourts();
       renderPlayerRail();
+    }
+
+    // ── Coverage requests: player-flagged "can't make it" from the public view ──
+    let subRequests = [];
+    async function loadSubRequests(){
+      subRequests = await jfetch('/api/house-league/' + league + '/sub-requests') || [];
+      renderSubRequests();
+      updateSubReqBadge();
+    }
+    function updateSubReqBadge(){
+      const open = subRequests.filter(r => r.status === 'open').length;
+      const badge = document.getElementById('sub-req-badge');
+      if (open) { badge.textContent = open; badge.style.display = ''; } else { badge.style.display = 'none'; }
+    }
+    function renderSubRequests(){
+      const open = subRequests.filter(r => r.status === 'open');
+      const card = document.getElementById('sub-requests-card');
+      const list = document.getElementById('sub-requests-list');
+      if (!open.length) { card.style.display = 'none'; return; }
+      card.style.display = '';
+      const byId = {}; roster.forEach(p => byId[p.id] = p.name);
+      const weekById = {}; weeks.forEach(w => weekById[w.id] = w.label);
+      list.innerHTML = open.map(r => `
+        <div class="sub-req-row">
+          <div><b>${esc(byId[r.player_id]||'Unknown player')}</b> — ${esc(weekById[r.week_id]||'Unknown week')}${r.note ? ` <span class="sub-req-note">"${esc(r.note)}"</span>` : ''}</div>
+          <div class="sub-req-acts">
+            <button class="btn-ghost" onclick="resolveSubReq(${r.id})">Mark filled</button>
+            <button class="btn-ghost danger" onclick="dismissSubReq(${r.id})">Dismiss</button>
+          </div>
+        </div>`).join('');
+    }
+    async function resolveSubReq(id){
+      const d = await jfetch('/api/house-league/sub-requests/' + id + '/resolve', { method:'PUT' });
+      if (!d) return;
+      toast('Marked filled'); loadSubRequests();
+    }
+    async function dismissSubReq(id){
+      const d = await jfetch('/api/house-league/sub-requests/' + id, { method:'DELETE' });
+      if (!d) return;
+      loadSubRequests();
     }
 
     // ── Schedule tab: season attendance grid (players × weeks, paginated) ──
@@ -823,6 +874,7 @@
     }
 
     window.onLiveUpdate = () => {
+      loadSubRequests();
       Promise.all([loadGrid(), loadAllPairings()]).then(async () => {
         renderRoster();
         if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();

@@ -4486,7 +4486,7 @@ function deleteLessonInquiry(id) {
 // public view (no staff login) serves players — see routes/house-league.js.
 const HL_LEAGUES = ['MHL', 'WHL'];
 
-['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings'].forEach(function (t) {
+['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings', 'hl_sub_requests'].forEach(function (t) {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 if (!_data.hl_settings) { _data.hl_settings = { publicPasswordHash: null, publicTokens: [] }; save(); }
@@ -4732,6 +4732,38 @@ function getHouseLeaguePublicData(league) {
   };
 }
 
+// A player flags they can't make a given week — surfaces to staff as a coverage
+// need. No player login exists, so this trusts self-reported identity the same
+// way the rest of the public view already does (shared password, honest use).
+function addSubRequest(league, weekId, playerId, note) {
+  weekId = parseInt(weekId); playerId = parseInt(playerId);
+  var weekOk = _data.hl_weeks.some(function (w) { return w.id === weekId && w.league === league; });
+  var playerOk = _data.hl_players.some(function (p) { return p.id === playerId && p.league === league; });
+  if (!weekOk || !playerOk) return { error: 'Unknown week or player', status: 400 };
+  var req = { id: nextId('hl_sub_requests'), league: league, week_id: weekId, player_id: playerId, note: String(note || '').trim().slice(0, 300), status: 'open', created_at: now() };
+  _data.hl_sub_requests.push(req);
+  save();
+  return { ok: true, request: req };
+}
+function getSubRequests(league) {
+  return _data.hl_sub_requests.filter(function (r) { return r.league === league; })
+    .sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+}
+function resolveSubRequest(id) {
+  var r = _data.hl_sub_requests.find(function (x) { return x.id === parseInt(id); });
+  if (!r) return { error: 'Not found', status: 404 };
+  r.status = 'resolved';
+  save();
+  return { ok: true, request: r };
+}
+function deleteSubRequest(id) {
+  id = parseInt(id);
+  var before = _data.hl_sub_requests.length;
+  _data.hl_sub_requests = _data.hl_sub_requests.filter(function (r) { return r.id !== id; });
+  save();
+  return { ok: _data.hl_sub_requests.length < before };
+}
+
 module.exports = {
   getHouseLeagueRoster,
   getHouseLeagueWeeks,
@@ -4754,6 +4786,10 @@ module.exports = {
   issueHouseLeagueToken,
   checkHouseLeagueToken,
   getHouseLeaguePublicData,
+  addSubRequest,
+  getSubRequests,
+  resolveSubRequest,
+  deleteSubRequest,
   getLessonInquiries,
   addLessonInquiry,
   updateLessonInquiry,

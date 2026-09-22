@@ -63,6 +63,15 @@ router.post('/:league/weeks/:weekId/pairings', (req, res) => reply(res, db.addHo
 router.put('/pairings/:id', (req, res) => reply(res, db.updateHousePairing(req.params.id, req.body || {})));
 router.delete('/pairings/:id', (req, res) => reply(res, db.deleteHousePairing(req.params.id)));
 
+// Coverage requests — a player flagging they can't make a week. Any desk role can
+// resolve/dismiss; anyone on staff can see them.
+router.get('/:league/sub-requests', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  res.json(db.getSubRequests(req.params.league));
+});
+router.put('/sub-requests/:id/resolve', (req, res) => reply(res, db.resolveSubRequest(req.params.id)));
+router.delete('/sub-requests/:id', (req, res) => reply(res, db.deleteSubRequest(req.params.id)));
+
 // Public-view password — management only to view/change
 router.get('/settings', guard(isMgmt, 'Management only'), (req, res) => res.json({ hasPassword: db.hasHouseLeaguePassword() }));
 router.put('/settings/password', guard(isMgmt, 'Management only'),
@@ -90,5 +99,21 @@ function requireToken(req, res, next) {
 publicRouter.get('/:league', requireToken, (req, res) => {
   if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
   res.json(db.getHouseLeaguePublicData(req.params.league));
+});
+
+// A player flagging they can't make a week — the one write action players get.
+// Rate-limited the same way login is; still requires the same shared token.
+const subReqHits = [];
+publicRouter.post('/:league/sub-request', requireToken, (req, res) => {
+  const t = Date.now();
+  while (subReqHits.length && t - subReqHits[0] > 60000) subReqHits.shift();
+  if (subReqHits.length >= 20) return res.status(429).json({ error: 'Too many requests — wait a moment' });
+  subReqHits.push(t);
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  const { weekId, playerId, note } = req.body || {};
+  const r = db.addSubRequest(req.params.league, weekId, playerId, note);
+  if (r.error) return res.status(r.status || 400).json(r);
+  sse.broadcast('update');
+  res.json(r);
 });
 module.exports.publicRouter = publicRouter;

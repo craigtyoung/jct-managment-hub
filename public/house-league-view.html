@@ -89,6 +89,11 @@
     .match-team .mine{color:var(--blue);}
     .match-vs{text-align:center;font-size:10px;color:var(--text-3);font-weight:700;padding:2px 0;}
     .match-close{margin-top:14px;width:100%;padding:9px;border-radius:9px;border:1px solid var(--border2);background:var(--canvas);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+
+    .sub-request-btn{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--blue);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;}
+    .fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;text-align:left;}
+    .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+    .fld input,.fld select{font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);width:100%;}
   </style>
 </head>
 <body>
@@ -113,6 +118,7 @@
         <button class="lg-tab on" id="lg-MHL" onclick="switchLeague('MHL')">Men's League</button>
         <button class="lg-tab" id="lg-WHL" onclick="switchLeague('WHL')">Women's League</button>
       </div>
+      <button class="sub-request-btn" onclick="openSubRequest()">Can't make it? Request coverage</button>
       <div class="tab-bar">
         <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
         <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
@@ -184,6 +190,19 @@
       <div class="match-vs">vs.</div>
       <div class="match-team" id="match-team2"></div>
       <button class="match-close" onclick="closeMatchModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="match-overlay" id="sub-modal" onclick="if(event.target===this)closeSubRequest()">
+    <div class="match-box">
+      <h3>Request coverage</h3>
+      <div class="sub">Staff will see this and try to find a substitute.</div>
+      <div class="fld"><label>Your name</label><select id="sr-player"></select></div>
+      <div class="fld"><label>Week you can't make</label><select id="sr-week"></select></div>
+      <div class="fld"><label>Note (optional)</label><input type="text" id="sr-note" placeholder="e.g. out of town"></div>
+      <div class="login-err" id="sr-err"></div>
+      <button class="match-close" style="background:var(--navy);color:#fff;border-color:var(--navy);margin-top:8px" onclick="submitSubRequest()">Send request</button>
+      <button class="match-close" onclick="closeSubRequest()">Cancel</button>
     </div>
   </div>
 
@@ -291,6 +310,37 @@
       document.getElementById('match-modal').classList.add('show');
     }
     function closeMatchModal(){ document.getElementById('match-modal').classList.remove('show'); }
+
+    function openSubRequest(){
+      const playerSel = document.getElementById('sr-player');
+      playerSel.innerHTML = data.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
+        .map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+      const weekSel = document.getElementById('sr-week');
+      weekSel.innerHTML = allWeeksChrono().map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
+      document.getElementById('sr-note').value = '';
+      document.getElementById('sr-err').textContent = '';
+      document.getElementById('sub-modal').classList.add('show');
+    }
+    function closeSubRequest(){ document.getElementById('sub-modal').classList.remove('show'); }
+    async function submitSubRequest(){
+      const playerId = parseInt(document.getElementById('sr-player').value);
+      const weekId = parseInt(document.getElementById('sr-week').value);
+      const note = document.getElementById('sr-note').value;
+      const err = document.getElementById('sr-err');
+      err.textContent = '';
+      if (!playerId || !weekId) { err.textContent = 'Pick your name and a week.'; return; }
+      try {
+        const r = await fetch('/api/public/house-league/' + league + '/sub-request', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-hl-token': token() },
+          body: JSON.stringify({ playerId, weekId, note }),
+        });
+        const d = await r.json();
+        if (!r.ok) { err.style.color = 'var(--red)'; err.textContent = d.error || 'Could not send the request.'; return; }
+        err.style.color = 'var(--green)';
+        err.textContent = 'Request sent — staff will follow up.';
+        setTimeout(closeSubRequest, 1400);
+      } catch (e) { err.style.color = 'var(--red)'; err.textContent = 'Could not reach the server — try again.'; }
+    }
 
     // ── Results tab: visual court-by-court browser, week to week ──
     let matchWeekIdx = -1; // -1 = not yet defaulted
