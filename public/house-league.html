@@ -91,9 +91,6 @@
     .sess-tabs{display:flex;gap:6px;}
     .sess-tab{padding:7px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
     .sess-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
-    .block-nav{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text-2);}
-    .block-nav button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-size:15px;cursor:pointer;color:var(--text-2);}
-    .block-nav button:hover{border-color:var(--blue);color:var(--blue);}
     table.grid-table{border-collapse:collapse;width:100%;table-layout:fixed;}
     table.grid-table th,table.grid-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:12px;}
     table.grid-table th{font-weight:700;color:var(--text-2);white-space:nowrap;}
@@ -114,15 +111,17 @@
     @media(max-width:600px){.pairing-row{grid-template-columns:1fr;}.pairing-row .pairing-vs{display:none;}}
 
     /* Matches: drag-and-drop lineup builder — mirrors the Pro Schedule pattern, desktop only */
+    .rating-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+    .rf-btn{padding:5px 12px;border-radius:100px;border:1.5px solid transparent;background:var(--canvas);font-family:inherit;font-size:11px;font-weight:800;color:var(--text-2);cursor:pointer;}
+    .rf-btn.on{border-color:currentColor;background:rgba(0,0,0,0.04);}
     .player-rail{display:flex;flex-wrap:wrap;gap:8px;}
-    .p-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;color:#fff;background:var(--blue);cursor:grab;user-select:none;}
+    .p-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;color:#fff;cursor:grab;user-select:none;}
     .p-chip:active{cursor:grabbing;}
     .p-chip.dragging{opacity:0.4;}
-    .p-chip.warn{background:#94a3b8;}
+    .p-chip.warn{outline:2px dashed rgba(255,255,255,0.85);outline-offset:-4px;}
     .p-chip .tag{font-size:9px;font-weight:800;text-transform:uppercase;background:rgba(255,255,255,0.3);padding:1px 5px;border-radius:100px;}
     .team-zone{min-height:52px;border:1.5px dashed var(--border2);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;background:var(--surface);transition:all .12s;}
     .team-zone.drop-hot{border-color:var(--blue);background:rgba(44,92,156,0.10);}
-    .team-zone .p-chip{background:var(--green);}
     .team-zone .p-chip .rm{cursor:pointer;background:rgba(255,255,255,0.3);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
     .team-label{font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
 
@@ -203,11 +202,7 @@
 
           <div class="grid-toolbar">
             <div class="sess-tabs" id="sched-sess-tabs"></div>
-            <div class="block-nav">
-              <button class="btn-ghost" onclick="schedBlock(-1)">‹</button>
-              <span id="sched-block-label"></span>
-              <button class="btn-ghost" onclick="schedBlock(1)">›</button>
-            </div>
+            <span id="sched-block-label" style="font-size:12px;font-weight:700;color:var(--text-3)"></span>
             <button class="btn-ghost" onclick="addWeek()">+ Add week</button>
           </div>
 
@@ -231,6 +226,7 @@
 
           <div class="card">
             <div class="card-title">Players — drag onto a team below <span style="text-transform:none;letter-spacing:0;font-weight:600" id="rail-hint"></span></div>
+            <div class="rating-filters" id="rating-filters"></div>
             <div class="player-rail" id="player-rail"><div class="empty">Loading…</div></div>
           </div>
 
@@ -247,11 +243,7 @@
 
           <div class="grid-toolbar">
             <div class="sess-tabs" id="res-sess-tabs"></div>
-            <div class="block-nav">
-              <button class="btn-ghost" onclick="resBlock(-1)">‹</button>
-              <span id="res-block-label"></span>
-              <button class="btn-ghost" onclick="resBlock(1)">›</button>
-            </div>
+            <span id="res-block-label" style="font-size:12px;font-weight:700;color:var(--text-3)"></span>
           </div>
 
           <div class="card">
@@ -283,9 +275,8 @@
   <script src="/staff-avatar.js"></script>
   <script>
     let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [];
-    let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
+    let schedSession = 1, resSession = 1;
     let rosterSortBy = 'name', rosterSortDir = 'asc';
-    const BLOCK_SIZE = 4;
     const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
     const STATUS_LABEL = { in: 'IN', bye: 'BYE', na: 'NA' };
 
@@ -316,7 +307,7 @@
       league = lg;
       document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
       document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
-      schedBlockIdx = 0; resBlockIdx = 0; schedSession = 1; resSession = 1;
+      schedSession = 1; resSession = 1;
       await loadGrid();
       await loadAllPairings();
       renderRoster();
@@ -337,8 +328,6 @@
     }
 
     function weeksForSession(session){ return weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
-    function maxBlocks(arr){ return Math.max(1, Math.ceil(arr.length / BLOCK_SIZE)); }
-    function blockWeeks(arr, idx){ return arr.slice(idx*BLOCK_SIZE, idx*BLOCK_SIZE + BLOCK_SIZE); }
     function sessionsPresent(){ const s = new Set(weeks.map(w=>w.session)); return [...s].sort(); }
 
     function findPlayerScore(playerId, weekId){
@@ -441,35 +430,27 @@
       document.getElementById('sched-sess-tabs').innerHTML = sessions.map(s =>
         `<button class="sess-tab ${s===schedSession?'on':''}" onclick="setSchedSession(${s})">Session ${s}</button>`).join('');
     }
-    function setSchedSession(s){ schedSession = s; schedBlockIdx = 0; renderScheduleTabs(); renderScheduleGrid(); }
-    function schedBlock(delta){
-      const wks = weeksForSession(schedSession);
-      const max = maxBlocks(wks);
-      schedBlockIdx = Math.min(max - 1, Math.max(0, schedBlockIdx + delta));
-      renderScheduleGrid();
+    function setSchedSession(s){ schedSession = s; renderScheduleTabs(); renderScheduleGrid(); }
+    function sessionInCount(playerId, session){
+      return weeksForSession(session).filter(w => grid.attendance[w.id + ':' + playerId] === 'in').length;
     }
+
     function renderScheduleGrid(){
-      const sessionWeeks = weeksForSession(schedSession);
-      const block = blockWeeks(sessionWeeks, schedBlockIdx);
-      const max = maxBlocks(sessionWeeks);
-      document.getElementById('sched-block-label').textContent = sessionWeeks.length
-        ? `Weeks ${schedBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, schedBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : 'No weeks yet';
-      const navBtns = document.querySelectorAll('#section-schedule .block-nav button');
-      if (navBtns[0]) navBtns[0].disabled = schedBlockIdx === 0;
-      if (navBtns[1]) navBtns[1].disabled = schedBlockIdx >= max - 1;
+      const sessionWeeks = weeksForSession(schedSession); // full session, no pagination — staff is desktop-only
+      document.getElementById('sched-block-label').textContent = sessionWeeks.length ? `${sessionWeeks.length} weeks` : 'No weeks yet';
 
       const active = roster.filter(p => p.active !== false);
       const table = document.getElementById('sched-grid');
-      if (!block.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
-      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '</tr>';
+      if (!sessionWeeks.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + sessionWeeks.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Total</th></tr>';
       const body = active.map(p => {
-        const cells = block.map(w => {
+        const cells = sessionWeeks.map(w => {
           const status = grid.attendance[w.id + ':' + p.id] || null;
           const cls = status ? status : '';
           const label = status ? STATUS_LABEL[status] : '—';
           return `<td><button class="cell-btn ${cls}" onclick="cycleAttCell(${p.id},${w.id})">${label}</button></td>`;
         }).join('');
-        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}</tr>`;
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionInCount(p.id, schedSession)}</td></tr>`;
       }).join('');
       table.innerHTML = head + body;
     }
@@ -497,39 +478,42 @@
       document.getElementById('res-sess-tabs').innerHTML = sessions.map(s =>
         `<button class="sess-tab ${s===resSession?'on':''}" onclick="setResSession(${s})">Session ${s}</button>`).join('');
     }
-    function setResSession(s){ resSession = s; resBlockIdx = 0; renderResultsTabs(); renderResultsGrid(); }
-    function resBlock(delta){
-      const wks = weeksForSession(resSession);
-      const max = maxBlocks(wks);
-      resBlockIdx = Math.min(max - 1, Math.max(0, resBlockIdx + delta));
-      renderResultsGrid();
-    }
+    function setResSession(s){ resSession = s; renderResultsTabs(); renderResultsGrid(); }
     function renderResultsGrid(){
-      const sessionWeeks = weeksForSession(resSession);
-      const block = blockWeeks(sessionWeeks, resBlockIdx);
-      const max = maxBlocks(sessionWeeks);
-      document.getElementById('res-block-label').textContent = sessionWeeks.length
-        ? `Weeks ${resBlockIdx*BLOCK_SIZE+1}–${Math.min(sessionWeeks.length, resBlockIdx*BLOCK_SIZE+block.length)} of ${sessionWeeks.length}` : 'No weeks yet';
-      const navBtns = document.querySelectorAll('#section-results .block-nav button');
-      if (navBtns[0]) navBtns[0].disabled = resBlockIdx === 0;
-      if (navBtns[1]) navBtns[1].disabled = resBlockIdx >= max - 1;
+      const sessionWeeks = weeksForSession(resSession); // full session, no pagination — staff is desktop-only
+      document.getElementById('res-block-label').textContent = sessionWeeks.length ? `${sessionWeeks.length} weeks` : 'No weeks yet';
 
       const active = roster.filter(p => p.active !== false);
       const table = document.getElementById('res-grid');
-      if (!block.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
-      const head = '<tr><th class="name-th">Player</th>' + block.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Session Avg</th></tr>';
+      if (!sessionWeeks.length || !active.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th class="name-th">Player</th>' + sessionWeeks.map(w => `<th>${esc(w.label)}</th>`).join('') + '<th>Matches Played</th><th>Session Avg</th></tr>';
       const body = active.map(p => {
-        const cells = block.map(w => {
+        const cells = sessionWeeks.map(w => {
           const score = findPlayerScore(p.id, w.id);
           return `<td class="score-cell">${score===null?'—':score}</td>`;
         }).join('');
-        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
+        const played = sessionWeeks.filter(w => findPlayerScore(p.id, w.id) !== null).length;
+        return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${played}</td><td class="avg-cell">${sessionAverage(p.id, resSession)}</td></tr>`;
       }).join('');
       table.innerHTML = head + body;
     }
 
     // ── Matches: drag-and-drop lineup builder (desktop only, mirrors Pro Schedule) ──
     let dragPlayerId = null;
+    let railRatingFilter = 'all';
+    const RATING_PALETTE = ['#0ea5e9','#16a34a','#d97706','#dc2626','#7c3aed','#db2777','#0891b2','#65a30d'];
+
+    function ratingValues(){
+      return [...new Set(roster.filter(p=>p.active!==false).map(p=>String(p.rating||'').trim()).filter(Boolean))]
+        .sort((a,b)=>parseFloat(a)-parseFloat(b));
+    }
+    function ratingColor(rating){
+      rating = String(rating||'').trim();
+      if (!rating) return '#94a3b8';
+      const vals = ratingValues();
+      const idx = vals.indexOf(rating);
+      return idx === -1 ? '#94a3b8' : RATING_PALETTE[idx % RATING_PALETTE.length];
+    }
 
     function assignedPlayerIds(){
       const ids = new Set();
@@ -537,17 +521,39 @@
       return ids;
     }
 
+    function playerChip(p, opts){
+      opts = opts || {};
+      const status = grid.attendance[currentWeekId + ':' + p.id];
+      const warn = status === 'bye' ? 'BYE' : status === 'na' ? 'NA' : '';
+      const rm = opts.removable ? `<span class="rm" onclick="removeFromTeam(${opts.pairingId},'${opts.team}',${p.id})">✕</span>` : '';
+      const drag = opts.removable ? '' : `draggable="true" ondragstart="dragPlayer(event,${p.id})" ondragend="dragEnd(event)"`;
+      return `<span class="p-chip ${warn?'warn':''}" ${drag} data-player="${p.id}" title="${esc(p.name)}${p.rating?' — rating '+esc(p.rating):''}${warn?' — marked '+warn+' this week':''}" style="background:${ratingColor(p.rating)}">${esc(p.name)}${p.rating?`<span class="tag">${esc(p.rating)}</span>`:''}${warn?`<span class="tag">${warn}</span>`:''}${rm}</span>`;
+    }
+
+    function setRailFilter(v){ railRatingFilter = v; renderPlayerRail(); }
+
     function renderPlayerRail(){
       const assigned = assignedPlayerIds();
-      const active = roster.filter(p => p.active !== false && !assigned.has(p.id));
+      let active = roster.filter(p => p.active !== false && !assigned.has(p.id));
+
+      const vals = ratingValues();
+      document.getElementById('rating-filters').innerHTML = [
+        `<button class="rf-btn ${railRatingFilter==='all'?'on':''}" onclick="setRailFilter('all')">All</button>`,
+        ...vals.map(v => `<button class="rf-btn ${railRatingFilter===v?'on':''}" style="color:${ratingColor(v)}" onclick="setRailFilter('${v}')">${esc(v)}</button>`)
+      ].join('');
+
+      if (railRatingFilter !== 'all') active = active.filter(p => String(p.rating||'').trim() === railRatingFilter);
+
+      active = active.slice().sort((a,b) => {
+        const ra = parseFloat(a.rating), rb = parseFloat(b.rating);
+        const va = isNaN(ra) ? -Infinity : ra, vb = isNaN(rb) ? -Infinity : rb;
+        return vb - va || a.name.localeCompare(b.name); // highest rating first, then name
+      });
+
       const rail = document.getElementById('player-rail');
-      if (!active.length) { rail.innerHTML = '<div class="empty">Everyone active is assigned to a court.</div>'; document.getElementById('rail-hint').textContent=''; return; }
+      if (!active.length) { rail.innerHTML = '<div class="empty">No unassigned players match that filter.</div>'; document.getElementById('rail-hint').textContent=''; return; }
       document.getElementById('rail-hint').textContent = `— ${active.length} unassigned`;
-      rail.innerHTML = active.map(p => {
-        const status = grid.attendance[currentWeekId + ':' + p.id];
-        const warn = status === 'bye' ? 'BYE' : status === 'na' ? 'NA' : '';
-        return `<span class="p-chip ${warn?'warn':''}" draggable="true" data-player="${p.id}" ondragstart="dragPlayer(event,${p.id})" ondragend="dragEnd(event)" title="${esc(p.name)}${warn?' — marked '+warn+' this week':''}">${esc(p.name)}${warn?`<span class="tag">${warn}</span>`:''}</span>`;
-      }).join('');
+      rail.innerHTML = active.map(p => playerChip(p)).join('');
     }
 
     function dragPlayer(e, id){
@@ -591,13 +597,13 @@
             <div>
               <div class="team-label">Team 1</div>
               <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team1')">
-                ${(p.team1||[]).map(id => `<span class="p-chip">${esc((roster.find(r=>r.id===id)||{}).name||'?')}<span class="rm" onclick="removeFromTeam(${p.id},'team1',${id})">✕</span></span>`).join('') || ''}
+                ${(p.team1||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team1'}) : ''; }).join('')}
               </div>
             </div>
             <div>
               <div class="team-label">Team 2</div>
               <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team2')">
-                ${(p.team2||[]).map(id => `<span class="p-chip">${esc((roster.find(r=>r.id===id)||{}).name||'?')}<span class="rm" onclick="removeFromTeam(${p.id},'team2',${id})">✕</span></span>`).join('') || ''}
+                ${(p.team2||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team2'}) : ''; }).join('')}
               </div>
             </div>
           </div>
