@@ -136,12 +136,28 @@
       </div>
 
       <div id="view-results" style="display:none">
-        <div class="grid-toolbar">
-          <button class="btn-ghost" onclick="matchWeekNav(-1)">‹ Previous</button>
-          <span id="match-week-label" style="font-weight:700;color:var(--navy)"></span>
-          <button class="btn-ghost" onclick="matchWeekNav(1)">Next ›</button>
+        <div class="tab-bar" style="max-width:340px">
+          <button class="tab-btn on" id="res-view-matches" onclick="setResView('matches')">Matches</button>
+          <button class="tab-btn" id="res-view-standings" onclick="setResView('standings')">Standings</button>
         </div>
-        <div id="match-cards-wrap"><div class="empty">No weeks yet.</div></div>
+
+        <div id="res-matches-view">
+          <div class="grid-toolbar">
+            <button class="btn-ghost" onclick="matchWeekNav(-1)">‹ Previous</button>
+            <span id="match-week-label" style="font-weight:700;color:var(--navy)"></span>
+            <button class="btn-ghost" onclick="matchWeekNav(1)">Next ›</button>
+          </div>
+          <div id="match-cards-wrap"><div class="empty">No weeks yet.</div></div>
+        </div>
+
+        <div id="res-standings-view" style="display:none">
+          <div class="grid-toolbar">
+            <div class="sess-tabs" id="stand-sess-tabs"></div>
+          </div>
+          <div class="card">
+            <table class="grid-table" id="standings-table" style="table-layout:auto"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
       </div>
 
       <div id="view-contacts" style="display:none">
@@ -204,10 +220,12 @@
       const r = await fetch('/api/public/house-league/' + league, { headers: { 'x-hl-token': token() } });
       if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
       data = await r.json();
-      schedBlockIdx = 0; schedSession = 1; matchWeekIdx = -1;
+      schedBlockIdx = 0; schedSession = 1; matchWeekIdx = -1; standSession = 1;
       renderContacts();
       renderScheduleTabs(); renderScheduleGrid();
-      if (document.getElementById('view-results').style.display !== 'none') renderMatchCards();
+      if (document.getElementById('view-results').style.display !== 'none') {
+        if (resView === 'standings') { renderStandingsTabs(); renderStandings(); } else renderMatchCards();
+      }
     }
 
     function weeksForSession(session){ return data.weeks.filter(w => w.session === session).sort((a,b)=>a.order-b.order); }
@@ -276,6 +294,7 @@
 
     // ── Results tab: visual court-by-court browser, week to week ──
     let matchWeekIdx = -1; // -1 = not yet defaulted
+    let resView = 'matches';
     function allWeeksChrono(){ return data.weeks.slice().sort((a,b)=>a.order-b.order); }
     function matchWeekNav(delta){
       const all = allWeeksChrono();
@@ -309,6 +328,40 @@
       document.getElementById('match-cards-wrap').innerHTML = courts.length ? courts.map(courtVisual).join('') : '<div class="empty">No courts posted for this week.</div>';
     }
 
+    let standSession = 1;
+    function setResView(v){
+      resView = v;
+      ['matches','standings'].forEach(x => document.getElementById('res-view-'+x).classList.toggle('on', v===x));
+      document.getElementById('res-matches-view').style.display = v==='matches' ? '' : 'none';
+      document.getElementById('res-standings-view').style.display = v==='standings' ? '' : 'none';
+      if (v === 'matches') renderMatchCards();
+      if (v === 'standings') { renderStandingsTabs(); renderStandings(); }
+    }
+    function renderStandingsTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(standSession)) standSession = sessions[0] || 1;
+      document.getElementById('stand-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===standSession?'on':''}" onclick="setStandSession(${s})">Session ${s}</button>`).join('');
+    }
+    function setStandSession(s){ standSession = s; renderStandingsTabs(); renderStandings(); }
+    function renderStandings(){
+      const rows = data.players.map(p => {
+        const scores = weeksForSession(standSession).map(w => findPlayerScore(p.id, w.id)).filter(s => s !== null).map(Number);
+        const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+        return { p, avg, played: scores.length };
+      }).sort((a,b) => (b.avg===null?-Infinity:b.avg) - (a.avg===null?-Infinity:a.avg));
+      const table = document.getElementById('standings-table');
+      if (!rows.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th>Rank</th><th class="name-th">Player</th><th>Matches Played</th><th>Session Avg</th></tr>';
+      const body = rows.map((r, i) => `<tr>
+        <td>${r.avg===null ? '—' : (i+1)}</td>
+        <td class="name-cell">${esc(r.p.name)}</td>
+        <td>${r.played}</td>
+        <td class="avg-cell">${r.avg===null?'—':r.avg.toFixed(1)}</td>
+      </tr>`).join('');
+      table.innerHTML = head + body;
+    }
+
     function renderContacts(){
       const rows = data.players.map(p => `
         <div class="contact-row">
@@ -322,7 +375,7 @@
     }
 
     function showTab(id){
-      if (id === 'results') renderMatchCards();
+      if (id === 'results') { if (resView === 'standings') { renderStandingsTabs(); renderStandings(); } else renderMatchCards(); }
       ['schedule','results','contacts','rules'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('on', id===t);
         document.getElementById('view-' + t).style.display = id===t ? '' : 'none';

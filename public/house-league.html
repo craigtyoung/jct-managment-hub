@@ -255,9 +255,10 @@
           <div class="page-head"><h1>Results</h1></div>
           <div class="page-sub">Scores roll up from the court pairings entered in Matches. Session average ignores blank weeks.</div>
 
-          <div class="tab-bar" style="max-width:280px">
+          <div class="tab-bar" style="max-width:420px">
             <button class="tab-btn on" id="res-view-grid" onclick="setResView('grid')">Score Grid</button>
             <button class="tab-btn" id="res-view-matches" onclick="setResView('matches')">Matches</button>
+            <button class="tab-btn" id="res-view-standings" onclick="setResView('standings')">Standings</button>
           </div>
 
           <div id="res-grid-view">
@@ -279,6 +280,17 @@
               <button class="btn-ghost" onclick="matchWeekNav(1)">Next week ›</button>
             </div>
             <div id="match-cards-wrap"><div class="empty">No weeks yet.</div></div>
+          </div>
+
+          <div id="res-standings-view" style="display:none">
+            <div class="grid-toolbar">
+              <div class="sess-tabs" id="stand-sess-tabs"></div>
+            </div>
+            <div class="card">
+              <div class="tbl-wrap">
+                <table class="grid-table" id="standings-table" style="table-layout:auto"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -336,7 +348,7 @@
       league = lg;
       document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
       document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
-      schedSession = 1; resSession = 1; matchWeekIdx = -1;
+      schedSession = 1; resSession = 1; standSession = 1; matchWeekIdx = -1;
       await loadGrid();
       await loadAllPairings();
       renderRoster();
@@ -367,11 +379,13 @@
       const val = onTeam1 ? p.score1 : p.score2;
       return (val === null || val === undefined) ? null : val;
     }
+    function sessionScores(playerId, session){
+      return weeksForSession(session).map(w => findPlayerScore(playerId, w.id)).filter(s => s !== null && s !== '').map(Number);
+    }
     function sessionAverage(playerId, session){
-      const wks = weeksForSession(session);
-      const scores = wks.map(w => findPlayerScore(playerId, w.id)).filter(s => s !== null && s !== '');
+      const scores = sessionScores(playerId, session);
       if (!scores.length) return '—';
-      return (scores.reduce((a,b)=>a+Number(b),0) / scores.length).toFixed(1);
+      return (scores.reduce((a,b)=>a+b,0) / scores.length).toFixed(1);
     }
 
     function setRosterSort(field){
@@ -530,13 +544,41 @@
 
     // ── Results tab: Matches sub-view — visual court-by-court browser, week to week ──
     let resView = 'grid', matchWeekIdx = -1; // -1 = not yet defaulted
+    let standSession = 1;
     function setResView(v){
       resView = v;
-      document.getElementById('res-view-grid').classList.toggle('on', v==='grid');
-      document.getElementById('res-view-matches').classList.toggle('on', v==='matches');
+      ['grid','matches','standings'].forEach(x => document.getElementById('res-view-'+x).classList.toggle('on', v===x));
       document.getElementById('res-grid-view').style.display = v==='grid' ? '' : 'none';
       document.getElementById('res-matches-view').style.display = v==='matches' ? '' : 'none';
+      document.getElementById('res-standings-view').style.display = v==='standings' ? '' : 'none';
       if (v === 'matches') renderMatchCards();
+      if (v === 'standings') { renderStandingsTabs(); renderStandings(); }
+    }
+    function renderStandingsTabs(){
+      const sessions = sessionsPresent();
+      if (!sessions.includes(standSession)) standSession = sessions[0] || 1;
+      document.getElementById('stand-sess-tabs').innerHTML = sessions.map(s =>
+        `<button class="sess-tab ${s===standSession?'on':''}" onclick="setStandSession(${s})">Session ${s}</button>`).join('');
+    }
+    function setStandSession(s){ standSession = s; renderStandingsTabs(); renderStandings(); }
+    function renderStandings(){
+      const active = roster.filter(p => p.active !== false);
+      const rows = active.map(p => {
+        const scores = sessionScores(p.id, standSession);
+        const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+        return { p, avg, played: scores.length };
+      }).sort((a,b) => (b.avg===null?-Infinity:b.avg) - (a.avg===null?-Infinity:a.avg));
+      const table = document.getElementById('standings-table');
+      if (!rows.length) { table.innerHTML = '<tr><td class="empty">Nothing to show yet.</td></tr>'; return; }
+      const head = '<tr><th>Rank</th><th class="name-th">Player</th><th>Rating</th><th>Matches Played</th><th>Session Avg</th></tr>';
+      const body = rows.map((r, i) => `<tr>
+        <td>${r.avg===null ? '—' : (i+1)}</td>
+        <td class="name-cell">${esc(r.p.name)}</td>
+        <td>${esc(r.p.rating||'')}</td>
+        <td>${r.played}</td>
+        <td class="avg-cell">${r.avg===null?'—':r.avg.toFixed(1)}</td>
+      </tr>`).join('');
+      table.innerHTML = head + body;
     }
     function allWeeksChrono(){ return weeks.slice().sort((a,b)=>a.order-b.order); }
     function matchWeekNav(delta){
@@ -735,7 +777,11 @@
       document.getElementById('section-' + id).style.display = '';
       if (id === 'schedule') { renderScheduleTabs(); renderScheduleGrid(); }
       if (id === 'matches') { loadWeek(); }
-      if (id === 'results') { renderResultsTabs(); renderResultsGrid(); if (resView === 'matches') renderMatchCards(); }
+      if (id === 'results') {
+        renderResultsTabs(); renderResultsGrid();
+        if (resView === 'matches') renderMatchCards();
+        if (resView === 'standings') { renderStandingsTabs(); renderStandings(); }
+      }
       if (id === 'settings') loadSettings();
     }
 
@@ -750,6 +796,7 @@
         if (document.getElementById('section-results').style.display !== 'none') {
           renderResultsGrid();
           if (resView === 'matches') renderMatchCards();
+          if (resView === 'standings') renderStandings();
         }
       });
     };
