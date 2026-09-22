@@ -242,6 +242,7 @@
             <span style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Week</span>
             <select id="week-select" onchange="loadWeek()"></select>
             <button class="btn-ghost" onclick="addCourt()">+ Add court</button>
+            <button class="btn-add" onclick="suggestLineup()">✨ Suggest Lineup</button>
           </div>
 
           <div class="card" id="sub-requests-card" style="display:none">
@@ -738,6 +739,56 @@
         if ((t1.includes(idA) && t2.includes(idB)) || (t2.includes(idA) && t1.includes(idB))) opponent++;
       });
       return { partner, opponent };
+    }
+
+    // ── Suggest Lineup: fills unassigned IN players into new courts, balancing
+    // rating and minimizing repeat partners/opponents. Only touches courts it
+    // creates itself — never edits an already-placed pairing. ──
+    function teamAvgRating(team){ return team.reduce((s,p) => s + (parseFloat(p.rating)||0), 0) / team.length; }
+    function splitCost(team1, team2){
+      let cost = 0;
+      cost += pairHistory(team1[0].id, team1[1].id).partner * 10;
+      cost += pairHistory(team2[0].id, team2[1].id).partner * 10;
+      team1.forEach(a => team2.forEach(b => { cost += pairHistory(a.id, b.id).opponent * 3; }));
+      cost += Math.abs(teamAvgRating(team1) - teamAvgRating(team2)) * 2;
+      return cost;
+    }
+    function bestSplit(four){
+      const [a,b,c,d] = four;
+      const options = [
+        { team1:[a,b], team2:[c,d] },
+        { team1:[a,c], team2:[b,d] },
+        { team1:[a,d], team2:[b,c] },
+      ];
+      let best = options[0], bestCost = Infinity;
+      options.forEach(o => { const cost = splitCost(o.team1, o.team2); if (cost < bestCost) { bestCost = cost; best = o; } });
+      return { team1: best.team1.map(p=>p.id), team2: best.team2.map(p=>p.id) };
+    }
+    async function suggestLineup(){
+      const assigned = assignedPlayerIds();
+      const unassigned = roster.filter(p => p.active !== false && grid.attendance[currentWeekId+':'+p.id]==='in' && !assigned.has(p.id));
+      if (unassigned.length < 4) { toast('Need at least 4 unassigned IN players to suggest a court'); return; }
+
+      const sorted = unassigned.slice().sort((a,b) => (parseFloat(b.rating)||0) - (parseFloat(a.rating)||0));
+      const numCourts = Math.floor(sorted.length / 4);
+      const groups = Array.from({length: numCourts}, () => []);
+      for (let i = 0; i < numCourts * 4; i++) {
+        const round = Math.floor(i / numCourts), posInRound = i % numCourts;
+        const courtIdx = (round % 2 === 0) ? posInRound : (numCourts - 1 - posInRound); // snake seeding for balance
+        groups[courtIdx].push(sorted[i]);
+      }
+      const leftover = sorted.length - numCourts * 4;
+
+      for (const group of groups) {
+        const split = bestSplit(group);
+        const d = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+        if (!d) continue;
+        pairings.push(d.pairing); allPairings.push(d.pairing);
+        await updatePairing(d.pairing.id, 'team1', split.team1);
+        await updatePairing(d.pairing.id, 'team2', split.team2);
+      }
+      renderPlayerRail();
+      toast(`Suggested ${numCourts} court${numCourts===1?'':'s'}${leftover ? `, ${leftover} player${leftover===1?'':'s'} left unassigned` : ''} — review and adjust as needed`);
     }
 
     function dragPlayer(e, id, fromPairingId, fromTeam){
