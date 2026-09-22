@@ -4723,8 +4723,9 @@ function checkHouseLeagueToken(token) {
 function getHouseLeaguePublicData(league) {
   var grid = getHouseLeagueGrid(league);
   return {
+    // No rating — that's for staff scheduling only, never shown to players.
     players: grid.players.filter(function (p) { return p.active !== false; })
-      .map(function (p) { return { id: p.id, name: p.name, rating: p.rating, email: p.email, phone: p.phone }; }),
+      .map(function (p) { return { id: p.id, name: p.name, email: p.email, phone: p.phone }; }),
     weeks: grid.weeks,
     attendance: grid.attendance,
     pairings: _data.hl_pairings.filter(function (p) { return p.league === league; }),

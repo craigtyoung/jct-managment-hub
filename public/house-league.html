@@ -66,6 +66,11 @@
     .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
     .btn-ghost.danger:hover{border-color:#dc2626;color:#dc2626;}
 
+    .roster-toolbar{margin-bottom:12px;}
+    .roster-toolbar input{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);max-width:280px;width:100%;}
+    table.log th.sortable{cursor:pointer;user-select:none;}
+    table.log th.sortable:hover{color:var(--blue);}
+    .sort-ind{margin-left:3px;font-size:9px;}
     .roster-grid{display:grid;grid-template-columns:1.3fr 80px 1.4fr 1fr auto;gap:8px;align-items:end;margin-bottom:14px;}
     @media(max-width:760px){.roster-grid{grid-template-columns:1fr 1fr;}.roster-grid .btn-add{grid-column:1 / -1;}}
     .tbl-wrap{overflow-x:auto;}
@@ -161,9 +166,16 @@
 
           <div class="card">
             <div class="card-title" id="roster-count">Players</div>
+            <div class="roster-toolbar">
+              <input type="text" id="roster-search" placeholder="Search by name…" oninput="renderRoster()">
+            </div>
             <div class="tbl-wrap">
               <table class="log">
-                <thead><tr><th>Name</th><th>Rating</th><th>Email</th><th>Phone</th><th>Active</th><th></th></tr></thead>
+                <thead><tr>
+                  <th class="sortable" onclick="setRosterSort('name')">Name<span class="sort-ind" id="sort-name"></span></th>
+                  <th class="sortable" onclick="setRosterSort('rating')">Rating<span class="sort-ind" id="sort-rating"></span></th>
+                  <th>Email</th><th>Phone</th><th>Active</th><th></th>
+                </tr></thead>
                 <tbody id="roster-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
               </table>
             </div>
@@ -244,6 +256,7 @@
   <script>
     let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [];
     let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
+    let rosterSortBy = 'name', rosterSortDir = 'asc';
     const BLOCK_SIZE = 4;
     const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
     const STATUS_LABEL = { in: 'IN', bye: 'BYE', na: 'NA' };
@@ -314,11 +327,33 @@
       return (scores.reduce((a,b)=>a+Number(b),0) / scores.length).toFixed(1);
     }
 
+    function setRosterSort(field){
+      if (rosterSortBy === field) rosterSortDir = rosterSortDir === 'asc' ? 'desc' : 'asc';
+      else { rosterSortBy = field; rosterSortDir = 'asc'; }
+      renderRoster();
+    }
+
     function renderRoster(){
       document.getElementById('roster-count').firstChild.textContent = 'Players (' + roster.filter(p=>p.active!==false).length + ' active)';
+      ['name','rating'].forEach(f => {
+        document.getElementById('sort-' + f).textContent = rosterSortBy === f ? (rosterSortDir === 'asc' ? '▲' : '▼') : '';
+      });
       const body = document.getElementById('roster-body');
       if (!roster.length) { body.innerHTML = '<tr><td colspan="6" class="empty">No players yet.</td></tr>'; return; }
-      body.innerHTML = roster.map(p => `
+
+      const q = (document.getElementById('roster-search').value || '').trim().toLowerCase();
+      let rows = roster.filter(p => !q || p.name.toLowerCase().includes(q));
+      const dir = rosterSortDir === 'asc' ? 1 : -1;
+      rows = rows.slice().sort((a, b) => {
+        if (rosterSortBy === 'rating') {
+          const ra = parseFloat(a.rating), rb = parseFloat(b.rating);
+          const va = isNaN(ra) ? -Infinity : ra, vb = isNaN(rb) ? -Infinity : rb;
+          return (va - vb) * dir;
+        }
+        return a.name.localeCompare(b.name) * dir;
+      });
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty">No players match that search.</td></tr>'; return; }
+      body.innerHTML = rows.map(p => `
         <tr>
           <td><input value="${esc(p.name)}" onchange="editPlayer(${p.id},'name',this.value)"></td>
           <td><input value="${esc(p.rating)}" style="max-width:60px" onchange="editPlayer(${p.id},'rating',this.value)"></td>
