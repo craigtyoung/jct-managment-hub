@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>House League · Joshua Creek Tennis</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root{
+      --navy:#0c1738; --blue:#2c5c9c; --bg:#f1f5f9; --surface:#ffffff;
+      --border:rgba(12,23,56,0.08); --border2:#d4dae6; --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --canvas:#f8fafc; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;}
+    .wrap{max-width:720px;margin:0 auto;padding:20px 16px 80px;}
+    header{padding:6px 0 18px;}
+    header h1{font-size:20px;font-weight:800;letter-spacing:-0.01em;}
+    header p{font-size:13px;color:var(--text-2);margin-top:2px;}
+
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:340px;margin:60px auto;text-align:center;}
+    .login-box h2{font-size:17px;font-weight:800;margin-bottom:6px;}
+    .login-box p{font-size:13px;color:var(--text-2);margin-bottom:16px;}
+    .login-box input{width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;margin-bottom:10px;text-align:center;}
+    .login-box button{width:100%;padding:10px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:9px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+    .login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:16px;}
+
+    .league-toggle{display:flex;gap:6px;margin-bottom:14px;}
+    .lg-tab{flex:1;padding:9px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:700;color:var(--text-2);cursor:pointer;text-align:center;}
+    .lg-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+    .tab-bar{display:flex;gap:6px;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:4px;}
+    .tab-btn{flex:1;padding:8px;border:none;background:transparent;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .tab-btn.on{background:rgba(44,92,156,0.1);color:var(--blue);}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;}
+
+    .contact-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+    .contact-row:last-child{border-bottom:none;}
+    .contact-name{font-size:14px;font-weight:700;}
+    .contact-rating{font-size:11px;color:var(--text-3);font-weight:600;}
+    .contact-links{display:flex;gap:8px;flex-shrink:0;}
+    .contact-links a{font-size:12px;color:var(--blue);text-decoration:none;font-weight:700;}
+
+    .week-picker{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+    .week-picker select{flex:1;font-family:inherit;font-size:14px;font-weight:700;padding:10px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--navy);}
+
+    .att-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:13px;}
+    .att-row:last-child{border-bottom:none;}
+    .att-badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;padding:3px 9px;border-radius:100px;}
+    .att-badge.in{background:rgba(22,163,74,0.12);color:var(--green);}
+    .att-badge.bye{background:rgba(217,119,6,0.12);color:var(--amber);}
+    .att-badge.na{background:rgba(220,38,38,0.10);color:var(--red);}
+
+    .court-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--canvas);}
+    .court-label{font-size:11px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
+    .team-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;}
+    .team-names{font-weight:600;}
+    .team-score{font-weight:800;color:var(--navy);}
+    .vs-line{text-align:center;font-size:10px;color:var(--text-3);font-weight:700;margin:2px 0;}
+
+    .empty{padding:22px;text-align:center;color:var(--text-3);font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Joshua Creek Tennis — House League</h1>
+      <p>Roster, weekly schedule, and scores.</p>
+    </header>
+
+    <div id="login-screen">
+      <div class="login-box">
+        <h2>Members access</h2>
+        <p>Enter the shared password to view the schedule.</p>
+        <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button onclick="doLogin()">View schedule</button>
+        <div class="login-err" id="login-err"></div>
+      </div>
+    </div>
+
+    <div id="app-screen" style="display:none">
+      <div class="league-toggle">
+        <button class="lg-tab on" id="lg-MHL" onclick="switchLeague('MHL')">Men's League</button>
+        <button class="lg-tab" id="lg-WHL" onclick="switchLeague('WHL')">Women's League</button>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn on" id="tab-weekly" onclick="showTab('weekly')">This Week</button>
+        <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
+      </div>
+
+      <div id="view-weekly">
+        <div class="week-picker">
+          <select id="week-select" onchange="renderWeek()"></select>
+        </div>
+        <div class="card">
+          <div class="card-title">Who's playing</div>
+          <div id="att-list"><div class="empty">Loading…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Courts &amp; scores</div>
+          <div id="courts-list"><div class="empty">No pairings posted for this week yet.</div></div>
+        </div>
+      </div>
+
+      <div id="view-contacts" style="display:none">
+        <div class="card">
+          <div class="card-title">Player contact list</div>
+          <div id="contact-list"><div class="empty">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let league = 'MHL', data = { players: [], weeks: [], attendance: {}, pairings: [] };
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function token(){ return localStorage.getItem('hl-token') || ''; }
+
+    async function doLogin(){
+      const password = document.getElementById('pw').value;
+      const err = document.getElementById('login-err');
+      err.textContent = '';
+      try{
+        const r = await fetch('/api/public/house-league/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password }) });
+        const d = await r.json();
+        if (!r.ok) { err.textContent = d.error || 'Incorrect password'; return; }
+        localStorage.setItem('hl-token', d.token);
+        enterApp();
+      } catch(e){ err.textContent = 'Could not reach the server — try again.'; }
+    }
+
+    async function enterApp(){
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = '';
+      await switchLeague('MHL');
+    }
+
+    async function switchLeague(lg){
+      league = lg;
+      document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
+      document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
+      const r = await fetch('/api/public/house-league/' + league, { headers: { 'x-hl-token': token() } });
+      if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
+      data = await r.json();
+      const sel = document.getElementById('week-select');
+      sel.innerHTML = data.weeks.map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
+      if (data.weeks.length) sel.value = data.weeks[0].id;
+      renderWeek();
+      renderContacts();
+    }
+
+    function renderWeek(){
+      const weekId = parseInt(document.getElementById('week-select').value);
+      const players = data.players;
+      const rows = players.map(p => {
+        const status = data.attendance[weekId + ':' + p.id];
+        if (!status) return null;
+        const label = status === 'in' ? 'Playing' : status === 'bye' ? 'Bye' : 'Unavailable';
+        return `<div class="att-row"><span>${esc(p.name)}</span><span class="att-badge ${status}">${label}</span></div>`;
+      }).filter(Boolean).join('');
+      document.getElementById('att-list').innerHTML = rows || '<div class="empty">No attendance posted for this week yet.</div>';
+
+      const byId = {}; players.forEach(p => byId[p.id] = p.name);
+      const courts = (data.pairings || []).filter(p => p.week_id === weekId).sort((a,b)=>a.court-b.court);
+      document.getElementById('courts-list').innerHTML = courts.length ? courts.map(c => `
+        <div class="court-card">
+          <div class="court-label">Court ${c.court}</div>
+          <div class="team-row"><span class="team-names">${(c.team1||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ') || '—'}</span><span class="team-score">${c.score1==null?'':c.score1}</span></div>
+          <div class="vs-line">vs.</div>
+          <div class="team-row"><span class="team-names">${(c.team2||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ') || '—'}</span><span class="team-score">${c.score2==null?'':c.score2}</span></div>
+        </div>`).join('') : '<div class="empty">No pairings posted for this week yet.</div>';
+    }
+
+    function renderContacts(){
+      const rows = data.players.map(p => `
+        <div class="contact-row">
+          <div><div class="contact-name">${esc(p.name)}</div><div class="contact-rating">${esc(p.rating||'')}</div></div>
+          <div class="contact-links">
+            ${p.email ? `<a href="mailto:${esc(p.email)}">Email</a>` : ''}
+            ${p.phone ? `<a href="tel:${esc(p.phone)}">Call</a>` : ''}
+          </div>
+        </div>`).join('');
+      document.getElementById('contact-list').innerHTML = rows || '<div class="empty">No players yet.</div>';
+    }
+
+    function showTab(id){
+      document.getElementById('tab-weekly').classList.toggle('on', id==='weekly');
+      document.getElementById('tab-contacts').classList.toggle('on', id==='contacts');
+      document.getElementById('view-weekly').style.display = id==='weekly' ? '' : 'none';
+      document.getElementById('view-contacts').style.display = id==='contacts' ? '' : 'none';
+    }
+
+    if (token()) enterApp(); else { document.getElementById('login-screen').style.display=''; }
+  </script>
+</body>
+</html>

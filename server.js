@@ -62,6 +62,7 @@ const pushRoutes        = require('./routes/push');
 const checkinRoutes     = require('./routes/checkin');
 const membersRoutes     = require('./routes/members');
 const lessonWaitlistRoutes = require('./routes/lesson-waitlist');
+const houseLeagueRoutes = require('./routes/house-league');
 
 app.use('/api/auth', authRoutes);
 
@@ -75,6 +76,11 @@ app.post('/api/office-mail/webhook', officeMailRoutes.webhook);
 app.get('/api/public/pro-schedule', (req, res) => {
   res.json(require('./db').getPublicProSchedule());
 });
+
+// Public, password-gated House League view — no staff login, gated by its own
+// shared password + opaque token instead (see routes/house-league.js). Feeds the
+// shareable /house-league-view.html page (replaces the broken Sheets embed).
+app.use('/api/public/house-league', houseLeagueRoutes.publicRouter);
 
 // Public: current server build id. Open pages poll this to detect a new deploy and
 // offer a soft "update now" prompt — never a forced reload.
@@ -142,6 +148,7 @@ app.use('/api/staff-mgmt',   requireAuth, staffMgmtRoutes);
 app.use('/api/push',         requireAuth, pushRoutes);
 app.use('/api/members',      requireAuth, membersRoutes);
 app.use('/api/lesson-waitlist', requireAuth, lessonWaitlistRoutes);
+app.use('/api/house-league', requireAuth, houseLeagueRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {

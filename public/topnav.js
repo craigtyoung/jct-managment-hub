@@ -24,6 +24,7 @@
     chat: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
     bag: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
     lessons: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2.6h6V4"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>',
+    league: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg>',
   };
 
   var OFFICE = [
@@ -35,6 +36,7 @@
     { href: '/comms.html',        label: 'Comms',      icon: I.chat },
     { href: '/lesson-waitlist.html', label: 'Lessons',  icon: I.lessons },
     { href: '/proshop.html',      label: 'Pro Shop',   icon: I.bag },
+    { href: '/house-league.html', label: 'House League', icon: I.league },
   ];
   // Pro nav is deliberately lean.
   var PRO = [

@@ -4479,7 +4479,267 @@ function deleteLessonInquiry(id) {
   return true;
 }
 
+// ─── House League (Men's/Women's) ──────────────────────────────────────────
+// Replaces the Google Sheets workflow (SCHEDULE(POSTED)/DIVISIONS/per-week score
+// tabs) that was breaking on the website embed. Roster + weekly attendance +
+// manual court pairings + score entry, all live on the hub. A password-gated
+// public view (no staff login) serves players — see routes/house-league.js.
+const HL_LEAGUES = ['MHL', 'WHL'];
+
+['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings'].forEach(function (t) {
+  if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
+});
+if (!_data.hl_settings) { _data.hl_settings = { publicPasswordHash: null, publicTokens: [] }; save(); }
+
+function hlParseCsvLine(line) {
+  var cells = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (inQ) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { cells.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  cells.push(cur);
+  return cells;
+}
+function hlReadCsv(file) {
+  var p = path.join(__dirname, 'data', 'house-league-seed', file);
+  if (!fs.existsSync(p)) return null;
+  return fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(function (l) { return l.length; }).map(hlParseCsvLine);
+}
+var hlNorm = function (s) { return String(s || '').trim().toLowerCase(); };
+
+// One-time import from the legacy sheet CSVs (data/house-league-seed/*.csv, exported
+// 2026-09-22). Idempotent via the migration flag — re-running never duplicates rows.
+if (!_data._migrations.houseLeagueImport2026) {
+  try {
+    HL_LEAGUES.forEach(function (league) {
+      var schedFile = league === 'MHL' ? 'mhl-schedule.csv' : 'whl-schedule.csv';
+      var divFile   = league === 'MHL' ? 'mhl-divisions.csv' : 'whl-divisions.csv';
+      var sched = hlReadCsv(schedFile);
+      var div   = hlReadCsv(divFile);
+      if (!sched) return;
+
+      // Header row (index 1) carries date labels; "Session 1"/"Session 2" cells mark
+      // the split rather than being real weeks. Blank header cells are holiday gaps
+      // (Thanksgiving/Family Day/March Break) with no play that week — skipped.
+      var header = sched[1];
+      var weekCols = [];
+      var session = 1;
+      for (var c = 2; c < header.length; c++) {
+        var label = (header[c] || '').trim();
+        if (!label) continue;
+        if (/^Session\s*1$/i.test(label)) { session = 2; continue; }
+        if (/^Session\s*2$/i.test(label)) continue;
+        weekCols.push({ col: c, label: label, session: session });
+      }
+
+      var contactByName = {};
+      if (div) {
+        for (var r = 2; r < div.length; r++) {
+          var drow = div[r];
+          var dname = (drow[2] || '').trim();
+          if (!dname) continue;
+          contactByName[hlNorm(dname)] = { rating: (drow[1] || '').trim(), email: (drow[3] || '').trim(), phone: (drow[4] || '').trim() };
+        }
+      }
+
+      var weekIdByCol = {};
+      weekCols.forEach(function (w, idx) {
+        var id = nextId('hl_weeks');
+        _data.hl_weeks.push({ id: id, league: league, label: w.label, session: w.session, order: idx });
+        weekIdByCol[w.col] = id;
+      });
+
+      for (var row_i = 2; row_i < sched.length; row_i++) {
+        var row = sched[row_i];
+        var name = (row[1] || '').trim();
+        if (!name) continue;
+        var contact = contactByName[hlNorm(name)] || {};
+        var playerId = nextId('hl_players');
+        _data.hl_players.push({
+          id: playerId, league: league, name: name,
+          rating: contact.rating || '', email: contact.email || '', phone: contact.phone || '',
+          active: true,
+        });
+        weekCols.forEach(function (w) {
+          var raw = (row[w.col] || '').trim().toUpperCase();
+          var status = raw === '1' ? 'in' : raw === 'BYE' ? 'bye' : raw === 'NA' ? 'na' : null;
+          if (!status) return; // stray holiday-note text etc. — not a per-player status
+          _data.hl_attendance.push({ id: nextId('hl_attendance'), league: league, week_id: weekIdByCol[w.col], player_id: playerId, status: status });
+        });
+      }
+    });
+    save();
+    console.log('House League seed imported:', _data.hl_players.length, 'players,', _data.hl_weeks.length, 'weeks');
+  } catch (e) {
+    console.error('House League import failed:', e.message);
+  }
+  _data._migrations.houseLeagueImport2026 = true;
+  save();
+}
+
+function getHouseLeagueRoster(league) {
+  return _data.hl_players.filter(function (p) { return p.league === league; })
+    .sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+function getHouseLeagueWeeks(league) {
+  return _data.hl_weeks.filter(function (w) { return w.league === league; })
+    .sort(function (a, b) { return a.order - b.order; });
+}
+function getHouseLeagueGrid(league) {
+  var players = getHouseLeagueRoster(league);
+  var weeks = getHouseLeagueWeeks(league);
+  var map = {};
+  _data.hl_attendance.filter(function (a) { return a.league === league; })
+    .forEach(function (a) { map[a.week_id + ':' + a.player_id] = a.status; });
+  return { players: players, weeks: weeks, attendance: map };
+}
+
+function addHousePlayer(league, data) {
+  if (!data.name || !String(data.name).trim()) return { error: 'Name required', status: 400 };
+  var p = { id: nextId('hl_players'), league: league, name: String(data.name).trim(), rating: data.rating || '', email: data.email || '', phone: data.phone || '', active: true };
+  _data.hl_players.push(p);
+  save();
+  return { ok: true, player: p };
+}
+function updateHousePlayer(id, data) {
+  var p = _data.hl_players.find(function (x) { return x.id === parseInt(id); });
+  if (!p) return { error: 'Not found', status: 404 };
+  ['name', 'rating', 'email', 'phone', 'active'].forEach(function (k) { if (data[k] !== undefined) p[k] = data[k]; });
+  save();
+  return { ok: true, player: p };
+}
+function deleteHousePlayer(id) {
+  var p = _data.hl_players.find(function (x) { return x.id === parseInt(id); });
+  if (!p) return { error: 'Not found', status: 404 };
+  p.active = false; // soft delete, never dropped from history
+  save();
+  return { ok: true };
+}
+
+function setHouseAttendance(league, weekId, playerId, status) {
+  weekId = parseInt(weekId); playerId = parseInt(playerId);
+  if (['in', 'bye', 'na'].indexOf(status) === -1) return { error: 'Invalid status', status: 400 };
+  var rec = _data.hl_attendance.find(function (a) { return a.league === league && a.week_id === weekId && a.player_id === playerId; });
+  if (rec) rec.status = status;
+  else { rec = { id: nextId('hl_attendance'), league: league, week_id: weekId, player_id: playerId, status: status }; _data.hl_attendance.push(rec); }
+  save();
+  return { ok: true, attendance: rec };
+}
+
+function addHouseWeek(league, data) {
+  if (!data.label || !String(data.label).trim()) return { error: 'Label required', status: 400 };
+  var weeks = getHouseLeagueWeeks(league);
+  var order = weeks.length ? Math.max.apply(null, weeks.map(function (w) { return w.order; })) + 1 : 0;
+  var w = { id: nextId('hl_weeks'), league: league, label: String(data.label).trim(), session: data.session === 2 ? 2 : 1, order: order };
+  _data.hl_weeks.push(w);
+  save();
+  return { ok: true, week: w };
+}
+function deleteHouseWeek(id) {
+  id = parseInt(id);
+  var before = _data.hl_weeks.length;
+  _data.hl_weeks = _data.hl_weeks.filter(function (w) { return w.id !== id; });
+  _data.hl_attendance = _data.hl_attendance.filter(function (a) { return a.week_id !== id; });
+  _data.hl_pairings = _data.hl_pairings.filter(function (p) { return p.week_id !== id; });
+  save();
+  return { ok: _data.hl_weeks.length < before };
+}
+
+function getHousePairings(league, weekId) {
+  weekId = parseInt(weekId);
+  return _data.hl_pairings.filter(function (p) { return p.league === league && p.week_id === weekId; })
+    .sort(function (a, b) { return a.court - b.court; });
+}
+function addHousePairing(league, weekId, data) {
+  weekId = parseInt(weekId);
+  var court = parseInt(data.court) || (getHousePairings(league, weekId).length + 1);
+  var p = {
+    id: nextId('hl_pairings'), league: league, week_id: weekId, court: court,
+    team1: Array.isArray(data.team1) ? data.team1.map(Number) : [],
+    team2: Array.isArray(data.team2) ? data.team2.map(Number) : [],
+    score1: null, score2: null,
+  };
+  _data.hl_pairings.push(p);
+  save();
+  return { ok: true, pairing: p };
+}
+function updateHousePairing(id, data) {
+  var p = _data.hl_pairings.find(function (x) { return x.id === parseInt(id); });
+  if (!p) return { error: 'Not found', status: 404 };
+  if (data.team1 !== undefined) p.team1 = data.team1.map(Number);
+  if (data.team2 !== undefined) p.team2 = data.team2.map(Number);
+  if (data.court !== undefined) p.court = parseInt(data.court);
+  if (data.score1 !== undefined) p.score1 = (data.score1 === '' || data.score1 === null) ? null : Number(data.score1);
+  if (data.score2 !== undefined) p.score2 = (data.score2 === '' || data.score2 === null) ? null : Number(data.score2);
+  save();
+  return { ok: true, pairing: p };
+}
+function deleteHousePairing(id) {
+  id = parseInt(id);
+  var before = _data.hl_pairings.length;
+  _data.hl_pairings = _data.hl_pairings.filter(function (p) { return p.id !== id; });
+  save();
+  return { ok: _data.hl_pairings.length < before };
+}
+
+function setHouseLeaguePassword(pw) {
+  _data.hl_settings.publicPasswordHash = pw ? bcrypt.hashSync(String(pw), 10) : null;
+  save();
+  return { ok: true };
+}
+function hasHouseLeaguePassword() { return !!_data.hl_settings.publicPasswordHash; }
+function checkHouseLeaguePassword(pw) {
+  if (!_data.hl_settings.publicPasswordHash) return false;
+  return bcrypt.compareSync(String(pw || ''), _data.hl_settings.publicPasswordHash);
+}
+function issueHouseLeagueToken() {
+  var token = require('crypto').randomBytes(24).toString('hex');
+  _data.hl_settings.publicTokens = (_data.hl_settings.publicTokens || []).filter(function (t) { return t.exp > Date.now(); });
+  _data.hl_settings.publicTokens.push({ token: token, exp: Date.now() + 1000 * 60 * 60 * 24 * 14 }); // 14 days
+  save();
+  return token;
+}
+function checkHouseLeagueToken(token) {
+  return (_data.hl_settings.publicTokens || []).some(function (t) { return t.token === token && t.exp > Date.now(); });
+}
+function getHouseLeaguePublicData(league) {
+  var grid = getHouseLeagueGrid(league);
+  return {
+    players: grid.players.filter(function (p) { return p.active !== false; })
+      .map(function (p) { return { id: p.id, name: p.name, rating: p.rating, email: p.email, phone: p.phone }; }),
+    weeks: grid.weeks,
+    attendance: grid.attendance,
+    pairings: _data.hl_pairings.filter(function (p) { return p.league === league; }),
+  };
+}
+
 module.exports = {
+  getHouseLeagueRoster,
+  getHouseLeagueWeeks,
+  getHouseLeagueGrid,
+  addHousePlayer,
+  updateHousePlayer,
+  deleteHousePlayer,
+  setHouseAttendance,
+  addHouseWeek,
+  deleteHouseWeek,
+  getHousePairings,
+  addHousePairing,
+  updateHousePairing,
+  deleteHousePairing,
+  setHouseLeaguePassword,
+  hasHouseLeaguePassword,
+  checkHouseLeaguePassword,
+  issueHouseLeagueToken,
+  checkHouseLeagueToken,
+  getHouseLeaguePublicData,
   getLessonInquiries,
   addLessonInquiry,
   updateLessonInquiry,

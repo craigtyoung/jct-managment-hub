@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>House League · JCT</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root{
+      --spine-w:0px; --nav-w:214px; --total-nav:calc(var(--spine-w) + var(--nav-w));
+      --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c; --powder:#b1c9fb;
+      --bg:#f1f5f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border2:#d4dae6;
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8; --canvas:#f8fafc;
+      --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-body);background:var(--bg);color:var(--text);padding-left:0;min-height:100vh;}
+
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+    .qnav-wrap{display:flex;align-items:center;gap:2px;flex-wrap:wrap;min-width:0;}
+    .qnav{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;text-decoration:none;color:var(--text-2);font-size:13px;font-weight:600;border:1px solid transparent;transition:all .15s;cursor:pointer;}
+    .qnav svg{width:16px;height:16px;}
+    .qnav:hover{background:#eef2f8;color:var(--text);}
+    .qnav.qnav-active{background:rgba(44,92,156,0.10);color:var(--blue);}
+    @media(max-width:900px){.qnav span{display:none;}}
+    .ts-right{display:flex;align-items:center;gap:10px;}
+    .ts-clock{font-size:13px;font-weight:500;color:var(--text);} .ts-date{font-size:11px;color:var(--text-3);margin-top:1px;}
+    .ts-signout{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-3);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+    .ts-signout:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden;}
+
+    .main{padding:0;}
+    .hl-layout{display:flex;align-items:flex-start;min-height:calc(100vh - 56px);}
+    .hl-sidebar{width:224px;flex-shrink:0;background:#fff;border-right:1px solid rgba(0,0,0,0.07);padding:18px 12px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;}
+    .sb-label{font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#94a3b8;margin:0 6px 8px;}
+    .sb-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;border:none;background:transparent;color:#475569;font-size:15px;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;}
+    .sb-btn:hover{background:rgba(44,92,156,0.07);color:var(--text);}
+    .sb-btn.active{background:rgba(44,92,156,0.1);color:#2c5c9c;font-weight:600;}
+    .sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .hl-content{flex:1;min-width:0;padding:24px 32px 80px;}
+    .page-head{margin-bottom:6px;}
+    .page-head h1{font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+    .page-sub{color:var(--text-2);font-size:13px;margin-bottom:18px;}
+
+    @media(max-width:680px){
+      .hl-layout{flex-direction:column;align-items:stretch;}
+      .hl-sidebar{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid rgba(0,0,0,0.07);padding:10px 12px;display:flex;flex-wrap:wrap;gap:4px;}
+      .sb-label{display:none;}.sb-btn{width:auto;}
+      .hl-content{padding:16px 14px 80px;}
+    }
+
+    .league-toggle{display:flex;gap:6px;margin-bottom:16px;}
+    .lg-tab{padding:7px 16px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .lg-tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(12,23,56,0.04);}
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .fld{display:flex;flex-direction:column;gap:4px;min-width:0;}
+    .fld label{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+    .fld input,.fld select{font-family:inherit;font-size:13px;padding:8px 9px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);width:100%;}
+    .btn-add{padding:9px 16px;border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+    .btn-add:hover{background:var(--blue);border-color:var(--blue);}
+    .btn-ghost{padding:7px 13px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;}
+    .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+    .btn-ghost.danger:hover{border-color:#dc2626;color:#dc2626;}
+
+    .roster-grid{display:grid;grid-template-columns:1.3fr 80px 1.4fr 1fr auto;gap:8px;align-items:end;margin-bottom:14px;}
+    @media(max-width:760px){.roster-grid{grid-template-columns:1fr 1fr;}.roster-grid .btn-add{grid-column:1 / -1;}}
+    .tbl-wrap{overflow-x:auto;}
+    table.log{border-collapse:collapse;width:100%;min-width:560px;}
+    table.log th{font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+    table.log td{font-size:13px;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    table.log tr:last-child td{border-bottom:none;}
+    table.log input{font-family:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--border2);border-radius:6px;background:var(--canvas);width:100%;}
+    .empty{padding:28px;text-align:center;color:var(--text-3);font-size:13px;}
+
+    .week-picker{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+    .week-picker select{font-family:inherit;font-size:14px;font-weight:700;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--navy);}
+    .sess-pill{font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;background:rgba(44,92,156,0.1);color:var(--blue);padding:3px 9px;border-radius:100px;}
+
+    .att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;}
+    .att-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:9px;background:var(--canvas);}
+    .att-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .att-toggle{display:flex;gap:3px;flex-shrink:0;}
+    .att-btn{width:30px;height:24px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:10px;font-weight:800;cursor:pointer;color:var(--text-3);}
+    .att-btn.in.on{background:rgba(22,163,74,0.15);border-color:var(--green);color:var(--green);}
+    .att-btn.bye.on{background:rgba(217,119,6,0.15);border-color:var(--amber);color:var(--amber);}
+    .att-btn.na.on{background:rgba(220,38,38,0.12);border-color:var(--red);color:var(--red);}
+
+    .court-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--canvas);}
+    .court-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .court-label{font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;}
+    .pairing-row{display:grid;grid-template-columns:1fr 1fr 70px;gap:8px;align-items:center;margin-bottom:6px;}
+    .pairing-vs{text-align:center;font-size:11px;font-weight:800;color:var(--text-3);}
+    @media(max-width:600px){.pairing-row{grid-template-columns:1fr;}.pairing-row .pairing-vs{display:none;}}
+
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .link-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--canvas);border:1px solid var(--border2);border-radius:9px;padding:10px 12px;font-size:13px;word-break:break-all;}
+  </style>
+</head>
+<body>
+
+  <div class="topstrip">
+    <div class="qnav-wrap">
+      <a href="/hub.html" class="qnav" title="Dashboard"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg><span>Dashboard</span></a>
+      <span class="qnav qnav-active" title="House League"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg><span>House League</span></span>
+    </div>
+    <div class="ts-right">
+      <div style="text-align:right"><div class="ts-clock" id="clock">—</div><div class="ts-date" id="dateline">—</div></div>
+      <div class="sidenav-avatar" id="nav-avatar"></div>
+      <button class="ts-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="hl-layout">
+      <nav class="hl-sidebar">
+        <div class="sb-label">House League</div>
+        <button class="sb-btn active" id="nav-roster" onclick="showSection('roster',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Roster</button>
+        <button class="sb-btn" id="nav-weekly" onclick="showSection('weekly',this)"><span class="sb-dot" style="background:#16a34a"></span>Weekly</button>
+        <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
+      </nav>
+
+      <div class="hl-content">
+        <div class="league-toggle">
+          <button class="lg-tab on" id="lg-MHL" onclick="switchLeague('MHL')">Men's House League</button>
+          <button class="lg-tab" id="lg-WHL" onclick="switchLeague('WHL')">Women's House League</button>
+        </div>
+
+        <!-- Roster -->
+        <div id="section-roster">
+          <div class="page-head"><h1>Roster</h1></div>
+          <div class="page-sub">Name, skill rating, and contact info. Deactivate a player instead of deleting — history stays intact.</div>
+
+          <div class="card">
+            <div class="card-title">Add a player</div>
+            <div class="roster-grid">
+              <div class="fld"><label>Name</label><input type="text" id="r-name" placeholder="Full name"></div>
+              <div class="fld"><label>Rating</label><input type="text" id="r-rating" placeholder="e.g. 3.5"></div>
+              <div class="fld"><label>Email</label><input type="email" id="r-email" placeholder="email@example.com"></div>
+              <div class="fld"><label>Phone</label><input type="text" id="r-phone" placeholder="416-555-0100"></div>
+              <button class="btn-add" onclick="addPlayer()">Add</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" id="roster-count">Players</div>
+            <div class="tbl-wrap">
+              <table class="log">
+                <thead><tr><th>Name</th><th>Rating</th><th>Email</th><th>Phone</th><th>Active</th><th></th></tr></thead>
+                <tbody id="roster-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly: attendance + pairings/scores -->
+        <div id="section-weekly" style="display:none">
+          <div class="page-head"><h1>Weekly</h1></div>
+          <div class="page-sub">Mark who's in, build court pairings, enter scores as they come off the court.</div>
+
+          <div class="week-picker">
+            <select id="week-select" onchange="loadWeek()"></select>
+            <span class="sess-pill" id="week-session"></span>
+            <button class="btn-ghost" onclick="addWeek()">+ Add week</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Attendance <span id="att-summary" style="text-transform:none;letter-spacing:0;font-weight:600"></span></div>
+            <div class="att-grid" id="att-grid"><div class="empty">Loading…</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Court pairings <button class="btn-ghost" onclick="addCourt()">+ Add court</button></div>
+            <div id="courts-wrap"><div class="empty">No courts yet — add one above.</div></div>
+          </div>
+        </div>
+
+        <!-- Settings: public password -->
+        <div id="section-settings" style="display:none">
+          <div class="page-head"><h1>Public View</h1></div>
+          <div class="page-sub">Players see the roster, schedule, pairings, and scores — nothing about staff.</div>
+          <div class="card">
+            <div class="card-title">Shared password</div>
+            <div class="fld" style="max-width:260px;margin-bottom:10px"><label>Set / change password</label><input type="text" id="pub-pw" placeholder="New shared password"></div>
+            <button class="btn-add" onclick="savePassword()">Save password</button>
+            <div style="margin-top:14px" id="pub-status"></div>
+            <div style="margin-top:14px" class="link-box">Share this link with players: <b id="pub-link"></b></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/staff-avatar.js"></script>
+  <script>
+    let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [];
+
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+    async function doLogout(){try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}location.href='/login.html';}
+    function tick(){const n=new Date();const c=document.getElementById('clock'),d=document.getElementById('dateline');if(c)c.textContent=n.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',hour12:true});if(d)d.textContent=n.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    tick(); setInterval(tick,30000);
+
+    async function jfetch(url, opts){
+      const r = await fetch(url, opts);
+      let d = null; try{ d = await r.json(); }catch(e){}
+      if(!r.ok){ toast((d&&d.error)||'Something went wrong'); return null; }
+      return d;
+    }
+
+    async function init(){
+      try{ const r=await fetch('/api/me'); if(!r.ok){location.href='/login.html';return;} me=await r.json(); }
+      catch(e){ location.href='/login.html'; return; }
+      const navAv = document.getElementById('nav-avatar');
+      if (navAv && window.staffAvatar) staffAvatar(navAv, me.id, me.name, me.color || '#2c5c9c');
+      const isMgmt = me.role === 'admin' || me.role === 'manager';
+      if (isMgmt) document.getElementById('nav-settings').style.display = '';
+      await switchLeague('MHL');
+    }
+
+    async function switchLeague(lg){
+      league = lg;
+      document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
+      document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
+      await loadGrid();
+      renderRoster();
+      populateWeekSelect();
+      if (weeks.length) loadWeek();
+      if (document.getElementById('nav-settings').style.display !== 'none') loadSettings();
+    }
+
+    async function loadGrid(){
+      const d = await jfetch('/api/house-league/' + league + '/grid');
+      if (!d) return;
+      grid = d; roster = d.players; weeks = d.weeks;
+    }
+
+    function renderRoster(){
+      document.getElementById('roster-count').firstChild.textContent = 'Players (' + roster.filter(p=>p.active!==false).length + ' active)';
+      const body = document.getElementById('roster-body');
+      if (!roster.length) { body.innerHTML = '<tr><td colspan="6" class="empty">No players yet.</td></tr>'; return; }
+      body.innerHTML = roster.map(p => `
+        <tr>
+          <td><input value="${esc(p.name)}" onchange="editPlayer(${p.id},'name',this.value)"></td>
+          <td><input value="${esc(p.rating)}" style="max-width:60px" onchange="editPlayer(${p.id},'rating',this.value)"></td>
+          <td><input value="${esc(p.email)}" onchange="editPlayer(${p.id},'email',this.value)"></td>
+          <td><input value="${esc(p.phone)}" onchange="editPlayer(${p.id},'phone',this.value)"></td>
+          <td><input type="checkbox" ${p.active!==false?'checked':''} onchange="editPlayer(${p.id},'active',this.checked)" style="width:16px;height:16px;accent-color:var(--blue)"></td>
+          <td><button class="btn-ghost danger" onclick="editPlayer(${p.id},'active',false)">Remove</button></td>
+        </tr>`).join('');
+    }
+
+    async function addPlayer(){
+      const name = document.getElementById('r-name').value.trim();
+      if (!name) return toast('Name required');
+      const d = await jfetch('/api/house-league/' + league + '/players', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, rating: document.getElementById('r-rating').value.trim(), email: document.getElementById('r-email').value.trim(), phone: document.getElementById('r-phone').value.trim() }) });
+      if (!d) return;
+      ['r-name','r-rating','r-email','r-phone'].forEach(id => document.getElementById(id).value = '');
+      toast('Player added'); await loadGrid(); renderRoster(); populateWeekSelect();
+    }
+    async function editPlayer(id, field, value){
+      const d = await jfetch('/api/house-league/players/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
+      if (!d) return;
+      await loadGrid(); renderRoster();
+      if (document.getElementById('section-weekly').style.display !== 'none') renderAttendance();
+    }
+
+    function populateWeekSelect(){
+      const sel = document.getElementById('week-select');
+      sel.innerHTML = weeks.map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
+      if (weeks.length && (!currentWeekId || !weeks.some(w=>w.id===currentWeekId))) currentWeekId = weeks[0].id;
+      sel.value = currentWeekId;
+    }
+
+    async function addWeek(){
+      const label = prompt('Week label (e.g. "Apr 12")');
+      if (!label) return;
+      const session = weeks.length && weeks[weeks.length-1].session === 2 ? 2 : (parseInt(prompt('Session (1 or 2)', '1')) === 2 ? 2 : 1);
+      const d = await jfetch('/api/house-league/' + league + '/weeks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label, session }) });
+      if (!d) return;
+      toast('Week added'); await loadGrid(); populateWeekSelect(); currentWeekId = d.week.id; document.getElementById('week-select').value = currentWeekId; loadWeek();
+    }
+
+    async function loadWeek(){
+      currentWeekId = parseInt(document.getElementById('week-select').value);
+      const w = weeks.find(x => x.id === currentWeekId);
+      document.getElementById('week-session').textContent = w ? ('Session ' + w.session) : '';
+      renderAttendance();
+      pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
+      renderCourts();
+    }
+
+    function renderAttendance(){
+      const active = roster.filter(p => p.active !== false);
+      let inCount = 0, byeCount = 0, naCount = 0;
+      const html = active.map(p => {
+        const status = grid.attendance[currentWeekId + ':' + p.id] || null;
+        if (status === 'in') inCount++; else if (status === 'bye') byeCount++; else if (status === 'na') naCount++;
+        return `<div class="att-row">
+          <span class="att-name" title="${esc(p.name)}">${esc(p.name)}</span>
+          <span class="att-toggle">
+            <button class="att-btn in ${status==='in'?'on':''}" onclick="setAtt(${p.id},'in')">IN</button>
+            <button class="att-btn bye ${status==='bye'?'on':''}" onclick="setAtt(${p.id},'bye')">BYE</button>
+            <button class="att-btn na ${status==='na'?'on':''}" onclick="setAtt(${p.id},'na')">NA</button>
+          </span>
+        </div>`;
+      }).join('');
+      document.getElementById('att-grid').innerHTML = html || '<div class="empty">No active players.</div>';
+      document.getElementById('att-summary').textContent = `— ${inCount} in, ${byeCount} bye, ${naCount} unavailable`;
+    }
+
+    async function setAtt(playerId, status){
+      const key = currentWeekId + ':' + playerId;
+      const current = grid.attendance[key];
+      const next = current === status ? null : status; // click again to clear
+      if (next === null) { delete grid.attendance[key]; renderAttendance();
+        // Clearing isn't a distinct API state (in/bye/na only) — treat as "in" cleared back to blank by re-toggling off; simplest is to leave last state until changed to another.
+      }
+      if (next) {
+        const d = await jfetch('/api/house-league/' + league + '/attendance', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weekId: currentWeekId, playerId, status: next }) });
+        if (!d) return;
+        grid.attendance[key] = next;
+      }
+      renderAttendance();
+    }
+
+    function playerOptions(selectedId){
+      const active = roster.filter(p => p.active !== false);
+      return '<option value="">— select —</option>' + active.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${esc(p.name)}</option>`).join('');
+    }
+
+    function teamFromSlots(pid, a, b){
+      const va = document.getElementById(a).value, vb = document.getElementById(b).value;
+      return [va, vb].filter(Boolean).map(Number);
+    }
+
+    function renderCourts(){
+      const wrap = document.getElementById('courts-wrap');
+      if (!pairings.length) { wrap.innerHTML = '<div class="empty">No courts yet — add one above.</div>'; return; }
+      wrap.innerHTML = pairings.map(p => `
+        <div class="court-card">
+          <div class="court-head"><span class="court-label">Court ${p.court}</span><button class="btn-ghost danger" onclick="removeCourt(${p.id})">Remove</button></div>
+          <div class="pairing-row">
+            <select id="p${p.id}-t1a" onchange="updatePairing(${p.id},'team1',teamFromSlots(${p.id},'p${p.id}-t1a','p${p.id}-t1b'))">${playerOptions((p.team1||[])[0])}</select>
+            <select id="p${p.id}-t1b" onchange="updatePairing(${p.id},'team1',teamFromSlots(${p.id},'p${p.id}-t1a','p${p.id}-t1b'))">${playerOptions((p.team1||[])[1])}</select>
+            <input type="number" placeholder="Score" value="${p.score1==null?'':p.score1}" onchange="updatePairing(${p.id},'score1',this.value)">
+          </div>
+          <div class="pairing-vs">vs.</div>
+          <div class="pairing-row">
+            <select id="p${p.id}-t2a" onchange="updatePairing(${p.id},'team2',teamFromSlots(${p.id},'p${p.id}-t2a','p${p.id}-t2b'))">${playerOptions((p.team2||[])[0])}</select>
+            <select id="p${p.id}-t2b" onchange="updatePairing(${p.id},'team2',teamFromSlots(${p.id},'p${p.id}-t2a','p${p.id}-t2b'))">${playerOptions((p.team2||[])[1])}</select>
+            <input type="number" placeholder="Score" value="${p.score2==null?'':p.score2}" onchange="updatePairing(${p.id},'score2',this.value)">
+          </div>
+        </div>`).join('');
+    }
+
+    async function addCourt(){
+      const d = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+      if (!d) return;
+      pairings.push(d.pairing); renderCourts();
+    }
+    async function updatePairing(id, field, value){
+      const d = await jfetch('/api/house-league/pairings/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
+      if (!d) return;
+      const idx = pairings.findIndex(p => p.id === id); if (idx > -1) pairings[idx] = d.pairing;
+    }
+    async function removeCourt(id){
+      const d = await jfetch('/api/house-league/pairings/' + id, { method:'DELETE' });
+      if (!d) return;
+      pairings = pairings.filter(p => p.id !== id); renderCourts();
+    }
+
+    async function loadSettings(){
+      const d = await jfetch('/api/house-league/settings');
+      if (!d) return;
+      document.getElementById('pub-status').textContent = d.hasPassword ? 'A shared password is set.' : 'No password set yet — players cannot view yet.';
+      document.getElementById('pub-link').textContent = location.origin + '/house-league-view.html';
+    }
+    async function savePassword(){
+      const password = document.getElementById('pub-pw').value.trim();
+      if (!password) return toast('Enter a password');
+      const d = await jfetch('/api/house-league/settings/password', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password }) });
+      if (!d) return;
+      document.getElementById('pub-pw').value = '';
+      toast('Password saved'); loadSettings();
+    }
+
+    function showSection(id, btn){
+      document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+      document.getElementById('section-' + id).style.display = '';
+      if (id === 'weekly') loadWeek();
+      if (id === 'settings') loadSettings();
+    }
+
+    window.onLiveUpdate = () => { loadGrid().then(() => { renderRoster(); if (document.getElementById('section-weekly').style.display !== 'none') renderAttendance(); }); };
+    init();
+  </script>
+  <script src="/live-sync.js"></script>
+  <script src="/app-version.js"></script>
+  <script src="/topnav.js"></script>
+  <script src="/notif-bell.js"></script>
+</body>
+</html>
