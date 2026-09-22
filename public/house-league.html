@@ -132,12 +132,13 @@
     .p-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;color:#fff;cursor:grab;user-select:none;}
     .p-chip:active{cursor:grabbing;}
     .p-chip.dragging{opacity:0.4;}
-    .p-chip.warn{outline:2px dashed rgba(255,255,255,0.85);outline-offset:-4px;}
+    .p-chip.warn{opacity:0.45;}
     .p-chip .tag{font-size:9px;font-weight:800;text-transform:uppercase;background:rgba(255,255,255,0.3);padding:1px 5px;border-radius:100px;}
     .team-zone{min-height:52px;border:1.5px dashed var(--border2);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;background:var(--surface);transition:all .12s;}
     .team-zone.drop-hot{border-color:var(--blue);background:rgba(44,92,156,0.10);}
     .team-zone .p-chip .rm{cursor:pointer;background:rgba(255,255,255,0.3);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;}
     .team-label{font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+    .drag-hint-bar{font-size:12px;font-weight:600;color:var(--navy);background:rgba(44,92,156,0.08);border:1px dashed rgba(44,92,156,0.3);border-radius:9px;padding:8px 12px;margin-bottom:12px;}
 
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:200;}
     .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
@@ -246,6 +247,7 @@
 
           <div class="card">
             <div class="card-title">Courts</div>
+            <div class="drag-hint-bar" id="drag-hint" style="display:none"></div>
             <div id="courts-wrap"><div class="empty">No courts yet — add one above.</div></div>
           </div>
         </div>
@@ -618,7 +620,7 @@
     }
 
     // ── Matches: drag-and-drop lineup builder (desktop only, mirrors Pro Schedule) ──
-    let dragPlayerId = null;
+    let dragPlayerId = null, dragFromPairingId = null, dragFromTeam = null;
     let railRatingFilter = 'all';
     const RATING_PALETTE = ['#0ea5e9','#16a34a','#d97706','#dc2626','#7c3aed','#db2777','#0891b2','#65a30d'];
 
@@ -645,7 +647,9 @@
       const status = grid.attendance[currentWeekId + ':' + p.id];
       const warn = status === 'bye' ? 'BYE' : status === 'na' ? 'NA' : '';
       const rm = opts.removable ? `<span class="rm" onclick="removeFromTeam(${opts.pairingId},'${opts.team}',${p.id})">✕</span>` : '';
-      const drag = opts.removable ? '' : `draggable="true" ondragstart="dragPlayer(event,${p.id})" ondragend="dragEnd(event)"`;
+      const fromPairing = opts.removable ? opts.pairingId : 'null';
+      const fromTeam = opts.removable ? `'${opts.team}'` : 'null';
+      const drag = `draggable="true" ondragstart="dragPlayer(event,${p.id},${fromPairing},${fromTeam})" ondragend="dragEnd(event)"`;
       return `<span class="p-chip ${warn?'warn':''}" ${drag} data-player="${p.id}" title="${esc(p.name)}${p.rating?' — rating '+esc(p.rating):''}${warn?' — marked '+warn+' this week':''}" style="background:${ratingColor(p.rating)}">${esc(p.name)}${p.rating?`<span class="tag">${esc(p.rating)}</span>`:''}${warn?`<span class="tag">${warn}</span>`:''}${rm}</span>`;
     }
 
@@ -675,20 +679,52 @@
       rail.innerHTML = active.map(p => playerChip(p)).join('');
     }
 
-    function dragPlayer(e, id){
+    function pairHistory(idA, idB){
+      let partner = 0, opponent = 0;
+      allPairings.forEach(p => {
+        const t1 = p.team1||[], t2 = p.team2||[];
+        if ((t1.includes(idA) && t1.includes(idB)) || (t2.includes(idA) && t2.includes(idB))) partner++;
+        if ((t1.includes(idA) && t2.includes(idB)) || (t2.includes(idA) && t1.includes(idB))) opponent++;
+      });
+      return { partner, opponent };
+    }
+
+    function dragPlayer(e, id, fromPairingId, fromTeam){
       dragPlayerId = id;
+      dragFromPairingId = fromPairingId || null;
+      dragFromTeam = fromTeam || null;
       try { e.dataTransfer.setData('text/plain', String(id)); e.dataTransfer.effectAllowed = 'move'; } catch(err){}
       e.currentTarget.classList.add('dragging');
     }
-    function dragEnd(e){ e.currentTarget.classList.remove('dragging'); dragPlayerId = null; }
-    function dzOver(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} e.currentTarget.classList.add('drop-hot'); }
-    function dzLeave(e){ e.currentTarget.classList.remove('drop-hot'); }
+    function dragEnd(e){ e.currentTarget.classList.remove('dragging'); dragPlayerId = null; dragFromPairingId = null; dragFromTeam = null; hideDragHint(); }
+    function dzOver(e, pairingId, team){
+      e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} e.currentTarget.classList.add('drop-hot');
+      if (dragPlayerId) showDragHint(dragPlayerId, pairingId, team);
+    }
+    function dzLeave(e){ e.currentTarget.classList.remove('drop-hot'); hideDragHint(); }
+    function showDragHint(playerId, pairingId, team){
+      const p = pairings.find(x => x.id === pairingId);
+      const hint = document.getElementById('drag-hint');
+      if (!p) { hint.style.display = 'none'; return; }
+      const byId = {}; roster.forEach(r => byId[r.id] = r.name);
+      const partners = (p[team]||[]).filter(id => id !== playerId);
+      const opponents = (p[team==='team1'?'team2':'team1']||[]);
+      const bits = [];
+      partners.forEach(id => { const h = pairHistory(playerId, id); if (h.partner) bits.push(`played with ${byId[id]} ${h.partner}x`); });
+      opponents.forEach(id => { const h = pairHistory(playerId, id); if (h.opponent) bits.push(`played against ${byId[id]} ${h.opponent}x`); });
+      hint.textContent = bits.length ? `${byId[playerId]||'?'}: ${bits.join(', ')}` : `${byId[playerId]||'?'}: no history with players on this court yet`;
+      hint.style.display = '';
+    }
+    function hideDragHint(){ const hint = document.getElementById('drag-hint'); if (hint) hint.style.display = 'none'; }
     async function dzDrop(e, pairingId, team){
       e.preventDefault();
       e.currentTarget.classList.remove('drop-hot');
+      hideDragHint();
       let id = dragPlayerId;
       try { id = parseInt(e.dataTransfer.getData('text/plain')) || dragPlayerId; } catch(err){}
       if (!id) return;
+      const fromPairingId = dragFromPairingId, fromTeam = dragFromTeam;
+      if (fromPairingId === pairingId && fromTeam === team) return; // dropped back where it started
       const p = pairings.find(x => x.id === pairingId);
       if (!p) return;
       const current = (p[team] || []).slice();
@@ -696,7 +732,8 @@
       if (current.length >= 2) { toast('That team already has 2 players'); return; }
       current.push(id);
       await updatePairing(pairingId, team, current);
-      renderPlayerRail();
+      if (fromPairingId) await removeFromTeam(fromPairingId, fromTeam, id); // moved from another court, not the rail
+      else renderPlayerRail();
     }
     async function removeFromTeam(pairingId, team, playerId){
       const p = pairings.find(x => x.id === pairingId);
@@ -715,13 +752,13 @@
           <div class="pairing-row">
             <div>
               <div class="team-label">Team 1</div>
-              <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team1')">
+              <div class="team-zone" ondragover="dzOver(event,${p.id},'team1')" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team1')">
                 ${(p.team1||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team1'}) : ''; }).join('')}
               </div>
             </div>
             <div>
               <div class="team-label">Team 2</div>
-              <div class="team-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team2')">
+              <div class="team-zone" ondragover="dzOver(event,${p.id},'team2')" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team2')">
                 ${(p.team2||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team2'}) : ''; }).join('')}
               </div>
             </div>
