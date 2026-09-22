@@ -15,6 +15,7 @@
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;}
     .wrap{max-width:720px;margin:0 auto;padding:20px 16px 80px;}
+    @media(min-width:900px){ .wrap{max-width:1100px;} }
     header{padding:6px 0 18px;}
     header h1{font-size:20px;font-weight:800;letter-spacing:-0.01em;}
     header p{font-size:13px;color:var(--text-2);margin-top:2px;}
@@ -120,7 +121,7 @@
           <select id="week-select" onchange="renderWeek()"></select>
         </div>
         <div class="card">
-          <div class="card-title">Courts &amp; scores this week</div>
+          <div class="card-title">Match details for the selected week</div>
           <div id="courts-list"><div class="empty">No pairings posted for this week yet.</div></div>
         </div>
       </div>
@@ -151,7 +152,7 @@
   <script>
     let league = 'MHL', data = { players: [], weeks: [], attendance: {}, pairings: [] };
     let schedSession = 1, schedBlockIdx = 0, resSession = 1, resBlockIdx = 0;
-    const BLOCK_SIZE = 4;
+    const BLOCK_SIZE = window.innerWidth >= 900 ? 8 : 4; // wider screens show more weeks per page
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function token(){ return localStorage.getItem('hl-token') || ''; }
 
