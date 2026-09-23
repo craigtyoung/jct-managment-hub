@@ -219,7 +219,7 @@
           <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
           <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font-body);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
           <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#16a34a;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;" onclick="openGuestModal()">+ Guest</button>
-          <button id="gt-sync-btn" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.07);color:#2c5c9c;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;" onclick="triggerGTSync()">Sync to GameTime</button>
+          <button disabled title="Coming soon — GameTime auto-sync isn't built yet" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text-3);font-family:var(--font-body);font-size:12px;font-weight:600;cursor:default;">Sync to GameTime</button>
           <span class="ci-count" id="ci-count">—</span>
         </div>
         <div id="ci-list"><div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div></div>
@@ -540,22 +540,6 @@
         closeGuestModal();
         loadCheckinTab(document.getElementById('ci-date')?.value);
       } catch (e) { err.textContent = 'Could not reach the server — try again.'; }
-    }
-
-    async function triggerGTSync() {
-      const btn = document.getElementById('gt-sync-btn');
-      if (btn) { btn.textContent = 'Syncing…'; btn.disabled = true; }
-      try {
-        const r = await fetch('/api/admin/gametime-sync', { method: 'POST' });
-        const d = await r.json();
-        if (btn) { btn.textContent = d.message || 'Sync triggered'; }
-        setTimeout(async () => {
-          if (btn) { btn.textContent = 'Sync to GameTime'; btn.disabled = false; }
-          await loadCheckinTab(document.getElementById('ci-date')?.value);
-        }, 5000);
-      } catch (e) {
-        if (btn) { btn.textContent = 'Sync to GameTime'; btn.disabled = false; }
-      }
     }
 
     init();

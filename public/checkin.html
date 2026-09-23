@@ -49,6 +49,13 @@
     .key.key-go{background:var(--navy);color:#fff;border-color:var(--navy);}
     .key.key-go:active{background:var(--blue);border-color:var(--blue);}
 
+    /* Guest button — a real, visible button, not a subtle text link */
+    .btn-guest{width:100%;margin-top:14px;padding:16px;border:none;border-radius:14px;background:var(--amber);color:#fff;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;}
+    .btn-guest:active{background:#b45309;transform:scale(0.98);}
+
+    /* Guest screen logo (replaces the tennis-ball emoji) */
+    .guest-logo{display:block;max-width:120px;max-height:80px;margin:0 auto 16px;object-fit:contain;}
+
     /* Name search toggle */
     .alt-link{text-align:center;margin-top:18px;}
     .alt-link button{background:none;border:none;font-family:var(--font);font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;text-decoration:underline;padding:4px;}
@@ -123,14 +130,14 @@
           <button class="key" onclick="addDigit('0')">0</button>
           <button class="key key-go" onclick="submitPin()">Go</button>
         </div>
+        <button class="btn-guest" onclick="showGuestScreen()">I'm a guest</button>
         <div class="alt-link"><button onclick="showNameSearch()">Search by last name instead</button></div>
-        <div class="alt-link"><button onclick="showGuestScreen()">I'm a guest</button></div>
       </div>
 
       <!-- Guest screen — guests can't self-serve check in (fee needs collecting), so this
            just points them to the front desk instead of a real check-in. -->
       <div class="screen" id="screen-guest">
-        <div class="success-icon">🎾</div>
+        <img src="/jct-logo.png" alt="Joshua Creek Tennis" class="guest-logo">
         <div class="screen-title">Welcome!</div>
         <div class="screen-sub" style="margin-bottom:0">Please see the front desk to sign in — a guest fee applies. Thanks for visiting JCT!</div>
         <button class="btn-back" style="margin-top:24px" onclick="resetToPin()">Back</button>
