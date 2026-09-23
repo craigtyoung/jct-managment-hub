@@ -1208,7 +1208,7 @@
         <div class="stat-value" id="sc-weather-val">—</div>
         <div class="stat-sub" id="sc-weather-sub">Loading…</div>
       </div>
-      <div class="stat-card live mgmt-only" id="sc-checkin-card">
+      <div class="stat-card live checkin-only" id="sc-checkin-card">
         <span class="stat-live-dot"></span>
         <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9" style="stroke:#16a34a;stroke-width:1.8"/></svg></div>
         <div class="stat-label">Members In Today</div>
@@ -1231,12 +1231,12 @@
       </a>
     </div>
 
-    <!-- ── Today's Check-ins (mgmt only) ──────────── -->
-    <div class="mgmt-only" id="checkin-section">
+    <!-- ── Today's Check-ins (admin/office staff — not pro/contractor) ──────────── -->
+    <div class="checkin-only" id="checkin-section">
       <div class="section-title" style="margin-bottom:10px">
         <div class="section-live-dot"></div>
         Today's Check-ins
-        <a href="/checkin-test.html" class="reach-log-btn" style="margin-left:auto">Test harness →</a>
+        <a href="/checkin-test.html" class="reach-log-btn mgmt-only" style="margin-left:auto">Test harness →</a>
         <a href="/members.html#checkins" class="reach-log-btn">Full log →</a>
       </div>
       <div id="checkin-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
@@ -1948,6 +1948,10 @@
       if (!me.can_manage_directory) {
         document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
       }
+      // Member check-in feed: office/admin staff (admin, manager, staff) — not pro or contractor.
+      if (!me.can_view_checkins) {
+        document.querySelectorAll('.checkin-only').forEach(el => el.style.display = 'none');
+      }
 
       setGreeting(me.name);
 
@@ -2131,8 +2135,8 @@
         document.getElementById('notes-list').innerHTML = '<div class="notes-empty">Unable to load notes.</div>';
       }
 
-      // Check-in feed (mgmt only — section already hidden for non-mgmt via .mgmt-only)
-      if (me.can_manage_directory) {
+      // Check-in feed (admin/office staff — section already hidden for others via .checkin-only)
+      if (me.can_view_checkins) {
         loadCheckins();
         window.__checkinLiveUpdate = loadCheckins;
       }

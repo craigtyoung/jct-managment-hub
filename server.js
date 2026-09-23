@@ -186,6 +186,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     is_admin: eff.role === 'admin',
     is_management: eff.role === 'admin' || eff.role === 'manager',
     is_pro: db.isTeachingPro(eff.id),
+    can_view_checkins: eff.role === 'admin' || eff.role === 'manager' || eff.role === 'staff', // member check-in feed: all office/admin staff, not pro or contractor
     can_view_as: db.canViewAs(real.id),
     can_manage_directory: db.canManageDirectory(eff.id), // Directory: all management (incl. David)
     can_manage_pay: db.canManageStaff(eff.id),           // Pay Review: trio only

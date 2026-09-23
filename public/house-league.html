@@ -103,6 +103,10 @@
     .cell-btn.na{background:rgba(220,38,38,0.12);border-color:var(--red);color:var(--red);}
     .score-cell{font-weight:800;color:var(--navy);}
     .avg-cell{font-weight:800;color:var(--blue);background:rgba(44,92,156,0.06);}
+    .total-row td{border-top:2px solid var(--border2);border-bottom:none;}
+    .total-label{font-weight:800;color:var(--text-2);text-transform:uppercase;font-size:10px;letter-spacing:.04em;}
+    .total-cell{font-weight:800;color:var(--text-3);background:rgba(0,0,0,0.025);}
+    .total-cell.hit{color:var(--green);background:rgba(22,163,74,0.12);}
 
     .tab-bar{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:16px;}
     .tab-btn{flex:1;padding:8px;border:none;background:transparent;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-2);cursor:pointer;}
@@ -218,7 +222,7 @@
         <!-- Schedule: season attendance grid + per-week court pairings/scores -->
         <div id="section-schedule" style="display:none">
           <div class="page-head"><h1>Schedule</h1></div>
-          <div class="page-sub">Click a cell to cycle a player's status for that week: IN → BYE → NA → blank.</div>
+          <div class="page-sub">Click a cell to cycle a player's status for that week: PLAY → BYE → NA → blank. Bottom row shows players scheduled per week against the target of <span id="sched-target-label"></span>.</div>
 
           <div class="grid-toolbar">
             <div class="sess-tabs" id="sched-sess-tabs"></div>
@@ -332,7 +336,8 @@
     let schedSession = 1, resSession = 1;
     let rosterSortBy = 'name', rosterSortDir = 'asc';
     const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
-    const STATUS_LABEL = { in: 'IN', bye: 'BYE', na: 'NA' };
+    const STATUS_LABEL = { in: 'PLAY', bye: 'BYE', na: 'NA' };
+    const TARGET_PLAYERS = 24; // full-courts target shown on the Schedule total row
 
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
@@ -536,6 +541,8 @@
     function renderScheduleGrid(){
       const sessionWeeks = weeksForSession(schedSession); // full session, no pagination — staff is desktop-only
       document.getElementById('sched-block-label').textContent = sessionWeeks.length ? `${sessionWeeks.length} weeks` : 'No weeks yet';
+      const targetLabelEl = document.getElementById('sched-target-label');
+      if (targetLabelEl) targetLabelEl.textContent = TARGET_PLAYERS;
 
       const active = roster.filter(p => p.active !== false);
       const table = document.getElementById('sched-grid');
@@ -550,7 +557,13 @@
         }).join('');
         return `<tr><td class="name-cell">${esc(p.name)}</td>${cells}<td class="avg-cell">${sessionInCount(p.id, schedSession)}</td></tr>`;
       }).join('');
-      table.innerHTML = head + body;
+      const totalCells = sessionWeeks.map(w => {
+        const count = active.filter(p => grid.attendance[w.id + ':' + p.id] === 'in').length;
+        const hit = count >= TARGET_PLAYERS;
+        return `<td class="total-cell ${hit ? 'hit' : ''}">${count}/${TARGET_PLAYERS}</td>`;
+      }).join('');
+      const totalRow = `<tr class="total-row"><td class="name-cell total-label">Playing</td>${totalCells}<td></td></tr>`;
+      table.innerHTML = head + body + totalRow;
     }
     async function cycleAttCell(playerId, weekId){
       const key = weekId + ':' + playerId;

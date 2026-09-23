@@ -64,11 +64,11 @@ router.get('/today', (req, res) => {
 });
 
 // GET /api/checkin/feed?date=YYYY-MM-DD — authenticated, full list with member detail
-// Restricted to admin/manager roles; falls back to today if no date given
+// Restricted to office/admin roles (admin, manager, staff) — not pro or contractor; falls back to today if no date given
 router.get('/feed', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Management only' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
   const date = req.query.date || new Date().toISOString().slice(0, 10);
   const logs = db.getCheckinLogsByDate(date);
   // Enrich with club_number

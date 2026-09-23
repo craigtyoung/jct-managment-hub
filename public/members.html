@@ -185,10 +185,10 @@
     <!-- View tabs -->
     <div class="view-tabs">
       <button class="view-tab active" id="tab-list" onclick="showView('list')">Member List</button>
-      <button class="view-tab mgmt-only" id="tab-checkins" onclick="showView('checkins')">Check-ins</button>
+      <button class="view-tab checkin-only" id="tab-checkins" onclick="showView('checkins')">Check-ins</button>
     </div>
 
-    <!-- Check-ins view (mgmt only) -->
+    <!-- Check-ins view (admin/office staff — not pro/contractor) -->
     <div id="view-checkins" style="display:none">
       <div class="card">
         <div class="ci-toolbar">
@@ -390,16 +390,17 @@
       const nn = document.getElementById('nav-name'); if (nn) nn.textContent = me.name;
       const nr = document.getElementById('nav-role'); if (nr) nr.textContent = me.role;
       if (!me.is_management) document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
+      if (!me.can_view_checkins) document.querySelectorAll('.checkin-only').forEach(el => el.style.display = 'none');
       await load();
       // Hash routing: /members.html#checkins opens the check-ins tab
-      if (window.location.hash === '#checkins' && me.is_management) showView('checkins');
+      if (window.location.hash === '#checkins' && me.can_view_checkins) showView('checkins');
     }
 
     function showView(view) {
       document.getElementById('view-list').style.display = view === 'list' ? '' : 'none';
       document.getElementById('view-checkins').style.display = view === 'checkins' ? '' : 'none';
       document.getElementById('tab-list').className = 'view-tab' + (view === 'list' ? ' active' : '');
-      document.getElementById('tab-checkins').className = 'view-tab mgmt-only' + (view === 'checkins' ? ' active' : '');
+      document.getElementById('tab-checkins').className = 'view-tab checkin-only' + (view === 'checkins' ? ' active' : '');
       if (view === 'checkins') {
         const today = new Date().toISOString().slice(0, 10);
         const dateEl = document.getElementById('ci-date');
