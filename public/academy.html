@@ -158,6 +158,8 @@
         <button class="sidebar-btn" data-view="changes" onclick="setView('changes')"><span class="dot" style="background:#2c5c9c"></span> Class Changes <span class="count" id="c-changes">0</span></button>
         <button class="sidebar-btn" data-view="notes" onclick="setView('notes')"><span class="dot" style="background:#8b5cf6"></span> Notes <span class="count" id="c-notes">0</span></button>
         <button class="sidebar-btn" data-view="classes" onclick="setView('classes')"><span class="dot" style="background:#0d9488"></span> Classes <span class="count" id="c-classes">0</span></button>
+        <a class="sidebar-btn" href="/waitlist.html" style="text-decoration:none"><span class="dot" style="background:#dc2626"></span> Open Spots <span class="count" id="c-openspots">0</span></a>
+        <a class="sidebar-btn" href="/lesson-waitlist.html" style="text-decoration:none"><span class="dot" style="background:#16a34a"></span> Private Lessons <span class="count" id="c-lessons">0</span></a>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">Filter</div>
@@ -254,13 +256,18 @@
         fetch('/api/academy/classes').then(function(r){return r.json();}),
         fetch('/api/academy/waitlist').then(function(r){return r.json();}),
         fetch('/api/academy/changes').then(function(r){return r.json();}),
-        fetch('/api/academy/notes').then(function(r){return r.json();})
+        fetch('/api/academy/notes').then(function(r){return r.json();}),
+        fetch('/api/waitlist').then(function(r){return r.json();}).catch(function(){return [];}),
+        fetch('/api/lesson-waitlist').then(function(r){return r.json();}).catch(function(){return [];})
       ]).then(function(a){
         classes=a[0]||[]; waitlist=a[1]||[]; changes=a[2]||[]; notes=a[3]||[];
+        var openSpots=a[4]||[], lessons=a[5]||[];
         document.getElementById('c-waitlist').textContent = waitlist.filter(function(w){return w.status!=='Enrolled'&&w.status!=='Withdrawn';}).length;
         document.getElementById('c-changes').textContent = changes.filter(function(c){return c.status!=='Done'&&c.status!=='Cancelled';}).length;
         document.getElementById('c-notes').textContent = notes.length;
         document.getElementById('c-classes').textContent = classes.length;
+        var co=document.getElementById('c-openspots'); if(co) co.textContent = openSpots.filter(function(s){return s.status!=='filled';}).length;
+        var cl=document.getElementById('c-lessons'); if(cl) cl.textContent = lessons.filter(function(i){return i.status!=='closed';}).length;
         render();
       });
     }
