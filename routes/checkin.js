@@ -58,7 +58,7 @@ router.post('/', (req, res) => {
 
 // GET /api/checkin/today — public count (for kiosk display)
 router.get('/today', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = db.todayLocal();
   const logs = db.getCheckinLogsByDate(today);
   res.json({ date: today, count: logs.length });
 });
@@ -69,7 +69,7 @@ router.get('/feed', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || db.todayLocal();
   const logs = db.getCheckinLogsByDate(date);
   // Enrich with club_number
   const byId = {};

@@ -1001,7 +1001,7 @@
           <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
           <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
         </svg>
-        Court Board
+        Court View
       </a>
 
       <div class="nav-group-label">Programs</div>
@@ -2193,7 +2193,7 @@
             <select onchange="setCheckinCourt(${l.id}, this.value)" style="font-family:inherit;font-size:11px;font-weight:600;padding:4px 6px;border-radius:6px;border:1px solid var(--border2);background:${l.court?'rgba(44,92,156,0.08)':'#fff'};color:${l.court?'#2c5c9c':'var(--text-3)'};">
               <option value="">Court —</option>${courtOpts}
             </select>
-            <div style="font-size:12px;color:var(--text-3);white-space:nowrap;">${l.time ? l.time.slice(0,5) : ''}</div>
+            <div style="font-size:12px;color:var(--text-3);white-space:nowrap;">${fmtTime12(l.time)}</div>
           </div>`;
         }).join('');
         // Strip bottom border on last row
@@ -2209,6 +2209,13 @@
     }
 
     function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fmtTime12(hhmmss) {
+      if (!hhmmss) return '';
+      const [h, m] = hhmmss.split(':').map(Number);
+      const period = h < 12 ? 'am' : 'pm';
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, '0')}${period}`;
+    }
 
     // WMO weather code → label + icon
     function weatherDesc(code) {

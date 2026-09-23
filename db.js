@@ -1899,6 +1899,19 @@ function nextId(table) {
 }
 
 function now() { return new Date().toISOString(); }
+// Local (America/Toronto) date+time, formatted like an ISO string but WITHOUT
+// the UTC 'Z' — Railway's server clock is UTC, so raw now().slice() puts
+// check-in times 4-5 hours off and can even roll the date to the wrong day
+// near midnight local time. Check-in logging uses this instead of now().
+function nowLocal() {
+  const d = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(d).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
 
 // ─── Staff ───────────────────────────────────────────────────────────────────
 
@@ -4398,7 +4411,7 @@ function deactivateMember(id) {
 // ─── Check-in logs ────────────────────────────────────────────────────────────
 function addCheckinLog({ memberId, method }) {
   if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
-  const ts = now();
+  const ts = nowLocal();
   const today = ts.slice(0, 10);
   const duplicate = (_data.checkin_logs || []).some(l => l.date === today && l.member_id === parseInt(memberId));
   const id = nextId('checkin_logs');
@@ -4421,7 +4434,7 @@ function addGuestCheckinLog({ guestName, hostMemberId, court }) {
   if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
   const name = String(guestName || '').trim();
   if (!name) return null;
-  const ts = now();
+  const ts = nowLocal();
   const id = nextId('checkin_logs');
   const entry = { id, member_id: null, guest_name: name, host_member_id: hostMemberId ? parseInt(hostMemberId) : null, date: ts.slice(0, 10), time: ts.slice(11, 19), method: 'guest', created_at: ts };
   if (court) { const c = parseInt(court); if (Number.isInteger(c) && c >= 1 && c <= 6) entry.court = c; }
@@ -4438,7 +4451,7 @@ function getCheckinLogsByDate(date) {
       : { ...l, member_name: byId[l.member_id] || '—' });
 }
 function getMemberCheckinToday(memberId) {
-  const today = now().slice(0, 10);
+  const today = nowLocal().slice(0, 10);
   return (_data.checkin_logs || []).find(l => l.date === today && l.member_id === parseInt(memberId)) || null;
 }
 function getUnsyncedCheckins() {
@@ -5036,6 +5049,7 @@ module.exports = {
   addCheckinLog,
   addGuestCheckinLog,
   setCheckinCourt,
+  todayLocal: () => nowLocal().slice(0, 10),
   getCheckinLogsByDate,
   getMemberCheckinToday,
   getUnsyncedCheckins,
