@@ -276,6 +276,21 @@
     .reply-parent-indicator { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); background: var(--input-bg); border: 1px solid var(--border2); border-radius: 8px; padding: 5px 9px; margin-bottom: 6px; }
     .reply-parent-indicator button { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; margin-left: auto; }
     .reply-parent-indicator button:hover { color: var(--text); }
+    .replies-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .expand-thread-btn { background: transparent; border: none; color: var(--text3); font-size: 15px; line-height: 1; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+    .expand-thread-btn:hover { color: #2c5c9c; background: rgba(44,92,156,0.08); }
+
+    /* ── Thread expand modal (full-screen view of a long back-and-forth) ── */
+    .thread-modal-backdrop { display: none; position: fixed; inset: 0; z-index: 400; background: rgba(15,23,42,0.5); align-items: center; justify-content: center; padding: 24px; }
+    .thread-modal-backdrop.open { display: flex; }
+    .thread-modal { background: var(--surface); border-radius: 16px; width: 100%; max-width: 720px; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+    .thread-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border2); flex-shrink: 0; }
+    .thread-modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .thread-modal-close { background: transparent; border: none; color: var(--text3); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+    .thread-modal-close:hover { color: var(--text); background: var(--input-bg); }
+    .thread-modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .thread-modal-note { padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--border2); font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    .thread-modal-foot { padding: 14px 20px; border-top: 1px solid var(--border2); flex-shrink: 0; display: flex; gap: 8px; align-items: flex-start; }
 
     /* ── Actions ── */
     .msg-actions { display: flex; gap: 7px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border2); }
@@ -454,6 +469,25 @@
 
   <!-- Toast -->
   <div class="toast" id="toast"></div>
+
+  <!-- Thread expand: full-screen view of a note + its full reply thread, for when a
+       back-and-forth gets long and the side column gets cramped. -->
+  <div class="thread-modal-backdrop" id="thread-modal-backdrop" onclick="if(event.target===this)closeThread()">
+    <div class="thread-modal">
+      <div class="thread-modal-head">
+        <span class="thread-modal-title" id="thread-modal-title">Conversation</span>
+        <button type="button" class="thread-modal-close" onclick="closeThread()">✕</button>
+      </div>
+      <div class="thread-modal-body">
+        <div class="thread-modal-note" id="thread-modal-note"></div>
+        <div id="thread-modal-replies"></div>
+      </div>
+      <div class="thread-modal-foot">
+        <textarea class="reply-input" rows="2" placeholder="Write a reply..." id="thread-modal-reply-txt"></textarea>
+        <button class="btn btn-indigo btn-sm" id="thread-modal-send" onclick="postThreadReply()">Send</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Shell -->
   <div class="shell">
@@ -1219,6 +1253,63 @@
     chev.style.transform = open ? 'rotate(-90deg)' : 'rotate(0)';
   }
 
+  // Reply thread markup for a message — shared by the card's side column and the
+  // full-screen expand modal. Chronological, with a small tag on any reply that was
+  // itself aimed at an earlier reply rather than the root note.
+  function buildRepliesThread(msg) {
+    return (msg.replies||[]).map(r => `
+      <div class="reply-item" data-reply-id="${r.id}">
+        <div class="avatar" style="width:28px;height:28px;font-size:11px;background:${r.author_color}18;color:${r.author_color};flex-shrink:0">${initials(r.author_name)}</div>
+        <div style="flex:1;min-width:0">
+          ${r.parent_author_name?`<div class="reply-parent-tag">↳ replying to ${esc(r.parent_author_name)}</div>`:''}
+          <div class="reply-meta">
+            <span class="reply-name" style="color:${r.author_color}">${esc(r.author_name)}</span>
+            <span class="reply-time-txt">${relTime(r.created_at)}</span>
+          </div>
+          <div class="reply-body">${esc(r.content)}</div>
+          <button type="button" class="reply-to-btn" onclick="event.stopPropagation();openReplyBox(${msg.id},${r.id})">Reply</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Thread expand modal ─────────────────────────────────────────────────────
+  let threadModalId = null;
+  function openThread(id) {
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    threadModalId = id;
+    document.getElementById('thread-modal-title').textContent = (msg.author_name || 'Note') + "'s note";
+    document.getElementById('thread-modal-note').innerHTML =
+      `<div style="font-size:12px;color:var(--text3);margin-bottom:6px">${esc(msg.author_name)} · ${relTime(msg.created_at)}</div>${esc(msg.content)}`;
+    document.getElementById('thread-modal-replies').innerHTML = buildRepliesThread(msg);
+    document.getElementById('thread-modal-reply-txt').value = '';
+    document.getElementById('thread-modal-backdrop').classList.add('open');
+  }
+  function closeThread() {
+    document.getElementById('thread-modal-backdrop').classList.remove('open');
+    threadModalId = null;
+  }
+  async function postThreadReply() {
+    if (!threadModalId) return;
+    const ta = document.getElementById('thread-modal-reply-txt');
+    const content = ta.value.trim();
+    if (!content) return;
+    await fetch(`/api/messages/${threadModalId}/reply`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({content}),
+    });
+    await loadAll();
+    // Re-render the modal in place (rather than closing) so a long back-and-forth
+    // can keep going without re-opening it after every reply.
+    const msg = messages.find(m => m.id === threadModalId);
+    if (msg) {
+      document.getElementById('thread-modal-replies').innerHTML = buildRepliesThread(msg);
+      document.getElementById('thread-modal-note').innerHTML =
+        `<div style="font-size:12px;color:var(--text3);margin-bottom:6px">${esc(msg.author_name)} · ${relTime(msg.created_at)}</div>${esc(msg.content)}`;
+    }
+    ta.value = '';
+  }
+
   function renderMsg(msg) {
     if (!msg || !msg.content) return '';
     // Defensive: receipt_staff may be absent if server wasn't restarted
@@ -1256,22 +1347,7 @@
 
     const railTitle = isTargeted ? 'Sent to' : 'Seen by';
 
-    // Reply thread, rendered in its own column beside the note — chronological, with
-    // a small tag on any reply that was itself aimed at an earlier reply rather than
-    // the root note.
-    const repliesThread = (msg.replies||[]).map(r => `
-      <div class="reply-item" data-reply-id="${r.id}">
-        <div class="avatar" style="width:28px;height:28px;font-size:11px;background:${r.author_color}18;color:${r.author_color};flex-shrink:0">${initials(r.author_name)}</div>
-        <div style="flex:1;min-width:0">
-          ${r.parent_author_name?`<div class="reply-parent-tag">↳ replying to ${esc(r.parent_author_name)}</div>`:''}
-          <div class="reply-meta">
-            <span class="reply-name" style="color:${r.author_color}">${esc(r.author_name)}</span>
-            <span class="reply-time-txt">${relTime(r.created_at)}</span>
-          </div>
-          <div class="reply-body">${esc(r.content)}</div>
-          <button type="button" class="reply-to-btn" onclick="event.stopPropagation();openReplyBox(${msg.id},${r.id})">Reply</button>
-        </div>
-      </div>`).join('');
+    const repliesThread = buildRepliesThread(msg);
 
     const toLabel = msg.recipients
       ? `<span class="msg-to">→ ${(msg.receipt_staff||[]).map(s=>s.name).join(', ')}</span>`
@@ -1343,7 +1419,10 @@
             </div>
             ${(msg.replies||[]).length ? `
             <div class="msg-col-replies">
-              <span class="rail-title">Replies (${msg.replies.length})</span>
+              <div class="replies-head">
+                <span class="rail-title" style="margin-bottom:0">Replies (${msg.replies.length})</span>
+                <button type="button" class="expand-thread-btn" onclick="event.stopPropagation();openThread(${msg.id})" title="Open full-screen">⤢</button>
+              </div>
               ${repliesThread}
             </div>` : ''}
           </div>

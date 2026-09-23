@@ -1957,6 +1957,7 @@
       const res = await fetch('/api/me');
       if (res.status === 401) { window.location.href = '/login.html'; return; }
       const me = await res.json();
+      window.__me = me; // cached for the live SSE refresh handlers below, which run outside init()'s scope
       // The Contractor Hub is only for Muzz + management; hide its links from other staff.
       if (!(me.is_management || me.role === 'contractor')) {
         document.querySelectorAll('a[href="/contractor.html"]').forEach(el => el.style.display = 'none');
@@ -2443,13 +2444,35 @@
     }
     initNotifPrompt();
 
-    // SSE: refresh check-in feed in real time when any member signs in
+    // Live refresh for the dashboard's Latest Notes preview(s) — was load-once, so a
+    // note or reply posted by someone else while you're sitting on the dashboard
+    // never showed up until you refreshed the page.
+    async function refreshNotesPreview() {
+      if (!window.__me || !document.getElementById('notes-list')) return;
+      try {
+        const notesRes = await fetch('/api/messages?limit=10&offset=0');
+        renderNotes(await notesRes.json(), window.__me);
+      } catch (e) {}
+    }
+    async function refreshProNotesPreview() {
+      if (!window.__me || !document.getElementById('pro-notes-list')) return;
+      try {
+        const nr = await fetch('/api/messages?limit=10&offset=0&audience=pro');
+        renderNotes(await nr.json(), window.__me, 'pro-notes-list', PRO_CATS);
+      } catch (e) {}
+    }
+
+    // SSE: refresh check-in feed in real time when any member signs in, and the
+    // dashboard notes preview(s) whenever a note/reply/edit happens anywhere.
     (function () {
       try {
         var es = new EventSource('/api/events');
         es.onmessage = function (e) {
           if (e.data === 'checkin-update' && typeof window.__checkinLiveUpdate === 'function') {
             window.__checkinLiveUpdate();
+          } else if (e.data === 'update') {
+            refreshNotesPreview();
+            refreshProNotesPreview();
           }
         };
       } catch (e) {}
