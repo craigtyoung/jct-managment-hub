@@ -4415,12 +4415,27 @@ function setCheckinCourt(id, court) {
   log.court = c;
   save(); return true;
 }
+// Staff-logged guest sign-in — no member record, just a name + which member hosted them.
+// Reuses checkin_logs (member_id stays null) so it shows up in the same feed/log.
+function addGuestCheckinLog({ guestName, hostMemberId, court }) {
+  if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
+  const name = String(guestName || '').trim();
+  if (!name) return null;
+  const ts = now();
+  const id = nextId('checkin_logs');
+  const entry = { id, member_id: null, guest_name: name, host_member_id: hostMemberId ? parseInt(hostMemberId) : null, date: ts.slice(0, 10), time: ts.slice(11, 19), method: 'guest', created_at: ts };
+  if (court) { const c = parseInt(court); if (Number.isInteger(c) && c >= 1 && c <= 6) entry.court = c; }
+  _data.checkin_logs.push(entry);
+  save(); return { id };
+}
 function getCheckinLogsByDate(date) {
   const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m.first_name + ' ' + m.last_name; });
   return (_data.checkin_logs || [])
     .filter(l => l.date === date)
     .sort((a, b) => String(a.time).localeCompare(String(b.time)))
-    .map(l => ({ ...l, member_name: byId[l.member_id] || '—' }));
+    .map(l => l.guest_name
+      ? { ...l, member_name: l.guest_name, guest: true, host_name: byId[l.host_member_id] || null }
+      : { ...l, member_name: byId[l.member_id] || '—' });
 }
 function getMemberCheckinToday(memberId) {
   const today = now().slice(0, 10);
@@ -4429,7 +4444,7 @@ function getMemberCheckinToday(memberId) {
 function getUnsyncedCheckins() {
   const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m; });
   return (_data.checkin_logs || [])
-    .filter(l => !l.gametime_synced_at && !l.duplicate)
+    .filter(l => !l.gametime_synced_at && !l.duplicate && !l.guest_name)
     .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
     .map(l => {
       const m = byId[l.member_id] || {};
@@ -5019,6 +5034,7 @@ module.exports = {
   updateMember,
   deactivateMember,
   addCheckinLog,
+  addGuestCheckinLog,
   setCheckinCourt,
   getCheckinLogsByDate,
   getMemberCheckinToday,

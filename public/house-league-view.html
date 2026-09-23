@@ -122,7 +122,6 @@
       <div class="tab-bar">
         <button class="tab-btn on" id="tab-schedule" onclick="showTab('schedule')">Schedule</button>
         <button class="tab-btn" id="tab-results" onclick="showTab('results')">Results</button>
-        <button class="tab-btn" id="tab-contacts" onclick="showTab('contacts')">Contacts</button>
         <button class="tab-btn" id="tab-rules" onclick="showTab('rules')">Rules</button>
       </div>
 
@@ -163,13 +162,6 @@
           <div class="card">
             <table class="grid-table" id="standings-table" style="table-layout:auto"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table>
           </div>
-        </div>
-      </div>
-
-      <div id="view-contacts" style="display:none">
-        <div class="card">
-          <div class="card-title">Player contact list</div>
-          <div id="contact-list"><div class="empty">Loading…</div></div>
         </div>
       </div>
 
@@ -240,7 +232,6 @@
       if (r.status === 401) { localStorage.removeItem('hl-token'); document.getElementById('login-screen').style.display=''; document.getElementById('app-screen').style.display='none'; return; }
       data = await r.json();
       schedBlockIdx = 0; schedSession = 1; matchWeekIdx = -1; standSession = 1;
-      renderContacts();
       renderScheduleTabs(); renderScheduleGrid();
       if (document.getElementById('view-results').style.display !== 'none') {
         if (resView === 'standings') { renderStandingsTabs(); renderStandings(); } else renderMatchCards();
@@ -412,21 +403,9 @@
       table.innerHTML = head + body;
     }
 
-    function renderContacts(){
-      const rows = data.players.map(p => `
-        <div class="contact-row">
-          <div class="contact-name">${esc(p.name)}</div>
-          <div class="contact-links">
-            ${p.email ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : ''}
-            ${p.phone ? `<a href="tel:${esc(p.phone)}">${esc(p.phone)}</a>` : ''}
-          </div>
-        </div>`).join('');
-      document.getElementById('contact-list').innerHTML = rows || '<div class="empty">No players yet.</div>';
-    }
-
     function showTab(id){
       if (id === 'results') { if (resView === 'standings') { renderStandingsTabs(); renderStandings(); } else renderMatchCards(); }
-      ['schedule','results','contacts','rules'].forEach(t => {
+      ['schedule','results','rules'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('on', id===t);
         document.getElementById('view-' + t).style.display = id===t ? '' : 'none';
       });

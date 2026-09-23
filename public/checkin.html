@@ -124,6 +124,16 @@
           <button class="key key-go" onclick="submitPin()">Go</button>
         </div>
         <div class="alt-link"><button onclick="showNameSearch()">Search by last name instead</button></div>
+        <div class="alt-link"><button onclick="showGuestScreen()">I'm a guest</button></div>
+      </div>
+
+      <!-- Guest screen — guests can't self-serve check in (fee needs collecting), so this
+           just points them to the front desk instead of a real check-in. -->
+      <div class="screen" id="screen-guest">
+        <div class="success-icon">🎾</div>
+        <div class="screen-title">Welcome!</div>
+        <div class="screen-sub" style="margin-bottom:0">Please see the front desk to sign in — a guest fee applies. Thanks for visiting JCT!</div>
+        <button class="btn-back" style="margin-top:24px" onclick="resetToPin()">Back</button>
       </div>
 
       <!-- Name search screen -->
@@ -199,6 +209,11 @@
     function showNameSearch() {
       showScreen('name');
       setTimeout(() => document.getElementById('name-input').focus(), 100);
+    }
+    function showGuestScreen() {
+      showScreen('guest');
+      clearTimeout(countdownTimer);
+      countdownTimer = setTimeout(resetToPin, 8000);
     }
 
     // PIN logic

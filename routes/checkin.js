@@ -81,6 +81,20 @@ router.get('/feed', (req, res) => {
   res.json({ date, count: enriched.length, logs: enriched });
 });
 
+// POST /api/checkin/guest — staff logs a guest sign-in (no member record needed)
+// Body: { guestName, hostMemberId, court }. Access: admin, manager, staff.
+router.post('/guest', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  const { guestName, hostMemberId, court } = req.body;
+  if (!guestName || !String(guestName).trim()) return res.status(400).json({ error: 'Guest name required' });
+  const result = db.addGuestCheckinLog({ guestName, hostMemberId, court });
+  if (!result) return res.status(400).json({ error: 'Guest name required' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true, id: result.id });
+});
+
 // PATCH /api/checkin/:id/court — staff assigns/changes which court (1–6) a checked-in member is on
 // Body: { court: 1-6 | null }. Same access as /feed: admin, manager, staff.
 router.patch('/:id/court', (req, res) => {
