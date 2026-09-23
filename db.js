@@ -1903,14 +1903,21 @@ function now() { return new Date().toISOString(); }
 // the UTC 'Z' — Railway's server clock is UTC, so raw now().slice() puts
 // check-in times 4-5 hours off and can even roll the date to the wrong day
 // near midnight local time. Check-in logging uses this instead of now().
-function nowLocal() {
-  const d = new Date();
+// Converts any real instant (a Date, or anything `new Date()` accepts — including an
+// old UTC-tagged `created_at` like "...Z") into its America/Toronto local date+time
+// parts. Shared by nowLocal() (for new entries) and the checkinTzFix2026 migration
+// below (for re-deriving correct date/time on entries written before that fix).
+function toLocalParts(d) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Toronto', hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   }).formatToParts(d).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}:${parts.second}` };
+}
+function nowLocal() {
+  const { date, time } = toLocalParts(new Date());
+  return `${date}T${time}`;
 }
 
 // ─── Staff ───────────────────────────────────────────────────────────────────
@@ -4488,6 +4495,32 @@ function addGuestCheckinLog({ guestName, hostMemberId, court }) {
   if (court) { const c = parseInt(court); if (Number.isInteger(c) && c >= 1 && c <= 6) entry.court = c; }
   _data.checkin_logs.push(entry);
   save(); return { id };
+}
+// One-time fix for check-in rows logged before the timezone bug fix (2026-09-23):
+// `date`/`time` used to be sliced straight off a raw UTC timestamp, so every affected
+// row displays hours ahead of when it actually happened. `created_at` on those rows is
+// still a genuine, correct UTC instant (only the date/time slicing was wrong, not the
+// underlying moment) — recognizable by its trailing "Z" (new rows use nowLocal(), which
+// has no "Z"). Re-derive date/time from that real instant via the same America/Toronto
+// conversion nowLocal() uses now, so old and new rows read consistently. Idempotent —
+// safe to leave in; does nothing once the flag is set.
+if (!_data._migrations.checkinTzFix2026) {
+  let fixed = 0;
+  if (Array.isArray(_data.checkin_logs)) {
+    _data.checkin_logs.forEach(l => {
+      if (typeof l.created_at === 'string' && l.created_at.includes('Z')) {
+        const d = new Date(l.created_at);
+        if (!isNaN(d.getTime())) {
+          const { date, time } = toLocalParts(d);
+          l.date = date; l.time = time;
+          fixed++;
+        }
+      }
+    });
+  }
+  _data._migrations.checkinTzFix2026 = true;
+  save();
+  console.log(`[migration] checkinTzFix2026: corrected ${fixed} check-in log time(s) from UTC to America/Toronto.`);
 }
 function getCheckinLogsByDate(date) {
   const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m.first_name + ' ' + m.last_name; });
