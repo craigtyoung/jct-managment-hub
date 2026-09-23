@@ -104,6 +104,7 @@ router.patch('/:id/court', (req, res) => {
   const { court } = req.body;
   const ok = db.setCheckinCourt(req.params.id, court);
   if (!ok) return res.status(400).json({ error: 'Court must be 1–6, or blank to clear' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
   res.json({ ok: true });
 });
 
