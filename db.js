@@ -4405,6 +4405,16 @@ function addCheckinLog({ memberId, method }) {
   _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: today, time: ts.slice(11, 19), method: method === 'name' ? 'name' : 'pin', duplicate: duplicate || undefined, created_at: ts });
   save(); return { id, duplicate };
 }
+// Staff assigns/changes which court (1–6) a checked-in member is playing on. null clears it.
+function setCheckinCourt(id, court) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  if (court === null || court === undefined || court === '') { delete log.court; save(); return true; }
+  const c = parseInt(court);
+  if (!Number.isInteger(c) || c < 1 || c > 6) return false;
+  log.court = c;
+  save(); return true;
+}
 function getCheckinLogsByDate(date) {
   const byId = {}; (_data.members || []).forEach(m => { byId[m.id] = m.first_name + ' ' + m.last_name; });
   return (_data.checkin_logs || [])
@@ -5009,6 +5019,7 @@ module.exports = {
   updateMember,
   deactivateMember,
   addCheckinLog,
+  setCheckinCourt,
   getCheckinLogsByDate,
   getMemberCheckinToday,
   getUnsyncedCheckins,

@@ -81,4 +81,16 @@ router.get('/feed', (req, res) => {
   res.json({ date, count: enriched.length, logs: enriched });
 });
 
+// PATCH /api/checkin/:id/court — staff assigns/changes which court (1–6) a checked-in member is on
+// Body: { court: 1-6 | null }. Same access as /feed: admin, manager, staff.
+router.patch('/:id/court', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  const { court } = req.body;
+  const ok = db.setCheckinCourt(req.params.id, court);
+  if (!ok) return res.status(400).json({ error: 'Court must be 1–6, or blank to clear' });
+  res.json({ ok: true });
+});
+
 module.exports = router;
