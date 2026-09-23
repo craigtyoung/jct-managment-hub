@@ -225,15 +225,26 @@
     .receipt-check svg { width: 8px; height: 8px; stroke: white; stroke-width: 2.5; }
     .receipts-label { font-size: 12px; color: var(--text3); font-weight: 500; }
 
-    /* ── Message body: per-person read rail on top, note + reply thread below ── */
+    /* ── Message body: per-person read rail on top, note + replies side by side below ── */
     .msg-body-grid {
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-areas: "team" "note";
+      grid-template-areas: "team" "note" "replies";
       row-gap: 14px; align-items: start;
+    }
+    @media (min-width: 760px) {
+      .msg-body-grid.has-replies {
+        grid-template-columns: 1.3fr 1fr;
+        grid-template-areas: "team team" "note replies";
+        column-gap: 22px;
+      }
     }
     .msg-col-team   { grid-area: team; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 13px; border-bottom: 1px solid var(--border2); }
     .msg-col-note   { grid-area: note; min-width: 0; }
+    .msg-col-replies { grid-area: replies; min-width: 0; }
+    @media (min-width: 760px) {
+      .msg-col-replies { border-left: 1px solid var(--border2); padding-left: 22px; }
+    }
     .team-label { margin: 0; flex-shrink: 0; }
     .rail-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
     .rail-person { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 13px; }
@@ -914,12 +925,31 @@
 
   // ── Load all messages (up to 200 for date filtering client-side) ───────────
   async function loadAll() {
+    // Snapshot reply counts before refetching so a live-arriving reply can be
+    // announced with a toast — push notifications cover the case where this tab
+    // isn't focused, but while you're sitting on the page watching it, nothing
+    // was calling that out otherwise; the feed just silently redrew.
+    const prevReplyCounts = {};
+    messages.forEach(m => { prevReplyCounts[m.id] = (m.replies || []).length; });
+
     const res = await fetch('/api/messages?limit=200&offset=0' + AUD_Q);
     if (!res.ok) return;
     messages = await res.json();
     renderFeed();
     updateBadges();
     updateStaffUnreadCounts();
+    announceNewReplies(prevReplyCounts);
+  }
+
+  function announceNewReplies(prevReplyCounts) {
+    messages.forEach(m => {
+      const before = prevReplyCounts[m.id];
+      const replies = m.replies || [];
+      if (before === undefined || replies.length <= before) return;
+      const newest = replies[replies.length - 1];
+      if (!newest || newest.author_id === me.id) return;
+      showToast(`↩ ${newest.author_name} replied: ${newest.content.slice(0, 80)}`);
+    });
   }
 
   // ── Date nav ───────────────────────────────────────────────────────────────
@@ -1226,8 +1256,9 @@
 
     const railTitle = isTargeted ? 'Sent to' : 'Seen by';
 
-    // Reply thread, rendered below the note — chronological, with a small tag on any
-    // reply that was itself aimed at an earlier reply rather than the root note.
+    // Reply thread, rendered in its own column beside the note — chronological, with
+    // a small tag on any reply that was itself aimed at an earlier reply rather than
+    // the root note.
     const repliesThread = (msg.replies||[]).map(r => `
       <div class="reply-item" data-reply-id="${r.id}">
         <div class="avatar" style="width:28px;height:28px;font-size:11px;background:${r.author_color}18;color:${r.author_color};flex-shrink:0">${initials(r.author_name)}</div>
@@ -1270,12 +1301,12 @@
             <div id="preview-${msg.id}" class="msg-preview" style="display:none">${esc(msg.content)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span class="msg-time">${new Date(msg.created_at).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})}</span>
+            <span class="msg-time">${new Date(msg.created_at).toLocaleDateString('en-CA',{month:'short',day:'numeric'})} · ${new Date(msg.created_at).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit',hour12:true})}</span>
             <svg id="chev-${msg.id}" class="chevron" style="transform:rotate(180deg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
           </div>
         </div>
         <div class="msg-body" id="body-${msg.id}" style="display:block">
-          <div class="msg-body-grid">
+          <div class="msg-body-grid${(msg.replies||[]).length ? ' has-replies' : ''}">
             <div class="msg-col-team">
               <span class="rail-title team-label">${railTitle}</span>
               <div class="rail-avatars">${railAvatars || '<span class="rail-person-status">No one yet</span>'}</div>
@@ -1283,12 +1314,6 @@
             <div class="msg-col-note">
               <div class="msg-content" id="content-${msg.id}">${esc(msg.content)}</div>
               ${msg.has_image ? `<img class="msg-image" src="/api/messages/${msg.id}/image" alt="attachment" loading="lazy" onclick="event.stopPropagation();window.open('/api/messages/${msg.id}/image','_blank')" style="margin-top:10px;max-width:100%;max-height:340px;border-radius:10px;border:1px solid var(--input-border);cursor:zoom-in;display:block">` : ''}
-              ${(msg.replies||[]).length ? `
-              <button type="button" class="replies-toggle" onclick="event.stopPropagation();toggleSection('replies-${msg.id}')">
-                <svg id="sec-chevron-replies-${msg.id}" class="chevron" style="transform:rotate(-90deg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
-                Replies (${msg.replies.length})
-              </button>
-              <div class="replies-wrap" id="section-body-replies-${msg.id}" style="display:none">${repliesThread}</div>` : ''}
               <div class="msg-actions">
                 ${unread ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();markRead(${msg.id})">Mark as read</button>` : ''}
                 <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openReplyBox(${msg.id})">Reply</button>
@@ -1316,6 +1341,11 @@
                 </div>
               </div>
             </div>
+            ${(msg.replies||[]).length ? `
+            <div class="msg-col-replies">
+              <span class="rail-title">Replies (${msg.replies.length})</span>
+              ${repliesThread}
+            </div>` : ''}
           </div>
         </div>
       </div>`;
