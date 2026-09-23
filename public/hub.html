@@ -393,6 +393,23 @@
     .notes-empty { padding: 18px 14px; font-size: 13px; color: var(--text-3); text-align: center; }
 
     /* ─────────────────────────────────────────────
+       STAFF MEMOS (pinned dashboard card, durable announcements)
+    ───────────────────────────────────────────── */
+    .memo-card { background: #eef2ff; border: 1px solid rgba(99,102,241,0.32); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+    .memo-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .memo-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: #4338ca; display: flex; align-items: center; gap: 5px; }
+    .memo-meta { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+    .memo-content { font-size: 14px; color: var(--text); line-height: 1.55; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+    .memo-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .memo-ack-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 8px; border: 1px solid rgba(99,102,241,0.4); background: #fff; color: #4338ca; font-family: var(--font-body); font-size: 12px; font-weight: 700; cursor: pointer; }
+    .memo-ack-btn.done { background: #4338ca; border-color: #4338ca; color: #fff; cursor: default; }
+    .memo-progress { font-size: 11px; color: var(--text-3); font-weight: 600; }
+    .memo-dismiss { font-size: 11px; color: var(--text-3); background: transparent; border: none; cursor: pointer; text-decoration: underline; font-family: var(--font-body); margin-left: auto; }
+    .memo-dismiss:hover { color: var(--text-2); }
+    .memo-history-link { font-size: 11px; color: #4338ca; text-decoration: none; font-weight: 600; }
+    .memo-history-link:hover { text-decoration: underline; }
+
+    /* ─────────────────────────────────────────────
        SECTION HEADER
     ───────────────────────────────────────────── */
     .section-title {
@@ -1161,6 +1178,11 @@
     ══════════════════════════════════════════ -->
     <div id="admin-view" class="admin-only">
 
+    <!-- ── Staff Memos (durable leadership announcements, pinned until dismissed) ─── -->
+    <div id="memo-section" style="display:none">
+      <div id="memo-list"></div>
+    </div>
+
     <!-- ── Comm Log + Bubble Monitoring (two-column) ─── -->
     <div class="dash-duo">
       <div class="duo-col">
@@ -1509,6 +1531,11 @@
          PRO VIEW — teaching pros
     ══════════════════════════════════════════ -->
     <div id="pro-view" class="pro-only">
+
+      <!-- ── Staff Memos (durable leadership announcements, pinned until dismissed) ─── -->
+      <div id="pro-memo-section" style="display:none">
+        <div id="pro-memo-list"></div>
+      </div>
 
       <div class="section-title" style="margin-top:0">
         <div class="section-live-dot"></div>
@@ -2161,6 +2188,8 @@
         loadCheckins();
         window.__checkinLiveUpdate = loadCheckins;
       }
+
+      loadMemos('', '');
     }
 
     async function loadCheckins() {
@@ -2349,6 +2378,8 @@
         const el = document.getElementById('pro-notes-list');
         if (el) el.innerHTML = '<div class="notes-empty">Unable to load notes.</div>';
       }
+
+      loadMemos('pro-', 'pro');
     }
 
     // Sidebar colour toggle (staff preview vote): light (white) ↔ navy+powder-blue.
@@ -2462,6 +2493,54 @@
       } catch (e) {}
     }
 
+    // ── Staff Memos: pinned dashboard card for durable leadership announcements.
+    // Reuses the same read-receipt data the Comm Log already tracks per note as the
+    // "who's acknowledged" checklist, instead of a separate tracking mechanism.
+    async function loadMemos(prefix, audienceQ) {
+      const wrap = document.getElementById(prefix + 'memo-section');
+      const list = document.getElementById(prefix + 'memo-list');
+      if (!wrap || !list || !window.__me) return;
+      try {
+        const r = await fetch('/api/messages/memos' + (audienceQ ? '?audience=' + audienceQ : ''));
+        const memos = await r.json();
+        if (!Array.isArray(memos) || !memos.length) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
+        wrap.style.display = '';
+        list.innerHTML = memos.map(m => renderMemoCard(m, prefix, audienceQ)).join('');
+      } catch (e) {}
+    }
+    function renderMemoCard(m, prefix, audienceQ) {
+      const me = window.__me;
+      const acked = (m.reads || []).some(r => r.id === me.id);
+      const total = (m.receipt_staff || []).length;
+      const ackCount = (m.reads || []).length;
+      const missing = me.is_management
+        ? (m.receipt_staff || []).filter(s => !(m.reads || []).some(r => r.id === s.id)).map(s => s.name)
+        : [];
+      const missingTitle = missing.length ? `title="Still needs: ${esc(missing.join(', '))}"` : '';
+      return `<div class="memo-card">
+        <div class="memo-head">
+          <span class="memo-tag">📌 Staff Memo — ${esc(m.author_name)}</span>
+          <span class="memo-meta">${new Date(m.created_at).toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</span>
+        </div>
+        <div class="memo-content">${esc(m.content)}</div>
+        <div class="memo-foot">
+          <button class="memo-ack-btn ${acked?'done':''}" ${acked?'disabled':''} onclick="ackMemo(${m.id},'${prefix}','${audienceQ||''}')">${acked ? '✓ Acknowledged' : 'Mark as read'}</button>
+          <span class="memo-progress" ${missingTitle}>${ackCount}/${total} acknowledged</span>
+          <a class="memo-history-link" href="/comms.html?cat=memo${audienceQ?'&audience='+audienceQ:''}">Full history →</a>
+          ${me.is_management ? `<button class="memo-dismiss" onclick="dismissMemo(${m.id},'${prefix}','${audienceQ||''}')">Dismiss</button>` : ''}
+        </div>
+      </div>`;
+    }
+    async function ackMemo(id, prefix, audienceQ) {
+      await fetch('/api/messages/' + id + '/read', { method: 'POST' });
+      loadMemos(prefix, audienceQ);
+    }
+    async function dismissMemo(id, prefix, audienceQ) {
+      if (!confirm('Dismiss this memo from the dashboard? It stays in the Comm Log, filterable under Staff Memo.')) return;
+      await fetch('/api/messages/' + id + '/clear-urgent', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+      loadMemos(prefix, audienceQ);
+    }
+
     // SSE: refresh check-in feed in real time when any member signs in, and the
     // dashboard notes preview(s) whenever a note/reply/edit happens anywhere.
     (function () {
@@ -2473,6 +2552,8 @@
           } else if (e.data === 'update') {
             refreshNotesPreview();
             refreshProNotesPreview();
+            loadMemos('', '');
+            loadMemos('pro-', 'pro');
           }
         };
       } catch (e) {}

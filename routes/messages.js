@@ -44,6 +44,13 @@ router.get('/', (req, res) => {
   res.json(messages);
 });
 
+// GET active Staff Memos (not yet dismissed) — for the dashboard's pinned memo card.
+// Not capped to the recent window the way GET / is; a durable announcement shouldn't
+// drop off just because other chatter piled up after it.
+router.get('/memos', (req, res) => {
+  res.json(db.getActiveMemos(req.actingStaffId, req.query.audience));
+});
+
 // GET unread count for current user (optionally scoped to a specific audience)
 router.get('/unread-count', (req, res) => {
   const count = db.getUnreadCount(req.actingStaffId, req.query.audience);
@@ -80,11 +87,12 @@ router.post('/', (req, res) => {
   if (author && author.role === 'pro') audience = 'pro';
   else if (req.body.audience === 'pro' && author && ['admin', 'manager'].includes(author.role)) audience = 'pro';
 
-  // Urgent is a management-only signal — staff should call, not post "urgent". Guard the
-  // API even though the composer already hides the option for non-management.
+  // Urgent and Staff Memo are management-only signals — staff should call for urgent
+  // issues, and memos are a deliberate leadership broadcast, not routine chatter. Guard
+  // the API even though the composer already hides both options for non-management.
   const isMgmt = author && ['admin', 'manager'].includes(author.role);
   let effCategory = category;
-  if (effCategory === 'urgent' && !isMgmt) effCategory = 'general';
+  if ((effCategory === 'urgent' || effCategory === 'memo') && !isMgmt) effCategory = 'general';
   // Time-sensitive: a lightweight flag anyone can set (badge + dashboard float). Not a category.
   const timeSensitive = req.body.time_sensitive === true || req.body.time_sensitive === 'true';
 

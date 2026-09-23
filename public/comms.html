@@ -192,6 +192,7 @@
     .msg-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .msg-card.unread { border-left: 3px solid #2c5c9c; }
     .msg-card.unread[data-category="urgent"]     { border-left-color: #ef4444; }
+    .msg-card.unread[data-category="memo"]       { border-left-color: #6366f1; }
     .msg-card.unread[data-category="membership"] { border-left-color: #8b5cf6; }
     .msg-card.unread[data-category="pro-shop"]   { border-left-color: #f59e0b; }
     .msg-card.unread[data-category="maintenance"]  { border-left-color: #0d9488; }
@@ -208,6 +209,7 @@
     .cat-academy    { background: rgba(16,185,129,0.1);  color: #059669; }
     .cat-general    { background: rgba(148,163,184,0.12);color: #64748b; }
     .cat-urgent     { background: rgba(239,68,68,0.12);  color: #dc2626; }
+    .cat-memo       { background: rgba(99,102,241,0.12); color: #4f46e5; }
     .msg-to { font-size: 12px; color: var(--text3); }
     .msg-time { font-size: 14px; font-weight: 700; color: var(--text2); margin-left: auto; white-space: nowrap; background: var(--input-bg); border: 1px solid var(--border2); border-radius: 7px; padding: 3px 9px; }
     .msg-preview { font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
@@ -704,14 +706,14 @@
   const AUD_Q = AUDIENCE === 'pro' ? '&audience=pro' : '';
   const CAT_CONFIG = {
     office: {
-      cats:   ['urgent','membership','pro-shop','maintenance','academy','general'],
-      names:  { urgent:'Urgent', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' },
-      colors: { urgent:'#ef4444', membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' },
+      cats:   ['urgent','memo','membership','pro-shop','maintenance','academy','general'],
+      names:  { urgent:'Urgent', memo:'Staff Memo', membership:'Membership', 'pro-shop':'Pro Shop', maintenance:'Maintenance', academy:'Academy', general:'General' },
+      colors: { urgent:'#ef4444', memo:'#6366f1', membership:'#8b5cf6', 'pro-shop':'#f59e0b', maintenance:'#0d9488', academy:'#10b981', general:'#94a3b8' },
     },
     pro: {
-      cats:   ['general','class-switch','player-assessment','sub-coverage','player-progress','program','equipment','incident'],
-      names:  { general:'General', 'class-switch':'Class Switches', 'player-assessment':'Player Assessments', 'sub-coverage':'Sub / Coverage', 'player-progress':'Player Progress', program:'Program & Curriculum', equipment:'Equipment', incident:'Incidents / Injuries' },
-      colors: { general:'#94a3b8', 'class-switch':'#2c5c9c', 'player-assessment':'#8b5cf6', 'sub-coverage':'#f59e0b', 'player-progress':'#10b981', program:'#0d9488', equipment:'#0ea5e9', incident:'#ef4444' },
+      cats:   ['memo','general','class-switch','player-assessment','sub-coverage','player-progress','program','equipment','incident'],
+      names:  { memo:'Staff Memo', general:'General', 'class-switch':'Class Switches', 'player-assessment':'Player Assessments', 'sub-coverage':'Sub / Coverage', 'player-progress':'Player Progress', program:'Program & Curriculum', equipment:'Equipment', incident:'Incidents / Injuries' },
+      colors: { memo:'#6366f1', general:'#94a3b8', 'class-switch':'#2c5c9c', 'player-assessment':'#8b5cf6', 'sub-coverage':'#f59e0b', 'player-progress':'#10b981', program:'#0d9488', equipment:'#0ea5e9', incident:'#ef4444' },
     },
   };
   const CATS = CAT_CONFIG[AUDIENCE];
@@ -826,6 +828,18 @@
       const msgId = parseInt(new URLSearchParams(location.search).get('msg'), 10);
       if (msgId) focusMessage(msgId);
     } catch (e) {}
+
+    // Deep-link: ?cat=<category> switches to the cross-day "All notes" view filtered
+    // to that category — used by the dashboard's memo card to open a full history of
+    // every Staff Memo (active or dismissed) with acknowledgment status.
+    try {
+      const catQ = new URLSearchParams(location.search).get('cat');
+      if (catQ && CATS.cats.includes(catQ)) {
+        const btn = document.querySelector(`[data-cat="${catQ}"]`);
+        if (btn) filterCategory(catQ, btn);
+        setFeedMode('all');
+      }
+    } catch (e) {}
   }
 
   // Bring a single message into view: switch to its day in the day feed, clear any
@@ -857,27 +871,30 @@
     const cf = document.getElementById('cat-filter-buttons');
     if (cf) {
       cf.innerHTML = CATS.cats.map(c =>
-        `<button class="sidebar-btn" data-cat="${c}"${c==='urgent'?' title="Highest priority — pinned to the top until an admin clears it"':''} onclick="filterCategory('${c}',this)">
+        `<button class="sidebar-btn" data-cat="${c}"${c==='urgent'?' title="Highest priority — pinned to the top until an admin clears it"':c==='memo'?' title="Durable staff announcements — pinned to the dashboard with a checklist of who\'s acknowledged"':''} onclick="filterCategory('${c}',this)">
            <span class="shift-dot" style="background:${CATS.colors[c]}"></span> ${CATS.names[c]}
            <span id="b-${c}" class="unread-pill" style="display:none"></span>
          </button>`).join('');
     }
     const URGENT_HINT = "Highest priority — pins to the top of the dashboard until an admin clears it. If it can't wait (e.g. the bubble), call the team.";
+    const MEMO_HINT = "Staff Memo — pins to its own dashboard card for everyone, with a checklist of who's acknowledged it. For durable announcements (e.g. a new process), not day-to-day chatter.";
     const sel = document.getElementById('compose-category');
     if (sel) {
-      // "Urgent" is a management-only category — staff should call, not post urgent.
-      const canUrgent = me && ['admin','manager'].includes(me.role);
+      // "Urgent" and "Staff Memo" are management-only categories — staff should call for
+      // urgent issues, and memos are a deliberate leadership broadcast.
+      const canMgmtOnly = me && ['admin','manager'].includes(me.role);
       sel.innerHTML = CATS.cats
-        .filter(c => c !== 'urgent' || canUrgent)
-        .map(c => `<option value="${c}"${c==='urgent'?` title="${URGENT_HINT}"`:''}>${CATS.names[c]}</option>`).join('');
+        .filter(c => (c !== 'urgent' && c !== 'memo') || canMgmtOnly)
+        .map(c => `<option value="${c}"${c==='urgent'?` title="${URGENT_HINT}"`:c==='memo'?` title="${MEMO_HINT}"`:''}>${CATS.names[c]}</option>`).join('');
       // Default the composer to General, not whichever option lands first in the list.
       if (CATS.cats.includes('general')) sel.value = 'general';
       // Native dropdowns don't reliably show per-option tooltips (and staff are on phones —
-      // no hover), so surface the urgent meaning as a small hint line when it's selected.
+      // no hover), so surface the urgent/memo meaning as a small hint line when selected.
       sel.onchange = () => {
         const h = document.getElementById('cat-hint');
         if (!h) return;
         if (sel.value === 'urgent') { h.textContent = URGENT_HINT; h.style.display = ''; }
+        else if (sel.value === 'memo') { h.textContent = MEMO_HINT; h.style.display = ''; }
         else h.style.display = 'none';
       };
       sel.onchange();

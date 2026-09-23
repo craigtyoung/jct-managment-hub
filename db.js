@@ -2111,6 +2111,54 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
   });
 }
 
+// Active (not-yet-dismissed) Staff Memos for the dashboard. Unlike getMessages()
+// this is NOT capped to the most recent N — a durable announcement shouldn't
+// silently drop off the dashboard just because chatter piled up after it. Reuses
+// the same urgent_cleared_at field as the Urgent pin (generic "cleared from the
+// dashboard" flag, not urgent-specific) so dismissal is the same action either way.
+function getActiveMemos(staffId, audience) {
+  const allStaff = _data.staff;
+  const vid = parseInt(staffId);
+  const viewer = allStaff.find(s => s.id === vid);
+  const viewerIsPro = viewer && viewer.role === 'pro';
+  const aud = viewerIsPro ? 'pro' : (audience === 'pro' ? 'pro' : 'office');
+  if (aud === 'pro' && !(viewer && (viewer.role === 'pro' || viewer.role === 'admin' || viewer.role === 'manager'))) return [];
+
+  const active = _data.messages.filter(m =>
+    (m.audience || 'office') === aud && m.category === 'memo' && !m.urgent_cleared_at
+  );
+  const sorted = [...active].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const audMembers = aud === 'pro'
+    ? allStaff.filter(s => ['pro', 'admin', 'manager'].includes(s.role))
+    : allStaff.filter(s => s.role !== 'pro');
+
+  return sorted.map(msg => {
+    const author = allStaff.find(s => s.id === msg.staff_id) || {};
+    const reads = _data.reads
+      .filter(r => r.message_id === msg.id)
+      .map(r => {
+        const rs = allStaff.find(s => s.id === r.staff_id) || {};
+        return { id: rs.id, name: rs.name, color: rs.color, read_at: r.read_at };
+      })
+      .sort((a, b) => new Date(a.read_at) - new Date(b.read_at));
+    const receiptStaff = msg.recipients
+      ? allStaff.filter(s => msg.recipients.includes(s.id))
+      : audMembers;
+    return {
+      id: msg.id,
+      content: msg.content,
+      created_at: msg.created_at,
+      author_id: author.id,
+      author_name: author.name,
+      author_color: author.color,
+      receipt_staff: receiptStaff.map(s => ({ id: s.id, name: s.name, color: s.color })),
+      reads,
+      is_read_by_me: reads.some(r => r.id === vid),
+    };
+  });
+}
+
 function setMessageImage(id, filename) {
   const m = _data.messages.find(x => x.id === parseInt(id));
   if (!m) return false;
@@ -2122,8 +2170,8 @@ function setMessageImage(id, filename) {
 function createMessage({ staffId, content, shift, category, recipients, show_on, audience, time_sensitive }) {
   const id = nextId('messages');
   const aud = audience === 'pro' ? 'pro' : 'office';
-  const officeCategories = ['urgent', 'membership', 'pro-shop', 'maintenance', 'academy', 'general'];
-  const proCategories = ['general', 'class-switch', 'player-assessment', 'sub-coverage', 'player-progress', 'program', 'equipment', 'incident'];
+  const officeCategories = ['urgent', 'memo', 'membership', 'pro-shop', 'maintenance', 'academy', 'general'];
+  const proCategories = ['general', 'memo', 'class-switch', 'player-assessment', 'sub-coverage', 'player-progress', 'program', 'equipment', 'incident'];
   const validCategories = aud === 'pro' ? proCategories : officeCategories;
   // show_on: 'YYYY-MM-DD' to surface the note on a future day, else null (shows on the day it was posted)
   const validShowOn = (typeof show_on === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(show_on)) ? show_on : null;
@@ -4980,6 +5028,7 @@ module.exports = {
   updateStaff,
   removeStaff,
   getMessages,
+  getActiveMemos,
   createMessage,
   setMessageImage,
   getMessage,
