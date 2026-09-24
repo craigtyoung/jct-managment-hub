@@ -1284,7 +1284,6 @@
       <div class="section-title" style="margin-bottom:10px">
         <div class="section-live-dot"></div>
         Today's Check-ins
-        <a href="/checkin-test.html" class="reach-log-btn mgmt-only" style="margin-left:auto">Test harness →</a>
         <a href="/checkins.html" class="reach-log-btn">+ Guest / Full log →</a>
       </div>
       <div id="checkin-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
@@ -2210,13 +2209,14 @@
         const scs = document.getElementById('sc-checkin-sub');
         if (scv) { scv.textContent = count; scv.className = 'stat-value' + (count > 0 ? ' accent-blue' : ''); }
         if (scs) scs.textContent = count === 1 ? '1 member signed in' : `${count} members signed in`;
+        const DASH_CHECKIN_ROWS = 4; // dashboard shows the latest few; full log is one click away
         const feed = document.getElementById('checkin-feed');
         if (!feed) return;
         if (!logs.length) {
           feed.innerHTML = '<div style="padding:18px 18px;color:var(--text-3);font-size:13px;text-align:center;">No check-ins yet today.</div>';
           return;
         }
-        feed.innerHTML = logs.slice().reverse().slice(0, 15).map(l => {
+        feed.innerHTML = logs.slice().reverse().slice(0, DASH_CHECKIN_ROWS).map(l => {
           const name = l.member_name || '—';
           const ini = name.split(' ').map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
           const dupBadge = l.duplicate ? '<span style="font-size:9px;font-weight:700;background:rgba(217,119,6,0.12);color:#d97706;border-radius:4px;padding:1px 6px;margin-left:6px;">dup</span>' : '';
