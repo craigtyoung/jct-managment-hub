@@ -4483,6 +4483,24 @@ function setCheckinCourt(id, court) {
   log.court = c;
   save(); return true;
 }
+// Move a check-in to a different time (and optionally court). The board infers
+// bookings from sign-in times, so correcting a mis-timed arrival is how you fix
+// a block that's landed in the wrong slot. Stores HH:MM:SS to match how check-in
+// times are written elsewhere.
+function setCheckinTime(id, hhmm, court) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(hhmm || ''))) return false;
+  log.time = hhmm + ':00';
+  if (court !== undefined) {
+    const c = parseInt(court);
+    if (Number.isInteger(c) && c >= 1 && c <= 6) log.court = c;
+    else if (court === null || court === '') delete log.court;
+  }
+  save();
+  return true;
+}
+
 // Remove a check-in outright. Clearing the court only un-assigns someone and
 // leaves them waiting in the feed; this drops the record. Admin-only upstream,
 // for tidying mis-entries rather than routine use.
@@ -4871,6 +4889,19 @@ if (!_data._migrations.thursdayCourts2026) {
     console.error('Thursday court assignment failed:', e.message);
   }
   _data._migrations.thursdayCourts2026 = true;
+  save();
+}
+
+// Friday: the noon Adult Intermediate Plus runs on both courts, so the adult
+// clinics read as one unbroken 9:00–1:30 stretch on courts 1–2.
+if (!_data._migrations.fridayNoonCourt2026) {
+  const slot = (_data.pro_schedule_slots || []).find(x =>
+    x.active !== false && x.day === 'Fri' && x.program === 'Adult Intermediate Plus' && x.start === '12:00');
+  if (slot) {
+    slot.courts = [...new Set([...(slot.courts || []), '1', '2'])].sort();
+    console.log('Friday noon Adult Int Plus -> courts', slot.courts.join(','));
+  }
+  _data._migrations.fridayNoonCourt2026 = true;
   save();
 }
 
@@ -5270,6 +5301,7 @@ module.exports = {
   addGuestCheckinLog,
   setCheckinCourt,
   setCheckinLesson,
+  setCheckinTime,
   deleteCheckin,
   todayLocal: () => nowLocal().slice(0, 10),
   getCheckinLogsByDate,

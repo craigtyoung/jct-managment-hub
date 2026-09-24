@@ -144,6 +144,12 @@
       text-transform:uppercase;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .cal-sched-time{font-size:8.5px;color:var(--text-3);opacity:0.8;}
     .cal-block{z-index:2;}
+    .cal-block:hover{overflow:visible;height:auto!important;min-height:var(--blkh,auto);z-index:6;
+      box-shadow:0 4px 14px rgba(12,23,56,0.18);}
+    .cal-block.dragging{opacity:0.45;}
+    .cal-body.drop-active .cal-cell{background:rgba(44,92,156,0.05);}
+    .cal-cell{position:absolute;left:0;right:0;}
+    .cal-cell.drop-hot{background:rgba(44,92,156,0.18);outline:1px dashed rgba(44,92,156,0.5);outline-offset:-1px;}
 
     /* Lessons green, matching how the bookings sheet marks them */
     .cal-block.is-lesson{border-left-color:var(--green);background:rgba(22,163,74,0.12);}
@@ -580,8 +586,10 @@
             `</div>`;
           }
 
+          const ids = b.players.map(p => p.id).join('-');
           blocks += `<div class="cal-block${b.lesson ? ' is-lesson' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
-            `style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
+            `draggable="true" data-ids="${ids}" ondragstart="blockDragStart(event,'${ids}')" ondragend="blockDragEnd(event)" ` +
+            `style="top:${top}px;height:${hgt}px;--blkh:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
             `title="${b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
             `<div class="cal-kind">${b.kind}<span class="cal-range">${range}</span></div>` +
             `<div class="cal-players">${names}</div>${extra}` +
@@ -589,10 +597,17 @@
         });
 
         const onCourt = books.reduce((n, b) => n + b.players.length, 0);
+        // Half-hour drop targets so a booking can be dragged to another slot or court.
+        let cells = '';
+        for (let r = 0; r < CAL_ROWS; r++) {
+          const min = CAL_START + r * CAL_STEP;
+          cells += `<div class="cal-cell" style="top:${r * CAL_ROWH}px;height:${CAL_ROWH}px" ` +
+            `ondragover="cellOver(event)" ondragleave="cellLeave(event)" ondrop="cellDrop(event,${c},${min})"></div>`;
+        }
         const nowLine = showNow ? `<div class="cal-now" style="top:${nowTop}px"></div>` : '';
         const badge = onCourt ? `<span class="ch-count">${onCourt}</span>` : '';
         cols += `<div class="cal-col${onCourt ? ' occupied' : ''}"><div class="cal-colhead">Court ${c}${badge}</div>` +
-          `<div class="cal-body" style="height:${bodyH}px">${sched}${nowLine}${blocks}</div></div>`;
+          `<div class="cal-body" style="height:${bodyH}px">${sched}${cells}${nowLine}${blocks}</div></div>`;
       });
 
       const prev = document.getElementById('calwrap');
@@ -605,7 +620,7 @@
           '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Lesson</span>' +
           '<span class="lg"><span class="sw" style="background:repeating-linear-gradient(45deg,rgba(12,23,56,0.18),rgba(12,23,56,0.18) 3px,transparent 3px,transparent 6px);border:1px dashed rgba(12,23,56,0.25)"></span>Scheduled</span>' +
           '<span class="lg"><span class="sw" style="background:#16a34a;height:2px;border-radius:0"></span>Now</span>' +
-          '<span style="margin-left:auto">Inferred from sign-ins, snapped to the half hour</span>' +
+          '<span style="margin-left:auto">Drag a booking to move it · inferred from sign-ins, snapped to the half hour</span>' +
         '</div>';
 
       const wrap = document.getElementById('calwrap');
@@ -653,6 +668,35 @@
       try {
         const r = await fetch('/api/checkin/pros');
         if (r.ok) PRO_LIST = (await r.json()).map(p => p.name);
+      } catch (e) {}
+    }
+
+    // Dragging a booking moves everyone in it together — it's one booking, so
+    // the whole party lands on the new slot and court.
+    let DRAG_IDS = null;
+    function blockDragStart(ev, ids) {
+      DRAG_IDS = String(ids).split('-').filter(Boolean);
+      ev.currentTarget.classList.add('dragging');
+      try { ev.dataTransfer.setData('text/plain', ids); ev.dataTransfer.effectAllowed = 'move'; } catch (e) {}
+    }
+    function blockDragEnd(ev) { ev.currentTarget.classList.remove('dragging'); DRAG_IDS = null; }
+    function cellOver(ev) { if (!DRAG_IDS) return; ev.preventDefault(); ev.currentTarget.classList.add('drop-hot'); }
+    function cellLeave(ev) { ev.currentTarget.classList.remove('drop-hot'); }
+    async function cellDrop(ev, court, minutes) {
+      ev.preventDefault();
+      ev.currentTarget.classList.remove('drop-hot');
+      if (!DRAG_IDS || !DRAG_IDS.length) return;
+      const hhmm = String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+      const ids = DRAG_IDS.slice();
+      DRAG_IDS = null;
+      try {
+        for (const id of ids) {
+          await fetch('/api/checkin/' + id + '/time', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ time: hhmm, court: court }),
+          });
+        }
+        loadCourtBoard();
       } catch (e) {}
     }
 

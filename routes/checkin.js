@@ -150,6 +150,18 @@ router.get('/pros', (req, res) => {
     .sort((a, b) => a.name.localeCompare(b.name)));
 });
 
+// PATCH /:id/time — move a booking to another slot (and court). Desk staff can
+// do this; it's correcting an arrival time, not deleting anything.
+router.patch('/:id/time', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  if (!db.setCheckinTime(req.params.id, req.body.time, req.body.court))
+    return res.status(400).json({ error: 'Need a valid HH:MM time, and court 1-6 if given' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true });
+});
+
 // DELETE /:id — remove a check-in entirely (admin only). Court staff can
 // un-assign a court; only an admin can erase the record.
 router.delete('/:id', (req, res) => {
