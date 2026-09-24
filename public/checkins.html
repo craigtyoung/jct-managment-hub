@@ -151,6 +151,13 @@
     .cal-cell{position:absolute;left:0;right:0;}
     .cal-cell.drop-hot{background:rgba(44,92,156,0.18);outline:1px dashed rgba(44,92,156,0.5);outline-offset:-1px;}
 
+    /* Settling: signed in, but too early to say whether it is a lesson or a game */
+    .cal-block.is-settling{border-left-color:#94a3b8;background:rgba(148,163,184,0.12);border-left-style:dashed;}
+    .cal-settle{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:9.5px;color:#64748b;}
+    .cal-islesson{font-family:inherit;font-size:9px;font-weight:700;padding:1px 4px;border-radius:4px;
+      border:1px solid rgba(100,116,139,0.35);background:rgba(255,255,255,0.8);color:#475569;cursor:pointer;white-space:nowrap;}
+    .cal-islesson:hover{border-color:var(--green);color:#15803d;background:rgba(22,163,74,0.08);}
+
     /* Lessons green, matching how the bookings sheet marks them */
     .cal-block.is-lesson{border-left-color:var(--green);background:rgba(22,163,74,0.12);}
     .cal-lesson{display:flex;gap:3px;margin-top:3px;}
@@ -455,7 +462,8 @@
           waitCard.style.display = 'none';
         }
 
-        renderCourtGrid(logs);
+        LAST_LOGS = logs;
+      renderCourtGrid(logs);
       } catch (e) {}
     }
 
@@ -472,10 +480,21 @@
     const CAL_START = 360, CAL_END = 1380, CAL_STEP = 30, CAL_ROWH = 42;
     const CAL_ROWS = (CAL_END - CAL_START) / CAL_STEP;
     const SLOT_MIN = 30, SINGLES_MIN = 60, DOUBLES_MIN = 90;
+    // A lone player on a court is only a lesson once the rest of the party has
+    // had a fair chance to arrive. Someone signing in at 7:20 for a 7:30 court
+    // is early, not alone — their partners turn up at 7:30 or a few past. Until
+    // that grace period is up the booking is "settling": shown neutrally, with
+    // no pro picker, so the desk is never invited to name a pro for a doubles
+    // game that has not finished arriving.
+    const SETTLE_MIN = 10;
+    // Courts the desk has explicitly called a lesson, skipping the wait. Keyed
+    // court:slot, kept for the life of the page — naming a pro settles it for good.
+    const FORCED_LESSON = new Set();
     let PRO_LIST = [];
     let IS_ADMIN = false;
     let SCHEDULE = [];
     let BOARD_DATE = todayLocal(); // which day the court board is showing
+    let LAST_LOGS = null;          // last feed, so the board can redraw without refetching
 
     function hmToMin(t) { const p = String(t || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
     function minToLabel(m) {
@@ -483,6 +502,7 @@
       const per = h < 12 ? 'am' : 'pm', h12 = h % 12 || 12;
       return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + per;
     }
+    function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
     function snapToSlot(min) { return Math.round(min / SLOT_MIN) * SLOT_MIN; }
 
     // Group a court's check-ins into bookings by snapped start time.
@@ -495,15 +515,28 @@
       return Object.keys(bySlot).map(Number).sort((a, b) => a - b).map(slot => {
         const players = bySlot[slot];
         const doubles = players.length >= 3;
+        // Grace runs from the later of the slot start and the first sign-in, so
+        // an early bird waits until just past the hour rather than from 7:20.
+        const firstIn = Math.min.apply(null, players.map(p => hmToMin(p.time)));
+        const settleAt = Math.max(slot, firstIn) + SETTLE_MIN;
+        const key = court + ":" + slot;
+        const settling = players.length === 1
+          && !players[0].lesson_pro
+          && !FORCED_LESSON.has(key)
+          && BOARD_DATE === todayLocal()
+          && nowMinutes() < settleAt;
         // One player on a court is a private lesson — GameTime shows these as
         // 30-minute blocks with the instructor named, an hour lesson being two
         // of them. Length is whatever the desk recorded, defaulting to an hour.
-        const lesson = players.length === 1;
-        const dur = lesson ? (players[0].lesson_min || SINGLES_MIN)
+        const lesson = players.length === 1 && !settling;
+        // A settling block holds the court for the half hour it is known to need
+        // and no longer, so it never over-claims time it may not use.
+        const dur = settling ? SLOT_MIN
+                  : lesson ? (players[0].lesson_min || SINGLES_MIN)
                   : (doubles ? DOUBLES_MIN : SINGLES_MIN);
         return {
-          slot, players, doubles, lesson, dur,
-          kind: lesson ? 'Lesson' : (doubles ? 'Doubles' : 'Singles'),
+          slot, players, doubles, lesson, settling, settleAt, key, dur,
+          kind: settling ? 'Waiting' : lesson ? 'Lesson' : (doubles ? 'Doubles' : 'Singles'),
         };
       });
     }
@@ -574,7 +607,15 @@
 
           // Lessons carry a pro and a length; everything else is just the players.
           let extra = '';
-          if (b.lesson) {
+          if (b.settling) {
+            // Say plainly why it is not a lesson yet, and let the desk overrule
+            // it the moment they know better (the 8am with Nicole really is one).
+            const left = Math.max(1, b.settleAt - nowMinutes());
+            extra = `<div class="cal-settle">` +
+              `<span title="Waiting in case the rest of the party is still arriving">waiting ${left}m</span>` +
+              `<button class="cal-islesson" onclick="forceLesson('${b.key}')" title="Call this a private lesson now">it’s a lesson</button>` +
+            `</div>`;
+          } else if (b.lesson) {
             const p = b.players[0];
             const mins = p.lesson_min || SINGLES_MIN;
             const proOpts = ['<option value="">Add pro…</option>'].concat(
@@ -587,10 +628,10 @@
           }
 
           const ids = b.players.map(p => p.id).join('-');
-          blocks += `<div class="cal-block${b.lesson ? ' is-lesson' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
+          blocks += `<div class="cal-block${b.settling ? ' is-settling' : ''}${b.lesson ? ' is-lesson' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
             `draggable="true" data-ids="${ids}" ondragstart="blockDragStart(event,'${ids}')" ondragend="blockDragEnd(event)" ` +
             `style="top:${top}px;height:${hgt}px;--blkh:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
-            `title="${b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
+            `title="${b.settling ? 'Just signed in — waiting to see if this is a lesson or a game' : b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
             `<div class="cal-kind">${b.kind}<span class="cal-range">${range}</span></div>` +
             `<div class="cal-players">${names}</div>${extra}` +
           `</div>`;
@@ -618,6 +659,7 @@
           '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Singles · 60 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(124,58,237,0.6)"></span>Doubles · 90 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Lesson</span>' +
+          '<span class="lg"><span class="sw" style="background:rgba(148,163,184,0.5)"></span>Waiting on players</span>' +
           '<span class="lg"><span class="sw" style="background:repeating-linear-gradient(45deg,rgba(12,23,56,0.18),rgba(12,23,56,0.18) 3px,transparent 3px,transparent 6px);border:1px dashed rgba(12,23,56,0.25)"></span>Scheduled</span>' +
           '<span class="lg"><span class="sw" style="background:#16a34a;height:2px;border-radius:0"></span>Now</span>' +
           '<span style="margin-left:auto">Drag a booking to move it · inferred from sign-ins, snapped to the half hour</span>' +
@@ -656,6 +698,21 @@
       await loadSchedule();
       loadCourtBoard();
     }
+
+    // The desk knows a genuine lesson on sight. Let them skip the wait rather
+    // than sit on their hands for ten minutes.
+    function forceLesson(key) {
+      FORCED_LESSON.add(key);
+      if (LAST_LOGS) renderCourtGrid(LAST_LOGS);
+    }
+    window.forceLesson = forceLesson;
+
+    // Nothing else may happen between now and the grace period lapsing, so the
+    // board redraws on its own — otherwise a settling block would sit there
+    // counting down to a promotion that never arrives until someone else signs in.
+    const SETTLE_TICK = setInterval(function () {
+      if (LAST_LOGS && BOARD_DATE === todayLocal()) renderCourtGrid(LAST_LOGS);
+    }, 60000);
 
     async function loadSchedule() {
       try {
