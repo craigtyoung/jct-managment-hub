@@ -162,6 +162,7 @@
     .cal-x{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:9px;line-height:1;padding:1px 2px;border-radius:3px;flex-shrink:0;opacity:0;transition:opacity .12s;}
     .cal-block:hover .cal-x{opacity:1;}
     .cal-x:hover{color:#dc2626;background:rgba(255,255,255,0.7);}
+    .cal-x.cal-del{font-size:8.5px;}
     .cal-now{position:absolute;left:0;right:0;height:1.5px;background:var(--green);opacity:0.85;z-index:5;pointer-events:none;}
     .cal-now::before{content:'';position:absolute;left:-3px;top:-2.5px;width:6.5px;height:6.5px;border-radius:50%;background:var(--green);}
     .cal-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text-3);}
@@ -337,6 +338,7 @@
       const r = await fetch('/api/me');
       if (r.status === 401) { location.href = '/login.html'; return; }
       me = await r.json();
+      IS_ADMIN = me.role === 'admin';
       if (!me.can_view_checkins) {
         document.querySelector('.main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Admin staff only.</div>';
         return;
@@ -465,6 +467,7 @@
     const CAL_ROWS = (CAL_END - CAL_START) / CAL_STEP;
     const SLOT_MIN = 30, SINGLES_MIN = 60, DOUBLES_MIN = 90;
     let PRO_LIST = [];
+    let IS_ADMIN = false;
     let SCHEDULE = [];
     let BOARD_DATE = todayLocal(); // which day the court board is showing
 
@@ -555,8 +558,11 @@
           const names = b.players.map(p => {
             const nm = p.member_name || '—';
             const tag = p.guest ? '<span class="cal-g">G</span>' : '';
+            const del = IS_ADMIN
+              ? `<button class="cal-x cal-del" onclick="deleteCheckin(${p.id}, '${esc(nm).replace(/'/g, "\'")}')" title="Delete this check-in">🗑</button>`
+              : '';
             return `<div class="cal-player"><span>${esc(nm)}${tag}</span>` +
-              `<button class="cal-x" onclick="assignCourt(${p.id}, '')" title="Take ${esc(nm)} off this court">✕</button></div>`;
+              `<button class="cal-x" onclick="assignCourt(${p.id}, '')" title="Take ${esc(nm)} off this court">✕</button>${del}</div>`;
           }).join('');
           const range = minToLabel(b.slot) + '–' + minToLabel(b.end);
 
@@ -647,6 +653,15 @@
       try {
         const r = await fetch('/api/checkin/pros');
         if (r.ok) PRO_LIST = (await r.json()).map(p => p.name);
+      } catch (e) {}
+    }
+
+    async function deleteCheckin(id, name) {
+      if (!confirm('Delete the check-in for ' + name + '? This removes the record entirely.')) return;
+      try {
+        const r = await fetch('/api/checkin/' + id, { method: 'DELETE' });
+        if (!r.ok) { alert('Could not delete that check-in.'); return; }
+        loadCourtBoard();
       } catch (e) {}
     }
 

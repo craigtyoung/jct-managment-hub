@@ -150,4 +150,15 @@ router.get('/pros', (req, res) => {
     .sort((a, b) => a.name.localeCompare(b.name)));
 });
 
+// DELETE /:id — remove a check-in entirely (admin only). Court staff can
+// un-assign a court; only an admin can erase the record.
+router.delete('/:id', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || staff.role !== 'admin') return res.status(403).json({ error: 'Admins only' });
+  if (!db.deleteCheckin(req.params.id)) return res.status(404).json({ error: 'Check-in not found' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true });
+});
+
 module.exports = router;

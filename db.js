@@ -4483,6 +4483,17 @@ function setCheckinCourt(id, court) {
   log.court = c;
   save(); return true;
 }
+// Remove a check-in outright. Clearing the court only un-assigns someone and
+// leaves them waiting in the feed; this drops the record. Admin-only upstream,
+// for tidying mis-entries rather than routine use.
+function deleteCheckin(id) {
+  const before = (_data.checkin_logs || []).length;
+  _data.checkin_logs = (_data.checkin_logs || []).filter(l => l.id !== parseInt(id));
+  if (_data.checkin_logs.length === before) return false;
+  save();
+  return true;
+}
+
 // A lone player on a court is a private lesson. The desk records which pro taught
 // it and how long it ran; GameTime bills an hour lesson as two 30-minute bookings,
 // so length matters and can't be inferred from a single sign-in.
@@ -5251,6 +5262,7 @@ module.exports = {
   addGuestCheckinLog,
   setCheckinCourt,
   setCheckinLesson,
+  deleteCheckin,
   todayLocal: () => nowLocal().slice(0, 10),
   getCheckinLogsByDate,
   getMemberCheckinToday,
