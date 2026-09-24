@@ -50,6 +50,19 @@
     .main { flex:1; overflow-y:auto; }
     .main-inner { max-width:760px; margin:0 auto; padding:20px 20px 100px; }
 
+    /* Overview — live summary cards, same pattern as the main Dashboard's stat-cards */
+    .ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:26px; }
+    .ov-card { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--card-shadow); cursor:pointer; text-decoration:none; color:inherit; display:block; transition:border-color .15s; }
+    .ov-card:hover { border-color:rgba(44,92,156,0.3); }
+    .ov-card.featured { border-color:rgba(44,92,156,0.3); background:linear-gradient(135deg, rgba(44,92,156,0.05), var(--surface) 60%); }
+    .ov-ico-bg { position:absolute; right:-8px; bottom:-14px; color:var(--text3); opacity:0.08; pointer-events:none; }
+    .ov-ico-bg svg { width:64px; height:64px; }
+    .ov-label { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
+    .ov-value { font-size:1.5rem; font-weight:700; color:var(--text); line-height:1; font-family:'Inter',sans-serif; }
+    .ov-card.featured .ov-value { color:var(--blue); }
+    .ov-sub { font-size:11.5px; color:var(--text3); margin-top:5px; }
+    @media (max-width:480px){ .ov-grid { grid-template-columns:1fr; } }
+
     .panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap; }
     .panel-head h2 { font-size:20px; margin:0; }
     .panel-head p { margin:3px 0 0; font-size:12.5px; color:var(--text3); font-family:'Inter',sans-serif; }
@@ -170,6 +183,34 @@
     <!-- Main -->
     <div class="main">
       <div class="main-inner">
+        <!-- OVERVIEW — live summary cards; Academy Openings featured since it's the highest-volume one -->
+        <div class="ov-grid">
+          <a class="ov-card featured" href="/waitlist.html">
+            <div class="ov-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></div>
+            <div class="ov-label">Academy Openings</div>
+            <div class="ov-value" id="ov-openspots-val">—</div>
+            <div class="ov-sub" id="ov-openspots-sub">Loading…</div>
+          </a>
+          <div class="ov-card" onclick="jumpTo('waitlist')">
+            <div class="ov-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="ov-label">Waitlists</div>
+            <div class="ov-value" id="ov-waitlist-val">—</div>
+            <div class="ov-sub" id="ov-waitlist-sub">Loading…</div>
+          </div>
+          <div class="ov-card" onclick="jumpTo('changes')">
+            <div class="ov-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M7 7h11M7 7l3-3M7 7l3 3M17 17H6M17 17l-3-3M17 17l-3 3"/></svg></div>
+            <div class="ov-label">Class Changes</div>
+            <div class="ov-value" id="ov-changes-val">—</div>
+            <div class="ov-sub" id="ov-changes-sub">Loading…</div>
+          </div>
+          <a class="ov-card" href="/lesson-waitlist.html">
+            <div class="ov-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2.6h6V4"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg></div>
+            <div class="ov-label">Private Lessons</div>
+            <div class="ov-value" id="ov-lessons-val">—</div>
+            <div class="ov-sub" id="ov-lessons-sub">Loading…</div>
+          </a>
+        </div>
+
         <!-- WAITLIST -->
         <div class="panel active" id="panel-waitlist">
           <div class="panel-head"><div><h2>Waitlists</h2><p>Students waiting on a full or limited class.</p></div><button class="btn btn-primary" onclick="openWaitlistModal()">+ Add to waitlist</button></div>
@@ -235,6 +276,7 @@
     function setView(v){ view=v; document.querySelectorAll('.sidebar-btn[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===v); });
       ['waitlist','changes'].forEach(function(p){ document.getElementById('panel-'+p).style.display = p===v?'block':'none'; }); render(); }
     function setCat(c){ cat=c; document.querySelectorAll('.sidebar-btn[data-cat]').forEach(function(b){ b.classList.toggle('active', b.dataset.cat===c); }); render(); }
+    function jumpTo(v){ setView(v); var el=document.getElementById('panel-'+v); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
 
     function classOptions(sel){ var o='<option value="">— select a class —</option>'; classes.filter(function(c){return c.active!==false;}).forEach(function(c){ o+='<option value="'+c.id+'"'+(String(c.id)===String(sel)?' selected':'')+'>'+esc(c.label)+' ('+esc(c.availability)+')</option>'; }); return o; }
 
@@ -249,10 +291,25 @@
       ]).then(function(a){
         classes=a[0]||[]; waitlist=a[1]||[]; changes=a[2]||[]; notes=a[3]||[];
         var openSpots=a[4]||[], lessons=a[5]||[];
-        document.getElementById('c-waitlist').textContent = waitlist.filter(function(w){return w.status!=='Enrolled'&&w.status!=='Withdrawn';}).length;
-        document.getElementById('c-changes').textContent = changes.filter(function(c){return c.status!=='Done'&&c.status!=='Cancelled';}).length;
-        var co=document.getElementById('c-openspots'); if(co) co.textContent = openSpots.filter(function(s){return s.status!=='filled';}).length;
-        var cl=document.getElementById('c-lessons'); if(cl) cl.textContent = lessons.filter(function(i){return i.status!=='closed';}).length;
+        var activeWaitlist = waitlist.filter(function(w){return w.status!=='Enrolled'&&w.status!=='Withdrawn';});
+        var activeChanges = changes.filter(function(c){return c.status!=='Done'&&c.status!=='Cancelled';});
+        var openCount = openSpots.filter(function(s){return s.status!=='filled';});
+        var activeLessons = lessons.filter(function(i){return i.status!=='closed';});
+
+        document.getElementById('c-waitlist').textContent = activeWaitlist.length;
+        document.getElementById('c-changes').textContent = activeChanges.length;
+        var co=document.getElementById('c-openspots'); if(co) co.textContent = openCount.length;
+        var cl=document.getElementById('c-lessons'); if(cl) cl.textContent = activeLessons.length;
+
+        document.getElementById('ov-openspots-val').textContent = openCount.length;
+        document.getElementById('ov-openspots-sub').textContent = openCount.length===1 ? '1 spot open' : openCount.length + ' spots open';
+        document.getElementById('ov-waitlist-val').textContent = activeWaitlist.length;
+        document.getElementById('ov-waitlist-sub').textContent = activeWaitlist.length===1 ? '1 student waiting' : activeWaitlist.length + ' students waiting';
+        document.getElementById('ov-changes-val').textContent = activeChanges.length;
+        document.getElementById('ov-changes-sub').textContent = activeChanges.length===1 ? '1 change logged' : activeChanges.length + ' changes logged';
+        document.getElementById('ov-lessons-val').textContent = activeLessons.length;
+        document.getElementById('ov-lessons-sub').textContent = activeLessons.length===1 ? '1 inquiry open' : activeLessons.length + ' inquiries open';
+
         render();
       });
     }
