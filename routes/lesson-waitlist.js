@@ -14,15 +14,25 @@ const router = express.Router();
 
 function acting(req) { return db.getStaffById(req.session.staffId); }
 function isManagement(s) { return s && (s.role === 'admin' || s.role === 'manager'); }
+// Front desk takes these calls, so office staff log and progress them too.
+function isDesk(s) { return s && ['admin', 'manager', 'staff'].includes(s.role); }
 function isPro(s) { return !!(s && db.isTeachingPro(s.id)); }
+
+// GET /pros — teaching pros + coaching managers, for the Pro Requested picker
+router.get('/pros', (req, res) => {
+  res.json(db.getAllStaff()
+    .filter(s => ['pro', 'manager'].includes(s.role))
+    .map(s => ({ id: s.id, name: s.name }))
+    .sort((a, b) => a.name.localeCompare(b.name)));
+});
 
 // GET / — the whole list (any signed-in staff may view)
 router.get('/', (req, res) => res.json(db.getLessonInquiries()));
 
-// POST / — add an inquiry (management only)
+// POST / — add an inquiry (office staff: admin, manager, or front desk)
 router.post('/', (req, res) => {
   const me = acting(req);
-  if (!isManagement(me)) return res.status(403).json({ error: 'Management only' });
+  if (!isDesk(me)) return res.status(403).json({ error: 'Office staff only' });
   const { name } = req.body;
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name required' });
   const rec = db.addLessonInquiry({
@@ -40,9 +50,9 @@ router.post('/', (req, res) => {
   res.json(rec);
 });
 
-// PUT /:id — edit any field / status / assignment (management only)
+// PUT /:id — edit any field / status / assignment (office staff)
 router.put('/:id', (req, res) => {
-  if (!isManagement(acting(req))) return res.status(403).json({ error: 'Management only' });
+  if (!isDesk(acting(req))) return res.status(403).json({ error: 'Office staff only' });
   const rec = db.updateLessonInquiry(req.params.id, req.body || {});
   if (!rec) return res.status(404).json({ error: 'Not found' });
   try { sse.broadcast('update'); } catch (e) {}

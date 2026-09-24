@@ -84,7 +84,7 @@
       me = m;
       if (!me) return Promise.reject();
       var jobs = [];
-      var data = { inToday: 0, courts: 0, spots: 0, unread: 0 };
+      var data = { inToday: 0, courts: 0, unassigned: 0, spots: 0, unread: 0 };
       if (me.can_view_checkins) {
         jobs.push(fetch('/api/checkin/feed').then(function (r) { return r.ok ? r.json() : { logs: [] }; })
           .then(function (d) {
@@ -93,6 +93,8 @@
             var busy = {};
             logs.forEach(function (l) { if (l.court) busy[l.court] = 1; });
             data.courts = Object.keys(busy).length;
+            // Signed in but not yet put on a court — the desk's actual to-do.
+            data.unassigned = logs.filter(function (l) { return !l.court; }).length;
           }).catch(function () {}));
         jobs.push(fetch('/api/waitlist').then(function (r) { return r.ok ? r.json() : []; })
           .then(function (rows) { data.spots = (rows || []).filter(function (s) { return s.status !== 'filled'; }).length; })
@@ -109,6 +111,8 @@
             href: '/checkins.html', title: 'Members and guests checked in today' });
           items.push({ key: 'courts', value: data.courts, label: 'Courts Busy', color: '#2c5c9c',
             href: '/checkins.html', title: data.courts + ' of ' + COURTS + ' courts have someone assigned' });
+          items.push({ key: 'unassigned', value: data.unassigned, label: 'No Court Yet', color: '#dc2626',
+            href: '/checkins.html', title: 'Checked in but not yet assigned to a court' });
           items.push({ key: 'spots', value: data.spots, label: 'Spots to Fill', color: '#d97706',
             href: '/waitlist.html', title: 'Academy openings still needing to be filled' });
         }

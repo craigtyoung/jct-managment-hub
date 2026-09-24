@@ -82,8 +82,8 @@
     </div>
     <div class="page-sub">Members and guests waiting for a private lesson. Office logs inquiries; pros pick them up.</div>
 
-    <!-- Add (management only) -->
-    <div class="card mgmt-only" id="add-card" style="display:none">
+    <!-- Add an inquiry (front desk + management) -->
+    <div class="card" id="add-card" style="display:none">
       <div class="card-title">Log an inquiry</div>
       <div class="add-grid">
         <div class="fld"><label>Name</label><input type="text" id="f-name" placeholder="Member / guest name" autocomplete="off"></div>
@@ -91,7 +91,7 @@
         <div class="fld"><label>Level</label><input type="text" id="f-level" placeholder="e.g. Beginner, 3.5" autocomplete="off"></div>
         <div class="fld"><label>Phone</label><input type="tel" id="f-phone" placeholder="Phone" autocomplete="off"></div>
         <div class="fld"><label>Email</label><input type="email" id="f-email" placeholder="Email" autocomplete="off"></div>
-        <div class="fld"><label>Pro Requested</label><input type="text" id="f-pro" placeholder="Optional" autocomplete="off"></div>
+        <div class="fld"><label>Pro Requested</label><select id="f-pro"><option value="">No preference</option></select></div>
       </div>
       <div class="add-foot">
         <label class="member-toggle"><input type="checkbox" id="f-member"> Member (unchecked = guest / non-member)</label>
@@ -110,7 +110,7 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    let me = null, canManage = false, canClaim = false;
+    let me = null, canManage = false, canAdd = false, canClaim = false;
     const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
     function fmtDate(iso){ try{ return new Date(iso+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return iso||''; } }
@@ -119,14 +119,27 @@
       try{ const r=await fetch('/api/me'); if(!r.ok){location.href='/login.html';return;} me=await r.json(); }
       catch(e){ location.href='/login.html'; return; }
       canManage = !!me.is_management;
+      // The desk takes these calls, so office staff log and progress them too.
+      canAdd    = canManage || me.role === 'staff';
       canClaim  = !!me.is_pro || canManage;
-      if(canManage){
+      if(canAdd){
         document.getElementById('add-card').style.display='';
+        loadPros();
         document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
       }
       await load();
     }
     window.onLiveUpdate = load;
+
+    async function loadPros(){
+      try{
+        const pros = await (await fetch('/api/lesson-waitlist/pros')).json();
+        const sel = document.getElementById('f-pro');
+        if (!sel || !Array.isArray(pros)) return;
+        sel.innerHTML = '<option value="">No preference</option>' +
+          pros.map(p => '<option value="' + esc(p.name) + '">' + esc(p.name) + '</option>').join('');
+      }catch(e){}
+    }
 
     async function load(){
       let rows=[]; try{ rows=await (await fetch('/api/lesson-waitlist')).json(); }catch(e){}
@@ -138,7 +151,7 @@
     function renderInq(i){
       const memberBadge = i.is_member ? '<span class="badge member">Member</span>' : '<span class="badge guest">Guest</span>';
       const levelBadge = i.level ? `<span class="badge level">${esc(i.level)}</span>` : '';
-      const statusCtrl = canManage
+      const statusCtrl = canAdd
         ? `<select class="status-sel" onchange="setStatus(${i.id},this.value)">
              ${['open','contacted','scheduled','closed'].map(s=>`<option value="${s}"${i.status===s?' selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}
            </select>`
