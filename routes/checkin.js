@@ -129,10 +129,11 @@ router.get('/schedule', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   // Built from parts: new Date('YYYY-MM-DD') is parsed as UTC, which rolls back
-  // a day in Toronto and would show yesterday's schedule every morning.
-  const [y, m, d] = db.todayLocal().split('-').map(Number);
-  const today = DAYS[new Date(y, m - 1, d).getDay()];
-  const slots = (db.getProScheduleSlots() || []).filter(s => s.active !== false && s.day === today);
+  // a day in Toronto and would show the wrong day's schedule every morning.
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : db.todayLocal();
+  const [y, m, d] = iso.split('-').map(Number);
+  const dayName = DAYS[new Date(y, m - 1, d).getDay()];
+  const slots = (db.getProScheduleSlots() || []).filter(s => s.active !== false && s.day === dayName);
   res.json(slots.map(s => ({
     id: s.id, start: s.start, end: s.end, time_label: s.time_label,
     program: s.program, category: s.category, type: s.type,

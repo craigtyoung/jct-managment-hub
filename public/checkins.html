@@ -123,6 +123,18 @@
     .cal-block{position:absolute;border-radius:7px;padding:4px 6px;overflow:hidden;box-sizing:border-box;
       box-shadow:0 1px 3px rgba(12,23,56,0.12);border-left:3px solid var(--blue);background:rgba(44,92,156,0.10);}
     .cal-block.is-doubles{border-left-color:#7c3aed;background:rgba(124,58,237,0.10);}
+    /* Day navigation — the board isn't only ever today; staff reconcile
+       yesterday and glance at what's coming. */
+    .daynav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+    .daynav-btn{width:30px;height:30px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+      color:var(--text-2);font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .daynav-btn:hover{border-color:rgba(44,92,156,0.3);color:var(--blue);}
+    .daynav-label{font-size:14px;font-weight:700;color:var(--navy);min-width:190px;text-align:center;}
+    .daynav-today{padding:6px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+      color:var(--text-2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;}
+    .daynav-today:hover{border-color:rgba(44,92,156,0.3);color:var(--blue);}
+    .daynav-today[disabled]{opacity:0.4;cursor:default;}
+
     /* Today's programmed court usage, drawn behind the check-ins. Read-only
        scenery: it's edited in Court Schedule, only rendered here. */
     .cal-sched{position:absolute;left:1px;right:2px;border-radius:6px;z-index:1;pointer-events:none;
@@ -257,6 +269,12 @@
 
     <!-- Court View -->
     <div id="view-court" style="display:none">
+      <div class="daynav">
+        <button class="daynav-btn" onclick="stepCourtDay(-1)" title="Previous day">&#8249;</button>
+        <span class="daynav-label" id="court-day-label">—</span>
+        <button class="daynav-btn" onclick="stepCourtDay(1)" title="Next day">&#8250;</button>
+        <button class="daynav-today" id="court-today-btn" onclick="goCourtToday()">Today</button>
+      </div>
       <div class="card" id="waiting-card" style="display:none">
         <div class="card-title">Checked in, no court yet</div>
         <div id="waiting-list"></div>
@@ -333,6 +351,7 @@
       const mr = await fetch('/api/members');
       if (mr.ok) allMembers = await mr.json();
 
+      paintDayLabel();
       showView('checkins');
       window.__checkinLiveUpdate = () => {
         loadCheckinTab(document.getElementById('ci-date').value || todayLocal());
@@ -402,7 +421,7 @@
 
     async function loadCourtBoard() {
       try {
-        const r = await fetch('/api/checkin/feed');
+        const r = await fetch('/api/checkin/feed?date=' + BOARD_DATE);
         if (!r.ok) return;
         const { logs } = await r.json();
 
@@ -447,6 +466,7 @@
     const SLOT_MIN = 30, SINGLES_MIN = 60, DOUBLES_MIN = 90;
     let PRO_LIST = [];
     let SCHEDULE = [];
+    let BOARD_DATE = todayLocal(); // which day the court board is showing
 
     function hmToMin(t) { const p = String(t || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
     function minToLabel(m) {
@@ -495,7 +515,7 @@
 
       const now = new Date();
       const nowMin = now.getHours() * 60 + now.getMinutes();
-      const showNow = nowMin >= CAL_START && nowMin <= CAL_END;
+      const showNow = BOARD_DATE === todayLocal() && nowMin >= CAL_START && nowMin <= CAL_END;
       const nowTop = (nowMin - CAL_START) / CAL_STEP * CAL_ROWH;
 
       let cols = '';
@@ -588,9 +608,37 @@
       else if (showNow) wrap.scrollTop = Math.max(0, nowTop - 120); // first paint lands on now
     }
 
+    function shiftISO(iso, days) {
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + days);   // parts, not Date.parse — avoids the UTC roll-back
+      return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+    }
+    function paintDayLabel() {
+      const [y, m, d] = BOARD_DATE.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      const lbl = document.getElementById('court-day-label');
+      const isToday = BOARD_DATE === todayLocal();
+      if (lbl) lbl.textContent = (isToday ? 'Today · ' : '') +
+        dt.toLocaleDateString('en-CA', { weekday: 'long', month: 'short', day: 'numeric' });
+      const btn = document.getElementById('court-today-btn');
+      if (btn) btn.disabled = isToday;
+    }
+    async function stepCourtDay(days) {
+      BOARD_DATE = shiftISO(BOARD_DATE, days);
+      paintDayLabel();
+      await loadSchedule();
+      loadCourtBoard();
+    }
+    async function goCourtToday() {
+      BOARD_DATE = todayLocal();
+      paintDayLabel();
+      await loadSchedule();
+      loadCourtBoard();
+    }
+
     async function loadSchedule() {
       try {
-        const r = await fetch('/api/checkin/schedule');
+        const r = await fetch('/api/checkin/schedule?date=' + BOARD_DATE);
         if (r.ok) SCHEDULE = await r.json();
       } catch (e) {}
     }
