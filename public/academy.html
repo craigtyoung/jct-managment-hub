@@ -50,6 +50,9 @@
     .main { flex:1; overflow-y:auto; }
     .main-inner { max-width:760px; margin:0 auto; padding:20px 20px 100px; }
 
+    .page-head { margin-bottom:18px; }
+    .page-sub { font-size:12.5px; color:var(--text3); }
+
     /* Overview — live summary cards, same pattern as the main Dashboard's stat-cards */
     .ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:26px; }
     .ov-card { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--card-shadow); cursor:pointer; text-decoration:none; color:inherit; display:block; transition:border-color .15s; }
@@ -163,15 +166,9 @@
   </div>
 
   <div class="shell">
-    <!-- Sidebar -->
+    <!-- Sidebar — just the Filter now; the old Waitlists/Changes/Openings/Lessons nav
+         buttons were redundant once the Overview cards took over that job. -->
     <div class="sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-label">Wait Lists</div>
-        <button class="sidebar-btn active" data-view="waitlist" onclick="setView('waitlist')"><span class="dot" style="background:#f59e0b"></span> Waitlists <span class="count" id="c-waitlist">0</span></button>
-        <button class="sidebar-btn" data-view="changes" onclick="setView('changes')"><span class="dot" style="background:#2c5c9c"></span> Class Changes <span class="count" id="c-changes">0</span></button>
-        <a class="sidebar-btn" href="/waitlist.html" style="text-decoration:none"><span class="dot" style="background:#dc2626"></span> Academy Openings <span class="count" id="c-openspots">0</span></a>
-        <a class="sidebar-btn" href="/lesson-waitlist.html" style="text-decoration:none"><span class="dot" style="background:#16a34a"></span> Private Lessons <span class="count" id="c-lessons">0</span></a>
-      </div>
       <div class="sidebar-section">
         <div class="sidebar-label">Filter</div>
         <button class="sidebar-btn active" data-cat="all" onclick="setCat('all')">All programs</button>
@@ -183,6 +180,10 @@
     <!-- Main -->
     <div class="main">
       <div class="main-inner">
+        <div class="page-head">
+          <div><h1 style="font-size:22px;margin:0">Wait Lists</h1><p class="page-sub" style="margin:3px 0 0">Class waitlists, academy openings, private lessons, and changes — all in one place.</p></div>
+        </div>
+
         <!-- OVERVIEW — live summary cards; Academy Openings featured since it's the highest-volume one -->
         <div class="ov-grid">
           <a class="ov-card featured" href="/waitlist.html">
@@ -295,11 +296,6 @@
         var activeChanges = changes.filter(function(c){return c.status!=='Done'&&c.status!=='Cancelled';});
         var openCount = openSpots.filter(function(s){return s.status!=='filled';});
         var activeLessons = lessons.filter(function(i){return i.status!=='closed';});
-
-        document.getElementById('c-waitlist').textContent = activeWaitlist.length;
-        document.getElementById('c-changes').textContent = activeChanges.length;
-        var co=document.getElementById('c-openspots'); if(co) co.textContent = openCount.length;
-        var cl=document.getElementById('c-lessons'); if(cl) cl.textContent = activeLessons.length;
 
         document.getElementById('ov-openspots-val').textContent = openCount.length;
         document.getElementById('ov-openspots-sub').textContent = openCount.length===1 ? '1 spot open' : openCount.length + ' spots open';
