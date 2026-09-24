@@ -156,9 +156,7 @@
         <div class="sidebar-label">Wait Lists</div>
         <button class="sidebar-btn active" data-view="waitlist" onclick="setView('waitlist')"><span class="dot" style="background:#f59e0b"></span> Waitlists <span class="count" id="c-waitlist">0</span></button>
         <button class="sidebar-btn" data-view="changes" onclick="setView('changes')"><span class="dot" style="background:#2c5c9c"></span> Class Changes <span class="count" id="c-changes">0</span></button>
-        <button class="sidebar-btn" data-view="notes" onclick="setView('notes')"><span class="dot" style="background:#8b5cf6"></span> Notes <span class="count" id="c-notes">0</span></button>
-        <button class="sidebar-btn" data-view="classes" onclick="setView('classes')"><span class="dot" style="background:#0d9488"></span> Classes <span class="count" id="c-classes">0</span></button>
-        <a class="sidebar-btn" href="/waitlist.html" style="text-decoration:none"><span class="dot" style="background:#dc2626"></span> Open Spots <span class="count" id="c-openspots">0</span></a>
+        <a class="sidebar-btn" href="/waitlist.html" style="text-decoration:none"><span class="dot" style="background:#dc2626"></span> Academy Openings <span class="count" id="c-openspots">0</span></a>
         <a class="sidebar-btn" href="/lesson-waitlist.html" style="text-decoration:none"><span class="dot" style="background:#16a34a"></span> Private Lessons <span class="count" id="c-lessons">0</span></a>
       </div>
       <div class="sidebar-section">
@@ -181,17 +179,6 @@
         <div class="panel" id="panel-changes" style="display:none">
           <div class="panel-head"><div><h2>Class Changes</h2><p>Switches and moves between classes.</p></div><button class="btn btn-primary" onclick="openChangeModal()">+ Log a change</button></div>
           <div id="changes-list"></div>
-        </div>
-        <!-- NOTES -->
-        <div class="panel" id="panel-notes" style="display:none">
-          <div class="panel-head"><div><h2>Notes</h2><p>Quick academy notes for the team.</p></div></div>
-          <div class="compose-note"><textarea id="note-body" placeholder="Post an academy note for the team..."></textarea><div style="display:flex;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="postNote()">Post note</button></div></div>
-          <div id="notes-list"></div>
-        </div>
-        <!-- CLASSES -->
-        <div class="panel" id="panel-classes" style="display:none">
-          <div class="panel-head"><div><h2>Classes</h2><p>Update availability as spots change; add adult classes here.</p></div><button class="btn btn-ghost" onclick="openClassModal()">+ Add class</button></div>
-          <div id="classes-list"></div>
         </div>
       </div>
     </div>
@@ -246,7 +233,7 @@
     var ACT_LABEL={ claimed:'Claimed', followup:'Followed up', resolved:'Resolved', reopened:'Reopened' };
 
     function setView(v){ view=v; document.querySelectorAll('.sidebar-btn[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===v); });
-      ['waitlist','changes','notes','classes'].forEach(function(p){ document.getElementById('panel-'+p).style.display = p===v?'block':'none'; }); render(); }
+      ['waitlist','changes'].forEach(function(p){ document.getElementById('panel-'+p).style.display = p===v?'block':'none'; }); render(); }
     function setCat(c){ cat=c; document.querySelectorAll('.sidebar-btn[data-cat]').forEach(function(b){ b.classList.toggle('active', b.dataset.cat===c); }); render(); }
 
     function classOptions(sel){ var o='<option value="">— select a class —</option>'; classes.filter(function(c){return c.active!==false;}).forEach(function(c){ o+='<option value="'+c.id+'"'+(String(c.id)===String(sel)?' selected':'')+'>'+esc(c.label)+' ('+esc(c.availability)+')</option>'; }); return o; }
@@ -264,14 +251,12 @@
         var openSpots=a[4]||[], lessons=a[5]||[];
         document.getElementById('c-waitlist').textContent = waitlist.filter(function(w){return w.status!=='Enrolled'&&w.status!=='Withdrawn';}).length;
         document.getElementById('c-changes').textContent = changes.filter(function(c){return c.status!=='Done'&&c.status!=='Cancelled';}).length;
-        document.getElementById('c-notes').textContent = notes.length;
-        document.getElementById('c-classes').textContent = classes.length;
         var co=document.getElementById('c-openspots'); if(co) co.textContent = openSpots.filter(function(s){return s.status!=='filled';}).length;
         var cl=document.getElementById('c-lessons'); if(cl) cl.textContent = lessons.filter(function(i){return i.status!=='closed';}).length;
         render();
       });
     }
-    function render(){ if(view==='waitlist') renderWaitlist(); else if(view==='changes') renderChanges(); else if(view==='notes') renderNotes(); else renderClasses(); }
+    function render(){ if(view==='waitlist') renderWaitlist(); else renderChanges(); }
 
     // Accountability chain (shared)
     function chainHtml(kind, entry){

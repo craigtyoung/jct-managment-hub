@@ -4578,6 +4578,7 @@ function getLessonInquiries() {
       return {
         id: i.id, name: i.name, inquiry_date: i.inquiry_date,
         is_member: !!i.is_member, level: i.level || '', phone: i.phone || '', email: i.email || '',
+        requested_pro: i.requested_pro || '',
         status: i.status || 'open', notes: i.notes || '',
         assigned_pro: i.assigned_pro || null, assigned_pro_name: i.assigned_pro ? nameOf(i.assigned_pro) : null,
         assigned_pro_color: i.assigned_pro ? colorOf(i.assigned_pro) : null,
@@ -4597,6 +4598,7 @@ function addLessonInquiry(d) {
     level: String(d.level || '').trim(),
     phone: String(d.phone || '').trim(),
     email: String(d.email || '').trim(),
+    requested_pro: String(d.requestedPro || '').trim(),
     status: 'open',
     notes: String(d.notes || '').trim(),
     assigned_pro: null,
@@ -4612,7 +4614,7 @@ function addLessonInquiry(d) {
 function updateLessonInquiry(id, fields) {
   var rec = (_data.lesson_inquiries || []).find(function (x) { return x.id === parseInt(id); });
   if (!rec) return false;
-  var STR = ['name', 'level', 'phone', 'email', 'notes'];
+  var STR = ['name', 'level', 'phone', 'email', 'notes', 'requested_pro'];
   STR.forEach(function (k) { if (fields[k] != null) rec[k] = String(fields[k]).trim(); });
   if (fields.inquiry_date != null && /^\d{4}-\d{2}-\d{2}$/.test(fields.inquiry_date)) rec.inquiry_date = fields.inquiry_date;
   if (fields.is_member != null) rec.is_member = !!fields.is_member;

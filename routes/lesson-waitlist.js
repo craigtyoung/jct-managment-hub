@@ -32,6 +32,7 @@ router.post('/', (req, res) => {
     level: req.body.level,
     phone: req.body.phone,
     email: req.body.email,
+    requestedPro: req.body.requested_pro,
     notes: req.body.notes,
     addedBy: req.session.staffId,
   });

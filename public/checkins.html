@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Member Check-Ins · JCT Staff Hub</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:#0c1738; --navy-mid:#111e40; --navy-hover:rgba(177,201,251,0.07);
+      --blue:#2c5c9c; --powder:#b1c9fb; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+      --canvas:#f0f4f9; --surface:#ffffff; --border:rgba(12,23,56,0.08); --border-nav:rgba(177,201,251,0.07);
+      --text:#0c1738; --text-2:#4a6080; --text-3:#8fa0b8;
+      --font:'Inter',system-ui,sans-serif;
+      --nav-w:214px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{padding-left:var(--nav-w);background:var(--canvas);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;}
+
+    /* Sidenav — shared chrome, same as members.html / court-board.html */
+    .sidenav{position:fixed;left:0;top:0;width:var(--nav-w);height:100vh;background:var(--navy-mid);display:flex;flex-direction:column;z-index:190;border-right:1px solid var(--border-nav);overflow-y:auto;}
+    .sidenav::-webkit-scrollbar{width:0;}
+    .sidenav-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border-nav);flex-shrink:0;}
+    .sidenav-brand-name{font-size:1rem;font-weight:600;color:#f0f4ff;line-height:1.2;}
+    .sidenav-brand-tag{font-size:9.5px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(177,201,251,0.36);margin-top:4px;}
+    .sidenav-body{flex:1;padding:8px 0 4px;}
+    .nav-group-label{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(177,201,251,0.28);padding:14px 18px 5px;}
+    .nav-link{display:flex;align-items:center;gap:9px;width:100%;padding:8px 18px 8px 16px;background:none;border:none;cursor:pointer;border-left:2px solid transparent;font-family:var(--font);font-size:13px;font-weight:400;color:rgba(177,201,251,0.55);text-align:left;text-decoration:none;transition:color .15s,background .15s,border-color .15s;}
+    .nav-link:hover{color:rgba(240,244,255,0.88);background:var(--navy-hover);}
+    .nav-link.active{color:var(--powder);border-left-color:var(--powder);background:rgba(177,201,251,0.07);font-weight:500;}
+    .nav-link.nav-soon{opacity:0.5;cursor:default;}
+    .nav-link.nav-soon:hover{color:rgba(177,201,251,0.55);background:none;}
+
+    /* Light sidebar theme — matches the dashboard's default (white, not navy) */
+    body.nav-light .sidenav{background:#ffffff;border-right:1px solid var(--border);}
+    body.nav-light .sidenav-brand{border-bottom:1px solid var(--border);}
+    body.nav-light .sidenav-brand-name{color:var(--text);}
+    body.nav-light .sidenav-brand-tag{color:var(--text-3);}
+    body.nav-light .nav-group-label{color:var(--text-3);}
+    body.nav-light .nav-link{color:var(--text-2);}
+    body.nav-light .nav-link:hover{color:var(--text);background:var(--canvas);}
+    body.nav-light .nav-link.active{color:var(--blue);border-left-color:var(--blue);background:rgba(44,92,156,0.08);}
+    body.nav-light .nav-link.nav-soon{color:var(--text-3);}
+    body.nav-light .nav-link.nav-soon:hover{color:var(--text-3);background:none;}
+    body.nav-light .sidenav-user-name{color:var(--text);}
+    body.nav-light .sidenav-user-role{color:var(--text-3);}
+    body.nav-light .sidenav-signout{border:1px solid var(--border);color:var(--text-3);}
+    body.nav-light .sidenav-signout:hover{color:#dc2626;border-color:rgba(220,38,38,0.3);}
+    .nav-icon{width:15px;height:15px;flex-shrink:0;}
+    .sidenav-foot{flex-shrink:0;padding:12px 14px 18px;border-top:1px solid var(--border-nav);}
+    .sidenav-user{display:flex;align-items:center;gap:9px;padding:6px 4px 10px;}
+    .sidenav-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+    .sidenav-user-name{font-size:12px;font-weight:500;color:rgba(240,244,255,0.85);line-height:1.2;}
+    .sidenav-user-role{font-size:10px;color:rgba(177,201,251,0.38);text-transform:capitalize;margin-top:1px;}
+    .sidenav-signout{width:100%;padding:7px;background:transparent;border:1px solid rgba(177,201,251,0.12);border-radius:8px;cursor:pointer;font-family:var(--font);font-size:11px;color:rgba(177,201,251,0.32);transition:color .15s,border-color .15s;}
+    .sidenav-signout:hover{color:#f87171;border-color:rgba(248,113,113,0.25);}
+
+    /* Topstrip */
+    .topstrip{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .ts-clock{font-size:13px;font-weight:500;color:var(--text);}
+    .ts-date{font-size:11px;color:var(--text-3);margin-top:2px;}
+
+    /* Main */
+    .main{max-width:1040px;margin:0 auto;padding:28px 28px 80px;}
+    .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .page-head h1{font-size:20px;font-weight:800;color:var(--navy);}
+    .page-sub{font-size:13px;color:var(--text-2);margin-bottom:20px;}
+
+    /* View tabs */
+    .view-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;}
+    .view-tab{flex:none;padding:7px 16px;border-radius:7px;border:none;background:transparent;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s;}
+    .view-tab:hover{background:rgba(44,92,156,0.06);color:var(--blue);}
+    .view-tab.active{background:var(--navy);color:#f0f4ff;font-weight:600;}
+
+    /* Check-in log */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:22px;}
+    .ci-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);}
+    .ci-date{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--text);}
+    .ci-count{font-size:12px;color:var(--text-3);margin-left:auto;}
+    .ci-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+    .ci-row:last-child{border-bottom:none;}
+    .ci-row:hover{background:#f8fafc;}
+    .ci-av{width:30px;height:30px;border-radius:8px;background:rgba(44,92,156,0.1);color:#2c5c9c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .ci-name{font-size:13px;font-weight:600;flex:1;}
+    .ci-meta{font-size:11px;color:var(--text-3);}
+    .ci-time{font-size:12px;color:var(--text-3);white-space:nowrap;}
+    .dup-tag{font-size:9px;font-weight:700;background:rgba(217,119,6,0.1);color:#d97706;border-radius:4px;padding:1px 6px;margin-left:6px;}
+
+    .btn{padding:9px 16px;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+    .btn-primary:hover{background:var(--blue);border-color:var(--blue);}
+    .btn-ghost{background:var(--surface);color:var(--text-2);border-color:var(--border);}
+    .btn-ghost:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
+
+    /* Waiting-for-a-court list + court grid (Court View tab) */
+    .card-title{font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);padding:14px 16px 0;}
+    .wait-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);}
+    .wait-row:last-child{border-bottom:none;}
+    .wait-av{width:28px;height:28px;border-radius:8px;background:rgba(44,92,156,0.1);color:#2c5c9c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .wait-name{font-size:13px;font-weight:600;flex:1;}
+    .guest-tag{font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;}
+    .assign-select{font-family:inherit;font-size:12px;font-weight:600;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--canvas);color:var(--text-2);}
+
+    .court-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+    @media(max-width:760px){.court-grid{grid-template-columns:repeat(2,1fr);}}
+    .court-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;min-height:120px;}
+    .court-card.occupied{border-color:rgba(22,163,74,0.35);background:rgba(22,163,74,0.03);}
+    .court-title{font-size:13px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+    .court-open{font-size:11px;font-weight:700;color:var(--text-3);text-transform:none;letter-spacing:0;}
+    .occupant-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--border);}
+    .occupant-row:first-of-type{border-top:none;}
+    .occupant-name{font-size:13px;font-weight:600;}
+    .occupant-time{font-size:10px;color:var(--text-3);}
+    .clear-btn{background:none;border:none;font-size:11px;color:var(--text-3);cursor:pointer;padding:2px 4px;}
+    .clear-btn:hover{color:var(--red);}
+
+    /* Guest modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--surface);border-radius:18px;padding:28px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.20);}
+    .modal h2{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{display:block;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+    .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;background:var(--canvas);color:var(--text);outline:none;}
+    .field input:focus,.field select:focus{border-color:rgba(44,92,156,0.35);}
+    .modal-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
+    .form-err{color:var(--red);font-size:12px;margin:4px 0 0;min-height:16px;}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;}
+    .modal-actions .btn{flex:1;}
+
+    @media(max-width:768px){
+      .sidenav{display:none;}
+      body{padding-left:0;}
+    }
+  </style>
+</head>
+<body>
+  <script>(function(){try{var t=localStorage.getItem('jct-nav-theme')||'light';if(t!=='navy')document.body.classList.add('nav-light');}catch(e){document.body.classList.add('nav-light');}})();</script>
+
+  <!-- Sidenav -->
+  <nav class="sidenav">
+    <div class="sidenav-brand">
+      <div class="sidenav-brand-name">Joshua Creek</div>
+      <div class="sidenav-brand-tag">Staff Hub</div>
+    </div>
+    <div class="sidenav-body">
+      <div class="nav-group-label">Daily Ops</div>
+      <a href="/hub.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Dashboard</a>
+      <a href="/checklist.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Checklist</a>
+      <a href="/cash-summary.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Cash Summary</a>
+      <a href="/comms.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Communications</a>
+      <div class="nav-group-label">Schedule & Pay</div>
+      <a href="/schedule.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</a>
+      <a href="/timesheet.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Timesheets</a>
+      <div class="nav-group-label">Members</div>
+      <a href="/members.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Member List</a>
+      <a href="/checkins.html" class="nav-link checkin-only active" id="nav-member-checkins"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Member Check-Ins</a>
+      <div class="nav-group-label">Programs</div>
+      <a href="/house-league.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg>House League</a>
+      <a href="#" class="nav-link nav-soon" title="Coming soon"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Round Robin</a>
+      <a href="/academy.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Academy</a>
+      <div class="nav-group-label">Pro Shop</div>
+      <a href="/proshop.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Pro Shop</a>
+    </div>
+    <div class="sidenav-foot">
+      <div class="sidenav-user">
+        <div class="sidenav-avatar" id="nav-avatar"></div>
+        <div>
+          <div class="sidenav-user-name" id="nav-name">—</div>
+          <div class="sidenav-user-role" id="nav-role">—</div>
+        </div>
+      </div>
+      <button class="sidenav-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Topstrip -->
+  <div class="topstrip">
+    <div style="font-size:13px;font-weight:700;color:var(--text-2);">Member Check-Ins</div>
+    <div style="text-align:right">
+      <div class="ts-clock" id="clock">—</div>
+      <div class="ts-date" id="dateline">—</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-head">
+      <div><h1>Member Check-Ins</h1></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/checkin.html" class="btn btn-ghost" target="_blank">Open Kiosk ↗</a>
+      </div>
+    </div>
+    <div class="page-sub">Who's checked in today, and who's on which court.</div>
+
+    <!-- View tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-checkins" onclick="showView('checkins')">Check-ins</button>
+      <button class="view-tab" id="tab-court" onclick="showView('court')">Court View</button>
+    </div>
+
+    <!-- Check-ins view -->
+    <div id="view-checkins">
+      <div class="card">
+        <div class="ci-toolbar">
+          <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
+          <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
+          <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#16a34a;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;" onclick="openGuestModal()">+ Guest</button>
+          <button disabled title="Coming soon — GameTime auto-sync isn't built yet" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text-3);font-family:var(--font);font-size:12px;font-weight:600;cursor:default;">Sync to GameTime</button>
+          <span class="ci-count" id="ci-count">—</span>
+        </div>
+        <div id="ci-list"><div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Court View -->
+    <div id="view-court" style="display:none">
+      <div class="card" id="waiting-card" style="display:none">
+        <div class="card-title">Checked in, no court yet</div>
+        <div id="waiting-list"></div>
+      </div>
+      <div class="court-grid" id="court-grid"></div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="guest-modal" onclick="if(event.target===this)closeGuestModal()">
+    <div class="modal">
+      <h2>Guest Sign-In</h2>
+      <div class="field"><label>Guest Name</label><input id="g-name" type="text" autocomplete="off" placeholder="First and last name" /></div>
+      <div class="field">
+        <label>Hosting Member</label>
+        <input id="g-host" type="text" autocomplete="off" list="g-host-list" placeholder="Search member name…" />
+        <datalist id="g-host-list"></datalist>
+        <div class="modal-hint">Optional — leave blank if unknown.</div>
+      </div>
+      <div class="field">
+        <label>Court (optional)</label>
+        <select id="g-court">
+          <option value="">Court —</option>
+          <option value="1">Court 1</option><option value="2">Court 2</option><option value="3">Court 3</option>
+          <option value="4">Court 4</option><option value="5">Court 5</option><option value="6">Court 6</option>
+        </select>
+      </div>
+      <div class="form-err" id="g-err"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeGuestModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveGuest()">Sign In Guest</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/staff-avatar.js"></script>
+  <script src="/app-version.js"></script>
+  <script>
+    let me = null, allMembers = [];
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function todayLocal() { return new Date().toLocaleDateString('en-CA'); } // YYYY-MM-DD, local timezone (not UTC)
+    function fmtTime12(hhmmss) {
+      if (!hhmmss) return '';
+      const [h, m] = hhmmss.split(':').map(Number);
+      const period = h < 12 ? 'am' : 'pm';
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, '0')}${period}`;
+    }
+
+    async function doLogout() { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.href = '/login.html'; }
+
+    function tick() {
+      const n = new Date(), c = document.getElementById('clock'), d = document.getElementById('dateline');
+      if (c) c.textContent = n.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (d) d.textContent = n.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    tick(); setInterval(tick, 30000);
+
+    async function init() {
+      const r = await fetch('/api/me');
+      if (r.status === 401) { location.href = '/login.html'; return; }
+      me = await r.json();
+      if (!me.can_view_checkins) {
+        document.querySelector('.main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Admin staff only.</div>';
+        return;
+      }
+      const av = document.getElementById('nav-avatar');
+      if (av) staffAvatar(av, me.id, me.name, me.color);
+      document.getElementById('nav-name').textContent = me.name;
+      document.getElementById('nav-role').textContent = me.role;
+
+      const mr = await fetch('/api/members');
+      if (mr.ok) allMembers = await mr.json();
+
+      showView('checkins');
+      window.__checkinLiveUpdate = () => {
+        loadCheckinTab(document.getElementById('ci-date').value || todayLocal());
+        loadCourtBoard();
+      };
+    }
+
+    function showView(view) {
+      document.getElementById('view-checkins').style.display = view === 'checkins' ? '' : 'none';
+      document.getElementById('view-court').style.display = view === 'court' ? '' : 'none';
+      document.getElementById('tab-checkins').className = 'view-tab' + (view === 'checkins' ? ' active' : '');
+      document.getElementById('tab-court').className = 'view-tab' + (view === 'court' ? ' active' : '');
+      if (view === 'checkins') {
+        const today = todayLocal();
+        const dateEl = document.getElementById('ci-date');
+        if (dateEl && !dateEl.value) dateEl.value = today;
+        loadCheckinTab(dateEl.value || today);
+      } else {
+        loadCourtBoard();
+      }
+    }
+
+    async function loadCheckinTab(date) {
+      const list = document.getElementById('ci-list');
+      const count = document.getElementById('ci-count');
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading…</div>';
+      try {
+        const r = await fetch('/api/checkin/feed?date=' + (date || todayLocal()));
+        if (!r.ok) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Access denied.</div>'; return; }
+        const { logs, count: n } = await r.json();
+        if (count) count.textContent = `${n} check-in${n===1?'':'s'}`;
+        if (!logs.length) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">No check-ins for this date.</div>'; return; }
+        list.innerHTML = logs.slice().reverse().map(l => {
+          const name = l.member_name || '—';
+          const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
+          const dupTag = l.duplicate ? '<span class="dup-tag">dup</span>' : '';
+          let syncBadge = '';
+          if (l.gametime_synced_at) syncBadge = '<span style="font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;">GT ✓</span>';
+          else if (l.gametime_sync_error) syncBadge = `<span style="font-size:9px;font-weight:700;background:rgba(220,38,38,0.08);color:#dc2626;border-radius:4px;padding:1px 6px;margin-left:6px;" title="${esc(l.gametime_sync_error)}">GT ✗</span>`;
+          const courtOpts = [1,2,3,4,5,6].map(n => `<option value="${n}" ${l.court===n?'selected':''}>Court ${n}</option>`).join('');
+          const guestTag = l.guest ? '<span style="font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;">GUEST</span>' : '';
+          const meta = l.guest
+            ? `${l.host_name ? 'Hosted by ' + esc(l.host_name) : 'No host on file'} · ${l.method}`
+            : `${esc(l.club_number||'—')} · ${esc(l.member_type||'—')} · ${l.method}`;
+          const rowClick = l.guest ? '' : `onclick="location.href='/members.html?id=${l.member_id}'"`;
+          return `<div class="ci-row" ${rowClick} style="${l.guest ? 'cursor:default;' : ''}">
+            <div class="ci-av">${esc(ini)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="ci-name">${esc(name)}${dupTag}${guestTag}${syncBadge}</div>
+              <div class="ci-meta">${meta}</div>
+            </div>
+            <select onclick="event.stopPropagation()" onchange="event.stopPropagation();setCheckinCourt(${l.id}, this.value)" style="font-family:inherit;font-size:11px;font-weight:600;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:${l.court?'rgba(44,92,156,0.08)':'var(--canvas)'};color:${l.court?'#2c5c9c':'var(--text-3)'};">
+              <option value="">Court —</option>${courtOpts}
+            </select>
+            <div class="ci-time">${fmtTime12(l.time)}</div>
+          </div>`;
+        }).join('');
+      } catch(e) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Could not load.</div>'; }
+    }
+
+    async function setCheckinCourt(id, court) {
+      try {
+        await fetch('/api/checkin/' + id + '/court', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ court: court || null }) });
+        loadCourtBoard();
+      } catch (e) {}
+    }
+
+    async function loadCourtBoard() {
+      try {
+        const r = await fetch('/api/checkin/feed');
+        if (!r.ok) return;
+        const { logs } = await r.json();
+
+        const waiting = logs.filter(l => !l.court && !l.duplicate);
+        const waitCard = document.getElementById('waiting-card');
+        const waitList = document.getElementById('waiting-list');
+        if (waiting.length) {
+          waitCard.style.display = '';
+          waitList.innerHTML = waiting.map(l => {
+            const name = l.member_name || '—';
+            const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
+            const guestTag = l.guest ? '<span class="guest-tag">GUEST</span>' : '';
+            const courtOpts = [1,2,3,4,5,6].map(n => `<option value="${n}">Court ${n}</option>`).join('');
+            return `<div class="wait-row">
+              <div class="wait-av">${esc(ini)}</div>
+              <div class="wait-name">${esc(name)}${guestTag}</div>
+              <select class="assign-select" onchange="assignCourt(${l.id}, this.value)">
+                <option value="">Assign court…</option>${courtOpts}
+              </select>
+            </div>`;
+          }).join('');
+        } else {
+          waitCard.style.display = 'none';
+        }
+
+        const byCourt = {};
+        logs.forEach(l => { if (l.court && !l.duplicate) { (byCourt[l.court] = byCourt[l.court] || []).push(l); } });
+
+        const grid = document.getElementById('court-grid');
+        grid.innerHTML = [1,2,3,4,5,6].map(n => {
+          const occupants = byCourt[n] || [];
+          const rows = occupants.map(l => {
+            const name = l.member_name || '—';
+            const guestTag = l.guest ? '<span class="guest-tag">GUEST</span>' : '';
+            const time = fmtTime12(l.time);
+            return `<div class="occupant-row">
+              <div><span class="occupant-name">${esc(name)}</span>${guestTag}</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="occupant-time">${time}</span>
+                <button class="clear-btn" onclick="assignCourt(${l.id}, '')" title="Remove from this court">✕</button>
+              </div>
+            </div>`;
+          }).join('');
+          return `<div class="court-card ${occupants.length ? 'occupied' : ''}">
+            <div class="court-title">Court ${n} ${occupants.length ? '' : '<span class="court-open">Open</span>'}</div>
+            ${rows}
+          </div>`;
+        }).join('');
+      } catch (e) {}
+    }
+
+    async function assignCourt(id, court) {
+      try {
+        await fetch('/api/checkin/' + id + '/court', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ court: court || null }) });
+        loadCourtBoard();
+      } catch (e) {}
+    }
+
+    function openGuestModal() {
+      document.getElementById('g-name').value = '';
+      document.getElementById('g-host').value = '';
+      document.getElementById('g-court').value = '';
+      document.getElementById('g-err').textContent = '';
+      const dl = document.getElementById('g-host-list');
+      dl.innerHTML = allMembers.slice().sort((a,b) => (a.first_name+a.last_name).localeCompare(b.first_name+b.last_name))
+        .map(m => `<option value="${esc(m.first_name)} ${esc(m.last_name)}">`).join('');
+      document.getElementById('guest-modal').classList.add('open');
+      setTimeout(() => document.getElementById('g-name').focus(), 50);
+    }
+    function closeGuestModal() { document.getElementById('guest-modal').classList.remove('open'); }
+    async function saveGuest() {
+      const name = document.getElementById('g-name').value.trim();
+      const hostName = document.getElementById('g-host').value.trim();
+      const court = document.getElementById('g-court').value;
+      const err = document.getElementById('g-err');
+      err.textContent = '';
+      if (!name) { err.textContent = 'Guest name is required.'; return; }
+      let hostMemberId = null;
+      if (hostName) {
+        const match = allMembers.find(m => (m.first_name + ' ' + m.last_name).toLowerCase() === hostName.toLowerCase());
+        if (!match) { err.textContent = 'Host not recognized — pick a name from the list, or leave it blank.'; return; }
+        hostMemberId = match.id;
+      }
+      try {
+        const r = await fetch('/api/checkin/guest', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guestName: name, hostMemberId, court: court || null }),
+        });
+        if (!r.ok) { const d = await r.json().catch(() => ({})); err.textContent = d.error || 'Could not sign in the guest.'; return; }
+        closeGuestModal();
+        loadCheckinTab(document.getElementById('ci-date')?.value);
+      } catch (e) { err.textContent = 'Could not reach the server — try again.'; }
+    }
+
+    // SSE: refresh in real time when any check-in or court change happens
+    (function () {
+      try {
+        var es = new EventSource('/api/events');
+        es.onmessage = function (e) {
+          if (e.data === 'checkin-update' && typeof window.__checkinLiveUpdate === 'function') {
+            window.__checkinLiveUpdate();
+          }
+        };
+      } catch (e) {}
+    })();
+
+    init();
+  </script>
+</body>
+</html>
