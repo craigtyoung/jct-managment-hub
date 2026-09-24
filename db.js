@@ -4805,6 +4805,56 @@ if (!_data._migrations.houseLeaguePairingsImport2026) {
   save();
 }
 
+// ─── Thursday court assignments (2026-09-24, from Craig reading the season sheet) ───
+// The 26/27 import landed programs and times correctly but only ever one court
+// each ("verify court & pro" on every row). This fills in the real court spreads
+// for Thursday and adds the National block, which was missing entirely.
+//
+// Courts are UNIONED, never replaced, so any assignment made by hand in the Pro
+// Schedule since the import survives. Flag-gated: runs once, like every other seed.
+if (!_data._migrations.thursdayCourts2026) {
+  try {
+    const want = [
+      { program: 'Adult Intermediate Plus', start: '09:30', courts: ['1', '2'] },
+      { program: 'Cardio Tennis',           start: '11:00', courts: ['1', '2'] },
+      { program: 'U10',                     start: '16:30', courts: ['1', '2', '3'] },
+      { program: 'National Transition',     start: '16:30', courts: ['4', '5', '6'] },
+      { program: 'U13',                     start: '18:00', courts: ['1', '2', '3', '4'] },
+      { program: 'National Transition B',   start: '18:00', courts: ['5', '6'] },
+    ];
+    let touched = 0;
+    want.forEach(w => {
+      const slot = (_data.pro_schedule_slots || []).find(x =>
+        x.active !== false && x.day === 'Thu' && x.program === w.program && x.start === w.start);
+      if (!slot) { console.warn('Thursday courts: no slot for', w.program, w.start); return; }
+      const merged = [...new Set([...(slot.courts || []), ...w.courts])].sort();
+      if (merged.join() !== (slot.courts || []).join()) { slot.courts = merged; touched++; }
+    });
+
+    // National runs 2:30–4:30 across every court and wasn't in the import at all.
+    const hasNational = (_data.pro_schedule_slots || []).some(x =>
+      x.day === 'Thu' && x.program === 'National' && x.start === '14:30');
+    if (!hasNational) {
+      _data._seq.pro_schedule_slots = (_data._seq.pro_schedule_slots || 0) + 1;
+      _data.pro_schedule_slots.push({
+        id: _data._seq.pro_schedule_slots, class_id: null, type: 'class', day: 'Thu',
+        start: '14:30', end: '16:30', time_label: '2:30–4:30 PM',
+        program: 'National', category: 'junior',
+        court: null, courts: ['1', '2', '3', '4', '5', '6'],
+        capacity: null, court_pros: {}, coaches: '', pro_ids: [],
+        note: 'Added 2026-09-24 from the season sheet; pros unassigned', active: true,
+      });
+      touched++;
+    }
+    save();
+    console.log('Thursday court assignments applied:', touched, 'slot(s).');
+  } catch (e) {
+    console.error('Thursday court assignment failed:', e.message);
+  }
+  _data._migrations.thursdayCourts2026 = true;
+  save();
+}
+
 function getHouseLeagueRoster(league) {
   return _data.hl_players.filter(function (p) { return p.league === league; })
     .sort(function (a, b) { return a.name.localeCompare(b.name); });
