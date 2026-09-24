@@ -114,7 +114,7 @@ router.patch('/:id/lesson', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
-  const ok = db.setCheckinLesson(req.params.id, req.body.pro, req.body.minutes);
+  const ok = db.setCheckinLesson(req.params.id, req.body || {});
   if (!ok) return res.status(404).json({ error: 'Check-in not found' });
   try { sse.broadcast('checkin-update'); } catch (e) {}
   res.json({ ok: true });

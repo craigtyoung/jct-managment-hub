@@ -4497,15 +4497,23 @@ function deleteCheckin(id) {
 // A lone player on a court is a private lesson. The desk records which pro taught
 // it and how long it ran; GameTime bills an hour lesson as two 30-minute bookings,
 // so length matters and can't be inferred from a single sign-in.
-function setCheckinLesson(id, proName, lessonMin) {
+// Partial update: pro and length are independent. They used to be coupled, so
+// changing the length on a lesson with no pro named hit an early return that
+// deleted both fields and the duration silently never changed. A lone player on
+// a court is a lesson regardless of whether anyone has said who's teaching it.
+function setCheckinLesson(id, fields) {
   const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
   if (!log) return false;
-  const name = String(proName == null ? '' : proName).trim();
-  if (!name) { delete log.lesson_pro; delete log.lesson_min; save(); return true; }
-  const mins = parseInt(lessonMin);
-  log.lesson_pro = name;
-  log.lesson_min = [30, 60, 90].includes(mins) ? mins : 60;
-  save(); return true;
+  if (fields.pro !== undefined) {
+    const name = String(fields.pro || '').trim();
+    if (name) log.lesson_pro = name; else delete log.lesson_pro;
+  }
+  if (fields.minutes !== undefined) {
+    const mins = parseInt(fields.minutes);
+    if ([30, 60, 90].includes(mins)) log.lesson_min = mins;
+  }
+  save();
+  return true;
 }
 
 // Staff-logged guest sign-in — no member record, just a name + which member hosted them.
