@@ -15,7 +15,7 @@
  */
 (function () {
   var ITEMS = [
-    { key: 'openings', label: 'Academy Openings', href: '/waitlist.html',        dot: '#dc2626' },
+    { key: 'openings', label: 'Academy',          href: '/waitlist.html',        dot: '#dc2626' },
     { key: 'waitlist', label: 'Student Waitlists', href: '/academy.html#waitlist', dot: '#d97706' },
     { key: 'changes',  label: 'Change Requests',  href: '/academy.html#changes',  dot: '#2c5c9c' },
     { key: 'lessons',  label: 'Private Lessons',  href: '/lesson-waitlist.html',  dot: '#16a34a' },
