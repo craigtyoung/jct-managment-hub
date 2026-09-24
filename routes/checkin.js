@@ -120,6 +120,26 @@ router.patch('/:id/lesson', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /schedule — today's programmed court usage (classes, clinics, programs),
+// read straight from the Court Schedule. Read-only on purpose: the schedule is
+// edited in one place and only *drawn* here, as the backdrop staff reconcile
+// check-ins against. Served from this route so front desk can see it without
+// needing access to the scheduling area itself.
+router.get('/schedule', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Built from parts: new Date('YYYY-MM-DD') is parsed as UTC, which rolls back
+  // a day in Toronto and would show yesterday's schedule every morning.
+  const [y, m, d] = db.todayLocal().split('-').map(Number);
+  const today = DAYS[new Date(y, m - 1, d).getDay()];
+  const slots = (db.getProScheduleSlots() || []).filter(s => s.active !== false && s.day === today);
+  res.json(slots.map(s => ({
+    id: s.id, start: s.start, end: s.end, time_label: s.time_label,
+    program: s.program, category: s.category, type: s.type,
+    courts: (s.courts || (s.court ? [String(s.court)] : [])).map(String),
+  })));
+});
+
 // GET /pros — teaching pros + coaching managers, for the lesson picker
 router.get('/pros', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });

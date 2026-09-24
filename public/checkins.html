@@ -123,6 +123,16 @@
     .cal-block{position:absolute;border-radius:7px;padding:4px 6px;overflow:hidden;box-sizing:border-box;
       box-shadow:0 1px 3px rgba(12,23,56,0.12);border-left:3px solid var(--blue);background:rgba(44,92,156,0.10);}
     .cal-block.is-doubles{border-left-color:#7c3aed;background:rgba(124,58,237,0.10);}
+    /* Today's programmed court usage, drawn behind the check-ins. Read-only
+       scenery: it's edited in Court Schedule, only rendered here. */
+    .cal-sched{position:absolute;left:1px;right:2px;border-radius:6px;z-index:1;pointer-events:none;
+      background:repeating-linear-gradient(45deg,rgba(12,23,56,0.045),rgba(12,23,56,0.045) 5px,rgba(12,23,56,0.02) 5px,rgba(12,23,56,0.02) 10px);
+      border:1px dashed rgba(12,23,56,0.16);overflow:hidden;padding:2px 5px;}
+    .cal-sched-name{font-size:9.5px;font-weight:700;color:var(--text-3);line-height:1.1;
+      text-transform:uppercase;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .cal-sched-time{font-size:8.5px;color:var(--text-3);opacity:0.8;}
+    .cal-block{z-index:2;}
+
     /* Lessons green, matching how the bookings sheet marks them */
     .cal-block.is-lesson{border-left-color:var(--green);background:rgba(22,163,74,0.12);}
     .cal-lesson{display:flex;gap:3px;margin-top:3px;}
@@ -319,6 +329,7 @@
       document.getElementById('nav-role').textContent = me.role;
 
       await loadPros();
+      await loadSchedule();
       const mr = await fetch('/api/members');
       if (mr.ok) allMembers = await mr.json();
 
@@ -435,6 +446,7 @@
     const CAL_ROWS = (CAL_END - CAL_START) / CAL_STEP;
     const SLOT_MIN = 30, SINGLES_MIN = 60, DOUBLES_MIN = 90;
     let PRO_LIST = [];
+    let SCHEDULE = [];
 
     function hmToMin(t) { const p = String(t || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
     function minToLabel(m) {
@@ -501,6 +513,20 @@
         });
         const lanes = Math.max(1, laneEnd.length);
 
+        // Programmed usage for this court, behind everything.
+        let sched = '';
+        SCHEDULE.filter(sc => (sc.courts || []).includes(String(c))).forEach(sc => {
+          const a = hmToMin(sc.start), z = hmToMin(sc.end);
+          if (!(z > a)) return;
+          const top = Math.max(0, (a - CAL_START) / CAL_STEP * CAL_ROWH);
+          const hgt = Math.max(14, (Math.min(z, CAL_END) - Math.max(a, CAL_START)) / CAL_STEP * CAL_ROWH - 2);
+          sched += `<div class="cal-sched" style="top:${top}px;height:${hgt}px" ` +
+            `title="${esc(sc.program)} · ${esc(sc.time_label || (sc.start + '–' + sc.end))} (from Court Schedule)">` +
+            `<div class="cal-sched-name">${esc(sc.program)}</div>` +
+            `<div class="cal-sched-time">${esc(sc.time_label || (sc.start + '–' + sc.end))}</div>` +
+          `</div>`;
+        });
+
         let blocks = '';
         books.forEach(b => {
           const top = Math.max(0, (b.slot - CAL_START) / CAL_STEP * CAL_ROWH);
@@ -540,7 +566,7 @@
         const nowLine = showNow ? `<div class="cal-now" style="top:${nowTop}px"></div>` : '';
         const badge = onCourt ? `<span class="ch-count">${onCourt}</span>` : '';
         cols += `<div class="cal-col${onCourt ? ' occupied' : ''}"><div class="cal-colhead">Court ${c}${badge}</div>` +
-          `<div class="cal-body" style="height:${bodyH}px">${nowLine}${blocks}</div></div>`;
+          `<div class="cal-body" style="height:${bodyH}px">${sched}${nowLine}${blocks}</div></div>`;
       });
 
       const prev = document.getElementById('calwrap');
@@ -551,6 +577,7 @@
           '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Singles · 60 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(124,58,237,0.6)"></span>Doubles · 90 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Lesson</span>' +
+          '<span class="lg"><span class="sw" style="background:repeating-linear-gradient(45deg,rgba(12,23,56,0.18),rgba(12,23,56,0.18) 3px,transparent 3px,transparent 6px);border:1px dashed rgba(12,23,56,0.25)"></span>Scheduled</span>' +
           '<span class="lg"><span class="sw" style="background:#16a34a;height:2px;border-radius:0"></span>Now</span>' +
           '<span style="margin-left:auto">Inferred from sign-ins, snapped to the half hour</span>' +
         '</div>';
@@ -559,6 +586,13 @@
       if (!wrap) return;
       if (keepScroll !== null) wrap.scrollTop = keepScroll;       // stay put on refresh
       else if (showNow) wrap.scrollTop = Math.max(0, nowTop - 120); // first paint lands on now
+    }
+
+    async function loadSchedule() {
+      try {
+        const r = await fetch('/api/checkin/schedule');
+        if (r.ok) SCHEDULE = await r.json();
+      } catch (e) {}
     }
 
     async function loadPros() {
