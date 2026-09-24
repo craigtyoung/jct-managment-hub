@@ -4905,6 +4905,28 @@ if (!_data._migrations.fridayNoonCourt2026) {
   save();
 }
 
+// Friday evening court spans, read off the Friday court sheet (2026-09-24).
+// Same story as Thursday: the programs and times were right from the import,
+// only one court each. Union, never replace, so hand assignments survive.
+if (!_data._migrations.fridayEveningCourts2026) {
+  const want = [
+    { program: 'U10',                   start: '16:30', courts: ['1', '2', '3', '4'] },
+    { program: 'U9 Performance',        start: '18:00', courts: ['1', '2'] },
+    { program: 'National Transition B', start: '18:00', courts: ['3', '4'] },
+  ];
+  let touched = 0;
+  want.forEach(w => {
+    const slot = (_data.pro_schedule_slots || []).find(x =>
+      x.active !== false && x.day === 'Fri' && x.program === w.program && x.start === w.start);
+    if (!slot) { console.warn('Friday evening: no slot for', w.program, w.start); return; }
+    const merged = [...new Set([...(slot.courts || []), ...w.courts])].sort();
+    if (merged.join() !== (slot.courts || []).join()) { slot.courts = merged; touched++; }
+  });
+  console.log('Friday evening court spans applied:', touched, 'slot(s).');
+  _data._migrations.fridayEveningCourts2026 = true;
+  save();
+}
+
 function getHouseLeagueRoster(league) {
   return _data.hl_players.filter(function (p) { return p.league === league; })
     .sort(function (a, b) { return a.name.localeCompare(b.name); });
