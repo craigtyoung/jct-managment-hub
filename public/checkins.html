@@ -123,6 +123,13 @@
     .cal-block{position:absolute;border-radius:7px;padding:4px 6px;overflow:hidden;box-sizing:border-box;
       box-shadow:0 1px 3px rgba(12,23,56,0.12);border-left:3px solid var(--blue);background:rgba(44,92,156,0.10);}
     .cal-block.is-doubles{border-left-color:#7c3aed;background:rgba(124,58,237,0.10);}
+    /* Lessons green, matching how the bookings sheet marks them */
+    .cal-block.is-lesson{border-left-color:var(--green);background:rgba(22,163,74,0.12);}
+    .cal-lesson{display:flex;gap:3px;margin-top:3px;}
+    .cal-pro,.cal-len{font-family:inherit;font-size:9.5px;font-weight:700;padding:1px 3px;border-radius:4px;
+      border:1px solid rgba(22,163,74,0.35);background:rgba(255,255,255,0.8);color:#15803d;cursor:pointer;min-width:0;}
+    .cal-pro{flex:1;}
+    .cal-len{flex:0 0 auto;}
     .cal-block.is-guest{border-left-color:var(--green);background:rgba(22,163,74,0.10);}
     .cal-kind{font-size:10px;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:var(--text);display:flex;align-items:baseline;gap:5px;}
     .cal-range{font-size:9px;font-weight:600;color:var(--text-2);text-transform:none;letter-spacing:0;}
@@ -311,6 +318,7 @@
       document.getElementById('nav-name').textContent = me.name;
       document.getElementById('nav-role').textContent = me.role;
 
+      await loadPros();
       const mr = await fetch('/api/members');
       if (mr.ok) allMembers = await mr.json();
 
@@ -426,6 +434,7 @@
     const CAL_START = 360, CAL_END = 1380, CAL_STEP = 30, CAL_ROWH = 42;
     const CAL_ROWS = (CAL_END - CAL_START) / CAL_STEP;
     const SLOT_MIN = 30, SINGLES_MIN = 60, DOUBLES_MIN = 90;
+    let PRO_LIST = [];
 
     function hmToMin(t) { const p = String(t || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
     function minToLabel(m) {
@@ -445,10 +454,15 @@
       return Object.keys(bySlot).map(Number).sort((a, b) => a - b).map(slot => {
         const players = bySlot[slot];
         const doubles = players.length >= 3;
+        // One player on a court is a private lesson — GameTime shows these as
+        // 30-minute blocks with the instructor named, an hour lesson being two
+        // of them. Length is whatever the desk recorded, defaulting to an hour.
+        const lesson = players.length === 1;
+        const dur = lesson ? (players[0].lesson_min || SINGLES_MIN)
+                  : (doubles ? DOUBLES_MIN : SINGLES_MIN);
         return {
-          slot, players, doubles,
-          dur: doubles ? DOUBLES_MIN : SINGLES_MIN,
-          kind: players.length === 1 ? '1 player' : (doubles ? 'Doubles' : 'Singles'),
+          slot, players, doubles, lesson, dur,
+          kind: lesson ? 'Lesson' : (doubles ? 'Doubles' : 'Singles'),
         };
       });
     }
@@ -492,7 +506,6 @@
           const top = Math.max(0, (b.slot - CAL_START) / CAL_STEP * CAL_ROWH);
           const hgt = Math.max(24, (Math.min(b.end, CAL_END) - Math.max(b.slot, CAL_START)) / CAL_STEP * CAL_ROWH - 3);
           const w = 100 / lanes, left = b.lane * w;
-          const allGuests = b.players.every(p => p.guest);
           const names = b.players.map(p => {
             const nm = p.member_name || '—';
             const tag = p.guest ? '<span class="cal-g">G</span>' : '';
@@ -500,11 +513,26 @@
               `<button class="cal-x" onclick="assignCourt(${p.id}, '')" title="Take ${esc(nm)} off this court">✕</button></div>`;
           }).join('');
           const range = minToLabel(b.slot) + '–' + minToLabel(b.end);
-          blocks += `<div class="cal-block${allGuests ? ' is-guest' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
+
+          // Lessons carry a pro and a length; everything else is just the players.
+          let extra = '';
+          if (b.lesson) {
+            const p = b.players[0];
+            const mins = p.lesson_min || SINGLES_MIN;
+            const proOpts = ['<option value="">Add pro…</option>'].concat(
+              PRO_LIST.map(n => `<option value="${esc(n)}"${p.lesson_pro === n ? ' selected' : ''}>${esc(n)}</option>`)).join('');
+            const minOpts = [30, 60, 90].map(m => `<option value="${m}"${mins === m ? ' selected' : ''}>${m}m</option>`).join('');
+            extra = `<div class="cal-lesson">` +
+              `<select class="cal-pro" onchange="setLesson(${p.id}, this.value, this.parentNode.querySelector('.cal-len').value)">${proOpts}</select>` +
+              `<select class="cal-len" onchange="setLesson(${p.id}, this.parentNode.querySelector('.cal-pro').value, this.value)">${minOpts}</select>` +
+            `</div>`;
+          }
+
+          blocks += `<div class="cal-block${b.lesson ? ' is-lesson' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
             `style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
-            `title="${b.kind} · ${range} · ${b.players.length} on court">` +
+            `title="${b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
             `<div class="cal-kind">${b.kind}<span class="cal-range">${range}</span></div>` +
-            `<div class="cal-players">${names}</div>` +
+            `<div class="cal-players">${names}</div>${extra}` +
           `</div>`;
         });
 
@@ -519,13 +547,30 @@
         '<div class="cal-legend">' +
           '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Singles · 60 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(124,58,237,0.6)"></span>Doubles · 90 min</span>' +
-          '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>All guests</span>' +
+          '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Lesson</span>' +
           '<span class="lg"><span class="sw" style="background:#dc2626;height:2px;border-radius:0"></span>Now</span>' +
           '<span style="margin-left:auto">Inferred from sign-ins, snapped to the half hour</span>' +
         '</div>';
 
       const wrap = document.getElementById('calwrap');
       if (wrap && showNow) wrap.scrollTop = Math.max(0, nowTop - 120);
+    }
+
+    async function loadPros() {
+      try {
+        const r = await fetch('/api/checkin/pros');
+        if (r.ok) PRO_LIST = (await r.json()).map(p => p.name);
+      } catch (e) {}
+    }
+
+    async function setLesson(id, pro, minutes) {
+      try {
+        await fetch('/api/checkin/' + id + '/lesson', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pro: pro || '', minutes: minutes || 60 }),
+        });
+        loadCourtBoard();
+      } catch (e) {}
     }
 
     async function assignCourt(id, court) {

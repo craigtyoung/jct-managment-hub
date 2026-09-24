@@ -4483,6 +4483,20 @@ function setCheckinCourt(id, court) {
   log.court = c;
   save(); return true;
 }
+// A lone player on a court is a private lesson. The desk records which pro taught
+// it and how long it ran; GameTime bills an hour lesson as two 30-minute bookings,
+// so length matters and can't be inferred from a single sign-in.
+function setCheckinLesson(id, proName, lessonMin) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  const name = String(proName == null ? '' : proName).trim();
+  if (!name) { delete log.lesson_pro; delete log.lesson_min; save(); return true; }
+  const mins = parseInt(lessonMin);
+  log.lesson_pro = name;
+  log.lesson_min = [30, 60, 90].includes(mins) ? mins : 60;
+  save(); return true;
+}
+
 // Staff-logged guest sign-in — no member record, just a name + which member hosted them.
 // Reuses checkin_logs (member_id stays null) so it shows up in the same feed/log.
 function addGuestCheckinLog({ guestName, hostMemberId, court }) {
@@ -5186,6 +5200,7 @@ module.exports = {
   addCheckinLog,
   addGuestCheckinLog,
   setCheckinCourt,
+  setCheckinLesson,
   todayLocal: () => nowLocal().slice(0, 10),
   getCheckinLogsByDate,
   getMemberCheckinToday,

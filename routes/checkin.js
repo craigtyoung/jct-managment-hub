@@ -108,4 +108,25 @@ router.patch('/:id/court', (req, res) => {
   res.json({ ok: true });
 });
 
+// PATCH /:id/lesson — name the pro on a private lesson (and how long it ran).
+// Blank pro clears it back to a regular booking.
+router.patch('/:id/lesson', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  const ok = db.setCheckinLesson(req.params.id, req.body.pro, req.body.minutes);
+  if (!ok) return res.status(404).json({ error: 'Check-in not found' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// GET /pros — teaching pros + coaching managers, for the lesson picker
+router.get('/pros', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  res.json(db.getAllStaff()
+    .filter(s => ['pro', 'manager'].includes(s.role))
+    .map(s => ({ id: s.id, name: s.name }))
+    .sort((a, b) => a.name.localeCompare(b.name)));
+});
+
 module.exports = router;
