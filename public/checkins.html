@@ -102,18 +102,35 @@
     .guest-tag{font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;}
     .assign-select{font-family:inherit;font-size:12px;font-weight:600;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--canvas);color:var(--text-2);}
 
-    .court-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-    @media(max-width:760px){.court-grid{grid-template-columns:repeat(2,1fr);}}
-    .court-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;min-height:120px;}
-    .court-card.occupied{border-color:rgba(22,163,74,0.35);background:rgba(22,163,74,0.03);}
-    .court-title{font-size:13px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-    .court-open{font-size:11px;font-weight:700;color:var(--text-3);text-transform:none;letter-spacing:0;}
-    .occupant-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--border);}
-    .occupant-row:first-of-type{border-top:none;}
-    .occupant-name{font-size:13px;font-weight:600;}
-    .occupant-time{font-size:10px;color:var(--text-3);}
-    .clear-btn{background:none;border:none;font-size:11px;color:var(--text-3);cursor:pointer;padding:2px 4px;}
-    .clear-btn:hover{color:var(--red);}
+    /* Court board — same grid language as the weekly Court Schedule (pro-schedule.html):
+       6am-11pm time gutter, one navy-headed column per court. Here the blocks are
+       live check-ins rather than scheduled classes, and there's a NOW line. */
+    .calwrap{overflow-x:auto;overflow-y:auto;max-height:70vh;border:1px solid var(--border);border-radius:14px;background:var(--surface);}
+    .calgrid{display:flex;min-width:660px;}
+    .cal-gutter{flex:0 0 52px;position:sticky;left:0;background:var(--surface);z-index:7;}
+    .cal-gutter .cal-spacer{height:34px;position:sticky;top:0;background:var(--surface);z-index:8;}
+    .cal-gutter .cal-hour{height:84px;font-size:11px;font-weight:700;color:var(--text-3);text-align:right;padding-right:8px;box-sizing:border-box;}
+    .cal-gutter .cal-hour span{display:block;transform:translateY(-8px);}
+    .cal-col{flex:1 1 0;min-width:98px;border-left:1px solid var(--border);}
+    .cal-colhead{height:34px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:#fff;background:var(--navy);position:sticky;top:0;z-index:6;}
+    .cal-colhead .ch-count{font-size:10px;font-weight:800;background:rgba(255,255,255,0.22);border-radius:100px;padding:1px 6px;}
+    .cal-col.occupied .cal-colhead{background:#15803d;}
+    .cal-body{position:relative;
+      background-image:
+        repeating-linear-gradient(to bottom, transparent 0, transparent 83px, #d4dae6 83px, #d4dae6 84px),
+        repeating-linear-gradient(to bottom, transparent 0, transparent 41px, var(--border) 41px, var(--border) 42px);
+    }
+    .cal-block{position:absolute;border-radius:7px;padding:4px 7px;overflow:hidden;box-sizing:border-box;
+      box-shadow:0 1px 3px rgba(12,23,56,0.12);border-left:3px solid var(--blue);background:rgba(44,92,156,0.10);}
+    .cal-block.is-guest{border-left-color:var(--green);background:rgba(22,163,74,0.10);}
+    .cal-name{font-size:11.5px;font-weight:700;line-height:1.15;color:var(--text);}
+    .cal-meta{font-size:9.5px;color:var(--text-2);margin-top:1px;}
+    .cal-del{position:absolute;top:2px;right:3px;background:rgba(255,255,255,0.65);border:none;color:#dc2626;cursor:pointer;font-size:10px;line-height:1;border-radius:4px;padding:1px 3px;}
+    .cal-now{position:absolute;left:0;right:0;height:2px;background:#dc2626;z-index:5;pointer-events:none;}
+    .cal-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#dc2626;}
+    .cal-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text-3);}
+    .cal-legend .lg{display:inline-flex;align-items:center;gap:5px;}
+    .cal-legend .sw{width:11px;height:11px;border-radius:3px;}
 
     /* Guest modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;}
@@ -220,7 +237,7 @@
         <div class="card-title">Checked in, no court yet</div>
         <div id="waiting-list"></div>
       </div>
-      <div class="court-grid" id="court-grid"></div>
+      <div id="court-grid"></div>
     </div>
   </main>
 
@@ -385,30 +402,87 @@
           waitCard.style.display = 'none';
         }
 
-        const byCourt = {};
-        logs.forEach(l => { if (l.court && !l.duplicate) { (byCourt[l.court] = byCourt[l.court] || []).push(l); } });
-
-        const grid = document.getElementById('court-grid');
-        grid.innerHTML = [1,2,3,4,5,6].map(n => {
-          const occupants = byCourt[n] || [];
-          const rows = occupants.map(l => {
-            const name = l.member_name || '—';
-            const guestTag = l.guest ? '<span class="guest-tag">GUEST</span>' : '';
-            const time = fmtTime12(l.time);
-            return `<div class="occupant-row">
-              <div><span class="occupant-name">${esc(name)}</span>${guestTag}</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="occupant-time">${time}</span>
-                <button class="clear-btn" onclick="assignCourt(${l.id}, '')" title="Remove from this court">✕</button>
-              </div>
-            </div>`;
-          }).join('');
-          return `<div class="court-card ${occupants.length ? 'occupied' : ''}">
-            <div class="court-title">Court ${n} ${occupants.length ? '' : '<span class="court-open">Open</span>'}</div>
-            ${rows}
-          </div>`;
-        }).join('');
+        renderCourtGrid(logs);
       } catch (e) {}
+    }
+
+    // ── Court board: the weekly Court Schedule's grid, showing live check-ins ──
+    // A check-in is a moment, not a booking, so each one draws as a standard
+    // COURT_BLOCK_MIN block from when they signed in. It reads as "who is on
+    // this court and roughly until when", not as a confirmed reservation.
+    const CAL_START = 360, CAL_END = 1380, CAL_STEP = 30, CAL_ROWH = 42;
+    const CAL_ROWS = (CAL_END - CAL_START) / CAL_STEP;
+    const COURT_BLOCK_MIN = 60;
+
+    function hmToMin(t) { const p = String(t || '').split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
+
+    function renderCourtGrid(logs) {
+      const grid = document.getElementById('court-grid');
+      if (!grid) return;
+      const COURTS = [1, 2, 3, 4, 5, 6];
+      const live = (logs || []).filter(l => !l.duplicate);
+      const bodyH = CAL_ROWS * CAL_ROWH;
+
+      let gutter = '<div class="cal-gutter"><div class="cal-spacer"></div>';
+      for (let h = 6; h < 23; h++) {
+        const lab = h < 12 ? h + ' AM' : (h === 12 ? '12 PM' : (h - 12) + ' PM');
+        gutter += `<div class="cal-hour"><span>${lab}</span></div>`;
+      }
+      gutter += '</div>';
+
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const showNow = nowMin >= CAL_START && nowMin <= CAL_END;
+      const nowTop = (nowMin - CAL_START) / CAL_STEP * CAL_ROWH;
+
+      let cols = '';
+      COURTS.forEach(c => {
+        const items = live.filter(l => Number(l.court) === c)
+          .map(l => ({ l, a: hmToMin(l.time) }))
+          .sort((x, y) => x.a - y.a);
+
+        // Side-by-side lanes when people overlap on the same court.
+        const laneEnd = [];
+        items.forEach(it => {
+          it.b = it.a + COURT_BLOCK_MIN;
+          let lane = 0;
+          while (lane < laneEnd.length && laneEnd[lane] > it.a) lane++;
+          it.lane = lane; laneEnd[lane] = it.b;
+        });
+        const lanes = Math.max(1, laneEnd.length);
+
+        let blocks = '';
+        items.forEach(it => {
+          const l = it.l;
+          const top = Math.max(0, (it.a - CAL_START) / CAL_STEP * CAL_ROWH);
+          const hgt = Math.max(20, (Math.min(it.b, CAL_END) - Math.max(it.a, CAL_START)) / CAL_STEP * CAL_ROWH - 3);
+          const w = 100 / lanes, left = it.lane * w;
+          const name = l.member_name || '—';
+          const meta = l.guest ? (l.host_name ? 'Guest of ' + esc(l.host_name) : 'Guest') : esc(l.club_number || '');
+          blocks += `<div class="cal-block${l.guest ? ' is-guest' : ''}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" title="${esc(name)} · signed in ${fmtTime12(l.time)}">` +
+            `<button class="cal-del" onclick="assignCourt(${l.id}, '')" title="Take off this court">✕</button>` +
+            `<div class="cal-name">${esc(name)}</div>` +
+            `<div class="cal-meta">${fmtTime12(l.time)}${meta ? ' · ' + meta : ''}</div>` +
+          `</div>`;
+        });
+
+        const nowLine = showNow ? `<div class="cal-now" style="top:${nowTop}px"></div>` : '';
+        const badge = items.length ? `<span class="ch-count">${items.length}</span>` : '';
+        cols += `<div class="cal-col${items.length ? ' occupied' : ''}"><div class="cal-colhead">Court ${c}${badge}</div>` +
+          `<div class="cal-body" style="height:${bodyH}px">${nowLine}${blocks}</div></div>`;
+      });
+
+      grid.innerHTML = `<div class="calwrap" id="calwrap"><div class="calgrid">${gutter}${cols}</div></div>` +
+        '<div class="cal-legend">' +
+          '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Member</span>' +
+          '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Guest</span>' +
+          '<span class="lg"><span class="sw" style="background:#dc2626;height:2px;border-radius:0"></span>Now</span>' +
+          '<span style="margin-left:auto">Blocks run ' + COURT_BLOCK_MIN + ' min from sign-in</span>' +
+        '</div>';
+
+      // Land on the current hour rather than 6am.
+      const wrap = document.getElementById('calwrap');
+      if (wrap && showNow) wrap.scrollTop = Math.max(0, nowTop - 120);
     }
 
     async function assignCourt(id, court) {
