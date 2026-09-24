@@ -4738,6 +4738,59 @@ if (!_data._migrations.houseLeagueImport2026) {
   save();
 }
 
+// One-time import of Lily's pre-built match lineups (data/house-league-seed/
+// {whl,mhl}-pairings.json, exported from her WHL/MHL 2026/2027 Google Sheets
+// 2026-09-24). Matches weeks by label and players by name within each league;
+// a handful of sheet-name typos were corrected in the JSON at export time, and
+// Maria Kong (WHL) — consistently spelled across 5 appearances but absent from
+// the roster — is added as a new active player rather than dropped. Idempotent
+// via the migration flag.
+if (!_data._migrations.houseLeaguePairingsImport2026) {
+  try {
+    HL_LEAGUES.forEach(function (league) {
+      var file = path.join(__dirname, 'data', 'house-league-seed', league.toLowerCase() + '-pairings.json');
+      if (!fs.existsSync(file)) return;
+      var byWeek = JSON.parse(fs.readFileSync(file, 'utf8'));
+
+      var weeks = _data.hl_weeks.filter(function (w) { return w.league === league; });
+      var weekIdByLabel = {};
+      weeks.forEach(function (w) { weekIdByLabel[hlNorm(w.label)] = w.id; });
+
+      var players = _data.hl_players.filter(function (p) { return p.league === league; });
+      var playerIdByName = {};
+      players.forEach(function (p) { playerIdByName[hlNorm(p.name)] = p.id; });
+
+      function playerId(name) {
+        var key = hlNorm(name);
+        if (playerIdByName[key] != null) return playerIdByName[key];
+        // New player found in the lineup sheet but not in the seeded roster — add them.
+        var id = nextId('hl_players');
+        _data.hl_players.push({ id: id, league: league, name: String(name).trim(), rating: '', email: '', phone: '', active: true });
+        playerIdByName[key] = id;
+        return id;
+      }
+
+      Object.keys(byWeek).forEach(function (label) {
+        var weekId = weekIdByLabel[hlNorm(label)];
+        if (weekId == null) { console.warn('House League pairings import: no ' + league + ' week matches "' + label + '" — skipped'); return; }
+        byWeek[label].forEach(function (c) {
+          _data.hl_pairings.push({
+            id: nextId('hl_pairings'), league: league, week_id: weekId, court: c.court,
+            team1: c.team1.map(playerId), team2: c.team2.map(playerId),
+            score1: null, score2: null,
+          });
+        });
+      });
+    });
+    save();
+    console.log('House League pairings import:', _data.hl_pairings.length, 'total pairings.');
+  } catch (e) {
+    console.error('House League pairings import failed:', e.message);
+  }
+  _data._migrations.houseLeaguePairingsImport2026 = true;
+  save();
+}
+
 function getHouseLeagueRoster(league) {
   return _data.hl_players.filter(function (p) { return p.league === league; })
     .sort(function (a, b) { return a.name.localeCompare(b.name); });

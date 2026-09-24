@@ -1,0 +1,1430 @@
+{
+  "Dec 14": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Ron Sun",
+        "Harsh Singh"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Nav Jadon"
+      ],
+      "team2": [
+        "James Hall",
+        "Lucas Assuncao"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Richard Liu",
+        "Graham Stewart"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Qasim Ali"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Suvadeep Mitra",
+        "Stephen Fung"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "Rahul Kumar"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Oral Gurel",
+        "Sandeep Singh"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Maged Kozman"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Sharjeel Farooqui"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "Mike Rakic"
+      ]
+    }
+  ],
+  "Dec 7": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Sarosh Bhumgara"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Nav Jadon"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Maged Kozman",
+        "Ankit Jain"
+      ],
+      "team2": [
+        "Oral Gurel",
+        "Sorin Cret"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Qasim Ali",
+        "James Hall"
+      ],
+      "team2": [
+        "Sharjeel Farooqui",
+        "Pawan Bhatla"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Alex Romanchenko",
+        "Gary Woods"
+      ],
+      "team2": [
+        "William Nguyen",
+        "Richard Liu"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Graham Stewart",
+        "Harsh Singh"
+      ],
+      "team2": [
+        "Ron Sun",
+        "Yuhong Zhou"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Mike Rakic"
+      ]
+    }
+  ],
+  "Feb 1": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Ron Sun"
+      ],
+      "team2": [
+        "Oral Gurel",
+        "Qasim Ali"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "Sorin Cret"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Nav Jadon",
+        "Peter Donato"
+      ],
+      "team2": [
+        "Yuhong Zhou",
+        "Sandeep Singh"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Stephen Fung",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Sharjeel Farooqui",
+        "Wayne Kole"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Vitali Tarnovski",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "Pawan Bhatla"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Maged Kozman",
+        "William Nguyen"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Mike Rakic"
+      ]
+    }
+  ],
+  "Feb 22": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Qasim Ali"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "James Hall",
+        "Pawan Bhatla"
+      ],
+      "team2": [
+        "Mike Rakic",
+        "Peter Donato"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Ankit Jain",
+        "Oral Gurel"
+      ],
+      "team2": [
+        "Wayne Kole",
+        "William Nguyen"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Maged Kozman",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Graham Stewart"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Vitali Tarnovski",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Lucas Assuncao",
+        "Harsh Singh"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "Jonathan Lajoie",
+        "Suvadeep Mitra"
+      ]
+    }
+  ],
+  "Feb 8": [
+    {
+      "court": 1,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Suvadeep Mitra",
+        "Ankit Jain"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Vitali Tarnovski"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Richard Liu",
+        "Frank Santosuosso"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Harsh Singh"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Stephen Fung",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Jonathan Lajoie",
+        "Ron Sun"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Lucas Assuncao",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "Gary Woods",
+        "Sharjeel Farooqui"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "William Nguyen",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Sandeep Singh"
+      ]
+    }
+  ],
+  "Jan 11": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Peter Donato"
+      ],
+      "team2": [
+        "Wayne Kole",
+        "Suvadeep Mitra"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Harsh Singh",
+        "Mike Rakic"
+      ],
+      "team2": [
+        "William Nguyen",
+        "Sarosh Bhumgara"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Ankit Jain",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Greg Bedard"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Maged Kozman",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Sharjeel Farooqui"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Gary Woods",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "Sandeep Singh",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Jonathan Lajoie",
+        "Frank Santosuosso"
+      ]
+    }
+  ],
+  "Jan 18": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Richard Liu",
+        "Pawan Bhatla"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Nav Jadon",
+        "Qasim Ali"
+      ],
+      "team2": [
+        "Lucas Assuncao",
+        "Ron Sun"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "James Hall",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Harsh Singh",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "Maged Kozman",
+        "Oral Gurel"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Ankit Jain",
+        "Peter Donato"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "William Nguyen"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Mike Rakic"
+      ],
+      "team2": [
+        "Yuhong Zhou",
+        "Rahul Kumar"
+      ]
+    }
+  ],
+  "Jan 25": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Ankit Jain"
+      ],
+      "team2": [
+        "Gary Woods",
+        "Vitali Tarnovski"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Harsh Singh"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Graham Stewart"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Alex Romanchenko",
+        "James Hall"
+      ],
+      "team2": [
+        "Ron Sun",
+        "Oral Gurel"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Qasim Ali",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Mike Rakic",
+        "Maged Kozman"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Sharjeel Farooqui",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Suvadeep Mitra"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Rahul Kumar"
+      ],
+      "team2": [
+        "Stephen Fung",
+        "Sandeep Singh"
+      ]
+    }
+  ],
+  "Jan 4": [
+    {
+      "court": 1,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Qasim Ali"
+      ],
+      "team2": [
+        "Alex Romanchenko",
+        "Suvadeep Mitra"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Ankit Jain",
+        "Nav Jadon"
+      ],
+      "team2": [
+        "Richard Liu",
+        "Ron Sun"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Sharjeel Farooqui",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "Gary Woods",
+        "William Nguyen"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Yuhong Zhou",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Wayne Kole"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Pawan Bhatla",
+        "Oral Gurel"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Lucas Assuncao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "Frank Santosuosso"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Sandeep Singh"
+      ]
+    }
+  ],
+  "Mar 1": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Ankit Jain"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "Rahul Kumar"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "James Hall",
+        "Oral Gurel"
+      ],
+      "team2": [
+        "Mike Rakic",
+        "Frank Santosuosso"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Maged Kozman"
+      ],
+      "team2": [
+        "Ron Sun",
+        "Peter Donato"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Harsh Singh",
+        "Pawan Bhatla"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Graham Stewart",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Qasim Ali",
+        "Sandeep Singh"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Sharjeel Farooqui",
+        "Richard Liu"
+      ]
+    }
+  ],
+  "Mar 22": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Oral Gurel",
+        "Yuhong Zhou"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Ankit Jain"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Qasim Ali"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Harsh Singh",
+        "William Nguyen"
+      ],
+      "team2": [
+        "Sorin Cret",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Pawan Bhatla",
+        "Gary Woods"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Richard Liu"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Vitali Tarnovski",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Sandeep Singh",
+        "Jonathan Lajoie"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Ron Sun",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Stephen Fung",
+        "Sharjeel Farooqui"
+      ]
+    }
+  ],
+  "Mar 29": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Harsh Singh"
+      ],
+      "team2": [
+        "Maged Kozman",
+        "Nav Jadon"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Greg Bedard",
+        "Sarosh Bhumgara"
+      ],
+      "team2": [
+        "Gary Woods",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Mike Rakic",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Ankit Jain"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "William Nguyen",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "Suvadeep Mitra",
+        "Stephen Fung"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Sorin Cret",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Alex Romanchenko"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Sharjeel Farooqui",
+        "Jonathan Lajoie"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "Vitali Tarnovski"
+      ]
+    }
+  ],
+  "Mar 8": [
+    {
+      "court": 1,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Qasim Ali"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Sandeep Singh"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Yuhong Zhou",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "Oral Gurel",
+        "Frank Santosuosso"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Peter Donato",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Ron Sun",
+        "Sorin Cret"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "William Nguyen",
+        "Mike Rakic"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Stephen Fung"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Sharjeel Farooqui",
+        "Rahul Kumar"
+      ],
+      "team2": [
+        "Alex Romanchenko",
+        "Lucas Assuncao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Richard Liu",
+        "Maged Kozman"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Wayne Kole"
+      ]
+    }
+  ],
+  "Nov 16": [
+    {
+      "court": 1,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Oral Gurel"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Ankit Jain",
+        "Sharjeel Farooqui"
+      ],
+      "team2": [
+        "Wayne Kole",
+        "Frank Santosuosso"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Qasim Ali",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "Peter Donato"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Maged Kozman",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Ron Sun"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "William Nguyen",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Rahul Kumar",
+        "Stephen Fung"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Alex Romanchenko",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Mike Rakic",
+        "Nav Jadon"
+      ]
+    }
+  ],
+  "Nov 2": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Maged Kozman"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Rahul Kumar",
+        "Alex Romanchenko"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Ankit Jain"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Qasim Ali",
+        "Sarosh Bhumgara"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Oral Gurel"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Sharjeel Farooqui",
+        "Graham Stewart"
+      ],
+      "team2": [
+        "Wayne Kole",
+        "Mike Rakic"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Richard Liu",
+        "Sorin Cret"
+      ],
+      "team2": [
+        "Harsh Singh",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Yuhong Zhou"
+      ],
+      "team2": [
+        "William Nguyen",
+        "Ron Sun"
+      ]
+    }
+  ],
+  "Nov 23": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "James Hall"
+      ],
+      "team2": [
+        "Sarosh Bhumgara",
+        "Peter Donato"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Lucas Assuncao",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Alex Romanchenko",
+        "Ankit Jain"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Harsh Singh",
+        "Sharjeel Farooqui"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Yuhong Zhou"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "William Nguyen",
+        "Jonathan Lajoie"
+      ],
+      "team2": [
+        "Richard Liu",
+        "Suvadeep Mitra"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Rahul Kumar",
+        "Graham Stewart"
+      ],
+      "team2": [
+        "Gary Woods",
+        "Sorin Cret"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "Ron Sun"
+      ],
+      "team2": [
+        "Greg Bedard",
+        "Frank Santosuosso"
+      ]
+    }
+  ],
+  "Nov 30": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Mike Rakic"
+      ],
+      "team2": [
+        "Ankit Jain",
+        "Yuhong Zhou"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Qasim Ali",
+        "Oral Gurel"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Alex Romanchenko",
+        "Frank Santosuosso"
+      ],
+      "team2": [
+        "Maged Kozman",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Wayne Kole",
+        "Pawan Bhatla"
+      ],
+      "team2": [
+        "Nav Jadon",
+        "Harsh Singh"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Vitali Tarnovski",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Lucas Assuncao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "William Nguyen"
+      ],
+      "team2": [
+        "Jonathan Lajoie",
+        "Greg Bedard"
+      ]
+    }
+  ],
+  "Nov 9": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Oral Gurel"
+      ],
+      "team2": [
+        "Harsh Singh",
+        "Qasim Ali"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Greg Bedard",
+        "Nav Jadon"
+      ],
+      "team2": [
+        "Suvadeep Mitra",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Ron Sun",
+        "Pawan Bhatla"
+      ],
+      "team2": [
+        "Sarosh Bhumgara",
+        "Gary Woods"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Frank Santosuosso",
+        "Graham Stewart"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Maged Kozman"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Lucas Assuncao",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Mike Rakic",
+        "Sorin Cret"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Rahul Kumar"
+      ],
+      "team2": [
+        "Stephen Fung",
+        "Sharjeel Farooqui"
+      ]
+    }
+  ],
+  "Oct 19": [
+    {
+      "court": 1,
+      "team1": [
+        "Sarosh Bhumgara",
+        "Ron Sun"
+      ],
+      "team2": [
+        "Sharjeel Farooqui",
+        "Sandeep Singh"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Rahul Kumar",
+        "Vitali Tarnovski"
+      ],
+      "team2": [
+        "Peter Donato",
+        "James Hall"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Lucas Assuncao",
+        "Frank Santosuosso"
+      ],
+      "team2": [
+        "Sorin Cret",
+        "William Nguyen"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Wayne Kole",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "Graham Stewart",
+        "Alex Romanchenko"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Suvadeep Mitra",
+        "Gary Woods"
+      ],
+      "team2": [
+        "Harsh Singh",
+        "Ankit Jain"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Jonathan Lajoie",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Stephen Fung",
+        "Yuhong Zhou"
+      ]
+    }
+  ],
+  "Oct 26": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Graham Stewart"
+      ],
+      "team2": [
+        "Pawan Bhatla",
+        "Harsh Singh"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Qasim Ali",
+        "Maged Kozman"
+      ],
+      "team2": [
+        "James Hall",
+        "Ankit Jain"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Lucas Assuncao",
+        "Greg Bedard"
+      ],
+      "team2": [
+        "William Nguyen",
+        "Peter Donato"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Oral Gurel",
+        "Suvadeep Mitra"
+      ],
+      "team2": [
+        "Yuhong Zhou",
+        "Alex Romanchenko"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Nav Jadon",
+        "Frank Santosuosso"
+      ],
+      "team2": [
+        "Gary Woods",
+        "Mike Rakic"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Stephen Fung",
+        "Wayne Kole"
+      ],
+      "team2": [
+        "Jonathan Lajoie",
+        "Vitali Tarnovski"
+      ]
+    }
+  ],
+  "Oct 5": [
+    {
+      "court": 1,
+      "team1": [
+        "Keith Larson",
+        "Sharjeel Farooqui"
+      ],
+      "team2": [
+        "Peter Donato",
+        "Sarosh Bhumgara"
+      ]
+    },
+    {
+      "court": 2,
+      "team1": [
+        "Nav Jadon",
+        "William Nguyen"
+      ],
+      "team2": [
+        "Vitali Tarnovski",
+        "Qasim Ali"
+      ]
+    },
+    {
+      "court": 3,
+      "team1": [
+        "Ron Sun",
+        "Rahul Kumar"
+      ],
+      "team2": [
+        "Wayne Kole",
+        "Oral Gurel"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Stephen Fung",
+        "Mike Rakic"
+      ],
+      "team2": [
+        "Suvadeep Mitra",
+        "Sandeep Singh"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Greg Bedard",
+        "Richard Liu"
+      ],
+      "team2": [
+        "Frank Santosuosso",
+        "Pawan Bhatla"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Maged Kozman",
+        "Lucas Assuncao"
+      ],
+      "team2": [
+        "Sorin Cret",
+        "Yuhong Zhou"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,554 @@
+{
+  "Dec 16": [
+    {
+      "court": 3,
+      "team1": [
+        "Samantha Yau",
+        "Gloria Vopni"
+      ],
+      "team2": [
+        "Julie Wong",
+        "Jennifer Noddle"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Ivy Liu",
+        "Maria Kong"
+      ],
+      "team2": [
+        "Hannah Mahr",
+        "Dianna Pasic"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Karen Lepine",
+        "Joanna McCarthy"
+      ],
+      "team2": [
+        "Jingbin Zhang",
+        "Maggie Duan"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Olivia Xiao",
+        "Marinela Gagu"
+      ],
+      "team2": [
+        "Lisa Lussier",
+        "Diana Vienneau"
+      ]
+    }
+  ],
+  "Dec 2": [
+    {
+      "court": 3,
+      "team1": [
+        "Xu Yang",
+        "Joanna McCarthy"
+      ],
+      "team2": [
+        "Karen Lepine",
+        "Olivia Xiao"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Ivy Liu",
+        "Jennifer Noddle"
+      ],
+      "team2": [
+        "Maria Kong",
+        "Julie Wong"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Zurina Jones",
+        "Tatiana Tarnovskaya"
+      ],
+      "team2": [
+        "Marinela Gagu",
+        "Maggie Duan"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Suzanne Purser",
+        "Samantha Yau"
+      ],
+      "team2": [
+        "Jingbin Zhang",
+        "Lisa Lussier"
+      ]
+    }
+  ],
+  "Dec 9": [
+    {
+      "court": 3,
+      "team1": [
+        "Hannah Mahr",
+        "Gloria Vopni"
+      ],
+      "team2": [
+        "Andrea Jones",
+        "Bonnie Jeffery"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Cheryl Campbell",
+        "Amanda Hassoun"
+      ],
+      "team2": [
+        "Catalina Ponce De Leon",
+        "Andrea Gruscyk"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Amy Chen",
+        "Dianna Pasic"
+      ],
+      "team2": [
+        "Xu Yang",
+        "Zurina Jones"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Cathy Prosser",
+        "Suzanne Purser"
+      ],
+      "team2": [
+        "Diana Vienneau",
+        "Tatiana Tarnovskaya"
+      ]
+    }
+  ],
+  "Jan 6": [
+    {
+      "court": 3,
+      "team1": [
+        "Joanna McCarthy",
+        "Maria Kong"
+      ],
+      "team2": [
+        "Xu Yang",
+        "Cheryl Campbell"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Suzanne Purser",
+        "Andrea Jones"
+      ],
+      "team2": [
+        "Zurina Jones",
+        "Maggie Duan"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Tatiana Tarnovskaya",
+        "Amy Chen"
+      ],
+      "team2": [
+        "Samantha Yau",
+        "Olivia Xiao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Andrea Gruscyk",
+        "Lisa Lussier"
+      ],
+      "team2": [
+        "Marinela Gagu",
+        "Amanda Hassoun"
+      ]
+    }
+  ],
+  "Nov 11": [
+    {
+      "court": 3,
+      "team1": [
+        "Dianna Pasic",
+        "Lisa Lussier"
+      ],
+      "team2": [
+        "Marinela Gagu",
+        "Diana Vienneau"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Hannah Mahr",
+        "Olivia Xiao"
+      ],
+      "team2": [
+        "Jennifer Noddle",
+        "Cathy Prosser"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Joanna McCarthy",
+        "Maria Kong"
+      ],
+      "team2": [
+        "Jingbin Zhang",
+        "Catalina Ponce De Leon"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Ivy Liu",
+        "Cheryl Campbell"
+      ],
+      "team2": [
+        "Gloria Vopni",
+        "Maggie Duan"
+      ]
+    }
+  ],
+  "Nov 18": [
+    {
+      "court": 3,
+      "team1": [
+        "Xu Yang",
+        "Maria Kong"
+      ],
+      "team2": [
+        "Bonnie Jeffery",
+        "Andrea Gruscyk"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Samantha Yau",
+        "Zurina Jones"
+      ],
+      "team2": [
+        "Andrea Jones",
+        "Lisa Lussier"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Marinela Gagu",
+        "Suzanne Purser"
+      ],
+      "team2": [
+        "Maggie Duan",
+        "Olivia Xiao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Julie Wong",
+        "Amy Chen"
+      ],
+      "team2": [
+        "Tatiana Tarnovskaya",
+        "Amanda Hassoun"
+      ]
+    }
+  ],
+  "Nov 25": [
+    {
+      "court": 3,
+      "team1": [
+        "Jennifer Noddle",
+        "Amy Chen"
+      ],
+      "team2": [
+        "Andrea Jones",
+        "Catalina Ponce De Leon"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Ivy Liu",
+        "Jingbin Zhang"
+      ],
+      "team2": [
+        "Hannah Mahr",
+        "Cathy Prosser"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Gloria Vopni",
+        "Joanna McCarthy"
+      ],
+      "team2": [
+        "Andrea Gruscyk",
+        "Dianna Pasic"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Bonnie Jeffery",
+        "Amanda Hassoun"
+      ],
+      "team2": [
+        "Cheryl Campbell",
+        "Diana Vienneau"
+      ]
+    }
+  ],
+  "Nov 4": [
+    {
+      "court": 3,
+      "team1": [
+        "Cheryl Campbell",
+        "Suzanne Purser"
+      ],
+      "team2": [
+        "Samantha Yau",
+        "Dianna Pasic"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Gloria Vopni",
+        "Xu Yang"
+      ],
+      "team2": [
+        "Amanda Hassoun",
+        "Hannah Mahr"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Tatiana Tarnovskaya",
+        "Andrea Jones"
+      ],
+      "team2": [
+        "Andrea Gruscyk",
+        "Diana Vienneau"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Catalina Ponce De Leon",
+        "Bonnie Jeffery"
+      ],
+      "team2": [
+        "Zurina Jones",
+        "Cathy Prosser"
+      ]
+    }
+  ],
+  "Oct 14": [
+    {
+      "court": 3,
+      "team1": [
+        "Diana Vienneau",
+        "Suzanne Purser"
+      ],
+      "team2": [
+        "Andrea Gruscyk",
+        "Zurina Jones"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Samantha Yau",
+        "Marinela Gagu"
+      ],
+      "team2": [
+        "Amanda Hassoun",
+        "Cathy Prosser"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Dianna Pasic",
+        "Bonnie Jeffery"
+      ],
+      "team2": [
+        "Tatiana Tarnovskaya",
+        "Olivia Xiao"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Gloria Vopni",
+        "Catalina Ponce De Leon"
+      ],
+      "team2": [
+        "Xu Yang",
+        "Andrea Jones"
+      ]
+    }
+  ],
+  "Oct 21": [
+    {
+      "court": 3,
+      "team1": [
+        "Maggie Duan",
+        "Julie Wong"
+      ],
+      "team2": [
+        "Diana Vienneau",
+        "Lisa Lussier"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Gloria Vopni",
+        "Cathy Prosser"
+      ],
+      "team2": [
+        "Joanna McCarthy",
+        "Jennifer Noddle"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Bonnie Jeffery",
+        "Ivy Liu"
+      ],
+      "team2": [
+        "Andrea Jones",
+        "Jingbin Zhang"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Catalina Ponce De Leon",
+        "Dianna Pasic"
+      ],
+      "team2": [
+        "Karen Lepine",
+        "Hannah Mahr"
+      ]
+    }
+  ],
+  "Oct 28": [
+    {
+      "court": 3,
+      "team1": [
+        "Marinela Gagu",
+        "Tatiana Tarnovskaya"
+      ],
+      "team2": [
+        "Lisa Lussier",
+        "Suzanne Purser"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Zurina Jones",
+        "Joanna McCarthy"
+      ],
+      "team2": [
+        "Xu Yang",
+        "Ivy Liu"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Amanda Hassoun",
+        "Jingbin Zhang"
+      ],
+      "team2": [
+        "Jennifer Noddle",
+        "Maggie Duan"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Karen Lepine",
+        "Samantha Yau"
+      ],
+      "team2": [
+        "Andrea Gruscyk",
+        "Olivia Xiao"
+      ]
+    }
+  ],
+  "Oct 7": [
+    {
+      "court": 3,
+      "team1": [
+        "Lisa Lussier",
+        "Marinela Gagu"
+      ],
+      "team2": [
+        "Suzanne Purser",
+        "Tatiana Tarnovskaya"
+      ]
+    },
+    {
+      "court": 4,
+      "team1": [
+        "Julie Wong",
+        "Zurina Jones"
+      ],
+      "team2": [
+        "Jingbin Zhang",
+        "Olivia Xiao"
+      ]
+    },
+    {
+      "court": 5,
+      "team1": [
+        "Samantha Yau",
+        "Maggie Duan"
+      ],
+      "team2": [
+        "Joanna McCarthy",
+        "Hannah Mahr"
+      ]
+    },
+    {
+      "court": 6,
+      "team1": [
+        "Karen Lepine",
+        "Ivy Liu"
+      ],
+      "team2": [
+        "Jennifer Noddle",
+        "Xu Yang"
+      ]
+    }
+  ]
+}
