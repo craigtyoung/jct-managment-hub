@@ -53,7 +53,7 @@ router.post('/', (req, res) => {
   if (!m || m.active === false) return res.status(404).json({ error: 'Member not found' });
   const { id, duplicate } = db.addCheckinLog({ memberId: m.id, method: method || 'pin' });
   try { sse.broadcast('checkin-update'); } catch (e) {}
-  res.json({ ok: true, duplicate, first_name: m.first_name, last_name: m.last_name, club_number: m.club_number });
+  res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name, club_number: m.club_number });
 });
 
 // GET /api/checkin/today — public count (for kiosk display)

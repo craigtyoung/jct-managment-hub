@@ -122,7 +122,7 @@
     }
     .cal-block{position:absolute;border-radius:7px;padding:4px 6px;overflow:hidden;box-sizing:border-box;
       box-shadow:0 1px 3px rgba(12,23,56,0.12);border-left:3px solid var(--blue);background:rgba(44,92,156,0.10);}
-    .cal-block.is-doubles{border-left-color:#7c3aed;background:rgba(124,58,237,0.10);}
+    .cal-block.is-long{border-left-color:#7c3aed;background:rgba(124,58,237,0.10);}
     /* Day navigation — the board isn't only ever today; staff reconcile
        yesterday and glance at what's coming. */
     .daynav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
@@ -182,6 +182,16 @@
     .bk-x{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;padding:1px 3px;line-height:1;}
     .bk-x:hover{color:var(--navy);}
     .bk-del:hover{color:#dc2626;}
+    .bk-add{flex-direction:column;align-items:stretch;gap:5px;}
+    .bk-in{font-family:inherit;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid #d6dde8;background:#fff;color:var(--navy);width:100%;}
+    .bk-in:focus{outline:none;border-color:var(--navy);}
+    .bk-hits{display:flex;flex-direction:column;gap:2px;}
+    .bk-hit{display:flex;justify-content:space-between;gap:8px;font-family:inherit;font-size:12px;text-align:left;
+      padding:4px 7px;border-radius:6px;border:1px solid #eef1f6;background:#f8fafc;color:var(--navy);cursor:pointer;}
+    .bk-hit:hover{border-color:var(--navy);background:rgba(44,92,156,0.07);}
+    .bk-hit span{color:#94a3b8;font-size:11px;font-variant-numeric:tabular-nums;}
+    .bk-guestrow{display:flex;gap:5px;align-items:center;}
+    .bk-guestrow .bk-in{flex:1;}
     /* The pencil that opens all this, sitting in the block header */
     .cal-edit{border:none;background:none;font-size:9.5px;color:inherit;opacity:0.45;cursor:pointer;padding:0 2px;line-height:1;}
     .cal-edit:hover{opacity:1;}
@@ -550,9 +560,11 @@
       });
       return Object.keys(bySlot).map(Number).sort((a, b) => a - b).map(slot => {
         const players = bySlot[slot];
-        // The desk can overrule the inference outright; if they have, use it.
-        const override = (players.find(p => p.bk_type) || {}).bk_type || '';
-        const doubles = override ? override === 'doubles' : players.length >= 3;
+        // The desk can set the length outright; if they have, that wins. The old
+        // singles/doubles wording still reads, so overrides saved under it hold.
+        let override = (players.find(p => p.bk_type) || {}).bk_type || '';
+        if (override === 'singles') override = 'min60';
+        if (override === 'doubles') override = 'min90';
         // Grace runs from the later of the slot start and the first sign-in, so
         // an early bird waits until just past the hour rather than from 7:20.
         const firstIn = Math.min.apply(null, players.map(p => hmToMin(p.time)));
@@ -565,14 +577,18 @@
           && BOARD_DATE === todayLocal()
           && nowMinutes() < settleAt;
         const lesson = override ? override === 'lesson' : (players.length === 1 && !settling);
-        // A settling block holds the court for the half hour it is known to need
-        // and no longer, so it never over-claims time it may not use.
+        // Four on a court play doubles and need 90 minutes; a pair needs 60. The
+        // count and the length say that already, so the block doesn't name it.
         const dur = settling ? SLOT_MIN
                   : lesson ? (players[0].lesson_min || SINGLES_MIN)
-                  : (doubles ? DOUBLES_MIN : SINGLES_MIN);
+                  : override === 'min60' ? SINGLES_MIN
+                  : override === 'min90' ? DOUBLES_MIN
+                  : (players.length >= 3 ? DOUBLES_MIN : SINGLES_MIN);
         return {
-          slot, court, players, doubles, lesson, settling, settleAt, key, dur, override,
-          kind: settling ? 'Waiting' : lesson ? 'Lesson' : (doubles ? 'Doubles' : 'Singles'),
+          slot, court, players, lesson, settling, settleAt, key, dur, override,
+          long: dur >= DOUBLES_MIN && !lesson,
+          kind: settling ? 'Waiting' : lesson ? 'Lesson'
+              : players.length + (players.length === 1 ? ' player' : ' players'),
         };
       });
     }
@@ -664,7 +680,7 @@
           }
 
           const ids = b.players.map(p => p.id).join('-');
-          blocks += `<div class="cal-block${b.settling ? ' is-settling' : ''}${b.lesson ? ' is-lesson' : ''}${b.doubles ? ' is-doubles' : ''}" ` +
+          blocks += `<div class="cal-block${b.settling ? ' is-settling' : ''}${b.lesson ? ' is-lesson' : ''}${b.long ? ' is-long' : ''}" ` +
             `draggable="true" data-ids="${ids}" ondragstart="blockDragStart(event,'${ids}')" ondragend="blockDragEnd(event)" ` +
             `style="top:${top}px;height:${hgt}px;--blkh:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
             `title="${b.settling ? 'Just signed in — waiting to see if this is a lesson or a game' : b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
@@ -694,8 +710,8 @@
 
       grid.innerHTML = `<div class="calwrap" id="calwrap"><div class="calgrid">${gutter}${cols}</div></div>` +
         '<div class="cal-legend">' +
-          '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>Singles · 60 min</span>' +
-          '<span class="lg"><span class="sw" style="background:rgba(124,58,237,0.6)"></span>Doubles · 90 min</span>' +
+          '<span class="lg"><span class="sw" style="background:rgba(44,92,156,0.6)"></span>60 min</span>' +
+          '<span class="lg"><span class="sw" style="background:rgba(124,58,237,0.6)"></span>90 min</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(22,163,74,0.6)"></span>Lesson</span>' +
           '<span class="lg"><span class="sw" style="background:rgba(148,163,184,0.5)"></span>Waiting on players</span>' +
           '<span class="lg"><span class="sw" style="background:repeating-linear-gradient(45deg,rgba(12,23,56,0.18),rgba(12,23,56,0.18) 3px,transparent 3px,transparent 6px);border:1px dashed rgba(12,23,56,0.25)"></span>Scheduled</span>' +
@@ -772,10 +788,12 @@
       }
 
       const range = minToLabel(b.slot) + '–' + minToLabel(b.slot + b.dur);
-      const auto = b.players.length >= 3 ? 'Doubles' : (b.players.length === 1 ? 'Lesson' : 'Singles');
 
-      // Type: what the grid guessed, and the three ways to overrule it.
-      const types = [['', 'Auto (' + auto + ')'], ['singles', 'Singles'], ['doubles', 'Doubles'], ['lesson', 'Lesson']];
+      // Length: what the count implies, and the ways to overrule it. A booking is
+      // read by how many are on court and how long it runs, so those are the only
+      // things worth setting — "singles" and "doubles" said the same thing twice.
+      const autoMin = b.players.length >= 3 ? DOUBLES_MIN : SINGLES_MIN;
+      const types = [['', 'Auto (' + autoMin + ' min)'], ['min60', '60 min'], ['min90', '90 min'], ['lesson', 'Lesson']];
       const typeBtns = types.map(function (t) {
         return '<button class="bk-seg' + ((b.override || '') === t[0] ? ' on' : '') +
           '" onclick="setBookingType(\'' + b.key + '\',\'' + t[0] + '\')">' + t[1] + '</button>';
@@ -821,7 +839,7 @@
             '<div class="bk-sub">' + b.kind + ' · ' + b.players.length + ' signed in · ' +
             (b.override ? 'set by the desk' : 'inferred from sign-ins') + '</div></div>' +
             '<button class="bk-close" onclick="closeBooking()" title="Close">✕</button></div>' +
-          '<div class="bk-row"><label>This is a</label><div class="bk-ctl bk-segs">' + typeBtns + '</div></div>' +
+          '<div class="bk-row"><label>Length</label><div class="bk-ctl bk-segs">' + typeBtns + '</div></div>' +
           mergeRow +
           '<div class="bk-row"><label>Move to</label><div class="bk-ctl">' +
             '<select id="bk-slot">' + slotOpts + '</select>' +
@@ -829,6 +847,12 @@
             '<button class="bk-go" onclick="moveBooking(\'' + b.key + '\')">Move</button>' +
           '</div></div>' +
           '<div class="bk-row bk-top"><label>Players</label><div class="bk-ctl bk-players">' + rows + '</div></div>' +
+          '<div class="bk-row bk-top"><label>Add</label><div class="bk-ctl bk-add">' +
+            '<input id="bk-find" class="bk-in" placeholder="Find a member…" oninput="bookingFind(\u0027' + b.key + '\u0027)" autocomplete="off">' +
+            '<div id="bk-hits" class="bk-hits"></div>' +
+            '<div class="bk-guestrow"><input id="bk-guest" class="bk-in" placeholder="…or a guest by name" autocomplete="off">' +
+            '<button class="bk-go" onclick="addGuestToBooking(\u0027' + b.key + '\u0027)">Add guest</button></div>' +
+          '</div></div>' +
         '</div>';
     }
 
@@ -879,6 +903,79 @@
       await loadCourtBoard(); paintBookingEditor();
     }
     window.moveBooking = moveBooking;
+
+    // ── Adding someone to a booking ───────────────────────────────────────────
+    // A doubles that filled up after the fact, or a fourth who never signed in at
+    // the kiosk. Search the membership, or add a guest by name; either way they
+    // are checked in and dropped straight onto this booking's court and slot, so
+    // they join the party rather than starting a new one.
+    let BK_FINDING = false;
+
+    async function bookingFind(key) {
+      const box = document.getElementById('bk-find');
+      const out = document.getElementById('bk-hits');
+      if (!box || !out) return;
+      const q = box.value.trim();
+      if (q.length < 2) { out.innerHTML = ''; return; }
+      if (BK_FINDING) return;
+      BK_FINDING = true;
+      try {
+        const r = await fetch('/api/checkin/search?q=' + encodeURIComponent(q));
+        const hits = r.ok ? await r.json() : [];
+        out.innerHTML = hits.length
+          ? hits.slice(0, 6).map(function (m) {
+              const nm = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || '—';
+              return '<button class="bk-hit" onclick="addMemberToBooking(\'' + key + '\',' + m.id + ')">' +
+                esc(nm) + '<span>' + esc(m.club_number || '') + '</span></button>';
+            }).join('')
+          : '<div class="bk-none">No member matches "' + esc(q) + '" — add them as a guest below</div>';
+      } catch (e) {
+        out.innerHTML = '<div class="bk-none">Search unavailable</div>';
+      }
+      BK_FINDING = false;
+    }
+    window.bookingFind = bookingFind;
+
+    // Put a freshly created check-in onto this booking's court and slot.
+    async function placeOnBooking(id, b) {
+      const hhmm = String(Math.floor(b.slot / 60)).padStart(2, '0') + ':' + String(b.slot % 60).padStart(2, '0');
+      await fetch('/api/checkin/' + id + '/time', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time: hhmm, court: b.court }),
+      });
+    }
+
+    async function addMemberToBooking(key, memberId) {
+      const b = bookingByKey(key); if (!b) return;
+      const r = await fetch('/api/checkin/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, method: 'staff' }),
+      });
+      const j = r.ok ? await r.json() : null;
+      if (!j || !j.id) { alert('Could not check that member in.'); return; }
+      await placeOnBooking(j.id, b);
+      const box = document.getElementById('bk-find'); if (box) box.value = '';
+      const out = document.getElementById('bk-hits'); if (out) out.innerHTML = '';
+      await loadCourtBoard(); paintBookingEditor();
+    }
+    window.addMemberToBooking = addMemberToBooking;
+
+    async function addGuestToBooking(key) {
+      const b = bookingByKey(key); if (!b) return;
+      const box = document.getElementById('bk-guest');
+      const name = box ? box.value.trim() : '';
+      if (!name) { if (box) box.focus(); return; }
+      const r = await fetch('/api/checkin/guest', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestName: name, court: b.court }),
+      });
+      const j = r.ok ? await r.json() : null;
+      if (!j || !j.id) { alert('Could not add that guest.'); return; }
+      await placeOnBooking(j.id, b);
+      if (box) box.value = '';
+      await loadCourtBoard(); paintBookingEditor();
+    }
+    window.addGuestToBooking = addGuestToBooking;
 
     // The desk knows a genuine lesson on sight. Let them skip the wait rather
     // than sit on their hands for ten minutes.
