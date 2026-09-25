@@ -67,12 +67,13 @@
     const s = document.createElement('style');
     s.id = 'help-icon-css';
     s.textContent =
-      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;' +
-        'border-radius:50%;border:1.5px solid #f59e0b;background:rgba(245,158,11,0.10);color:#b45309;' +
-        'font-size:12px;font-weight:800;cursor:pointer;vertical-align:middle;margin-left:8px;font-family:inherit;line-height:1;}' +
-      '.help-q:hover{background:rgba(245,158,11,0.20);}' +
-      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;width:26px;height:26px;font-size:13px;margin-left:0;' +
-        'box-shadow:0 2px 8px rgba(180,83,9,0.18);}' +
+      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;' +
+        'border-radius:7px;border:none;background:transparent;color:#94a3b8;cursor:pointer;' +
+        'vertical-align:middle;margin-left:10px;padding:0;flex-shrink:0;}' +
+      '.help-q svg{width:17px;height:17px;}' +
+      '.help-q:hover{color:#2c5c9c;background:rgba(44,92,156,0.08);}' +
+      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;margin-left:0;' +
+        'background:#fff;border:1px solid #e5e9f0;box-shadow:0 2px 8px rgba(12,23,56,0.08);}' +
       '.help-panel{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:92vw;background:#fff;' +
         'box-shadow:-10px 0 34px rgba(12,23,56,0.14);border-left:1px solid #e5e9f0;z-index:450;' +
         'display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;}' +
@@ -112,8 +113,13 @@
     let content = (help && help.content) || DEFAULTS[page] || '';
     const isMgmt = !!(me && me.is_management);
 
+    // Matches the sidenav's icon language (fill="none", stroke="currentColor",
+    // stroke-width 1.8) rather than a standalone badge, so it reads as part of
+    // the hub's existing icon system instead of a bolted-on widget.
+    const HELP_SVG = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">' +
+      '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
     const trigger = document.createElement('button');
-    trigger.className = 'help-q'; trigger.type = 'button'; trigger.textContent = '?'; trigger.title = 'Help';
+    trigger.className = 'help-q'; trigger.type = 'button'; trigger.innerHTML = HELP_SVG; trigger.title = 'Help';
     const anchor = opts.anchor ? document.querySelector(opts.anchor) : null;
     if (anchor) anchor.insertAdjacentElement('afterend', trigger);
     else { trigger.classList.add('help-q-fixed'); document.body.appendChild(trigger); }
@@ -157,8 +163,8 @@
       const saveBtn = panel.querySelector('.help-btn.pri');
       editLink.addEventListener('click', function () {
         textarea.value = content;
-        editWrap.style.display = '';
-        saveBtn.style.display = '';
+        editWrap.style.display = 'block';
+        saveBtn.style.display = 'inline-block';
         editLink.style.display = 'none';
       });
       saveBtn.addEventListener('click', async function () {
