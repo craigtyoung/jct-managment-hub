@@ -162,6 +162,19 @@ router.patch('/:id/time', (req, res) => {
   res.json({ ok: true });
 });
 
+// PATCH /:id/type — the desk overriding what the grid inferred. Sent for every
+// player in the booking so the call survives a later regroup, whichever record
+// the block is rebuilt from.
+router.patch('/:id/type', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  if (!db.setCheckinType(req.params.id, req.body.type))
+    return res.status(400).json({ error: 'Type must be auto, singles, doubles or lesson' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true });
+});
+
 // DELETE /:id — remove a check-in entirely (admin only). Court staff can
 // un-assign a court; only an admin can erase the record.
 router.delete('/:id', (req, res) => {

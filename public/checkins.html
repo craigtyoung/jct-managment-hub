@@ -151,6 +151,41 @@
     .cal-cell{position:absolute;left:0;right:0;}
     .cal-cell.drop-hot{background:rgba(44,92,156,0.18);outline:1px dashed rgba(44,92,156,0.5);outline-offset:-1px;}
 
+    /* Booking editor */
+    .bk-back{position:fixed;inset:0;background:rgba(12,23,56,0.35);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+    .bk-card{background:#fff;border-radius:12px;box-shadow:0 18px 50px rgba(12,23,56,0.28);width:100%;max-width:420px;
+      max-height:88vh;overflow:auto;padding:16px 18px 18px;}
+    .bk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
+    .bk-head strong{font-size:15px;color:var(--navy);}
+    .bk-sub{font-size:11.5px;color:#64748b;margin-top:2px;}
+    .bk-close{border:none;background:none;font-size:15px;color:#94a3b8;cursor:pointer;line-height:1;padding:2px 4px;}
+    .bk-close:hover{color:var(--navy);}
+    .bk-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1f6;}
+    .bk-row.bk-top{align-items:flex-start;}
+    .bk-row label{flex:0 0 78px;font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.02em;}
+    .bk-ctl{flex:1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0;}
+    .bk-ctl select{font-family:inherit;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid #d6dde8;background:#fff;color:var(--navy);min-width:0;flex:1;}
+    .bk-none{font-size:11.5px;color:#94a3b8;font-style:italic;}
+    .bk-go{font-family:inherit;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid var(--navy);
+      background:var(--navy);color:#fff;cursor:pointer;flex:0 0 auto;}
+    .bk-go:hover{opacity:0.88;}
+    .bk-segs{gap:4px;}
+    .bk-seg{font-family:inherit;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid #d6dde8;
+      background:#fff;color:#64748b;cursor:pointer;}
+    .bk-seg:hover{border-color:var(--navy);color:var(--navy);}
+    .bk-seg.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+    .bk-players{flex-direction:column;align-items:stretch;gap:3px;}
+    .bk-player{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--navy);padding:3px 0;}
+    .bk-player span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .bk-player em{font-style:normal;font-size:9.5px;font-weight:700;color:#b45309;background:rgba(217,119,6,0.12);padding:0 4px;border-radius:3px;}
+    .bk-t{font-size:11px;color:#94a3b8;font-variant-numeric:tabular-nums;}
+    .bk-x{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;padding:1px 3px;line-height:1;}
+    .bk-x:hover{color:var(--navy);}
+    .bk-del:hover{color:#dc2626;}
+    /* The pencil that opens all this, sitting in the block header */
+    .cal-edit{border:none;background:none;font-size:9.5px;color:inherit;opacity:0.45;cursor:pointer;padding:0 2px;line-height:1;}
+    .cal-edit:hover{opacity:1;}
+
     /* Settling: signed in, but too early to say whether it is a lesson or a game */
     .cal-block.is-settling{border-left-color:#94a3b8;background:rgba(148,163,184,0.12);border-left-style:dashed;}
     .cal-settle{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:9.5px;color:#64748b;}
@@ -464,6 +499,7 @@
 
         LAST_LOGS = logs;
       renderCourtGrid(logs);
+      paintBookingEditor(); // keep an open editor showing live data
       } catch (e) {}
     }
 
@@ -514,28 +550,28 @@
       });
       return Object.keys(bySlot).map(Number).sort((a, b) => a - b).map(slot => {
         const players = bySlot[slot];
-        const doubles = players.length >= 3;
+        // The desk can overrule the inference outright; if they have, use it.
+        const override = (players.find(p => p.bk_type) || {}).bk_type || '';
+        const doubles = override ? override === 'doubles' : players.length >= 3;
         // Grace runs from the later of the slot start and the first sign-in, so
         // an early bird waits until just past the hour rather than from 7:20.
         const firstIn = Math.min.apply(null, players.map(p => hmToMin(p.time)));
         const settleAt = Math.max(slot, firstIn) + SETTLE_MIN;
-        const key = court + ":" + slot;
-        const settling = players.length === 1
+        const key = court + ':' + slot;
+        const settling = !override
+          && players.length === 1
           && !players[0].lesson_pro
           && !FORCED_LESSON.has(key)
           && BOARD_DATE === todayLocal()
           && nowMinutes() < settleAt;
-        // One player on a court is a private lesson — GameTime shows these as
-        // 30-minute blocks with the instructor named, an hour lesson being two
-        // of them. Length is whatever the desk recorded, defaulting to an hour.
-        const lesson = players.length === 1 && !settling;
+        const lesson = override ? override === 'lesson' : (players.length === 1 && !settling);
         // A settling block holds the court for the half hour it is known to need
         // and no longer, so it never over-claims time it may not use.
         const dur = settling ? SLOT_MIN
                   : lesson ? (players[0].lesson_min || SINGLES_MIN)
                   : (doubles ? DOUBLES_MIN : SINGLES_MIN);
         return {
-          slot, players, doubles, lesson, settling, settleAt, key, dur,
+          slot, court, players, doubles, lesson, settling, settleAt, key, dur, override,
           kind: settling ? 'Waiting' : lesson ? 'Lesson' : (doubles ? 'Doubles' : 'Singles'),
         };
       });
@@ -632,7 +668,9 @@
             `draggable="true" data-ids="${ids}" ondragstart="blockDragStart(event,'${ids}')" ondragend="blockDragEnd(event)" ` +
             `style="top:${top}px;height:${hgt}px;--blkh:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)" ` +
             `title="${b.settling ? 'Just signed in — waiting to see if this is a lesson or a game' : b.kind} · ${range}${b.lesson && b.players[0].lesson_pro ? ' · with ' + esc(b.players[0].lesson_pro) : ''}">` +
-            `<div class="cal-kind">${b.kind}<span class="cal-range">${range}</span></div>` +
+            `<div class="cal-kind">${b.kind}` +
+              `<button class="cal-edit" onclick="event.stopPropagation();openBooking('${b.key}')" title="Edit this booking">✎</button>` +
+              `<span class="cal-range">${range}</span></div>` +
             `<div class="cal-players">${names}</div>${extra}` +
           `</div>`;
         });
@@ -698,6 +736,149 @@
       await loadSchedule();
       loadCourtBoard();
     }
+
+    // ── Booking editor ────────────────────────────────────────────────────────
+    // Bookings are inferred, not stored, so "editing" one means editing the
+    // check-ins underneath it. Three things go wrong often enough to need fixing
+    // by hand: a party that arrived in two waves and got read as two bookings, a
+    // count that doesn't match what's actually being played, and a booking
+    // sitting on the wrong time or court.
+    let EDIT_KEY = null; // court:slot of the open booking, so it survives a redraw
+
+    function bookingByKey(key) {
+      if (!key || !LAST_LOGS) return null;
+      const parts = String(key).split(':').map(Number);
+      return (bookingsForCourt(LAST_LOGS.filter(l => !l.duplicate), parts[0]) || [])
+        .find(b => b.slot === parts[1]) || null;
+    }
+
+    function openBooking(key) { EDIT_KEY = key; paintBookingEditor(); }
+    function closeBooking() { EDIT_KEY = null; paintBookingEditor(); }
+    window.openBooking = openBooking;
+    window.closeBooking = closeBooking;
+
+    function paintBookingEditor() {
+      let el = document.getElementById('bk-modal');
+      if (!EDIT_KEY) { if (el) el.remove(); return; }
+      const b = bookingByKey(EDIT_KEY);
+      if (!b) { EDIT_KEY = null; if (el) el.remove(); return; }
+
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'bk-modal';
+        el.className = 'bk-back';
+        el.onclick = function (e) { if (e.target === el) closeBooking(); };
+        document.body.appendChild(el);
+      }
+
+      const range = minToLabel(b.slot) + '–' + minToLabel(b.slot + b.dur);
+      const auto = b.players.length >= 3 ? 'Doubles' : (b.players.length === 1 ? 'Lesson' : 'Singles');
+
+      // Type: what the grid guessed, and the three ways to overrule it.
+      const types = [['', 'Auto (' + auto + ')'], ['singles', 'Singles'], ['doubles', 'Doubles'], ['lesson', 'Lesson']];
+      const typeBtns = types.map(function (t) {
+        return '<button class="bk-seg' + ((b.override || '') === t[0] ? ' on' : '') +
+          '" onclick="setBookingType(\'' + b.key + '\',\'' + t[0] + '\')">' + t[1] + '</button>';
+      }).join('');
+
+      // Merge: any other booking on this court is a candidate. Merging retimes
+      // this booking's players onto the target, so the two become one party.
+      const others = (bookingsForCourt(LAST_LOGS.filter(l => !l.duplicate), b.court) || [])
+        .filter(function (o) { return o.slot !== b.slot; });
+      const mergeRow = others.length
+        ? '<div class="bk-row"><label>Merge into</label><div class="bk-ctl">' +
+            '<select id="bk-merge">' + others.map(function (o) {
+              return '<option value="' + o.slot + '">' + minToLabel(o.slot) + ' · ' +
+                o.players.length + ' player' + (o.players.length === 1 ? '' : 's') + ' (' + o.kind + ')</option>';
+            }).join('') + '</select>' +
+            '<button class="bk-go" onclick="mergeBooking(\'' + b.key + '\')">Merge</button>' +
+          '</div></div>'
+        : '<div class="bk-row"><label>Merge into</label><div class="bk-ctl bk-none">Nothing else booked on this court</div></div>';
+
+      // Move: start time and court, applied to everyone in the booking at once.
+      let slotOpts = '';
+      for (let m = CAL_START; m <= CAL_END - SLOT_MIN; m += SLOT_MIN) {
+        slotOpts += '<option value="' + m + '"' + (m === b.slot ? ' selected' : '') + '>' + minToLabel(m) + '</option>';
+      }
+      const courtOpts = [1, 2, 3, 4, 5, 6].map(function (c) {
+        return '<option value="' + c + '"' + (c === b.court ? ' selected' : '') + '>Court ' + c + '</option>';
+      }).join('');
+
+      const rows = b.players.map(function (p) {
+        const nm = p.member_name || '—';
+        const safe = esc(nm).replace(/'/g, '&#39;');
+        const del = IS_ADMIN
+          ? '<button class="bk-x bk-del" onclick="deleteCheckin(' + p.id + ', \'' + safe + '\')" title="Delete this check-in">🗑</button>'
+          : '';
+        return '<div class="bk-player"><span>' + esc(nm) + (p.guest ? ' <em>guest</em>' : '') + '</span>' +
+          '<span class="bk-t">' + esc(String(p.time || '').slice(0, 5)) + '</span>' +
+          '<button class="bk-x" onclick="assignCourt(' + p.id + ', \'\')" title="Take off this court">✕</button>' + del + '</div>';
+      }).join('');
+
+      el.innerHTML =
+        '<div class="bk-card" onclick="event.stopPropagation()">' +
+          '<div class="bk-head"><div><strong>Court ' + b.court + '</strong> · ' + range +
+            '<div class="bk-sub">' + b.kind + ' · ' + b.players.length + ' signed in · ' +
+            (b.override ? 'set by the desk' : 'inferred from sign-ins') + '</div></div>' +
+            '<button class="bk-close" onclick="closeBooking()" title="Close">✕</button></div>' +
+          '<div class="bk-row"><label>This is a</label><div class="bk-ctl bk-segs">' + typeBtns + '</div></div>' +
+          mergeRow +
+          '<div class="bk-row"><label>Move to</label><div class="bk-ctl">' +
+            '<select id="bk-slot">' + slotOpts + '</select>' +
+            '<select id="bk-court">' + courtOpts + '</select>' +
+            '<button class="bk-go" onclick="moveBooking(\'' + b.key + '\')">Move</button>' +
+          '</div></div>' +
+          '<div class="bk-row bk-top"><label>Players</label><div class="bk-ctl bk-players">' + rows + '</div></div>' +
+        '</div>';
+    }
+
+    // Every player in the booking carries the override, so it holds however the
+    // block is later rebuilt.
+    async function setBookingType(key, type) {
+      const b = bookingByKey(key); if (!b) return;
+      await Promise.all(b.players.map(function (p) {
+        return fetch('/api/checkin/' + p.id + '/type', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: type || 'auto' }),
+        });
+      }));
+      await loadCourtBoard(); paintBookingEditor();
+    }
+    window.setBookingType = setBookingType;
+
+    // Merge = retime this booking's players onto the target slot. Once they share
+    // a slot they are one party, and the count re-reads the type on its own.
+    async function mergeBooking(key) {
+      const b = bookingByKey(key); if (!b) return;
+      const sel = document.getElementById('bk-merge'); if (!sel) return;
+      const target = parseInt(sel.value);
+      const hhmm = String(Math.floor(target / 60)).padStart(2, '0') + ':' + String(target % 60).padStart(2, '0');
+      await Promise.all(b.players.map(function (p) {
+        return fetch('/api/checkin/' + p.id + '/time', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ time: hhmm, court: b.court }),
+        });
+      }));
+      EDIT_KEY = b.court + ':' + target; // follow the booking to where it landed
+      await loadCourtBoard(); paintBookingEditor();
+    }
+    window.mergeBooking = mergeBooking;
+
+    async function moveBooking(key) {
+      const b = bookingByKey(key); if (!b) return;
+      const slot = parseInt(document.getElementById('bk-slot').value);
+      const court = parseInt(document.getElementById('bk-court').value);
+      const hhmm = String(Math.floor(slot / 60)).padStart(2, '0') + ':' + String(slot % 60).padStart(2, '0');
+      await Promise.all(b.players.map(function (p) {
+        return fetch('/api/checkin/' + p.id + '/time', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ time: hhmm, court: court }),
+        });
+      }));
+      EDIT_KEY = court + ':' + slot;
+      await loadCourtBoard(); paintBookingEditor();
+    }
+    window.moveBooking = moveBooking;
 
     // The desk knows a genuine lesson on sight. Let them skip the wait rather
     // than sit on their hands for ten minutes.

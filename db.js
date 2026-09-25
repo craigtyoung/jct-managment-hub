@@ -4534,6 +4534,22 @@ function setCheckinLesson(id, fields) {
   return true;
 }
 
+// Party size usually tells you what's being played, but not always: four people
+// can arrive in two pairs twenty minutes apart and get read as two singles, and
+// a pair warming up for doubles reads as singles until their partners sign in.
+// The desk can say outright what a booking is, and that wins over the inference.
+// Stored per check-in so it survives however the players are later regrouped.
+function setCheckinType(id, type) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  const t = String(type || '').trim().toLowerCase();
+  if (t === '' || t === 'auto') delete log.bk_type;
+  else if (['singles', 'doubles', 'lesson'].includes(t)) log.bk_type = t;
+  else return false;
+  save();
+  return true;
+}
+
 // Staff-logged guest sign-in — no member record, just a name + which member hosted them.
 // Reuses checkin_logs (member_id stays null) so it shows up in the same feed/log.
 function addGuestCheckinLog({ guestName, hostMemberId, court }) {
@@ -5323,6 +5339,7 @@ module.exports = {
   addGuestCheckinLog,
   setCheckinCourt,
   setCheckinLesson,
+  setCheckinType,
   setCheckinTime,
   deleteCheckin,
   todayLocal: () => nowLocal().slice(0, 10),
