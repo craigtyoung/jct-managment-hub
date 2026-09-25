@@ -34,6 +34,37 @@
       '## Verifying Courts\n' +
       '- In Court View, verify the entries match GameTime.\n\n' +
       "Note: This page reflects who's signed in — GameTime stays the source of truth for actual bookings and billing.",
+    checklist:
+      '## Working the Checklist\n' +
+      'Check off tasks as you go through your shift.\n' +
+      "- If something doesn't apply or can't be done, mark it NR (Not Required) and give a reason.\n" +
+      '- Items are grouped by shift and phase — morning, afternoon, closing.\n\n' +
+      "Note: The checklist is the record that the shift actually ran — an honest NR beats a false checkmark.",
+    'cash-summary':
+      '## Daily Cash Reconciliation\n' +
+      "Enter what's actually in the till against what the system expects for the day.\n" +
+      '- Count cash at the end of your shift before entering it.\n' +
+      '- Flag any discrepancy rather than rounding it away.\n\n' +
+      'Note: This reconciles cash only — card and online payments are tracked separately.',
+    'house-league':
+      '## Roster & Substitutes\n' +
+      'Manage the season roster on the Roster tab.\n' +
+      '- Keep the Substitutes list current — that\'s who to call first when a spot opens up.\n\n' +
+      '## Schedule & Coverage\n' +
+      "- Click a cell to cycle a player's status: PLAY → BYE → NA → blank.\n" +
+      '- A coverage request shows up here with "Mark NA", "Mark filled", and "Who else?" options.\n\n' +
+      '## Match Builder\n' +
+      "- Drag players onto a team, then enter the score once it's played. Desktop only — not built for touch.\n\n" +
+      'Note: Notes and Public View live in their own tabs on the left.',
+    proshop:
+      '## Stringing\n' +
+      'Log a string as soon as an order comes in.\n' +
+      '- "Strung by" can be left blank until it\'s actually done, then filled in later with the ✎ edit button.\n' +
+      '- Lilly, Matthew, or a manager can log and edit entries.\n' +
+      '- "Client paid" marks when the member pays at pickup — separate from payroll.\n\n' +
+      '## Merchandise\n' +
+      '- Performance Academy tees — request, approve, and issue apparel by class. No student names, no money involved.\n\n' +
+      'Note: Stringing counts only — pay rates live on the timesheet.',
   };
 
   function renderContent(text) {
@@ -121,8 +152,18 @@
     const trigger = document.createElement('button');
     trigger.className = 'help-q'; trigger.type = 'button'; trigger.innerHTML = HELP_SVG; trigger.title = 'Help';
     const anchor = opts.anchor ? document.querySelector(opts.anchor) : null;
-    if (anchor) anchor.insertAdjacentElement('afterend', trigger);
-    else { trigger.classList.add('help-q-fixed'); document.body.appendChild(trigger); }
+    if (anchor) {
+      // The anchor (usually an <h1>) is block-level, so a sibling appended after
+      // it drops to the next line rather than sitting beside it. Wrap just the
+      // anchor + icon in a new inline-flex span, in place — this doesn't touch
+      // the anchor's actual parent, which may hold other page content (e.g. a
+      // subtitle paragraph right after the h1) that shouldn't be pulled in.
+      const wrap = document.createElement('span');
+      wrap.style.cssText = 'display:inline-flex;align-items:center;';
+      anchor.parentNode.insertBefore(wrap, anchor);
+      wrap.appendChild(anchor);
+      wrap.appendChild(trigger);
+    } else { trigger.classList.add('help-q-fixed'); document.body.appendChild(trigger); }
 
     const panel = document.createElement('div');
     panel.className = 'help-panel';
