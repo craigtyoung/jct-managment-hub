@@ -56,6 +56,50 @@ router.post('/', (req, res) => {
   res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name, club_number: m.club_number });
 });
 
+// POST /staff — the desk checking people in from the Member Check-Ins page
+// instead of sending them round to the kiosk. Takes the whole party in one
+// call with the time and court set as entered, which is the point: the kiosk
+// stamps the clock, so a four that arrives in two waves twenty minutes apart
+// lands in two different half-hour slots and reads as two bookings. Entered
+// together on one time, they are one booking, and the count makes it a 90.
+router.post('/staff', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+
+  const { member_ids, guests, time, court } = req.body || {};
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time || ''))) return res.status(400).json({ error: 'Need a valid HH:MM time' });
+  let c = null;
+  if (court !== undefined && court !== null && court !== '') {
+    c = parseInt(court);
+    if (!Number.isInteger(c) || c < 1 || c > 6) return res.status(400).json({ error: 'Court must be 1-6' });
+  }
+
+  const ids = Array.isArray(member_ids) ? member_ids : [];
+  const names = (Array.isArray(guests) ? guests : []).map(n => String(n || '').trim()).filter(Boolean);
+  if (!ids.length && !names.length) return res.status(400).json({ error: 'Nobody to check in' });
+
+  const created = [];
+  const skipped = [];
+  ids.forEach(mid => {
+    const m = db.getMemberById(mid);
+    if (!m || m.active === false) { skipped.push(mid); return; }
+    const r = db.addCheckinLog({ memberId: m.id, method: 'staff' });
+    if (!r || !r.id) { skipped.push(mid); return; }
+    db.setCheckinTime(r.id, time, c === null ? '' : c);
+    created.push({ id: r.id, name: ((m.first_name || '') + ' ' + (m.last_name || '')).trim(), duplicate: !!r.duplicate });
+  });
+  names.forEach(n => {
+    const r = db.addGuestCheckinLog({ guestName: n, court: c });
+    if (!r || !r.id) { skipped.push(n); return; }
+    db.setCheckinTime(r.id, time, c === null ? '' : c);
+    created.push({ id: r.id, name: n, guest: true });
+  });
+
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true, created, skipped });
+});
+
 // GET /api/checkin/today — public count (for kiosk display)
 router.get('/today', (req, res) => {
   const today = db.todayLocal();

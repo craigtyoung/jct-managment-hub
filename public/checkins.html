@@ -238,6 +238,27 @@
     .field input:focus,.field select:focus{border-color:rgba(44,92,156,0.35);}
     .modal-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
     .form-err{color:var(--red);font-size:12px;margin:4px 0 0;min-height:16px;}
+    /* Staff check-in modal */
+    .ci-hits{display:flex;flex-direction:column;gap:2px;margin-top:5px;}
+    .ci-hit{display:flex;justify-content:space-between;gap:8px;font-family:var(--font);font-size:13px;text-align:left;
+      padding:6px 9px;border-radius:7px;border:1px solid var(--border);background:var(--canvas);color:var(--text);cursor:pointer;}
+    .ci-hit:hover{border-color:var(--navy);background:rgba(44,92,156,0.07);}
+    .ci-hit span{color:var(--text-3);font-size:11.5px;font-variant-numeric:tabular-nums;}
+    .ci-nohit{font-size:12px;color:var(--text-3);font-style:italic;padding:5px 2px;}
+    .ci-picked{display:flex;flex-wrap:wrap;gap:5px;}
+    .ci-chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:3px 6px 3px 9px;
+      border-radius:999px;background:rgba(44,92,156,0.10);color:var(--navy);}
+    .ci-chip.is-guest{background:rgba(217,119,6,0.12);color:#b45309;}
+    .ci-chip em{font-style:normal;font-size:10px;font-weight:700;opacity:0.7;}
+    .ci-chip button{border:none;background:none;color:inherit;opacity:0.5;font-size:11px;cursor:pointer;padding:0 1px;line-height:1;}
+    .ci-chip button:hover{opacity:1;}
+    .ci-guestrow{display:flex;gap:6px;align-items:center;}
+    .ci-guestrow input{flex:1;}
+    .ci-addg{font-family:var(--font);font-size:12px;font-weight:600;padding:7px 12px;border-radius:7px;
+      border:1px solid var(--border);background:var(--canvas);color:var(--text-2);cursor:pointer;white-space:nowrap;}
+    .ci-addg:hover{border-color:var(--navy);color:var(--navy);}
+    .ci-when{display:flex;gap:10px;}
+    .ci-when .field{flex:1;}
     .modal-actions{display:flex;gap:8px;margin-top:20px;}
     .modal-actions .btn{flex:1;}
 
@@ -319,6 +340,7 @@
           <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
           <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
           <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#16a34a;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;" onclick="openGuestModal()">+ Guest</button>
+          <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.08);color:var(--navy);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;" onclick="openStaffCheckin()">+ Check in</button>
           <button disabled title="Coming soon — GameTime auto-sync isn't built yet" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text-3);font-family:var(--font);font-size:12px;font-weight:600;cursor:default;">Sync to GameTime</button>
           <span class="ci-count" id="ci-count">—</span>
         </div>
@@ -341,6 +363,48 @@
       <div id="court-grid"></div>
     </div>
   </main>
+
+  <div class="modal-overlay" id="ci-modal" onclick="if(event.target===this)closeStaffCheckin()">
+    <div class="modal">
+      <h2>Check In</h2>
+      <div class="field">
+        <label>Who</label>
+        <input id="ci-find" type="text" autocomplete="off" placeholder="Search member name or club number…" oninput="staffFind()" />
+        <div id="ci-hits" class="ci-hits"></div>
+        <div class="modal-hint">Click a name to add them. Add as many as are playing — they go on together as one booking.</div>
+      </div>
+      <div class="field" id="ci-picked-wrap" style="display:none">
+        <label>Checking in</label>
+        <div id="ci-picked" class="ci-picked"></div>
+      </div>
+      <div class="field">
+        <label>Guest (optional)</label>
+        <div class="ci-guestrow">
+          <input id="ci-gname" type="text" autocomplete="off" placeholder="Guest name" />
+          <button type="button" class="ci-addg" onclick="addGuestChip()">Add</button>
+        </div>
+      </div>
+      <div class="ci-when">
+        <div class="field">
+          <label>Time</label>
+          <select id="ci-time"></select>
+        </div>
+        <div class="field">
+          <label>Court</label>
+          <select id="ci-court">
+            <option value="">Court —</option>
+            <option value="1">Court 1</option><option value="2">Court 2</option><option value="3">Court 3</option>
+            <option value="4">Court 4</option><option value="5">Court 5</option><option value="6">Court 6</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-hint" id="ci-hint">Two on a court run 60 minutes, three or more run 90. Leave the court blank and they wait to be assigned.</div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeStaffCheckin()">Cancel</button>
+        <button type="button" class="btn-primary" id="ci-submit" onclick="submitStaffCheckin()">Check in</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="guest-modal" onclick="if(event.target===this)closeGuestModal()">
     <div class="modal">
@@ -903,6 +967,144 @@
       await loadCourtBoard(); paintBookingEditor();
     }
     window.moveBooking = moveBooking;
+
+    // ── Staff check-in ────────────────────────────────────────────────────────
+    // The desk checking a party in without walking them to the kiosk. Time and
+    // court are set here rather than taken from the clock, which is what keeps a
+    // party that trickles in on one booking instead of scattered across slots.
+    let CI_PICKED = [];   // [{ id, name }] members
+    let CI_GUESTS = [];   // guest names
+    let CI_FINDING = false;
+
+    function openStaffCheckin() {
+      CI_PICKED = []; CI_GUESTS = [];
+      const sel = document.getElementById('ci-time');
+      if (sel && !sel.options.length) {
+        let opts = '';
+        for (let m = CAL_START; m <= CAL_END - SLOT_MIN; m += SLOT_MIN) {
+          opts += '<option value="' + m + '">' + minToLabel(m) + '</option>';
+        }
+        sel.innerHTML = opts;
+      }
+      // Default to the half hour the courts are actually on, not the literal clock.
+      if (sel) sel.value = String(Math.min(CAL_END - SLOT_MIN, Math.max(CAL_START, snapToSlot(nowMinutes()))));
+      ['ci-find', 'ci-gname'].forEach(function (i) { const el = document.getElementById(i); if (el) el.value = ''; });
+      const hits = document.getElementById('ci-hits'); if (hits) hits.innerHTML = '';
+      const ct = document.getElementById('ci-court'); if (ct) ct.value = '';
+      paintPicked();
+      document.getElementById('ci-modal').classList.add('open');
+      setTimeout(function () { const f = document.getElementById('ci-find'); if (f) f.focus(); }, 40);
+    }
+    function closeStaffCheckin() { document.getElementById('ci-modal').classList.remove('open'); }
+    window.openStaffCheckin = openStaffCheckin;
+    window.closeStaffCheckin = closeStaffCheckin;
+
+    function paintPicked() {
+      const wrap = document.getElementById('ci-picked-wrap');
+      const box = document.getElementById('ci-picked');
+      const btn = document.getElementById('ci-submit');
+      const total = CI_PICKED.length + CI_GUESTS.length;
+      if (!wrap || !box) return;
+      wrap.style.display = total ? '' : 'none';
+      box.innerHTML =
+        CI_PICKED.map(function (p, i) {
+          return '<span class="ci-chip">' + esc(p.name) +
+            '<button onclick="dropPicked(' + i + ')" title="Remove">✕</button></span>';
+        }).join('') +
+        CI_GUESTS.map(function (g, i) {
+          return '<span class="ci-chip is-guest">' + esc(g) + ' <em>guest</em>' +
+            '<button onclick="dropGuest(' + i + ')" title="Remove">✕</button></span>';
+        }).join('');
+      if (btn) btn.textContent = total ? 'Check in ' + total : 'Check in';
+      const hint = document.getElementById('ci-hint');
+      if (hint) {
+        hint.textContent = total >= 3
+          ? total + ' on a court runs 90 minutes. Leave the court blank and they wait to be assigned.'
+          : (total === 2
+            ? 'Two on a court run 60 minutes. Leave the court blank and they wait to be assigned.'
+            : 'Two on a court run 60 minutes, three or more run 90. Leave the court blank and they wait to be assigned.');
+      }
+    }
+    function dropPicked(i) { CI_PICKED.splice(i, 1); paintPicked(); }
+    function dropGuest(i) { CI_GUESTS.splice(i, 1); paintPicked(); }
+    window.dropPicked = dropPicked;
+    window.dropGuest = dropGuest;
+
+    async function staffFind() {
+      const box = document.getElementById('ci-find');
+      const out = document.getElementById('ci-hits');
+      if (!box || !out) return;
+      const q = box.value.trim();
+      if (q.length < 2) { out.innerHTML = ''; return; }
+      if (CI_FINDING) return;
+      CI_FINDING = true;
+      try {
+        const r = await fetch('/api/checkin/search?q=' + encodeURIComponent(q));
+        const hits = r.ok ? await r.json() : [];
+        const fresh = hits.filter(function (m) {
+          return !CI_PICKED.some(function (p) { return p.id === m.id; });
+        });
+        out.innerHTML = fresh.length
+          ? fresh.slice(0, 6).map(function (m) {
+              const nm = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || '—';
+              return '<button type="button" class="ci-hit" onclick="pickMember(' + m.id + ',\'' +
+                esc(nm).replace(/'/g, '&#39;') + '\')">' + esc(nm) +
+                '<span>' + esc(m.club_number || '') + '</span></button>';
+            }).join('')
+          : '<div class="ci-nohit">No match for "' + esc(q) + '" — add them as a guest below</div>';
+      } catch (e) {
+        out.innerHTML = '<div class="ci-nohit">Search unavailable</div>';
+      }
+      CI_FINDING = false;
+    }
+    window.staffFind = staffFind;
+
+    function pickMember(id, name) {
+      if (!CI_PICKED.some(function (p) { return p.id === id; })) CI_PICKED.push({ id: id, name: name });
+      const box = document.getElementById('ci-find'); if (box) { box.value = ''; box.focus(); }
+      const out = document.getElementById('ci-hits'); if (out) out.innerHTML = '';
+      paintPicked();
+    }
+    window.pickMember = pickMember;
+
+    function addGuestChip() {
+      const box = document.getElementById('ci-gname');
+      const n = box ? box.value.trim() : '';
+      if (!n) { if (box) box.focus(); return; }
+      CI_GUESTS.push(n);
+      box.value = ''; box.focus();
+      paintPicked();
+    }
+    window.addGuestChip = addGuestChip;
+
+    async function submitStaffCheckin() {
+      const total = CI_PICKED.length + CI_GUESTS.length;
+      if (!total) { const f = document.getElementById('ci-find'); if (f) f.focus(); return; }
+      const btn = document.getElementById('ci-submit');
+      if (btn) { btn.disabled = true; btn.textContent = 'Checking in…'; }
+      const mins = parseInt(document.getElementById('ci-time').value);
+      const hhmm = String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+      try {
+        const r = await fetch('/api/checkin/staff', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            member_ids: CI_PICKED.map(function (p) { return p.id; }),
+            guests: CI_GUESTS,
+            time: hhmm,
+            court: document.getElementById('ci-court').value,
+          }),
+        });
+        const j = r.ok ? await r.json() : null;
+        if (!j || !j.ok) { alert('Could not check that party in.'); return; }
+        if (j.skipped && j.skipped.length) alert(j.skipped.length + ' could not be checked in.');
+        closeStaffCheckin();
+        loadCheckinTab(document.getElementById('ci-date').value || todayLocal());
+        loadCourtBoard();
+      } finally {
+        if (btn) { btn.disabled = false; paintPicked(); }
+      }
+    }
+    window.submitStaffCheckin = submitStaffCheckin;
 
     // ── Adding someone to a booking ───────────────────────────────────────────
     // A doubles that filled up after the fact, or a fourth who never signed in at
