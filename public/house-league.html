@@ -173,8 +173,8 @@
       <nav class="hl-sidebar">
         <div class="sb-label">House League</div>
         <button class="sb-btn active" id="nav-roster" onclick="showSection('roster',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Roster</button>
-        <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule</button>
-        <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Match Builder <span class="sb-pill" id="sub-req-badge" style="display:none"></span></button>
+        <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule <span class="sb-pill" id="sub-req-badge" style="display:none"></span></button>
+        <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Match Builder</button>
         <button class="sb-btn" id="nav-results" onclick="showSection('results',this)"><span class="sb-dot" style="background:#7c3aed"></span>Results</button>
         <button class="sb-btn" id="nav-notes" onclick="showSection('notes',this)"><span class="sb-dot" style="background:#dc2626"></span>Notes</button>
         <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
@@ -218,6 +218,23 @@
               </table>
             </div>
           </div>
+
+          <div class="card">
+            <div class="card-title">Substitutes — call these people first for coverage</div>
+            <div class="roster-grid" style="grid-template-columns:1.2fr 1fr 1.4fr 1.3fr auto">
+              <div class="fld"><label>Name</label><input type="text" id="sub-name" placeholder="Full name"></div>
+              <div class="fld"><label>Phone</label><input type="text" id="sub-phone" placeholder="416-555-0100"></div>
+              <div class="fld"><label>Email</label><input type="email" id="sub-email" placeholder="email@example.com"></div>
+              <div class="fld"><label>Notes</label><input type="text" id="sub-notes" placeholder="e.g. call first, weekends only"></div>
+              <button class="btn-add" onclick="addHouseSub()">Add</button>
+            </div>
+            <div class="tbl-wrap">
+              <table class="log">
+                <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+                <tbody id="subs-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- Schedule: season attendance grid + per-week court pairings/scores -->
@@ -229,6 +246,11 @@
             <div class="sess-tabs" id="sched-sess-tabs"></div>
             <span id="sched-block-label" style="font-size:12px;font-weight:700;color:var(--text-3)"></span>
             <button class="btn-ghost" onclick="addWeek()">+ Add week</button>
+          </div>
+
+          <div class="card" id="sub-requests-card" style="display:none">
+            <div class="card-title">Coverage requests</div>
+            <div id="sub-requests-list"></div>
           </div>
 
           <div class="card">
@@ -248,11 +270,6 @@
             <select id="week-select" onchange="loadWeek()"></select>
             <button class="btn-ghost" onclick="addCourt()">+ Add court</button>
             <button class="btn-add" onclick="suggestLineup()">✨ Suggest Lineup</button>
-          </div>
-
-          <div class="card" id="sub-requests-card" style="display:none">
-            <div class="card-title">Coverage requests</div>
-            <div id="sub-requests-list"></div>
           </div>
 
           <div class="card">
@@ -397,6 +414,7 @@
       if (resView === 'matches') renderMatchCards();
       loadSubRequests();
       loadHouseNotes();
+      loadHouseSubs();
       if (document.getElementById('nav-settings').style.display !== 'none') loadSettings();
     }
 
@@ -483,6 +501,46 @@
       if (document.getElementById('section-results').style.display !== 'none') renderResultsGrid();
     }
 
+    // ── Substitutes: a contact list separate from the active roster ──
+    let houseSubs = [];
+    async function loadHouseSubs(){
+      houseSubs = await jfetch('/api/house-league/' + league + '/subs') || [];
+      renderHouseSubs();
+    }
+    function renderHouseSubs(){
+      const body = document.getElementById('subs-body');
+      if (!body) return;
+      if (!houseSubs.length) { body.innerHTML = '<tr><td colspan="5" class="empty">No substitutes listed yet.</td></tr>'; return; }
+      body.innerHTML = houseSubs.map(s => `
+        <tr>
+          <td><input value="${esc(s.name)}" onchange="editHouseSub(${s.id},'name',this.value)"></td>
+          <td><input value="${esc(s.phone)}" onchange="editHouseSub(${s.id},'phone',this.value)"></td>
+          <td><input value="${esc(s.email)}" onchange="editHouseSub(${s.id},'email',this.value)"></td>
+          <td><input value="${esc(s.notes)}" onchange="editHouseSub(${s.id},'notes',this.value)"></td>
+          <td><button class="btn-ghost danger" onclick="deleteHouseSub(${s.id})">Remove</button></td>
+        </tr>`).join('');
+    }
+    async function addHouseSub(){
+      const name = document.getElementById('sub-name').value.trim();
+      if (!name) return toast('Name required');
+      const d = await jfetch('/api/house-league/' + league + '/subs', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, phone: document.getElementById('sub-phone').value.trim(), email: document.getElementById('sub-email').value.trim(), notes: document.getElementById('sub-notes').value.trim() }) });
+      if (!d) return;
+      ['sub-name','sub-phone','sub-email','sub-notes'].forEach(id => document.getElementById(id).value = '');
+      toast('Substitute added'); loadHouseSubs();
+    }
+    async function editHouseSub(id, field, value){
+      const d = await jfetch('/api/house-league/subs/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [field]: value }) });
+      if (!d) return;
+      loadHouseSubs();
+    }
+    async function deleteHouseSub(id){
+      if (!confirm('Remove this substitute?')) return;
+      const d = await jfetch('/api/house-league/subs/' + id, { method:'DELETE' });
+      if (!d) return;
+      loadHouseSubs();
+    }
+
     function populateWeekSelect(){
       const sel = document.getElementById('week-select');
       sel.innerHTML = weeks.map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');
@@ -519,6 +577,17 @@
       const badge = document.getElementById('sub-req-badge');
       if (open) { badge.textContent = open; badge.style.display = ''; } else { badge.style.display = 'none'; }
     }
+    let expandedSubReqs = new Set();
+    function toggleWhoElse(id){
+      if (expandedSubReqs.has(id)) expandedSubReqs.delete(id); else expandedSubReqs.add(id);
+      renderSubRequests();
+    }
+    // Active roster players not already confirmed IN for that week — candidates
+    // worth calling. Doesn't guess who's actually free, just who isn't spoken for.
+    function coverageCandidates(weekId, excludePlayerId){
+      return roster.filter(p => p.active !== false && p.id !== excludePlayerId && grid.attendance[weekId + ':' + p.id] !== 'in')
+        .sort((a,b) => a.name.localeCompare(b.name));
+    }
     function renderSubRequests(){
       const open = subRequests.filter(r => r.status === 'open');
       const card = document.getElementById('sub-requests-card');
@@ -527,19 +596,48 @@
       card.style.display = '';
       const byId = {}; roster.forEach(p => byId[p.id] = p.name);
       const weekById = {}; weeks.forEach(w => weekById[w.id] = w.label);
-      list.innerHTML = open.map(r => `
-        <div class="sub-req-row">
-          <div><b>${esc(byId[r.player_id]||'Unknown player')}</b> — ${esc(weekById[r.week_id]||'Unknown week')}${r.note ? ` <span class="sub-req-note">"${esc(r.note)}"</span>` : ''}</div>
-          <div class="sub-req-acts">
-            <button class="btn-ghost" onclick="resolveSubReq(${r.id})">Mark filled</button>
-            <button class="btn-ghost danger" onclick="dismissSubReq(${r.id})">Dismiss</button>
+      list.innerHTML = open.map(r => {
+        const expanded = expandedSubReqs.has(r.id);
+        let candHtml = '';
+        if (expanded) {
+          const candidates = coverageCandidates(r.week_id, r.player_id);
+          const rows = candidates.map(p => `<div style="padding:2px 0">${esc(p.name)}${p.phone?' · '+esc(p.phone):''}${p.email?' · '+esc(p.email):''}</div>`).join('');
+          const subRows = houseSubs.length ? '<div style="margin-top:6px;font-weight:700;color:var(--text-3);text-transform:uppercase;font-size:10px;letter-spacing:.05em;">Substitutes</div>' +
+            houseSubs.map(s => `<div style="padding:2px 0">${esc(s.name)}${s.phone?' · '+esc(s.phone):''}${s.email?' · '+esc(s.email):''}</div>`).join('') : '';
+          candHtml = (rows || subRows)
+            ? `<div style="margin-top:6px;padding:8px 10px;background:var(--canvas);border-radius:8px;font-size:12px;">${rows}${subRows}</div>`
+            : '<div style="margin-top:6px;font-size:12px;color:var(--text-3);font-style:italic;">No one else on the roster is free that week, and the substitutes list is empty.</div>';
+        }
+        return `
+        <div class="sub-req-row" style="flex-direction:column;align-items:stretch;">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div><b>${esc(byId[r.player_id]||'Unknown player')}</b> — ${esc(weekById[r.week_id]||'Unknown week')}${r.note ? ` <span class="sub-req-note">"${esc(r.note)}"</span>` : ''}</div>
+            <div class="sub-req-acts">
+              <button class="btn-ghost" onclick="toggleWhoElse(${r.id})">${expanded?'Hide':'Who else?'}</button>
+              <button class="btn-ghost" onclick="markSubReqNA(${r.id})" title="Confirm the player is out and dismiss">Mark NA</button>
+              <button class="btn-ghost" onclick="resolveSubReq(${r.id})">Mark filled</button>
+              <button class="btn-ghost danger" onclick="dismissSubReq(${r.id})">Dismiss</button>
+            </div>
           </div>
-        </div>`).join('');
+          ${candHtml}
+        </div>`;
+      }).join('');
     }
     async function resolveSubReq(id){
       const d = await jfetch('/api/house-league/sub-requests/' + id + '/resolve', { method:'PUT' });
       if (!d) return;
       toast('Marked filled'); loadSubRequests();
+    }
+    async function markSubReqNA(id){
+      const r = subRequests.find(x => x.id === id);
+      if (!r) return;
+      const d1 = await jfetch('/api/house-league/' + league + '/attendance', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weekId: r.week_id, playerId: r.player_id, status: 'na' }) });
+      if (!d1) return;
+      grid.attendance[r.week_id + ':' + r.player_id] = 'na';
+      const d2 = await jfetch('/api/house-league/sub-requests/' + id + '/resolve', { method:'PUT' });
+      if (d2) toast('Marked NA and dismissed');
+      if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();
+      loadSubRequests();
     }
     async function dismissSubReq(id){
       const d = await jfetch('/api/house-league/sub-requests/' + id, { method:'DELETE' });
@@ -864,7 +962,28 @@
       try { e.dataTransfer.setData('text/plain', String(id)); e.dataTransfer.effectAllowed = 'move'; } catch(err){}
       e.currentTarget.classList.add('dragging');
     }
-    function dragEnd(e){ e.currentTarget.classList.remove('dragging'); dragPlayerId = null; dragFromPairingId = null; dragFromTeam = null; hideDragHint(); }
+    function dragEnd(e){ e.currentTarget.classList.remove('dragging'); dragPlayerId = null; dragFromPairingId = null; dragFromTeam = null; hideDragHint(); stopAutoScroll(); }
+
+    // Native HTML5 drag-and-drop doesn't reliably auto-scroll the page when the
+    // pointer nears the viewport edge (Lily's "won't scroll to reach court 6").
+    // Drive it manually off a document-level dragover listener while a drag is live.
+    let autoScrollRAF = null, autoScrollDy = 0;
+    function autoScrollStep(){
+      window.scrollBy(0, autoScrollDy);
+      autoScrollRAF = requestAnimationFrame(autoScrollStep);
+    }
+    function stopAutoScroll(){ if (autoScrollRAF) cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; autoScrollDy = 0; }
+    document.addEventListener('dragover', (e) => {
+      if (!dragPlayerId) { stopAutoScroll(); return; }
+      const margin = 80, maxSpeed = 16;
+      const y = e.clientY, h = window.innerHeight;
+      let dy = 0;
+      if (y < margin) dy = -maxSpeed * (1 - y / margin);
+      else if (y > h - margin) dy = maxSpeed * (1 - (h - y) / margin);
+      autoScrollDy = dy;
+      if (dy && !autoScrollRAF) autoScrollRAF = requestAnimationFrame(autoScrollStep);
+      else if (!dy) stopAutoScroll();
+    });
     function dzOver(e, pairingId, team){
       e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} e.currentTarget.classList.add('drop-hot');
       if (dragPlayerId) showDragHint(dragPlayerId, pairingId, team);
@@ -993,6 +1112,7 @@
     window.onLiveUpdate = () => {
       loadSubRequests();
       loadHouseNotes();
+      loadHouseSubs();
       Promise.all([loadGrid(), loadAllPairings()]).then(async () => {
         renderRoster();
         if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();

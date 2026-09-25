@@ -4711,7 +4711,7 @@ function deleteLessonInquiry(id) {
 // public view (no staff login) serves players — see routes/house-league.js.
 const HL_LEAGUES = ['MHL', 'WHL'];
 
-['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings', 'hl_sub_requests', 'hl_notes'].forEach(function (t) {
+['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings', 'hl_sub_requests', 'hl_notes', 'hl_subs'].forEach(function (t) {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 if (!_data.hl_settings) { _data.hl_settings = { publicPasswordHash: null, publicTokens: [] }; save(); }
@@ -5152,6 +5152,48 @@ function deleteHouseLeagueNote(id) {
   return { ok: _data.hl_notes.length < before };
 }
 
+// Substitute players list — people to call when a spot opens up, kept separate
+// from the active roster (subs aren't in the season's weekly attendance grid).
+function getHouseLeagueSubs(league) {
+  return _data.hl_subs.filter(function (s) { return s.league === league; })
+    .sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+function addHouseLeagueSub(league, data) {
+  if (!data.name || !String(data.name).trim()) return { error: 'Name required', status: 400 };
+  var s = { id: nextId('hl_subs'), league: league, name: String(data.name).trim(), phone: data.phone || '', email: data.email || '', notes: String(data.notes || '').slice(0, 300) };
+  _data.hl_subs.push(s);
+  save();
+  return { ok: true, sub: s };
+}
+function updateHouseLeagueSub(id, data) {
+  var s = _data.hl_subs.find(function (x) { return x.id === parseInt(id); });
+  if (!s) return { error: 'Not found', status: 404 };
+  ['name', 'phone', 'email', 'notes'].forEach(function (k) { if (data[k] !== undefined) s[k] = data[k]; });
+  save();
+  return { ok: true, sub: s };
+}
+function deleteHouseLeagueSub(id) {
+  id = parseInt(id);
+  var before = _data.hl_subs.length;
+  _data.hl_subs = _data.hl_subs.filter(function (s) { return s.id !== id; });
+  save();
+  return { ok: _data.hl_subs.length < before };
+}
+
+// ─── Page Help — contextual "?" icon content, editable in-app by management ──
+if (!_data.page_help || typeof _data.page_help !== 'object') { _data.page_help = {}; save(); }
+function getPageHelp(page) {
+  var h = _data.page_help[page];
+  return h ? { content: h.content, updated_at: h.updated_at } : null;
+}
+function setPageHelp(page, content, staffId) {
+  content = String(content || '').trim().slice(0, 4000);
+  if (!content) return { error: 'Help text required', status: 400 };
+  _data.page_help[page] = { content: content, updated_at: now(), updated_by: staffId || null };
+  save();
+  return { ok: true };
+}
+
 module.exports = {
   getHouseLeagueRoster,
   getHouseLeagueWeeks,
@@ -5181,6 +5223,12 @@ module.exports = {
   getHouseLeagueNotes,
   addHouseLeagueNote,
   deleteHouseLeagueNote,
+  getHouseLeagueSubs,
+  addHouseLeagueSub,
+  updateHouseLeagueSub,
+  deleteHouseLeagueSub,
+  getPageHelp,
+  setPageHelp,
   getLessonInquiries,
   addLessonInquiry,
   updateLessonInquiry,

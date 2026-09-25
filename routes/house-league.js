@@ -84,6 +84,18 @@ router.post('/:league/notes', (req, res) => {
 });
 router.delete('/notes/:id', guard(isMgmt, 'Management only'), (req, res) => reply(res, db.deleteHouseLeagueNote(req.params.id)));
 
+// Substitutes list — people to call for coverage, kept separate from the active roster.
+router.get('/:league/subs', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  res.json(db.getHouseLeagueSubs(req.params.league));
+});
+router.post('/:league/subs', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  reply(res, db.addHouseLeagueSub(req.params.league, req.body || {}));
+});
+router.put('/subs/:id', (req, res) => reply(res, db.updateHouseLeagueSub(req.params.id, req.body || {})));
+router.delete('/subs/:id', guard(isMgmt, 'Management only'), (req, res) => reply(res, db.deleteHouseLeagueSub(req.params.id)));
+
 // Public-view password — management only to view/change
 router.get('/settings', guard(isMgmt, 'Management only'), (req, res) => res.json({ hasPassword: db.hasHouseLeaguePassword() }));
 router.put('/settings/password', guard(isMgmt, 'Management only'),
