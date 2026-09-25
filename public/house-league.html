@@ -176,6 +176,7 @@
         <button class="sb-btn" id="nav-schedule" onclick="showSection('schedule',this)"><span class="sb-dot" style="background:#16a34a"></span>Schedule</button>
         <button class="sb-btn" id="nav-matches" onclick="showSection('matches',this)"><span class="sb-dot" style="background:#2c5c9c"></span>Match Builder <span class="sb-pill" id="sub-req-badge" style="display:none"></span></button>
         <button class="sb-btn" id="nav-results" onclick="showSection('results',this)"><span class="sb-dot" style="background:#7c3aed"></span>Results</button>
+        <button class="sb-btn" id="nav-notes" onclick="showSection('notes',this)"><span class="sb-dot" style="background:#dc2626"></span>Notes</button>
         <button class="sb-btn" id="nav-settings" style="display:none" onclick="showSection('settings',this)"><span class="sb-dot" style="background:#d97706"></span>Public View</button>
       </nav>
 
@@ -311,6 +312,25 @@
           </div>
         </div>
 
+        <!-- Notes: free-form admin reminders for setting up matches -->
+        <div id="section-notes" style="display:none">
+          <div class="page-head"><h1>Notes</h1></div>
+          <div class="page-sub">Feedback or things to remember when setting up matches — e.g. "Nav wants to be called first for a sub on certain days."</div>
+
+          <div class="card">
+            <div class="card-title">Add a note</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+              <div class="fld" style="flex:1;min-width:220px"><label>Note</label><input type="text" id="note-text" placeholder="Something to remember…" onkeydown="if(event.key==='Enter')addHouseNote()"></div>
+              <button class="btn-add" onclick="addHouseNote()">Add</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Notes</div>
+            <div id="notes-list"><div class="empty">Loading…</div></div>
+          </div>
+        </div>
+
         <!-- Settings: public password -->
         <div id="section-settings" style="display:none">
           <div class="page-head"><h1>Public View</h1></div>
@@ -332,7 +352,7 @@
 
   <script src="/staff-avatar.js"></script>
   <script>
-    let me = null, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [];
+    let me = null, isMgmt = false, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [], houseNotes = [];
     let schedSession = 1, resSession = 1;
     let rosterSortBy = 'name', rosterSortDir = 'asc';
     const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
@@ -357,7 +377,7 @@
       catch(e){ location.href='/login.html'; return; }
       const navAv = document.getElementById('nav-avatar');
       if (navAv && window.staffAvatar) staffAvatar(navAv, me.id, me.name, me.color || '#2c5c9c');
-      const isMgmt = me.role === 'admin' || me.role === 'manager';
+      isMgmt = me.role === 'admin' || me.role === 'manager';
       if (isMgmt) document.getElementById('nav-settings').style.display = '';
       await switchLeague('MHL');
     }
@@ -376,6 +396,7 @@
       renderResultsTabs(); renderResultsGrid();
       if (resView === 'matches') renderMatchCards();
       loadSubRequests();
+      loadHouseNotes();
       if (document.getElementById('nav-settings').style.display !== 'none') loadSettings();
     }
 
@@ -524,6 +545,38 @@
       const d = await jfetch('/api/house-league/sub-requests/' + id, { method:'DELETE' });
       if (!d) return;
       loadSubRequests();
+    }
+
+    // ── Notes: free-form admin reminders, not tied to a specific week ──
+    async function loadHouseNotes(){
+      houseNotes = await jfetch('/api/house-league/' + league + '/notes') || [];
+      renderHouseNotes();
+    }
+    function renderHouseNotes(){
+      const list = document.getElementById('notes-list');
+      if (!list) return;
+      if (!houseNotes.length) { list.innerHTML = '<div class="empty">No notes yet.</div>'; return; }
+      list.innerHTML = houseNotes.map(n => `
+        <div class="sub-req-row">
+          <div>${esc(n.content)}<div class="sub-req-note">${esc(n.author_name)} · ${fmtNoteDate(n.created_at)}</div></div>
+          ${isMgmt ? `<div class="sub-req-acts"><button class="btn-ghost danger" onclick="deleteHouseNote(${n.id})">Remove</button></div>` : ''}
+        </div>`).join('');
+    }
+    function fmtNoteDate(iso){ try{ return new Date(iso).toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }catch(e){ return ''; } }
+    async function addHouseNote(){
+      const input = document.getElementById('note-text');
+      const content = input.value.trim();
+      if (!content) return toast('Note text required');
+      const d = await jfetch('/api/house-league/' + league + '/notes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ content }) });
+      if (!d) return;
+      input.value = '';
+      toast('Note added'); loadHouseNotes();
+    }
+    async function deleteHouseNote(id){
+      if (!confirm('Remove this note?')) return;
+      const d = await jfetch('/api/house-league/notes/' + id, { method:'DELETE' });
+      if (!d) return;
+      loadHouseNotes();
     }
 
     // ── Schedule tab: season attendance grid (players × weeks, paginated) ──
@@ -939,6 +992,7 @@
 
     window.onLiveUpdate = () => {
       loadSubRequests();
+      loadHouseNotes();
       Promise.all([loadGrid(), loadAllPairings()]).then(async () => {
         renderRoster();
         if (document.getElementById('section-schedule').style.display !== 'none') renderScheduleGrid();

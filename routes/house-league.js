@@ -72,6 +72,18 @@ router.get('/:league/sub-requests', (req, res) => {
 router.put('/sub-requests/:id/resolve', (req, res) => reply(res, db.resolveSubRequest(req.params.id)));
 router.delete('/sub-requests/:id', (req, res) => reply(res, db.deleteSubRequest(req.params.id)));
 
+// Admin notes — free-form reminders for setting up matches. Any desk role can
+// add/read; delete is management only (mirrors sub-requests' delete rule).
+router.get('/:league/notes', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  res.json(db.getHouseLeagueNotes(req.params.league));
+});
+router.post('/:league/notes', (req, res) => {
+  if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });
+  reply(res, db.addHouseLeagueNote(req.params.league, req.actingStaffId, (req.body || {}).content));
+});
+router.delete('/notes/:id', guard(isMgmt, 'Management only'), (req, res) => reply(res, db.deleteHouseLeagueNote(req.params.id)));
+
 // Public-view password — management only to view/change
 router.get('/settings', guard(isMgmt, 'Management only'), (req, res) => res.json({ hasPassword: db.hasHouseLeaguePassword() }));
 router.put('/settings/password', guard(isMgmt, 'Management only'),

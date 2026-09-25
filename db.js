@@ -4711,7 +4711,7 @@ function deleteLessonInquiry(id) {
 // public view (no staff login) serves players — see routes/house-league.js.
 const HL_LEAGUES = ['MHL', 'WHL'];
 
-['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings', 'hl_sub_requests'].forEach(function (t) {
+['hl_players', 'hl_weeks', 'hl_attendance', 'hl_pairings', 'hl_sub_requests', 'hl_notes'].forEach(function (t) {
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 if (!_data.hl_settings) { _data.hl_settings = { publicPasswordHash: null, publicTokens: [] }; save(); }
@@ -5127,6 +5127,31 @@ function deleteSubRequest(id) {
   return { ok: _data.hl_sub_requests.length < before };
 }
 
+// Admin notes/reminders for a league — free-form things to remember when setting
+// up matches (e.g. "Nav wants to be called first for a sub on certain days").
+// Not tied to a specific week; a simple attributed running list.
+function getHouseLeagueNotes(league) {
+  var nameById = {}; (_data.staff || []).forEach(function (s) { nameById[s.id] = s.name; });
+  return _data.hl_notes.filter(function (n) { return n.league === league; })
+    .map(function (n) { return Object.assign({}, n, { author_name: nameById[n.author_id] || '—' }); })
+    .sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+}
+function addHouseLeagueNote(league, authorId, content) {
+  content = String(content || '').trim().slice(0, 500);
+  if (!content) return { error: 'Note text required', status: 400 };
+  var n = { id: nextId('hl_notes'), league: league, content: content, author_id: authorId || null, created_at: now() };
+  _data.hl_notes.push(n);
+  save();
+  return { ok: true, note: n };
+}
+function deleteHouseLeagueNote(id) {
+  id = parseInt(id);
+  var before = _data.hl_notes.length;
+  _data.hl_notes = _data.hl_notes.filter(function (n) { return n.id !== id; });
+  save();
+  return { ok: _data.hl_notes.length < before };
+}
+
 module.exports = {
   getHouseLeagueRoster,
   getHouseLeagueWeeks,
@@ -5153,6 +5178,9 @@ module.exports = {
   getSubRequests,
   resolveSubRequest,
   deleteSubRequest,
+  getHouseLeagueNotes,
+  addHouseLeagueNote,
+  deleteHouseLeagueNote,
   getLessonInquiries,
   addLessonInquiry,
   updateLessonInquiry,
