@@ -204,6 +204,19 @@
     </div>
     <div class="page-sub" id="page-sub">Loading…</div>
 
+    <div class="card mgmt-only" id="import-card" style="margin-bottom:20px;">
+      <div style="padding:14px 16px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Import from GameTime</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="import-file" accept=".csv" style="font-size:12px;max-width:260px;">
+          <button class="btn btn-ghost" onclick="previewImport()">Preview</button>
+          <span id="import-status" style="font-size:12px;color:var(--text-3);"></span>
+        </div>
+        <div class="modal-hint" style="margin-top:6px;">Cross-references the export against the member list by member number — nothing is added until you choose "Import selected".</div>
+      </div>
+      <div id="import-results" style="display:none;padding:0 16px 16px;"></div>
+    </div>
+
     <div class="stats" id="stats-row"></div>
 
     <div class="toolbar">
@@ -389,6 +402,74 @@
       const r = await fetch(url, { method: editingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) { alert('Save failed.'); return; }
       closeModal();
+      await load();
+    }
+
+    // ─── Import from GameTime CSV ────────────────────────────────────────────
+    let IMPORT_DATA = null;
+    async function previewImport() {
+      const file = document.getElementById('import-file').files[0];
+      if (!file) { alert('Choose a CSV file first.'); return; }
+      const status = document.getElementById('import-status');
+      status.textContent = 'Checking…';
+      let csv;
+      try { csv = await file.text(); } catch (e) { status.textContent = 'Could not read that file.'; return; }
+      const r = await fetch('/api/members/import/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csv }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { status.textContent = d.error || 'Could not process that file.'; return; }
+      status.textContent = '';
+      IMPORT_DATA = d;
+      renderImportResults();
+    }
+    function importRow(r, key, checked) {
+      return `<tr>
+        <td style="width:22px"><input type="checkbox" data-imp="${key}" ${checked ? 'checked' : ''}></td>
+        <td>${esc(r.first_name)} ${esc(r.last_name)}</td>
+        <td style="font-size:12px;color:var(--text-3)">${esc(r.club_number)}</td>
+        <td style="font-size:12px;color:var(--text-3)">${esc(r.email || '—')}</td>
+        <td style="font-size:11px;color:var(--amber)">${esc(r.reason || '')}</td>
+      </tr>`;
+    }
+    function renderImportResults() {
+      const el = document.getElementById('import-results');
+      if (!IMPORT_DATA) { el.style.display = 'none'; return; }
+      el.style.display = '';
+      const { new: newRows, existing, flagged, skipped } = IMPORT_DATA;
+      let html = `<div style="font-size:12px;color:var(--text-2);margin:4px 0 10px;">
+        <b>${newRows.length}</b> new &nbsp;·&nbsp; <b>${existing.length}</b> already on file &nbsp;·&nbsp; <b>${flagged.length}</b> need review &nbsp;·&nbsp; ${skipped} placeholder row${skipped === 1 ? '' : 's'} skipped
+      </div>`;
+      if (newRows.length) {
+        html += `<div style="font-size:11px;font-weight:700;color:var(--text-3);margin:10px 0 4px;">NEW — checked rows will be added</div>
+          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;"><tbody>${newRows.map((r, i) => importRow(r, 'n' + i, true)).join('')}</tbody></table></div>`;
+      }
+      if (flagged.length) {
+        html += `<div style="font-size:11px;font-weight:700;color:var(--amber);margin:14px 0 4px;">NEEDS REVIEW — unchecked by default, unusual member number</div>
+          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;"><tbody>${flagged.map((r, i) => importRow(r, 'f' + i, false)).join('')}</tbody></table></div>`;
+      }
+      if (newRows.length || flagged.length) {
+        html += `<div style="margin-top:14px;"><button class="btn btn-primary" onclick="commitImport()">Import selected members</button></div>`;
+      }
+      el.innerHTML = html;
+    }
+    async function commitImport() {
+      if (!IMPORT_DATA) return;
+      const boxes = document.querySelectorAll('#import-results input[type=checkbox]:checked');
+      const rows = [];
+      boxes.forEach(cb => {
+        const key = cb.dataset.imp;
+        const idx = parseInt(key.slice(1), 10);
+        const bucket = key[0] === 'n' ? IMPORT_DATA.new : IMPORT_DATA.flagged;
+        if (bucket[idx]) rows.push(bucket[idx]);
+      });
+      if (!rows.length) { alert('Nothing selected.'); return; }
+      const r = await fetch('/api/members/import/commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { alert(d.error || 'Import failed.'); return; }
+      document.getElementById('import-status').textContent = `Added ${d.added} member${d.added === 1 ? '' : 's'}.`;
+      document.getElementById('import-results').innerHTML = '';
+      document.getElementById('import-results').style.display = 'none';
+      IMPORT_DATA = null;
+      document.getElementById('import-file').value = '';
       await load();
     }
 
