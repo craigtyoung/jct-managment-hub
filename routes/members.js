@@ -87,6 +87,10 @@ function parseCsv(text) {
 // JD123 "Doe, John", GAMETIME "TEST, GT TEST") that shouldn't auto-import.
 const CLUB_NUM_RE = /^[MSJ]\d+$/i;
 
+// Default PIN convention (documented in the Add Member modal too): the last
+// 4 digits of the member number, e.g. M2518 → 2518.
+function pinFromClubNumber(clubNumber) { return String(clubNumber || '').replace(/\D/g, '').slice(-4); }
+
 router.post('/import/preview', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
   const csv = String((req.body || {}).csv || '');
@@ -108,7 +112,7 @@ router.post('/import/preview', (req, res) => {
     const commaIdx = rawName.indexOf(',');
     const last_name = commaIdx === -1 ? rawName : rawName.slice(0, commaIdx).trim();
     const first_name = commaIdx === -1 ? '' : rawName.slice(commaIdx + 1).trim();
-    const row = { first_name, last_name, club_number: clubNumber, email, phone };
+    const row = { first_name, last_name, club_number: clubNumber, email, phone, pin: pinFromClubNumber(clubNumber) };
 
     const existing = db.getMemberByClubNumber(clubNumber);
     if (existing) { result.existing.push(row); return; }
@@ -127,7 +131,8 @@ router.post('/import/commit', (req, res) => {
     if (!r || !r.first_name || !r.last_name) { errors.push(r && r.club_number || '(unknown)'); return; }
     // Skip if it slipped in twice in the same batch or was added between preview and commit.
     if (r.club_number && db.getMemberByClubNumber(r.club_number)) return;
-    db.addMember({ firstName: r.first_name, lastName: r.last_name, clubNumber: r.club_number, phone: r.phone, email: r.email, memberType: 'full' });
+    const pin = r.pin || pinFromClubNumber(r.club_number);
+    db.addMember({ firstName: r.first_name, lastName: r.last_name, clubNumber: r.club_number, phone: r.phone, email: r.email, pin, memberType: 'full' });
     added++;
   });
   res.json({ ok: true, added, errors });

@@ -353,7 +353,7 @@
           <td><span class="member-phone">${esc(m.phone || '—')}</span></td>
           ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
           <td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>
-          ${isMgmt ? `<td><button class="action-btn" onclick="openEditModal(${m.id})">Edit / PIN</button></td>` : ''}
+          ${isMgmt ? `<td><button class="action-btn" onclick="openEditModal(${m.id})">Edit / PIN</button> <button class="action-btn" style="color:var(--red);border-color:rgba(220,38,38,0.25)" onclick="removeMember(${m.id},'${esc((m.first_name + ' ' + m.last_name)).replace(/'/g, "\\'")}')">Remove</button></td>` : ''}
         </tr>
       `).join('');
     }
@@ -386,6 +386,16 @@
     }
 
     function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+    // Soft-deactivate — same convention as everywhere else in the hub (string
+    // logs, house league players, etc.): never gone, just off the active list.
+    // Recoverable by an admin re-adding the same member number if needed.
+    async function removeMember(id, name) {
+      if (!confirm(`Remove ${name} from the active member list? This can be undone by re-adding them, but do this deliberately.`)) return;
+      const r = await fetch(`/api/members/${id}`, { method: 'DELETE' });
+      if (!r.ok) { alert('Could not remove that member.'); return; }
+      await load();
+    }
 
     async function saveMember() {
       const fn = document.getElementById('m-fn').value.trim();
@@ -426,6 +436,7 @@
         <td style="width:22px"><input type="checkbox" data-imp="${key}" ${checked ? 'checked' : ''}></td>
         <td>${esc(r.first_name)} ${esc(r.last_name)}</td>
         <td style="font-size:12px;color:var(--text-3)">${esc(r.club_number)}</td>
+        <td style="font-size:12px;color:var(--text-3)">${esc(r.pin || '—')}</td>
         <td style="font-size:12px;color:var(--text-3)">${esc(r.email || '—')}</td>
         <td style="font-size:11px;color:var(--amber)">${esc(r.reason || '')}</td>
       </tr>`;
@@ -438,13 +449,16 @@
       let html = `<div style="font-size:12px;color:var(--text-2);margin:4px 0 10px;">
         <b>${newRows.length}</b> new &nbsp;·&nbsp; <b>${existing.length}</b> already on file &nbsp;·&nbsp; <b>${flagged.length}</b> need review &nbsp;·&nbsp; ${skipped} placeholder row${skipped === 1 ? '' : 's'} skipped
       </div>`;
+      const importHead = `<thead><tr>
+        <th style="width:22px"></th><th>Name</th><th>Member #</th><th>PIN</th><th>Email</th><th></th>
+      </tr></thead>`;
       if (newRows.length) {
-        html += `<div style="font-size:11px;font-weight:700;color:var(--text-3);margin:10px 0 4px;">NEW — checked rows will be added</div>
-          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;"><tbody>${newRows.map((r, i) => importRow(r, 'n' + i, true)).join('')}</tbody></table></div>`;
+        html += `<div style="font-size:11px;font-weight:700;color:var(--text-3);margin:10px 0 4px;">NEW — checked rows will be added (PIN = last 4 digits of member #)</div>
+          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;">${importHead}<tbody>${newRows.map((r, i) => importRow(r, 'n' + i, true)).join('')}</tbody></table></div>`;
       }
       if (flagged.length) {
         html += `<div style="font-size:11px;font-weight:700;color:var(--amber);margin:14px 0 4px;">NEEDS REVIEW — unchecked by default, unusual member number</div>
-          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;"><tbody>${flagged.map((r, i) => importRow(r, 'f' + i, false)).join('')}</tbody></table></div>`;
+          <div style="overflow-x:auto"><table style="width:100%;font-size:12px;">${importHead}<tbody>${flagged.map((r, i) => importRow(r, 'f' + i, false)).join('')}</tbody></table></div>`;
       }
       if (newRows.length || flagged.length) {
         html += `<div style="margin-top:14px;"><button class="btn btn-primary" onclick="commitImport()">Import selected members</button></div>`;
