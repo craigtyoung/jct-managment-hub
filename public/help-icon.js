@@ -1,10 +1,22 @@
 /**
- * help-icon.js — a yellow "?" help button any page can drop in. Fetches its
- * own /api/me (for a personalized greeting) and /api/help/:page (for the
- * content, editable in-app by management via routes/help.js) so pages don't
- * need to change how they already load their own data.
+ * help-icon.js — a subtle "?" icon that opens a right-side "Guidance" slide-out
+ * panel, matching the pattern from VoiceCraft/SessionCraft's Studio guidance
+ * panel. Stays open while you work rather than blocking the page like a modal.
  *
- * Usage: <script src="/help-icon.js"></script><script>initHelpIcon('checkins');</script>
+ * Fetches its own /api/me (for a personalized greeting + management check) and
+ * /api/help/:page (content, editable in-app by management via routes/help.js)
+ * so pages don't need to change how they already load their own data.
+ *
+ * Usage: <script src="/help-icon.js"></script>
+ *        <script>initHelpIcon('checkins', { anchor: '.page-head h1' });</script>
+ * `anchor` — a selector for the element the "?" icon should sit next to (inline).
+ * If omitted, the icon falls back to a small fixed circle near the top-right.
+ *
+ * Content format (plain text, written by management in the panel's editor):
+ *   ## Section Header      → bold section heading with a left accent bar
+ *   - bullet text          → bullet list item
+ *   Note: some text        → highlighted callout box
+ *   anything else          → a plain paragraph
  */
 (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -13,90 +25,136 @@
     return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   }
 
-  // Fallback copy shown until a page's help text has been written into the DB
-  // (Settings > Help, or the in-modal "Edit this help text" link for management).
   const DEFAULTS = {
-    checkins: "Welcome to the Member Check-Ins area. Please have members check in on the keypad and continue to sign their names for now when they arrive. If they don't sign in, use the \"+ Check in\" button to sign them in yourself. Once members have checked in, please assign a court. Then in Court View, verify the entries match GameTime.",
+    checkins:
+      '## Checking Members In\n' +
+      "Please have members check in on the keypad and continue to sign their names for now when they arrive.\n" +
+      "- If they don't sign in, use the \"+ Check in\" button to sign them in yourself.\n" +
+      '- Once checked in, please assign a court.\n\n' +
+      '## Verifying Courts\n' +
+      '- In Court View, verify the entries match GameTime.\n\n' +
+      "Note: This page reflects who's signed in — GameTime stays the source of truth for actual bookings and billing.",
   };
+
+  function renderContent(text) {
+    const lines = String(text || '').split(/\r?\n/);
+    let html = '', inList = false, first = true;
+    function closeList() { if (inList) { html += '</div>'; inList = false; } }
+    lines.forEach(function (line) {
+      const t = line.trim();
+      if (!t) { closeList(); return; }
+      if (t.indexOf('## ') === 0) {
+        closeList();
+        html += '<div class="help-sec' + (first ? ' first' : '') + '">' + esc(t.slice(3)) + '</div>';
+        first = false;
+      } else if (t.indexOf('- ') === 0) {
+        if (!inList) { html += '<div class="help-list">'; inList = true; }
+        html += '<div class="help-li">' + esc(t.slice(2)) + '</div>';
+      } else if (/^Note:/i.test(t)) {
+        closeList();
+        html += '<div class="help-note"><b>Note:</b> ' + esc(t.replace(/^Note:\s*/i, '')) + '</div>';
+      } else {
+        closeList();
+        html += '<p class="help-p">' + esc(t) + '</p>';
+      }
+    });
+    closeList();
+    return html || '<p class="help-p">No help written for this page yet.</p>';
+  }
 
   function injectCss() {
     if (document.getElementById('help-icon-css')) return;
     const s = document.createElement('style');
     s.id = 'help-icon-css';
-    s.textContent = `
-      .help-fab{position:fixed;right:22px;bottom:22px;width:44px;height:44px;border-radius:50%;
-        background:#f59e0b;color:#fff;border:none;font-size:19px;font-weight:800;cursor:pointer;
-        box-shadow:0 4px 14px rgba(180,83,9,0.35);z-index:400;font-family:inherit;line-height:1;}
-      .help-fab:hover{background:#d97706;}
-      .help-overlay{position:fixed;inset:0;background:rgba(12,23,56,0.45);z-index:500;
-        display:none;align-items:center;justify-content:center;padding:16px;}
-      .help-overlay.open{display:flex;}
-      .help-box{background:#fff;border-radius:16px;padding:22px 24px;width:100%;max-width:420px;
-        box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit;}
-      .help-title{font-size:16px;font-weight:800;color:#0c1738;margin-bottom:10px;}
-      .help-body{font-size:13.5px;line-height:1.55;color:#334155;white-space:pre-wrap;}
-      .help-editwrap{margin-top:14px;display:none;}
-      .help-editwrap textarea{width:100%;min-height:120px;font-family:inherit;font-size:13px;
-        padding:9px 10px;border:1px solid #d4dae6;border-radius:9px;color:#0c1738;}
-      .help-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
-      .help-btn{padding:7px 14px;border-radius:9px;border:1px solid #d4dae6;background:#fff;
-        font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:#4a6080;}
-      .help-btn.pri{background:#0c1738;border-color:#0c1738;color:#fff;display:none;}
-      .help-editlink{font-size:11.5px;font-weight:700;color:#2c5c9c;background:none;border:none;
-        cursor:pointer;padding:0;margin-top:12px;}
-    `;
+    s.textContent =
+      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;' +
+        'border-radius:50%;border:1.5px solid #f59e0b;background:rgba(245,158,11,0.10);color:#b45309;' +
+        'font-size:12px;font-weight:800;cursor:pointer;vertical-align:middle;margin-left:8px;font-family:inherit;line-height:1;}' +
+      '.help-q:hover{background:rgba(245,158,11,0.20);}' +
+      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;width:26px;height:26px;font-size:13px;margin-left:0;' +
+        'box-shadow:0 2px 8px rgba(180,83,9,0.18);}' +
+      '.help-panel{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:92vw;background:#fff;' +
+        'box-shadow:-10px 0 34px rgba(12,23,56,0.14);border-left:1px solid #e5e9f0;z-index:450;' +
+        'display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;}' +
+      '.help-panel.open{transform:translateX(0);}' +
+      '.help-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+        'padding:16px 18px;border-bottom:1px solid #eef1f6;flex-shrink:0;}' +
+      '.help-panel-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#0c1738;font-family:inherit;}' +
+      '.help-panel-close{border:none;background:none;font-size:17px;color:#94a3b8;cursor:pointer;line-height:1;padding:2px 4px;}' +
+      '.help-panel-close:hover{color:#0c1738;}' +
+      '.help-panel-greet{font-size:12px;color:#8fa0b8;font-style:italic;padding:14px 20px 0;flex-shrink:0;}' +
+      '.help-panel-body{flex:1;overflow-y:auto;padding:12px 20px 20px;font-family:inherit;font-size:13.5px;line-height:1.6;color:#334155;}' +
+      '.help-sec{font-size:13.5px;font-weight:800;color:#0c1738;margin:18px 0 8px;padding-left:10px;border-left:3px solid #2c5c9c;}' +
+      '.help-sec.first{margin-top:2px;}' +
+      '.help-p{margin:6px 0;}' +
+      '.help-list{margin:4px 0 10px;}' +
+      '.help-li{position:relative;padding-left:14px;margin:5px 0;font-size:13px;}' +
+      '.help-li:before{content:"•";position:absolute;left:0;color:#2c5c9c;}' +
+      '.help-note{margin-top:14px;padding:10px 12px;background:#f8fafc;border:1px solid #e5e9f0;border-radius:8px;font-size:12.5px;color:#4a6080;}' +
+      '.help-editlink{font-size:11.5px;font-weight:700;color:#2c5c9c;background:none;border:none;cursor:pointer;padding:0;margin-top:16px;font-family:inherit;}' +
+      '.help-editwrap{margin-top:10px;display:none;}' +
+      '.help-editwrap textarea{width:100%;min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:12px;' +
+        'padding:9px 10px;border:1px solid #d4dae6;border-radius:9px;color:#0c1738;}' +
+      '.help-edithint{font-size:10.5px;color:#94a3b8;margin-top:4px;}' +
+      '.help-panel-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #eef1f6;flex-shrink:0;}' +
+      '.help-btn{padding:7px 14px;border-radius:9px;border:1px solid #d4dae6;background:#fff;font-family:inherit;' +
+        'font-size:12.5px;font-weight:700;cursor:pointer;color:#4a6080;}' +
+      '.help-btn.pri{background:#0c1738;border-color:#0c1738;color:#fff;display:none;}';
     document.head.appendChild(s);
   }
 
-  window.initHelpIcon = async function (page) {
+  window.initHelpIcon = async function (page, opts) {
+    opts = opts || {};
     injectCss();
     let me = null, help = null;
     try { const r = await fetch('/api/me'); if (r.ok) me = await r.json(); } catch (e) {}
     try { const r = await fetch('/api/help/' + page); if (r.ok) help = await r.json(); } catch (e) {}
-    let content = (help && help.content) || DEFAULTS[page] || 'No help written for this page yet.';
+    let content = (help && help.content) || DEFAULTS[page] || '';
     const isMgmt = !!(me && me.is_management);
 
-    const fab = document.createElement('button');
-    fab.className = 'help-fab'; fab.textContent = '?'; fab.title = 'Help';
-    document.body.appendChild(fab);
+    const trigger = document.createElement('button');
+    trigger.className = 'help-q'; trigger.type = 'button'; trigger.textContent = '?'; trigger.title = 'Help';
+    const anchor = opts.anchor ? document.querySelector(opts.anchor) : null;
+    if (anchor) anchor.insertAdjacentElement('afterend', trigger);
+    else { trigger.classList.add('help-q-fixed'); document.body.appendChild(trigger); }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'help-overlay';
-    overlay.innerHTML =
-      '<div class="help-box">' +
-        '<div class="help-title"></div>' +
-        '<div class="help-body"></div>' +
-        (isMgmt ? '<button class="help-editlink">Edit this help text</button>' +
-          '<div class="help-editwrap"><textarea></textarea></div>' : '') +
-        '<div class="help-actions">' +
-          '<button class="help-btn help-close">Close</button>' +
-          (isMgmt ? '<button class="help-btn pri help-save">Save</button>' : '') +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(overlay);
+    const panel = document.createElement('div');
+    panel.className = 'help-panel';
+    panel.innerHTML =
+      '<div class="help-panel-head">' +
+        '<div class="help-panel-title">💡 Guidance</div>' +
+        '<button class="help-panel-close" type="button">✕</button>' +
+      '</div>' +
+      '<div class="help-panel-greet"></div>' +
+      '<div class="help-panel-body">' +
+        '<div class="help-content"></div>' +
+        (isMgmt ? '<button class="help-editlink" type="button">Edit this help text</button>' +
+          '<div class="help-editwrap"><textarea></textarea>' +
+          '<div class="help-edithint">Use "## " for a section header, "- " for a bullet, and "Note:" to start a callout.</div></div>' : '') +
+      '</div>' +
+      (isMgmt ? '<div class="help-panel-foot"><button class="help-btn pri">Save</button></div>' : '');
+    document.body.appendChild(panel);
 
-    const titleEl = overlay.querySelector('.help-title');
-    const bodyEl = overlay.querySelector('.help-body');
-
+    const greetEl = panel.querySelector('.help-panel-greet');
+    const contentEl = panel.querySelector('.help-content');
     function paint() {
       const name = (me && me.name) ? me.name.split(' ')[0] : '';
-      titleEl.textContent = name ? (greeting() + ', ' + name) : greeting();
-      bodyEl.textContent = content;
+      greetEl.textContent = (name ? greeting() + ', ' + name + ' — ' : greeting() + ' — ') + "this stays here while you work. Open or close it anytime.";
+      contentEl.innerHTML = renderContent(content);
     }
     paint();
 
-    function open() { overlay.classList.add('open'); }
-    function close() { overlay.classList.remove('open'); }
-    fab.addEventListener('click', open);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-    overlay.querySelector('.help-close').addEventListener('click', close);
+    function open() { panel.classList.add('open'); }
+    function close() { panel.classList.remove('open'); }
+    trigger.addEventListener('click', function () { panel.classList.contains('open') ? close() : open(); });
+    panel.querySelector('.help-panel-close').addEventListener('click', close);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 
     if (isMgmt) {
-      const editLink = overlay.querySelector('.help-editlink');
-      const editWrap = overlay.querySelector('.help-editwrap');
-      const textarea = overlay.querySelector('textarea');
-      const saveBtn = overlay.querySelector('.help-save');
+      const editLink = panel.querySelector('.help-editlink');
+      const editWrap = panel.querySelector('.help-editwrap');
+      const textarea = panel.querySelector('textarea');
+      const saveBtn = panel.querySelector('.help-btn.pri');
       editLink.addEventListener('click', function () {
         textarea.value = content;
         editWrap.style.display = '';
