@@ -53,6 +53,24 @@ router.delete('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/members/pins/backfill — set a PIN (last 4 digits of member #) for every
+// active member currently missing one (manager+). Same convention as the Add
+// Member modal and the CSV import default.
+router.post('/pins/backfill', (req, res) => {
+  if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
+  const members = db.getAllMembers();
+  let updated = 0;
+  const skipped = [];
+  members.forEach(m => {
+    if (m.pin) return;
+    const pin = pinFromClubNumber(m.club_number);
+    if (!pin) { skipped.push(m.club_number || `${m.first_name} ${m.last_name}`); return; }
+    db.updateMember(m.id, { pin });
+    updated++;
+  });
+  res.json({ ok: true, updated, skipped });
+});
+
 // GET /api/members/checkins?date=YYYY-MM-DD — today's check-in log with names (manager+)
 router.get('/checkins', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
