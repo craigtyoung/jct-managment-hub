@@ -917,12 +917,16 @@
           '<button class="bk-x" onclick="assignCourt(' + p.id + ', \'\')" title="Take off this court">✕</button>' + del + '</div>';
       }).join('');
 
+      const deleteBookingBtn = IS_ADMIN
+        ? '<button class="bk-x bk-del" onclick="deleteBooking(\'' + b.key + '\')" title="Delete this whole booking">🗑 Delete booking</button>'
+        : '';
       el.innerHTML =
         '<div class="bk-card" onclick="event.stopPropagation()">' +
           '<div class="bk-head"><div><strong>Court ' + b.court + '</strong> · ' + range +
             '<div class="bk-sub">' + b.kind + ' · ' + b.players.length + ' signed in · ' +
             (b.override ? 'set by the desk' : 'inferred from sign-ins') + '</div></div>' +
-            '<button class="bk-close" onclick="closeBooking()" title="Close">✕</button></div>' +
+            '<div style="display:flex;align-items:center;gap:6px">' + deleteBookingBtn +
+            '<button class="bk-close" onclick="closeBooking()" title="Close">✕</button></div></div>' +
           '<div class="bk-row"><label>Length</label><div class="bk-ctl bk-segs">' + typeBtns + '</div></div>' +
           mergeRow +
           '<div class="bk-row"><label>Move to</label><div class="bk-ctl">' +
@@ -987,6 +991,19 @@
       await loadCourtBoard(); paintBookingEditor();
     }
     window.moveBooking = moveBooking;
+
+    // Delete every check-in in this booking at once (admin only). The per-player
+    // 🗑 in the Players list still exists for dropping one person; this is the
+    // one-click way to clear a whole mis-entered block (e.g. a stray lesson slot).
+    async function deleteBooking(key) {
+      const b = bookingByKey(key); if (!b) return;
+      const who = b.players.map(function (p) { return p.member_name || '—'; }).join(', ');
+      if (!confirm('Delete this whole booking (' + b.players.length + ' — ' + who + ')? This removes every check-in in it entirely.')) return;
+      await Promise.all(b.players.map(function (p) { return fetch('/api/checkin/' + p.id, { method: 'DELETE' }); }));
+      closeBooking();
+      await loadCourtBoard();
+    }
+    window.deleteBooking = deleteBooking;
 
     // ── Staff check-in ────────────────────────────────────────────────────────
     // The desk checking a party in without walking them to the kiosk. Time and
