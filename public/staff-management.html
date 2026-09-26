@@ -87,6 +87,15 @@
 
     .panel-head-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
     .fbtn.add { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .view-tabs { display:flex; gap:4px; margin-bottom:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:4px; width:fit-content; }
+    .view-tab { flex:none; padding:6px 14px; border-radius:7px; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--text2); }
+    .view-tab:hover { background:rgba(44,92,156,0.06); color:var(--blue); }
+    .view-tab.active { background:var(--navy,#1d3a5f); color:#f0f4ff; font-weight:600; }
+    tr.dir-inactive { opacity:0.55; }
+    tr.dir-inactive:hover { opacity:0.8; }
+    .inactive-tag { font-size:10.5px; font-weight:700; color:var(--text3); background:var(--surface2); border-radius:100px; padding:2px 9px; margin-left:6px; }
+    .row-act.reactivate { opacity:1; color:#047857; }
+    .row-act.reactivate:hover { background:rgba(4,120,87,0.12); }
     .jobcell { white-space:nowrap; }
     .jobchk { display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:var(--text2); cursor:pointer; margin-right:6px; }
     .jobchk input { width:15px; height:15px; accent-color:var(--blue); cursor:pointer; }
@@ -284,33 +293,51 @@
       if (r.address) rows += '<div class="cp-row"><span class="cp-lbl">Address</span><span>' + esc(r.address) + '</span></div>';
       return '<span class="contact-cell"><span class="contact-chip">&#128235; Contact</span><span class="contact-pop">' + rows + '</span></span>';
     }
+    var dirFilter = 'active';
+    function setDirFilter(v, btn) {
+      dirFilter = v;
+      document.querySelectorAll('#dir-filter-tabs .view-tab').forEach(function (b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+      renderDirectory();
+    }
     function renderDirectory() {
+      var rows = dirRows.filter(function (r) {
+        return dirFilter === 'all' || (dirFilter === 'active' ? r.active !== false : r.active === false);
+      });
       var html = '<div class="panel-head-row"><div><h2 style="margin:0;font-size:19px">Directory</h2><p style="margin:3px 0 0;font-size:12.5px;color:var(--text3)">First name shows across the hub. Hover <strong>Contact</strong> for phone, email &amp; address; use &#9999;&#65039; to edit details.</p></div><button class="fbtn add" onclick="openAddStaff()">+ Add staff</button></div>' +
+        '<div class="view-tabs" id="dir-filter-tabs">' +
+          '<button class="view-tab' + (dirFilter === 'active' ? ' active' : '') + '" onclick="setDirFilter(\'active\',this)">Active</button>' +
+          '<button class="view-tab' + (dirFilter === 'inactive' ? ' active' : '') + '" onclick="setDirFilter(\'inactive\',this)">Inactive</button>' +
+          '<button class="view-tab' + (dirFilter === 'all' ? ' active' : '') + '" onclick="setDirFilter(\'all\',this)">All</button>' +
+        '</div>' +
         '<div class="grid-wrap"><table><thead><tr><th>Staff</th><th>Role</th><th>Contact</th><th></th></tr></thead><tbody>' +
-        dirRows.map(function (r) {
+        rows.map(function (r) {
+          var inactive = r.active === false;
           var roleCell;
           if (r.role === 'manager' || r.role === 'admin') roleCell = '<td><span class="role-badge mgr">Manager</span></td>';
           else if (r.role === 'contractor') roleCell = '<td><span class="role-badge con">Contractor</span></td>';
           else roleCell = '<td class="jobcell">' +
-            '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Office</label> ' +
-            '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"> Pro</label></td>';
+            '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Office</label> ' +
+            '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Pro</label></td>';
           var lastName = r.last_name ? ' ' + esc(r.last_name) : '';
           var certTag = r.certification ? '<div class="cert-tag" title="Tennis Canada certification">' + esc(r.certification) + '</div>' : '';
-          return '<tr>' +
-            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><div class="who-nm"><span class="nm">' + esc(r.first_name) + lastName + '</span>' + certTag + '</div></div></td>' +
-            roleCell +
-            '<td>' + contactCell(r) + '</td>' +
-            '<td style="white-space:nowrap">' +
-              '<button class="row-act" title="Edit details" onclick="openEditStaff(' + r.id + ')">&#9999;&#65039;</button>' +
+          var inactiveTag = inactive ? '<span class="inactive-tag">Inactive</span>' : '';
+          var actions = inactive
+            ? '<button class="row-act reactivate" title="Re-enable staff" onclick="reactivateStaffRow(' + r.id + ')">&#9989; Re-enable</button>'
+            : '<button class="row-act" title="Edit details" onclick="openEditStaff(' + r.id + ')">&#9999;&#65039;</button>' +
               '<button class="row-act" title="Change photo" onclick="pickPhoto(' + r.id + ')">&#128247;</button>' +
               '<button class="row-act" title="Reset password" onclick="resetPw(' + r.id + ')">&#128273;</button>' +
-              '<button class="row-act del-act" title="Remove staff" onclick="removeStaffRow(' + r.id + ')">&#128465;</button>' +
-            '</td>' +
+              '<button class="row-act del-act" title="Disable staff" onclick="disableStaffRow(' + r.id + ')">&#128683;</button>';
+          return '<tr' + (inactive ? ' class="dir-inactive"' : '') + '>' +
+            '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><div class="who-nm"><span class="nm">' + esc(r.first_name) + lastName + '</span>' + certTag + inactiveTag + '</div></div></td>' +
+            roleCell +
+            '<td>' + contactCell(r) + '</td>' +
+            '<td style="white-space:nowrap">' + actions + '</td>' +
             '</tr>';
         }).join('') +
         '</tbody></table></div>';
       document.getElementById('panel-directory').innerHTML = html;
-      dirRows.forEach(function (r) { var el = document.getElementById('dav-' + r.id); if (el && window.staffAvatar) staffAvatar(el, r.id, r.first_name, r.color); });
+      rows.forEach(function (r) { var el = document.getElementById('dav-' + r.id); if (el && window.staffAvatar) staffAvatar(el, r.id, r.first_name, r.color); });
     }
 
     // Directory row actions
@@ -331,11 +358,15 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) { alert(d ? ('Password reset. Temporary password: ' + d.temp + "\nThey'll be prompted to set their own on next sign-in.") : 'Reset failed.'); });
     }
-    function removeStaffRow(id) {
+    function disableStaffRow(id) {
       var r = dirRows.find(function (x) { return x.id === id; }); var nm = r ? r.first_name : 'this staff member';
-      if (!confirm('Remove ' + nm + ' from the hub? This deletes their account and cannot be undone.')) return;
-      fetch('/api/staff-mgmt/directory/' + id, { method: 'DELETE' })
-        .then(function (r) { if (r.ok) loadDirectory(); else r.json().then(function (d) { alert((d && d.error) || 'Could not remove.'); }); });
+      if (!confirm('Disable ' + nm + '? They’ll drop off the active roster and out of schedules/pickers, but their account, history and pay stay intact — re-enable anytime from the Inactive tab.')) return;
+      fetch('/api/staff-mgmt/directory/' + id + '/active', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: false }) })
+        .then(function (r) { if (r.ok) loadDirectory(); else r.json().then(function (d) { alert((d && d.error) || 'Could not disable.'); }); });
+    }
+    function reactivateStaffRow(id) {
+      fetch('/api/staff-mgmt/directory/' + id + '/active', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: true }) })
+        .then(function (r) { if (r.ok) loadDirectory(); else r.json().then(function (d) { alert((d && d.error) || 'Could not re-enable.'); }); });
     }
     function saveStaff(id, field, val) {
       var body = {}; body[field] = val;

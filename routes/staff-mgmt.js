@@ -63,6 +63,20 @@ router.delete('/directory/:id', guardDir, (req, res) => {
   res.json({ ok: true });
 });
 
+// PATCH /directory/:id/active — disable/re-enable (reversible). Replaces hard
+// delete as the Directory's everyday "Remove" action: login, history, and pay
+// records stay intact, and they drop out of pickers/dropdowns via getAllStaff
+// until re-enabled.
+router.patch('/directory/:id/active', guardDir, (req, res) => {
+  if (parseInt(req.params.id) === req.session.staffId && req.body.active === false) {
+    return res.status(400).json({ error: 'Cannot disable your own account' });
+  }
+  const row = db.setStaffActive(req.params.id, !!req.body.active);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  sse.broadcast('staff-pay');
+  res.json(row);
+});
+
 // ── Pay Review (tight allowlist) ──
 router.get('/', guardPay, (req, res) => res.json(db.getStaffPay()));
 

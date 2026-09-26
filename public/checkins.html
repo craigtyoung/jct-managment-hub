@@ -76,7 +76,6 @@
     /* Check-in log */
     .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:22px;}
     .ci-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);}
-    .ci-date{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--text);}
     .ci-count{font-size:12px;color:var(--text-3);margin-left:auto;}
     .ci-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
     .ci-row:last-child{border-bottom:none;}
@@ -335,10 +334,16 @@
 
     <!-- Check-ins view -->
     <div id="view-checkins">
+      <div class="daynav">
+        <button class="daynav-btn" onclick="stepDay(-1)" title="Previous day">&#8249;</button>
+        <span class="daynav-label" id="ci-day-label">—</span>
+        <button class="daynav-btn" onclick="stepDay(1)" title="Next day">&#8250;</button>
+        <button class="daynav-today" id="ci-today-btn" onclick="goToday()">Today</button>
+        <button class="daynav-btn" title="Jump to date" onclick="openDatePicker()">&#128197;</button>
+        <input type="date" id="ci-jump-date" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;" onchange="jumpToDate(this.value)">
+      </div>
       <div class="card">
         <div class="ci-toolbar">
-          <input type="date" class="ci-date" id="ci-date" onchange="loadCheckinTab(this.value)">
-          <button style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font);font-size:12px;cursor:pointer;" onclick="loadCheckinTab(document.getElementById('ci-date').value)">Refresh</button>
           <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(22,163,74,0.3);background:rgba(22,163,74,0.08);color:#16a34a;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;" onclick="openGuestModal()">+ Guest</button>
           <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.08);color:var(--navy);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;" onclick="openStaffCheckin()">+ Check in</button>
           <button disabled title="Coming soon — GameTime auto-sync isn't built yet" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text-3);font-family:var(--font);font-size:12px;font-weight:600;cursor:default;">Sync to GameTime</button>
@@ -351,10 +356,10 @@
     <!-- Court View -->
     <div id="view-court" style="display:none">
       <div class="daynav">
-        <button class="daynav-btn" onclick="stepCourtDay(-1)" title="Previous day">&#8249;</button>
+        <button class="daynav-btn" onclick="stepDay(-1)" title="Previous day">&#8249;</button>
         <span class="daynav-label" id="court-day-label">—</span>
-        <button class="daynav-btn" onclick="stepCourtDay(1)" title="Next day">&#8250;</button>
-        <button class="daynav-today" id="court-today-btn" onclick="goCourtToday()">Today</button>
+        <button class="daynav-btn" onclick="stepDay(1)" title="Next day">&#8250;</button>
+        <button class="daynav-today" id="court-today-btn" onclick="goToday()">Today</button>
       </div>
       <div class="card" id="waiting-card" style="display:none">
         <div class="card-title">Checked in, no court yet</div>
@@ -366,7 +371,7 @@
 
   <div class="modal-overlay" id="ci-modal" onclick="if(event.target===this)closeStaffCheckin()">
     <div class="modal">
-      <h2>Check In</h2>
+      <h2 id="ci-modal-title">Check In</h2>
       <div class="field">
         <label>Who</label>
         <input id="ci-find" type="text" autocomplete="off" placeholder="Search member name or club number…" oninput="staffFind()" />
@@ -479,7 +484,7 @@
       paintDayLabel();
       showView('checkins');
       window.__checkinLiveUpdate = () => {
-        loadCheckinTab(document.getElementById('ci-date').value || todayLocal());
+        loadCheckinTab(BOARD_DATE);
         loadCourtBoard();
       };
     }
@@ -489,11 +494,9 @@
       document.getElementById('view-court').style.display = view === 'court' ? '' : 'none';
       document.getElementById('tab-checkins').className = 'view-tab' + (view === 'checkins' ? ' active' : '');
       document.getElementById('tab-court').className = 'view-tab' + (view === 'court' ? ' active' : '');
+      paintDayLabel();
       if (view === 'checkins') {
-        const today = todayLocal();
-        const dateEl = document.getElementById('ci-date');
-        if (dateEl && !dateEl.value) dateEl.value = today;
-        loadCheckinTab(dateEl.value || today);
+        loadCheckinTab(BOARD_DATE);
       } else {
         loadCourtBoard();
       }
@@ -795,27 +798,43 @@
       const dt = new Date(y, m - 1, d + days);   // parts, not Date.parse — avoids the UTC roll-back
       return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
     }
+    // Shared day-nav — one BOARD_DATE drives both the Check-ins tab and Court
+    // View, so stepping/jumping a date on either tab keeps them in sync.
     function paintDayLabel() {
       const [y, m, d] = BOARD_DATE.split('-').map(Number);
       const dt = new Date(y, m - 1, d);
-      const lbl = document.getElementById('court-day-label');
       const isToday = BOARD_DATE === todayLocal();
-      if (lbl) lbl.textContent = (isToday ? 'Today · ' : '') +
+      const labelText = (isToday ? 'Today · ' : '') +
         dt.toLocaleDateString('en-CA', { weekday: 'long', month: 'short', day: 'numeric' });
-      const btn = document.getElementById('court-today-btn');
-      if (btn) btn.disabled = isToday;
+      ['court-day-label', 'ci-day-label'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = labelText; });
+      ['court-today-btn', 'ci-today-btn'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isToday; });
+      const jump = document.getElementById('ci-jump-date'); if (jump) jump.value = BOARD_DATE;
     }
-    async function stepCourtDay(days) {
+    async function refreshDatedView() {
+      const onCourt = document.getElementById('view-court').style.display !== 'none';
+      if (onCourt) { await loadSchedule(); loadCourtBoard(); }
+      else { loadCheckinTab(BOARD_DATE); }
+    }
+    async function stepDay(days) {
       BOARD_DATE = shiftISO(BOARD_DATE, days);
       paintDayLabel();
-      await loadSchedule();
-      loadCourtBoard();
+      await refreshDatedView();
     }
-    async function goCourtToday() {
+    async function goToday() {
       BOARD_DATE = todayLocal();
       paintDayLabel();
-      await loadSchedule();
-      loadCourtBoard();
+      await refreshDatedView();
+    }
+    async function jumpToDate(v) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
+      BOARD_DATE = v;
+      paintDayLabel();
+      await refreshDatedView();
+    }
+    function openDatePicker() {
+      const el = document.getElementById('ci-jump-date');
+      if (!el) return;
+      if (el.showPicker) el.showPicker(); else el.click();
     }
 
     // ── Booking editor ────────────────────────────────────────────────────────
@@ -979,6 +998,12 @@
 
     function openStaffCheckin() {
       CI_PICKED = []; CI_GUESTS = [];
+      const title = document.getElementById('ci-modal-title');
+      if (title) {
+        const isToday = BOARD_DATE === todayLocal();
+        title.textContent = isToday ? 'Check In' : 'Check In — backfilling ' + BOARD_DATE;
+        title.style.color = isToday ? '' : '#b45309';
+      }
       const sel = document.getElementById('ci-time');
       if (sel && !sel.options.length) {
         let opts = '';
@@ -1093,13 +1118,14 @@
             guests: CI_GUESTS,
             time: hhmm,
             court: document.getElementById('ci-court').value,
+            date: BOARD_DATE,
           }),
         });
         const j = r.ok ? await r.json() : null;
         if (!j || !j.ok) { alert('Could not check that party in.'); return; }
         if (j.skipped && j.skipped.length) alert(j.skipped.length + ' could not be checked in.');
         closeStaffCheckin();
-        loadCheckinTab(document.getElementById('ci-date').value || todayLocal());
+        loadCheckinTab(BOARD_DATE);
         loadCourtBoard();
       } finally {
         if (btn) { btn.disabled = false; paintPicked(); }
@@ -1292,11 +1318,11 @@
       try {
         const r = await fetch('/api/checkin/guest', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guestName: name, hostMemberId, court: court || null }),
+          body: JSON.stringify({ guestName: name, hostMemberId, court: court || null, date: BOARD_DATE }),
         });
         if (!r.ok) { const d = await r.json().catch(() => ({})); err.textContent = d.error || 'Could not sign in the guest.'; return; }
         closeGuestModal();
-        loadCheckinTab(document.getElementById('ci-date')?.value);
+        loadCheckinTab(BOARD_DATE);
       } catch (e) { err.textContent = 'Could not reach the server — try again.'; }
     }
 

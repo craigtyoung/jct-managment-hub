@@ -67,13 +67,16 @@ router.post('/staff', (req, res) => {
   const staff = db.getStaffById(req.session.staffId);
   if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
 
-  const { member_ids, guests, time, court } = req.body || {};
+  const { member_ids, guests, time, court, date } = req.body || {};
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time || ''))) return res.status(400).json({ error: 'Need a valid HH:MM time' });
   let c = null;
   if (court !== undefined && court !== null && court !== '') {
     c = parseInt(court);
     if (!Number.isInteger(c) || c < 1 || c > 6) return res.status(400).json({ error: 'Court must be 1-6' });
   }
+  // Optional backfill onto a past day (desk catching up on a missed sign-in);
+  // undefined/invalid falls through to today inside addCheckinLog/addGuestCheckinLog.
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : undefined;
 
   const ids = Array.isArray(member_ids) ? member_ids : [];
   const names = (Array.isArray(guests) ? guests : []).map(n => String(n || '').trim()).filter(Boolean);
@@ -84,13 +87,13 @@ router.post('/staff', (req, res) => {
   ids.forEach(mid => {
     const m = db.getMemberById(mid);
     if (!m || m.active === false) { skipped.push(mid); return; }
-    const r = db.addCheckinLog({ memberId: m.id, method: 'staff' });
+    const r = db.addCheckinLog({ memberId: m.id, method: 'staff', date: day });
     if (!r || !r.id) { skipped.push(mid); return; }
     db.setCheckinTime(r.id, time, c === null ? '' : c);
     created.push({ id: r.id, name: ((m.first_name || '') + ' ' + (m.last_name || '')).trim(), duplicate: !!r.duplicate });
   });
   names.forEach(n => {
-    const r = db.addGuestCheckinLog({ guestName: n, court: c });
+    const r = db.addGuestCheckinLog({ guestName: n, court: c, date: day });
     if (!r || !r.id) { skipped.push(n); return; }
     db.setCheckinTime(r.id, time, c === null ? '' : c);
     created.push({ id: r.id, name: n, guest: true });
@@ -131,9 +134,10 @@ router.post('/guest', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
-  const { guestName, hostMemberId, court } = req.body;
+  const { guestName, hostMemberId, court, date } = req.body;
   if (!guestName || !String(guestName).trim()) return res.status(400).json({ error: 'Guest name required' });
-  const result = db.addGuestCheckinLog({ guestName, hostMemberId, court });
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : undefined;
+  const result = db.addGuestCheckinLog({ guestName, hostMemberId, court, date: day });
   if (!result) return res.status(400).json({ error: 'Guest name required' });
   try { sse.broadcast('checkin-update'); } catch (e) {}
   res.json({ ok: true, id: result.id });

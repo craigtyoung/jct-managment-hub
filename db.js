@@ -1922,8 +1922,13 @@ function nowLocal() {
 
 // ─── Staff ───────────────────────────────────────────────────────────────────
 
-function getAllStaff() {
-  return _data.staff.map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role, badge: s.badge || null }))
+// Active staff only by default — this feeds nearly every picker/dropdown in the
+// hub (schedule, coverage, chat, proshop, login screen), so disabling someone
+// here is what actually removes them from day-to-day use. Pass true to include
+// disabled staff (management screens that need to see everyone).
+function getAllStaff(includeInactive) {
+  return _data.staff.filter(s => includeInactive || s.active !== false)
+    .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role, badge: s.badge || null }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -1994,6 +1999,18 @@ function removeStaff(staffId) {
   scrubStaffFromSlots(id);   // clear ghost court/board assignments so the person can't linger
   save();
   return true;
+}
+
+// Soft disable/re-enable — same convention as deactivateMember: never gone,
+// just off the active roster (and out of pickers/dropdowns app-wide via
+// getAllStaff). Unlike removeStaff, this is reversible and keeps their login,
+// history, and pay records intact for when they come back.
+function setStaffActive(staffId, active) {
+  const s = getStaffById(staffId);
+  if (!s) return null;
+  s.active = !!active;
+  save();
+  return _dirOut(s);
 }
 
 // Remove a staff id from every pro-schedule slot (pro_ids + court_pros). Called on
@@ -4052,7 +4069,7 @@ function updateStaffPay(staffId, job, f, actingId) {
 function _dirOut(s) {
   return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
     badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '',
-    certification: s.certification || '' };
+    certification: s.certification || '', active: s.active !== false };
 }
 function getStaffDirectory() {
   return (_data.staff || []).slice().sort((a, b) => a.name.localeCompare(b.name)).map(_dirOut);
@@ -4072,6 +4089,7 @@ function addStaffMember(f, passwordHash) {
     color: f.color || STAFF_PALETTE[(id - 1) % STAFF_PALETTE.length],
     password: passwordHash,
     must_set_password: true,
+    active: true,
   };
   _data.staff.push(s); save();
   return _dirOut(s);
@@ -4464,13 +4482,20 @@ function deactivateMember(id) {
   m.active = false; save(); return true;
 }
 // ─── Check-in logs ────────────────────────────────────────────────────────────
-function addCheckinLog({ memberId, method }) {
+// date: optional YYYY-MM-DD override for backfilling a missed check-in onto a
+// past day (staff desk entry, not the live kiosk). Defaults to today. A
+// backfilled entry gets a neutral noon timestamp since the real arrival time
+// wasn't captured; the desk can correct it via setCheckinTime afterward.
+function addCheckinLog({ memberId, method, date }) {
   if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
   const ts = nowLocal();
   const today = ts.slice(0, 10);
-  const duplicate = (_data.checkin_logs || []).some(l => l.date === today && l.member_id === parseInt(memberId));
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : today;
+  const backfilled = day !== today;
+  const time = backfilled ? '12:00:00' : ts.slice(11, 19);
+  const duplicate = (_data.checkin_logs || []).some(l => l.date === day && l.member_id === parseInt(memberId));
   const id = nextId('checkin_logs');
-  _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: today, time: ts.slice(11, 19), method: method === 'name' ? 'name' : 'pin', duplicate: duplicate || undefined, created_at: ts });
+  _data.checkin_logs.push({ id, member_id: parseInt(memberId), date: day, time, method: method === 'name' ? 'name' : 'pin', duplicate: duplicate || undefined, created_at: ts, backfilled: backfilled || undefined });
   save(); return { id, duplicate };
 }
 // Staff assigns/changes which court (1–6) a checked-in member is playing on. null clears it.
@@ -4556,13 +4581,17 @@ function setCheckinType(id, type) {
 
 // Staff-logged guest sign-in — no member record, just a name + which member hosted them.
 // Reuses checkin_logs (member_id stays null) so it shows up in the same feed/log.
-function addGuestCheckinLog({ guestName, hostMemberId, court }) {
+// date: optional YYYY-MM-DD override, same backfill convention as addCheckinLog.
+function addGuestCheckinLog({ guestName, hostMemberId, court, date }) {
   if (!Array.isArray(_data.checkin_logs)) { _data.checkin_logs = []; _data._seq.checkin_logs = 0; }
   const name = String(guestName || '').trim();
   if (!name) return null;
   const ts = nowLocal();
+  const today = ts.slice(0, 10);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : today;
+  const backfilled = day !== today;
   const id = nextId('checkin_logs');
-  const entry = { id, member_id: null, guest_name: name, host_member_id: hostMemberId ? parseInt(hostMemberId) : null, date: ts.slice(0, 10), time: ts.slice(11, 19), method: 'guest', created_at: ts };
+  const entry = { id, member_id: null, guest_name: name, host_member_id: hostMemberId ? parseInt(hostMemberId) : null, date: day, time: backfilled ? '12:00:00' : ts.slice(11, 19), method: 'guest', created_at: ts, backfilled: backfilled || undefined };
   if (court) { const c = parseInt(court); if (Number.isInteger(c) && c >= 1 && c <= 6) entry.court = c; }
   _data.checkin_logs.push(entry);
   save(); return { id };
@@ -5347,6 +5376,7 @@ module.exports = {
   addStaff,
   updateStaff,
   removeStaff,
+  setStaffActive,
   getMessages,
   getActiveMemos,
   createMessage,
