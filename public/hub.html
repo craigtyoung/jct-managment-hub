@@ -837,6 +837,17 @@
     .bub-warn a { margin-left: auto; color: #c2410c; white-space: nowrap; text-decoration: none; }
     .bub-warn a:hover { text-decoration: underline; }
 
+    /* "No court yet" reminder — same visual language as the bubble warning,
+       escalating amber→red the longer someone's been waiting unassigned. */
+    .court-warn-wrap { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .court-warn-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; border-radius: 10px; padding: 7px 12px; }
+    .court-warn-row.tier-soon { background: #f8fafc; border: 1px solid var(--border); color: var(--text-2); }
+    .court-warn-row.tier-wait { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; }
+    .court-warn-row.tier-urgent { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .court-warn-row .cw-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .court-warn-row .cw-mins { white-space: nowrap; font-weight: 700; }
+    .court-warn-row select { font-family: inherit; font-size: 11px; font-weight: 600; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border2); background: #fff; color: var(--text-3); }
+
     /* ── Comms + Bubble two-column ── */
     .dash-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 28px; }
     .duo-col { min-width: 0; }
@@ -1189,7 +1200,10 @@
       <div id="memo-list"></div>
     </div>
 
-    <!-- ── Comm Log + Bubble Monitoring (two-column) ─── -->
+    <!-- ── Comm Log + Today's Check-ins (two-column) ───
+         Experiment 2026-09-26: swapped with Bubble Monitoring (now below the
+         stats grid) so check-ins — the desk's live to-do — gets the prominent
+         top-of-dashboard slot. Easy to swap back if it doesn't earn its spot. -->
     <div class="dash-duo">
       <div class="duo-col">
         <div class="section-title" style="margin-top:0">
@@ -1210,18 +1224,15 @@
           </div>
         </a>
       </div>
-      <div class="duo-col">
+      <div class="duo-col checkin-only" id="checkin-section">
         <div class="section-title" style="margin-top:0">
           <div class="section-live-dot"></div>
-          Bubble Monitoring
+          Today's Check-ins
+          <a href="/checkins.html" class="reach-log-btn">+ Guest / Full log →</a>
         </div>
-        <div class="bub-wrap" style="margin-bottom:0">
-          <div class="bub-head">
-            <span id="bub-rec" style="font-size:12px;color:var(--text-3)"></span>
-            <a href="/bubble.html" class="bub-link">Log a reading →</a>
-          </div>
-          <div id="bub-warn" class="bub-warn" style="display:none"><span>⚠</span><span class="bw-text"></span><a href="/bubble.html">Log now →</a></div>
-          <div id="bub-list" class="bub-list"></div>
+        <div id="checkin-court-warn" class="court-warn-wrap" style="display:none"></div>
+        <div id="checkin-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:0;">
+          <div style="padding:14px 18px;color:var(--text-3);font-size:13px;">Loading…</div>
         </div>
       </div>
     </div>
@@ -1279,15 +1290,19 @@
       </a>
     </div>
 
-    <!-- ── Today's Check-ins (admin/office staff — not pro/contractor) ──────────── -->
-    <div class="checkin-only" id="checkin-section">
+    <!-- ── Bubble Monitoring (moved from the top duo, see note above) ─── -->
+    <div>
       <div class="section-title" style="margin-bottom:10px">
         <div class="section-live-dot"></div>
-        Today's Check-ins
-        <a href="/checkins.html" class="reach-log-btn">+ Guest / Full log →</a>
+        Bubble Monitoring
       </div>
-      <div id="checkin-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
-        <div style="padding:14px 18px;color:var(--text-3);font-size:13px;">Loading…</div>
+      <div class="bub-wrap" style="margin-bottom:20px">
+        <div class="bub-head">
+          <span id="bub-rec" style="font-size:12px;color:var(--text-3)"></span>
+          <a href="/bubble.html" class="bub-link">Log a reading →</a>
+        </div>
+        <div id="bub-warn" class="bub-warn" style="display:none"><span>⚠</span><span class="bw-text"></span><a href="/bubble.html">Log now →</a></div>
+        <div id="bub-list" class="bub-list"></div>
       </div>
     </div>
 
@@ -2007,6 +2022,10 @@
       // Member check-in feed: office/admin staff (admin, manager, staff) — not pro or contractor.
       if (!me.can_view_checkins) {
         document.querySelectorAll('.checkin-only').forEach(el => el.style.display = 'none');
+        // Check-ins now lives in the Comm Log duo — collapse to one column so
+        // Communications Log doesn't leave an empty cell beside it.
+        const duo = document.querySelector('.dash-duo');
+        if (duo) duo.style.gridTemplateColumns = '1fr';
       }
 
       setGreeting(me.name);
@@ -2209,6 +2228,7 @@
         const scs = document.getElementById('sc-checkin-sub');
         if (scv) { scv.textContent = count; scv.className = 'stat-value' + (count > 0 ? ' accent-blue' : ''); }
         if (scs) scs.textContent = count === 1 ? '1 member signed in' : `${count} members signed in`;
+        renderCourtWarn(logs);
         const DASH_CHECKIN_ROWS = 4; // dashboard shows the latest few; full log is one click away
         const feed = document.getElementById('checkin-feed');
         if (!feed) return;
@@ -2239,6 +2259,36 @@
         const rows = feed.querySelectorAll('div[style*="border-bottom"]');
         if (rows.length) rows[rows.length - 1].style.borderBottom = 'none';
       } catch (e) {}
+    }
+
+    // No-court reminder: everyone checked in but not yet on a court, oldest
+    // first (logs already arrive time-ascending), colored by how long they've
+    // been waiting — the desk's actual to-do, impossible to scroll past.
+    function minsSince(hhmmss) {
+      if (!hhmmss) return 0;
+      const [h, m] = hhmmss.split(':').map(Number);
+      const now = new Date();
+      const then = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+      return Math.max(0, Math.round((now - then) / 60000));
+    }
+    function renderCourtWarn(logs) {
+      const warnEl = document.getElementById('checkin-court-warn');
+      if (!warnEl) return;
+      const unassigned = logs.filter(l => !l.court && !l.duplicate);
+      if (!unassigned.length) { warnEl.style.display = 'none'; warnEl.innerHTML = ''; return; }
+      warnEl.style.display = '';
+      warnEl.innerHTML = unassigned.map(l => {
+        const mins = minsSince(l.time);
+        const tier = mins >= 20 ? 'tier-urgent' : (mins >= 10 ? 'tier-wait' : 'tier-soon');
+        const courtOpts = [1,2,3,4,5,6].map(n => `<option value="${n}">Court ${n}</option>`).join('');
+        return `<div class="court-warn-row ${tier}">
+          <span class="cw-mins">${mins}m</span>
+          <span class="cw-name">${esc(l.member_name || '—')} — no court yet</span>
+          <select onchange="setCheckinCourt(${l.id}, this.value)">
+            <option value="">Court —</option>${courtOpts}
+          </select>
+        </div>`;
+      }).join('');
     }
 
     async function setCheckinCourt(id, court) {
