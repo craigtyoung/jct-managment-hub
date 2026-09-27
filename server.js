@@ -64,6 +64,7 @@ const membersRoutes     = require('./routes/members');
 const lessonWaitlistRoutes = require('./routes/lesson-waitlist');
 const houseLeagueRoutes = require('./routes/house-league');
 const helpRoutes = require('./routes/help');
+const reconcileRoutes = require('./routes/reconcile');
 
 app.use('/api/auth', authRoutes);
 
@@ -151,6 +152,7 @@ app.use('/api/members',      requireAuth, membersRoutes);
 app.use('/api/lesson-waitlist', requireAuth, lessonWaitlistRoutes);
 app.use('/api/house-league', requireAuth, houseLeagueRoutes);
 app.use('/api/help',         requireAuth, helpRoutes);
+app.use('/api/reconcile',    requireAuth, reconcileRoutes);
 
 // Server-Sent Events — one persistent connection per logged-in client
 app.get('/api/events', requireAuth, (req, res) => {

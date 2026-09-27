@@ -4631,6 +4631,37 @@ function getCheckinLogsByDate(date) {
       ? { ...l, member_name: l.guest_name, guest: true, host_name: byId[l.host_member_id] || null }
       : { ...l, member_name: byId[l.member_id] || '—' });
 }
+
+// ─── Shift/Day Reconciliation (GameTime booking export vs hub check-ins) ──────
+// One record per date. Status: unreconciled -> staff-reconciled -> verified.
+// Per-booking notes (keyed by GameTime Conf No) let the desk record "confirmed
+// empty, nobody used this slot" or similar, same role paper notes played.
+function _ensureReconciliation(date) {
+  if (!Array.isArray(_data.reconciliations)) { _data.reconciliations = []; _data._seq.reconciliations = 0; }
+  let r = _data.reconciliations.find(x => x.date === date);
+  if (!r) { r = { id: nextId('reconciliations'), date, status: 'unreconciled', notes: [] }; _data.reconciliations.push(r); }
+  if (!Array.isArray(r.notes)) r.notes = [];
+  return r;
+}
+function getReconciliation(date) {
+  return (_data.reconciliations || []).find(x => x.date === date) || { date, status: 'unreconciled', notes: [] };
+}
+function setReconciliationStatus(date, status, staffId) {
+  if (!['unreconciled', 'staff-reconciled', 'verified'].includes(status)) return null;
+  const r = _ensureReconciliation(date);
+  const ts = nowLocal();
+  r.status = status;
+  if (status === 'staff-reconciled') { r.reconciled_by = parseInt(staffId); r.reconciled_at = ts; }
+  if (status === 'verified') { r.verified_by = parseInt(staffId); r.verified_at = ts; }
+  save();
+  return r;
+}
+function addReconciliationNote(date, confNo, note, staffId) {
+  const r = _ensureReconciliation(date);
+  r.notes.push({ confNo: String(confNo || '').slice(0, 40), note: String(note || '').slice(0, 500), staff_id: parseInt(staffId), created_at: nowLocal() });
+  save();
+  return r;
+}
 function getMemberCheckinToday(memberId) {
   const today = nowLocal().slice(0, 10);
   return (_data.checkin_logs || []).find(l => l.date === today && l.member_id === parseInt(memberId)) || null;
@@ -5441,6 +5472,9 @@ module.exports = {
   getMemberById,
   getMemberByPin,
   getMemberByClubNumber,
+  getReconciliation,
+  setReconciliationStatus,
+  addReconciliationNote,
   searchMembersByName,
   addMember,
   updateMember,
@@ -5453,6 +5487,7 @@ module.exports = {
   setCheckinTime,
   deleteCheckin,
   todayLocal: () => nowLocal().slice(0, 10),
+  nowLocal,
   getCheckinLogsByDate,
   getMemberCheckinToday,
   getUnsyncedCheckins,
