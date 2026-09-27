@@ -261,6 +261,43 @@
     .modal-actions{display:flex;gap:8px;margin-top:20px;}
     .modal-actions .btn{flex:1;}
 
+    /* Reconcile tab — GameTime CSV vs hub check-ins */
+    .rc-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;}
+    .rc-field label{display:block;font-size:11.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+    .rc-textarea{width:100%;min-height:120px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--text-2);resize:vertical;}
+    .rc-row-top{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+    .rc-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--canvas);font-family:var(--font);font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;}
+    .rc-btn:hover{border-color:var(--blue);color:var(--blue);}
+    .rc-btn-primary{background:var(--navy);color:#f0f4ff;border-color:var(--navy);}
+    .rc-btn-primary:hover{opacity:0.9;color:#f0f4ff;}
+    .rc-btn-mgmt{background:rgba(4,120,87,0.08);border-color:rgba(4,120,87,0.3);color:#047857;}
+    .rc-err{color:var(--red);font-size:12.5px;margin-top:8px;display:none;}
+    .rc-status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:4px 12px;border-radius:100px;text-transform:uppercase;letter-spacing:0.03em;}
+    .rc-status-pill.unreconciled{background:rgba(217,119,6,0.1);color:#9a3412;}
+    .rc-status-pill.staff-reconciled{background:rgba(44,92,156,0.1);color:#24507f;}
+    .rc-status-pill.verified{background:rgba(4,120,87,0.1);color:#047857;}
+    .rc-summary-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+    .rc-sum-chip{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+    .rc-sum-chip .v{font-size:20px;font-weight:800;color:var(--navy);}
+    .rc-sum-chip .l{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.03em;margin-top:2px;}
+    .rc-sum-chip.warn .v{color:#9a3412;}
+    .rc-sum-chip.bad .v{color:var(--red);}
+    .rc-section-title{font-size:13px;font-weight:700;color:var(--navy);margin:22px 0 10px;display:flex;align-items:center;gap:8px;}
+    .rc-section-title .n{font-size:11px;font-weight:700;background:var(--canvas);border-radius:100px;padding:1px 8px;color:var(--text-2);}
+    .rc-list-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;margin-bottom:6px;font-size:13px;}
+    .rc-list-row.bad{background:#fef2f2;border:1px solid #fca5a5;}
+    .rc-list-row.warn{background:#fff7ed;border:1px solid #fdba74;}
+    .rc-list-row.neutral{background:var(--surface);border:1px solid var(--border);}
+    .rc-list-row .who{flex:1;min-width:0;}
+    .rc-list-row .who .nm{font-weight:600;color:var(--text);}
+    .rc-list-row .who .meta{font-size:11.5px;color:var(--text-3);}
+    .rc-list-row .act{display:flex;gap:6px;flex-shrink:0;}
+    .rc-list-row .act button{font-family:var(--font);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--text-2);cursor:pointer;white-space:nowrap;}
+    .rc-list-row .act button:hover{border-color:var(--blue);color:var(--blue);}
+    .rc-list-row .act a{font-family:var(--font);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.08);color:var(--navy);cursor:pointer;text-decoration:none;white-space:nowrap;}
+    .rc-empty{font-size:12.5px;color:var(--text-3);padding:10px 4px;}
+    .rc-note-tag{font-size:10.5px;color:#047857;background:rgba(4,120,87,0.08);border-radius:6px;padding:2px 6px;margin-top:3px;display:inline-block;}
+
     @media(max-width:768px){
       .sidenav{display:none;}
       body{padding-left:0;}
@@ -288,7 +325,6 @@
       <div class="nav-group-label">Members</div>
       <a href="/members.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Member List</a>
       <a href="/checkins.html" class="nav-link checkin-only active" id="nav-member-checkins"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Member Check-Ins</a>
-      <a href="/reconcile.html" class="nav-link checkin-only"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M16 3l3 3-3 3"/></svg>Reconcile</a>
       <div class="nav-group-label">Programs</div>
       <a href="/house-league.html" class="nav-link"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg>House League</a>
       <a href="#" class="nav-link nav-soon" title="Coming soon"><svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Round Robin</a>
@@ -331,6 +367,7 @@
     <div class="view-tabs">
       <button class="view-tab active" id="tab-checkins" onclick="showView('checkins')">Check-ins</button>
       <button class="view-tab" id="tab-court" onclick="showView('court')">Court View</button>
+      <button class="view-tab" id="tab-reconcile" onclick="showView('reconcile')">Reconcile</button>
     </div>
 
     <!-- Check-ins view -->
@@ -367,6 +404,48 @@
         <div id="waiting-list"></div>
       </div>
       <div id="court-grid"></div>
+    </div>
+
+    <!-- Reconcile -->
+    <div id="view-reconcile" style="display:none">
+      <div class="rc-card">
+        <div class="rc-row-top">
+          <div class="rc-field">
+            <label>Date</label>
+            <input type="date" id="rc-date">
+          </div>
+          <button class="rc-btn" onclick="rcLoadStatus()">Refresh status</button>
+          <span id="rc-status-pill"></span>
+        </div>
+        <div class="rc-field" style="margin-bottom:10px">
+          <label>Paste the Booking Participants CSV (GameTime → Reports → Booking → Booking Participants → export)</label>
+          <textarea class="rc-textarea" id="rc-csv" placeholder="Conf No,Court,Court Date,Duration,Res Type,Players,Guest(Guest Of)&#10;..."></textarea>
+        </div>
+        <button class="rc-btn rc-btn-primary" onclick="rcCompare()">Compare</button>
+        <span id="rc-err" class="rc-err"></span>
+      </div>
+
+      <div id="rc-results" style="display:none">
+        <div class="rc-summary-strip" id="rc-summary"></div>
+
+        <div class="rc-section-title">Needs a name <span class="n" id="rc-n-unnamed">0</span></div>
+        <div id="rc-list-unnamed"></div>
+
+        <div class="rc-section-title">Booked, not checked in <span class="n" id="rc-n-booked">0</span></div>
+        <div id="rc-list-booked"></div>
+
+        <div class="rc-section-title">Checked in, not booked <span class="n" id="rc-n-walkin">0</span></div>
+        <div id="rc-list-walkin"></div>
+
+        <div class="rc-section-title">Matched <span class="n" id="rc-n-matched">0</span></div>
+        <div id="rc-list-matched"></div>
+
+        <div class="rc-card" style="margin-top:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="rc-btn rc-btn-primary" onclick="rcSetStatus('staff-reconciled')">Mark Staff-Reconciled</button>
+          <button class="rc-btn rc-btn-mgmt" id="rc-verify-btn" style="display:none" onclick="rcSetStatus('verified')">Mark Verified (management)</button>
+          <span style="font-size:12px;color:var(--text-3)">Clear the flagged rows above first — this just records that a pass was done.</span>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -497,8 +576,14 @@
     function showView(view) {
       document.getElementById('view-checkins').style.display = view === 'checkins' ? '' : 'none';
       document.getElementById('view-court').style.display = view === 'court' ? '' : 'none';
+      document.getElementById('view-reconcile').style.display = view === 'reconcile' ? '' : 'none';
       document.getElementById('tab-checkins').className = 'view-tab' + (view === 'checkins' ? ' active' : '');
       document.getElementById('tab-court').className = 'view-tab' + (view === 'court' ? ' active' : '');
+      document.getElementById('tab-reconcile').className = 'view-tab' + (view === 'reconcile' ? ' active' : '');
+      if (view === 'reconcile') {
+        rcInit();
+        return;
+      }
       paintDayLabel();
       if (view === 'checkins') {
         loadCheckinTab(BOARD_DATE);
@@ -1347,6 +1432,151 @@
         loadCheckinTab(BOARD_DATE);
       } catch (e) { err.textContent = 'Could not reach the server — try again.'; }
     }
+
+    // ── Reconcile tab: GameTime CSV vs hub check-ins ────────────────────────
+    let RC_INITED = false, RC_LAST = null;
+    function rcInit() {
+      const dateEl = document.getElementById('rc-date');
+      if (!dateEl.value) dateEl.value = BOARD_DATE || todayLocal();
+      if (me && me.is_management) document.getElementById('rc-verify-btn').style.display = '';
+      if (!RC_INITED) { RC_INITED = true; rcLoadStatus(); }
+    }
+    function rcPillHtml(status) {
+      const label = status === 'verified' ? 'Verified' : (status === 'staff-reconciled' ? 'Staff-Reconciled' : 'Unreconciled');
+      return `<span class="rc-status-pill ${status}">${label}</span>`;
+    }
+    async function rcLoadStatus() {
+      const date = document.getElementById('rc-date').value;
+      if (!date) return;
+      try {
+        const r = await fetch('/api/reconcile/' + date);
+        const d = r.ok ? await r.json() : { status: 'unreconciled' };
+        document.getElementById('rc-status-pill').innerHTML = rcPillHtml(d.status);
+      } catch (e) {}
+    }
+    window.rcLoadStatus = rcLoadStatus;
+
+    async function rcCompare() {
+      const date = document.getElementById('rc-date').value;
+      const csv = document.getElementById('rc-csv').value;
+      const err = document.getElementById('rc-err');
+      err.style.display = 'none';
+      if (!date) { err.textContent = 'Pick a date.'; err.style.display = ''; return; }
+      if (!csv.trim()) { err.textContent = 'Paste the CSV first.'; err.style.display = ''; return; }
+      try {
+        const r = await fetch('/api/reconcile/parse', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, csv }),
+        });
+        const d = await r.json();
+        if (!r.ok) { err.textContent = d.error || 'Could not parse that CSV.'; err.style.display = ''; return; }
+        RC_LAST = d;
+        rcRender(d);
+      } catch (e) { err.textContent = 'Could not reach the server — try again.'; err.style.display = ''; }
+    }
+    window.rcCompare = rcCompare;
+
+    function rcNoteFor(confNo) {
+      if (!RC_LAST || !RC_LAST.notes) return null;
+      const n = RC_LAST.notes.filter(x => x.confNo === confNo);
+      return n.length ? n[n.length - 1] : null;
+    }
+    function rcFmtTime(hhmm) {
+      const [h, m] = String(hhmm || '0:0').split(':').map(Number);
+      const period = h < 12 ? 'am' : 'pm';
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, '0')}${period}`;
+    }
+    // Jumps to the Check-ins tab on the reconciled date, instead of a page nav —
+    // Reconcile lives as a tab now, so backfilling a gap should stay in-page.
+    function rcGoCheckIn(date) {
+      BOARD_DATE = date;
+      showView('checkins');
+    }
+    window.rcGoCheckIn = rcGoCheckIn;
+
+    function rcRender(d) {
+      document.getElementById('rc-results').style.display = '';
+      document.getElementById('rc-status-pill').innerHTML = rcPillHtml(d.status);
+
+      const s = d.summary;
+      document.getElementById('rc-summary').innerHTML = `
+        <div class="rc-sum-chip"><div class="v">${s.totalBookings}</div><div class="l">Bookings</div></div>
+        <div class="rc-sum-chip"><div class="v">${s.matched}</div><div class="l">Matched</div></div>
+        <div class="rc-sum-chip warn"><div class="v">${s.bookedNotCheckedIn}</div><div class="l">Not checked in</div></div>
+        <div class="rc-sum-chip warn"><div class="v">${s.unnamed}</div><div class="l">Needs a name</div></div>
+        <div class="rc-sum-chip bad"><div class="v">${s.checkedInNotBooked}</div><div class="l">Walk-ins</div></div>
+      `;
+
+      document.getElementById('rc-n-unnamed').textContent = d.unnamed.length;
+      document.getElementById('rc-list-unnamed').innerHTML = d.unnamed.length ? d.unnamed.map(b => {
+        const note = rcNoteFor(b.confNo);
+        return `<div class="rc-list-row warn">
+          <div class="who"><div class="nm">Court ${b.court} · ${rcFmtTime(b.time)} · ${esc(b.resType)}</div>
+          <div class="meta">${b.durationMin}min, nobody recorded on GameTime${note ? '' : ' — who was this?'}</div>
+          ${note ? '<div class="rc-note-tag">' + esc(note.note) + '</div>' : ''}</div>
+          <div class="act">
+            <button onclick="rcGoCheckIn('${d.date}')">Check in →</button>
+            <button onclick="rcAddNote('${b.confNo}')">Note</button>
+          </div>
+        </div>`;
+      }).join('') : '<div class="rc-empty">Nothing unnamed.</div>';
+
+      document.getElementById('rc-n-booked').textContent = d.bookedNotCheckedIn.length;
+      document.getElementById('rc-list-booked').innerHTML = d.bookedNotCheckedIn.length ? d.bookedNotCheckedIn.map(b => {
+        const note = rcNoteFor(b.confNo);
+        return `<div class="rc-list-row warn">
+          <div class="who"><div class="nm">${esc(b.name)}${b.guest ? ' <em>guest</em>' : ''}</div>
+          <div class="meta">Court ${b.court} · ${rcFmtTime(b.time)} · ${esc(b.resType)} — booked, no matching check-in</div>
+          ${note ? '<div class="rc-note-tag">' + esc(note.note) + '</div>' : ''}</div>
+          <div class="act">
+            <button onclick="rcGoCheckIn('${d.date}')">Check in →</button>
+            <button onclick="rcAddNote('${b.confNo}')">Note</button>
+          </div>
+        </div>`;
+      }).join('') : '<div class="rc-empty">Everyone booked checked in.</div>';
+
+      document.getElementById('rc-n-walkin').textContent = d.checkedInNotBooked.length;
+      document.getElementById('rc-list-walkin').innerHTML = d.checkedInNotBooked.length ? d.checkedInNotBooked.map(c => `
+        <div class="rc-list-row bad">
+          <div class="who"><div class="nm">${esc(c.name)}${c.guest ? ' <em>guest</em>' : ''}</div>
+          <div class="meta">${rcFmtTime(c.time.slice(0,5))}${c.court ? ' · Court ' + c.court : ''} — checked in, no matching GameTime booking</div></div>
+        </div>`).join('') : '<div class="rc-empty">No unexplained check-ins.</div>';
+
+      document.getElementById('rc-n-matched').textContent = d.matched.length;
+      document.getElementById('rc-list-matched').innerHTML = d.matched.length ? d.matched.map(m => `
+        <div class="rc-list-row neutral">
+          <div class="who"><div class="nm">${esc(m.name)}</div>
+          <div class="meta">Court ${m.court} · booked ${rcFmtTime(m.time)}, checked in ${rcFmtTime(m.checkinTime.slice(0,5))}</div></div>
+        </div>`).join('') : '<div class="rc-empty">No matches yet — run Compare.</div>';
+    }
+
+    async function rcAddNote(confNo) {
+      const note = prompt('Note for this booking (e.g. "confirmed empty, pro had no client" or "checked in manually, was Jane Doe"):');
+      if (!note || !note.trim()) return;
+      const date = document.getElementById('rc-date').value;
+      try {
+        await fetch('/api/reconcile/' + date + '/note', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confNo, note }),
+        });
+        rcCompare();
+      } catch (e) {}
+    }
+    window.rcAddNote = rcAddNote;
+
+    async function rcSetStatus(status) {
+      const date = document.getElementById('rc-date').value;
+      try {
+        const r = await fetch('/api/reconcile/' + date + '/status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+        if (r.ok) { const d = await r.json(); document.getElementById('rc-status-pill').innerHTML = rcPillHtml(d.status); }
+        else { const e = await r.json().catch(() => ({})); alert(e.error || 'Could not update status.'); }
+      } catch (e) {}
+    }
+    window.rcSetStatus = rcSetStatus;
 
     // SSE: refresh in real time when any check-in or court change happens
     (function () {
