@@ -438,7 +438,7 @@
               <input type="file" id="rc-img-file" accept="image/*" multiple style="display:none" onchange="rcImageChosen(this)">
               <span id="rc-img-file-name" style="font-size:12px;color:var(--text-3)"></span>
             </div>
-            <div style="font-size:11.5px;color:var(--text-3);margin-top:6px">Select up to 4 images if the day spans more than one screenshot. Matching is by name (no member number in a screenshot), so it's a touch less precise than the CSV — worth a spot-check.</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:6px">Select up to 4 images if the day spans more than one screenshot, or just paste (Ctrl+V) a copied screenshot anywhere on this tab. Matching is by name (no member number in a screenshot), so it's a touch less precise than the CSV — worth a spot-check.</div>
           </div>
         </div>
       </div>
@@ -1494,30 +1494,51 @@
       });
     }
 
-    async function rcImageChosen(input) {
+    function rcImageChosen(input) {
       const files = Array.from(input.files || []).slice(0, 4);
+      rcUploadImages(files);
+    }
+    window.rcImageChosen = rcImageChosen;
+
+    async function rcUploadImages(files) {
       if (!files.length) return;
       const date = document.getElementById('rc-date').value;
       const err = document.getElementById('rc-err');
       err.style.display = 'none';
       if (!date) { err.textContent = 'Pick a date first.'; err.style.display = ''; return; }
-      document.getElementById('rc-img-file-name').textContent = files.map(f => f.name).join(', ') + ' — reading…';
+      const nameLabel = document.getElementById('rc-img-file-name');
+      const plainNames = files.map(f => f.name || 'pasted image').join(', ');
+      nameLabel.textContent = plainNames + ' — reading…';
       try {
         const images = await Promise.all(files.map(async f => ({ base64: await readAsBase64(f), mediaType: f.type || 'image/png' })));
         const r = await fetch('/api/reconcile/parse-image', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date, images }),
         });
-        const d = await r.json();
-        document.getElementById('rc-img-file-name').textContent = files.map(f => f.name).join(', ');
-        if (!r.ok) { err.textContent = d.error || 'Could not read that screenshot.'; err.style.display = ''; return; }
+        let d;
+        try { d = await r.json(); }
+        catch (parseErr) { throw new Error(r.status === 413 ? 'That screenshot is too large for one upload — try a smaller image or fewer at once.' : 'Server returned something unexpected (status ' + r.status + ').'); }
+        if (!r.ok) throw new Error(d.error || 'Could not read that screenshot.');
         RC_LAST = d;
         rcRender(d);
       } catch (e) {
-        err.textContent = 'Could not reach the server — try again.'; err.style.display = '';
+        err.textContent = e.message || 'Could not reach the server — try again.'; err.style.display = '';
+      } finally {
+        nameLabel.textContent = plainNames;
       }
     }
-    window.rcImageChosen = rcImageChosen;
+
+    // Ctrl+V anywhere while the Reconcile tab is open — same path as the file
+    // picker, just sourced from the clipboard instead of a chosen file.
+    document.addEventListener('paste', (e) => {
+      const view = document.getElementById('view-reconcile');
+      if (!view || view.style.display === 'none') return;
+      const items = Array.from((e.clipboardData || {}).items || []).filter(it => it.type && it.type.startsWith('image/'));
+      if (!items.length) return;
+      e.preventDefault();
+      const files = items.map(it => it.getAsFile()).filter(Boolean).slice(0, 4);
+      rcUploadImages(files);
+    });
 
     async function rcCompare() {
       const date = document.getElementById('rc-date').value;

@@ -15,8 +15,11 @@ const SESSIONS_DIR = path.join(path.dirname(DATA_FILE), 'sessions');
 const BOOT_ID = Date.now();
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Default JSON limit (100kb) is fine for normal API calls, but Reconcile's
+// screenshot upload sends up to 4 base64-encoded images in one request —
+// a single real screenshot alone can exceed 100kb once encoded.
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({

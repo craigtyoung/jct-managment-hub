@@ -33,7 +33,12 @@
       '- Once checked in, please assign a court.\n\n' +
       '## Verifying Courts\n' +
       '- In Court View, verify the entries match GameTime.\n\n' +
-      "Note: This page reflects who's signed in — GameTime stays the source of truth for actual bookings and billing.",
+      '## Reconciling the Day\n' +
+      "By the end of your shift, run the Reconcile tab for today's date.\n" +
+      '- Upload or paste the Booking Participants CSV from GameTime (Reports → Booking → Booking Participants), or upload/paste a screenshot of the court board if that\'s faster.\n' +
+      '- Go through "Needs a name" and "Booked, not checked in" — check the person in if you can confirm who it was, or leave a Note if the slot was genuinely empty (e.g. a pro\'s open lesson time nobody used).\n' +
+      '- Once everything\'s cleared or noted, click "Mark Staff-Reconciled" — that\'s your sign-off for the shift.\n\n' +
+      "Note: This page reflects who's signed in — GameTime stays the source of truth for actual bookings and billing. Reconcile just checks the two agree.",
     checklist:
       '## Working the Checklist\n' +
       'Check off tasks as you go through your shift.\n' +
@@ -98,13 +103,12 @@
     const s = document.createElement('style');
     s.id = 'help-icon-css';
     s.textContent =
-      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;' +
-        'border-radius:7px;border:none;background:transparent;color:#94a3b8;cursor:pointer;' +
-        'vertical-align:middle;margin-left:10px;padding:0;flex-shrink:0;}' +
+      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;' +
+        'border-radius:50%;border:1px solid #eab308;background:#facc15;color:#0c1738;cursor:pointer;' +
+        'vertical-align:middle;margin-left:10px;padding:0;flex-shrink:0;box-shadow:0 1px 4px rgba(234,179,8,0.5);}' +
       '.help-q svg{width:17px;height:17px;}' +
-      '.help-q:hover{color:#2c5c9c;background:rgba(44,92,156,0.08);}' +
-      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;margin-left:0;' +
-        'background:#fff;border:1px solid #e5e9f0;box-shadow:0 2px 8px rgba(12,23,56,0.08);}' +
+      '.help-q:hover{background:#fde047;box-shadow:0 2px 8px rgba(234,179,8,0.65);}' +
+      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;margin-left:0;}' +
       '.help-panel{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:92vw;background:#fff;' +
         'box-shadow:-10px 0 34px rgba(12,23,56,0.14);border-left:1px solid #e5e9f0;z-index:450;' +
         'display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;}' +
