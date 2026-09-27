@@ -418,7 +418,13 @@
           <span id="rc-status-pill"></span>
         </div>
         <div class="rc-field" style="margin-bottom:10px">
-          <label>Paste the Booking Participants CSV (GameTime → Reports → Booking → Booking Participants → export)</label>
+          <label>Booking Participants CSV (GameTime → Reports → Booking → Booking Participants → export)</label>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <button class="rc-btn" type="button" onclick="document.getElementById('rc-file').click()">Upload CSV file…</button>
+            <input type="file" id="rc-file" accept=".csv,text/csv" style="display:none" onchange="rcFileChosen(this)">
+            <span id="rc-file-name" style="font-size:12px;color:var(--text-3)"></span>
+            <span style="font-size:12px;color:var(--text-3)">— or paste below</span>
+          </div>
           <textarea class="rc-textarea" id="rc-csv" placeholder="Conf No,Court,Court Date,Duration,Res Type,Players,Guest(Guest Of)&#10;..."></textarea>
         </div>
         <button class="rc-btn rc-btn-primary" onclick="rcCompare()">Compare</button>
@@ -1455,6 +1461,17 @@
       } catch (e) {}
     }
     window.rcLoadStatus = rcLoadStatus;
+
+    function rcFileChosen(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      document.getElementById('rc-file-name').textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = () => { document.getElementById('rc-csv').value = reader.result; rcCompare(); };
+      reader.onerror = () => { document.getElementById('rc-err').textContent = 'Could not read that file.'; document.getElementById('rc-err').style.display = ''; };
+      reader.readAsText(file);
+    }
+    window.rcFileChosen = rcFileChosen;
 
     async function rcCompare() {
       const date = document.getElementById('rc-date').value;
