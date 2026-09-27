@@ -311,6 +311,36 @@ router.post('/parse-image', guardView, async (req, res) => {
   }
 });
 
+function shiftDateStr(iso, days) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+
+// GET /?days=14 — management-only review list: the last N days' reconciliation
+// status at a glance, so management doesn't have to guess-and-check dates one
+// at a time. Registered before /:date is irrelevant either way (Express
+// matches this exact-root route separately from the param route) but kept
+// here for readability alongside it.
+router.get('/', guardMgmt, (req, res) => {
+  const days = Math.min(60, Math.max(1, parseInt(req.query.days) || 14));
+  const today = db.todayLocal();
+  const list = [];
+  for (let i = 0; i < days; i++) {
+    const date = shiftDateStr(today, -i);
+    const rec = db.getReconciliation(date);
+    const checkinCount = db.getCheckinLogsByDate(date).filter(c => !c.duplicate).length;
+    const reconciledBy = rec.reconciled_by ? db.getStaffById(rec.reconciled_by) : null;
+    const verifiedBy = rec.verified_by ? db.getStaffById(rec.verified_by) : null;
+    list.push({
+      date, status: rec.status, checkinCount, noteCount: (rec.notes || []).length,
+      reconciled_by_name: reconciledBy ? reconciledBy.name : null, reconciled_at: rec.reconciled_at || null,
+      verified_by_name: verifiedBy ? verifiedBy.name : null, verified_at: rec.verified_at || null,
+    });
+  }
+  res.json(list);
+});
+
 // GET /:date — current reconciliation status + notes (no CSV needed)
 router.get('/:date', guardView, (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date || '')) return res.status(400).json({ error: 'Bad date' });

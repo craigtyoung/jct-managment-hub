@@ -297,6 +297,12 @@
     .rc-list-row .act a{font-family:var(--font);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid rgba(44,92,156,0.3);background:rgba(44,92,156,0.08);color:var(--navy);cursor:pointer;text-decoration:none;white-space:nowrap;}
     .rc-empty{font-size:12.5px;color:var(--text-3);padding:10px 4px;}
     .rc-note-tag{font-size:10.5px;color:#047857;background:rgba(4,120,87,0.08);border-radius:6px;padding:2px 6px;margin-top:3px;display:inline-block;}
+    .rc-review-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12.5px;}
+    .rc-review-row:hover{background:var(--canvas);}
+    .rc-review-row .d{font-weight:600;color:var(--text);width:150px;flex-shrink:0;}
+    .rc-review-row .meta{color:var(--text-3);flex:1;}
+    .rc-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .rc-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);}
 
     @media(max-width:768px){
       .sidenav{display:none;}
@@ -408,6 +414,15 @@
 
     <!-- Reconcile -->
     <div id="view-reconcile" style="display:none">
+      <div class="rc-card" id="rc-mgmt-review" style="display:none">
+        <div class="rc-row-top" style="margin-bottom:6px">
+          <strong style="font-size:13.5px;color:var(--navy)">Management Review</strong>
+          <button class="rc-btn" style="margin-left:auto" onclick="rcLoadReview()">Refresh</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">Last 14 days at a glance — click a day to jump to it below.</div>
+        <div id="rc-review-list"></div>
+      </div>
+
       <div class="rc-card">
         <div class="rc-row-top">
           <div class="rc-field">
@@ -439,6 +454,7 @@
               <span id="rc-img-file-name" style="font-size:12px;color:var(--text-3)"></span>
             </div>
             <div style="font-size:11.5px;color:var(--text-3);margin-top:6px">Select up to 4 images if the day spans more than one screenshot, or just paste (Ctrl+V) a copied screenshot anywhere on this tab. Matching is by name (no member number in a screenshot), so it's a touch less precise than the CSV — worth a spot-check.</div>
+            <div class="rc-thumbs" id="rc-thumbs"></div>
           </div>
         </div>
       </div>
@@ -1456,9 +1472,42 @@
     function rcInit() {
       const dateEl = document.getElementById('rc-date');
       if (!dateEl.value) dateEl.value = BOARD_DATE || todayLocal();
-      if (me && me.is_management) document.getElementById('rc-verify-btn').style.display = '';
-      if (!RC_INITED) { RC_INITED = true; rcLoadStatus(); }
+      if (me && me.is_management) {
+        document.getElementById('rc-verify-btn').style.display = '';
+        document.getElementById('rc-mgmt-review').style.display = '';
+      }
+      if (!RC_INITED) { RC_INITED = true; rcLoadStatus(); if (me && me.is_management) rcLoadReview(); }
     }
+
+    // Management-only review list: last 14 days' reconciliation status.
+    async function rcLoadReview() {
+      const box = document.getElementById('rc-review-list');
+      box.innerHTML = '<div class="rc-empty">Loading…</div>';
+      try {
+        const r = await fetch('/api/reconcile?days=14');
+        if (!r.ok) { box.innerHTML = '<div class="rc-empty">Could not load.</div>'; return; }
+        const rows = await r.json();
+        box.innerHTML = rows.map(row => {
+          const label = row.status === 'verified' ? 'Verified' : (row.status === 'staff-reconciled' ? 'Staff-Reconciled' : 'Unreconciled');
+          const who = row.status === 'verified' ? row.verified_by_name : (row.status === 'staff-reconciled' ? row.reconciled_by_name : null);
+          const dt = new Date(row.date + 'T12:00:00').toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+          const meta = [`${row.checkinCount} check-in${row.checkinCount === 1 ? '' : 's'}`, row.noteCount ? `${row.noteCount} note${row.noteCount === 1 ? '' : 's'}` : null, who ? 'by ' + who : null].filter(Boolean).join(' · ');
+          return `<div class="rc-review-row" onclick="rcJumpToDate('${row.date}')">
+            <span class="d">${esc(dt)}</span>
+            <span class="rc-status-pill ${row.status}">${label}</span>
+            <span class="meta">${esc(meta)}</span>
+          </div>`;
+        }).join('') || '<div class="rc-empty">Nothing yet.</div>';
+      } catch (e) { box.innerHTML = '<div class="rc-empty">Could not load.</div>'; }
+    }
+    window.rcLoadReview = rcLoadReview;
+
+    function rcJumpToDate(date) {
+      document.getElementById('rc-date').value = date;
+      rcLoadStatus();
+      document.getElementById('rc-date').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    window.rcJumpToDate = rcJumpToDate;
     function rcPillHtml(status) {
       const label = status === 'verified' ? 'Verified' : (status === 'staff-reconciled' ? 'Staff-Reconciled' : 'Unreconciled');
       return `<span class="rc-status-pill ${status}">${label}</span>`;
@@ -1511,6 +1560,9 @@
       nameLabel.textContent = plainNames + ' — reading…';
       try {
         const images = await Promise.all(files.map(async f => ({ base64: await readAsBase64(f), mediaType: f.type || 'image/png' })));
+        // Show what was actually captured — visual proof the upload/paste worked,
+        // independent of whether the parse below succeeds.
+        document.getElementById('rc-thumbs').innerHTML = images.map(img => `<img src="data:${img.mediaType};base64,${img.base64}" title="Uploaded to this compare">`).join('');
         const r = await fetch('/api/reconcile/parse-image', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date, images }),
