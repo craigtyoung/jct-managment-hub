@@ -103,12 +103,14 @@
     const s = document.createElement('style');
     s.id = 'help-icon-css';
     s.textContent =
-      '.help-q{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;' +
-        'border-radius:50%;border:1px solid #eab308;background:#facc15;color:#0c1738;cursor:pointer;' +
-        'vertical-align:middle;margin-left:10px;padding:0;flex-shrink:0;box-shadow:0 1px 4px rgba(234,179,8,0.5);}' +
-      '.help-q svg{width:17px;height:17px;}' +
-      '.help-q:hover{background:#fde047;box-shadow:0 2px 8px rgba(234,179,8,0.65);}' +
-      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;margin-left:0;}' +
+      '.help-q{display:inline-flex;align-items:center;gap:5px;height:26px;' +
+        'border-radius:7px;border:none;background:transparent;color:#d97706;cursor:pointer;' +
+        'vertical-align:middle;margin-left:10px;padding:0 4px;flex-shrink:0;' +
+        'font-family:inherit;font-size:12px;font-weight:700;}' +
+      '.help-q svg{width:17px;height:17px;flex-shrink:0;}' +
+      '.help-q:hover{background:rgba(217,119,6,0.1);}' +
+      '.help-q.help-q-fixed{position:fixed;top:70px;right:22px;z-index:400;margin-left:0;' +
+        'background:#fff;border:1px solid #e5e9f0;border-radius:9999px;padding:5px 12px;box-shadow:0 2px 8px rgba(12,23,56,0.08);}' +
       '.help-panel{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:92vw;background:#fff;' +
         'box-shadow:-10px 0 34px rgba(12,23,56,0.14);border-left:1px solid #e5e9f0;z-index:450;' +
         'display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;}' +
@@ -154,7 +156,7 @@
     const HELP_SVG = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">' +
       '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
     const trigger = document.createElement('button');
-    trigger.className = 'help-q'; trigger.type = 'button'; trigger.innerHTML = HELP_SVG; trigger.title = 'Help';
+    trigger.className = 'help-q'; trigger.type = 'button'; trigger.innerHTML = HELP_SVG + '<span>Help</span>'; trigger.title = 'Help';
     const anchor = opts.anchor ? document.querySelector(opts.anchor) : null;
     if (anchor) {
       // The anchor (usually an <h1>) is block-level, so a sibling appended after
