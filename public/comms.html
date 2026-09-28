@@ -1448,7 +1448,7 @@
   }
 
   // ── Message actions ────────────────────────────────────────────────────────
-  function toggleMsg(id) {
+  async function toggleMsg(id) {
     const body = document.getElementById('body-'+id);
     const chev = document.getElementById('chev-'+id);
     const prev = document.getElementById('preview-'+id);
@@ -1456,6 +1456,19 @@
     body.style.display = open ? 'none' : 'block';
     chev.style.transform = open ? 'rotate(0)' : 'rotate(180deg)';
     if (prev) prev.style.display = open ? '' : 'none';
+    // Opening an unread note reads as "I've read this" to everyone but the system —
+    // previously only the separate "Mark as read" button inside the card counted, so
+    // notes people had genuinely read stayed stuck unread until they found that button.
+    // Update the local flag + badges immediately (no full reload, so the card the user
+    // just opened doesn't get yanked shut by a re-render mid-click).
+    if (!open) {
+      const msg = messages.find(m => m.id === id);
+      if (msg && !msg.is_read_by_me && msg.author_id !== me.id) {
+        msg.is_read_by_me = true;
+        updateBadges();
+        try { await fetch(`/api/messages/${id}/read`, {method:'POST'}); } catch (e) {}
+      }
+    }
   }
 
   // Open the reply box for a note. Pass a parentReplyId to address the reply at a
