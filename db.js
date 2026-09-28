@@ -2072,8 +2072,14 @@ function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = f
   // it could sit unread forever, uncounted down but also unreachable to actually clear
   // -- the badge said "5" and nothing in the UI could ever show you all 5. This path
   // gives the Unread tab the same unbounded reach as the count it's supposed to explain.
+  // No authorship exclusion here on purpose: authoring a note auto-marks it read
+  // (see createMessage), so it naturally won't show as unread to its own author --
+  // UNLESS a reply later resurfaces it via markUnread, which is a deliberate,
+  // legitimate "someone replied to you" notification that must still count and
+  // still be reachable here. Match getUnreadCount()'s own criteria exactly (read
+  // record or not), or the two disagree again the moment a reply is involved.
   const paged = unreadOnly
-    ? sorted.filter(m => m.staff_id !== vid && !_data.reads.some(r => r.message_id === m.id && r.staff_id === vid))
+    ? sorted.filter(m => !_data.reads.some(r => r.message_id === m.id && r.staff_id === vid))
     : sorted.slice(offset, offset + limit);
 
   return paged.map(msg => {

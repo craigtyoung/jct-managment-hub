@@ -731,8 +731,13 @@
   function effDate(m) { return m.show_on || localDateStr(m.created_at); }
   // Is this note relevant to me — an everyone-note, or one targeted to include me?
   function isRelevantToMe(m) { return !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(me.id)); }
-  // A note counts toward MY unread if it's relevant, unread, not mine, and not scheduled for the future.
-  function isMyUnread(m) { return !m.is_read_by_me && m.author_id !== me.id && effDate(m) <= todayStr && isRelevantToMe(m); }
+  // A note counts toward MY unread if it's relevant, unread, and not scheduled for the
+  // future. No separate "not mine" check: authoring a note auto-marks it read server-side,
+  // so it's never unread to its own author -- unless a reply resurfaces it, which is a
+  // real "someone replied to you" notification and must still be able to show up here.
+  // (Previously excluded author_id === me.id outright, which silently hid exactly that
+  // case -- the dashboard badge counted it, but this view could never surface it.)
+  function isMyUnread(m) { return !m.is_read_by_me && effDate(m) <= todayStr && isRelevantToMe(m); }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   let toastTimer;
@@ -950,7 +955,6 @@
       if (!el) return;
       if (!canSeeCounts) { el.style.display = 'none'; return; }
       const count = messages.filter(m => {
-        if (m.author_id === s.id) return false;
         if (effDate(m) > todayStr) return false; // scheduled notes don't count until their day
         const isRecipient = m.recipients === null || (Array.isArray(m.recipients) && m.recipients.includes(s.id));
         if (!isRecipient) return false;
@@ -1144,7 +1148,7 @@
     orderedCats.forEach(cat => {
       if (!groups[cat] || groups[cat].length === 0) return;
       const msgs = groups[cat];
-      const unreadCount = msgs.filter(m => !m.is_read_by_me && m.author_id !== me.id).length;
+      const unreadCount = msgs.filter(isMyUnread).length;
       const catKey = cat.replace('-','_');
       html += `
         <div class="shift-section" id="section-${catKey}">
@@ -1244,7 +1248,7 @@
     let html = '';
     dates.forEach(d => {
       const dayMsgs = groups[d];
-      const unreadCount = dayMsgs.filter(m => !m.is_read_by_me && m.author_id !== me.id).length;
+      const unreadCount = dayMsgs.filter(isMyUnread).length;
       html += `
         <div class="shift-section">
           <div class="shift-header" style="cursor:default">
@@ -1350,7 +1354,7 @@
     const isMine     = msg.author_id === me.id;
     const canModify  = isMine || me.role === 'admin' || me.role === 'manager';
     const isTargeted = isMine && Array.isArray(msg.recipients) && msg.recipients.length > 0;
-    const unread     = !msg.is_read_by_me && !isMine;
+    const unread     = !msg.is_read_by_me;
     const readIds    = new Set((msg.reads||[]).map(r => r.id));
 
     // Unified per-person rail: everyone relevant to this note, each with their
@@ -1478,7 +1482,7 @@
     // just opened doesn't get yanked shut by a re-render mid-click).
     if (!open) {
       const msg = messages.find(m => m.id === id);
-      if (msg && !msg.is_read_by_me && msg.author_id !== me.id) {
+      if (msg && !msg.is_read_by_me) {
         msg.is_read_by_me = true;
         updateBadges();
         try { await fetch(`/api/messages/${id}/read`, {method:'POST'}); } catch (e) {}

@@ -2365,7 +2365,7 @@
       const commsBase = (targetId === 'pro-notes-list') ? '/comms.html?audience=pro&msg=' : '/comms.html?msg=';
       wrap.innerHTML = visible.map(m => {
         const cat = m.category || 'general';
-        const unread = !m.is_read_by_me && m.author_id !== me.id;
+        const unread = !m.is_read_by_me;
         return `<div class="note-row" style="cursor:pointer" title="Open in the Comm Log" onclick="location.href='${commsBase}${m.id}'">
           <div class="note-avatar" data-photo-id="${m.author_id}" data-photo-name="${esc(m.author_name||'?')}" data-photo-color="${m.author_color}" style="background:${m.author_color}22;color:${m.author_color};overflow:hidden">${esc((m.author_name||'?').slice(0,2).toUpperCase())}</div>
           <div class="note-main">
