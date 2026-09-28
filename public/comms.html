@@ -985,7 +985,22 @@
 
     const res = await fetch('/api/messages?limit=200&offset=0' + AUD_Q);
     if (!res.ok) return;
-    messages = await res.json();
+    const recent = await res.json();
+    // The recent-200 window can miss older unread notes once the log outgrows it --
+    // the dashboard badge counts every unread note ever, with no age limit, so the
+    // Unread tab needs the same reach or a genuinely-caught-up person can never clear
+    // a phantom count hiding beyond page 1. Merge the two, recent list wins on overlap
+    // (it carries fuller data from the normal path) since ids match either way.
+    let merged = recent;
+    try {
+      const uRes = await fetch('/api/messages?unread=true' + AUD_Q);
+      if (uRes.ok) {
+        const unread = await uRes.json();
+        const seen = new Set(recent.map(m => m.id));
+        merged = recent.concat(unread.filter(m => !seen.has(m.id)));
+      }
+    } catch (e) {}
+    messages = merged;
     renderFeed();
     updateBadges();
     updateStaffUnreadCounts();
@@ -1646,10 +1661,19 @@
     ).join('');
   }
   setTimeout(buildEmojiGrid, 0); // defer until #emoji-grid is in the DOM (it's after this script block)
+  const EMOJI_SET = ['👍','🙌','❤️','😊','😂','🎾','✅','🔥','🙏','👏','😅','🤔','😍','💪','⭐','🎉','😎','👀','🚀','😢','🙂','😉','🤝','💯'];
   function toggleEmojiPickerFor(targetId, btn) {
     emojiTarget = targetId;
     const pop = document.getElementById('emoji-popover');
     if (!pop) return;
+    // Grid was rendered empty on purpose (no static emoji buttons existed in the
+    // markup) -- fill it once, lazily, the first time anyone actually opens it.
+    const grid = document.getElementById('emoji-grid');
+    if (grid && !grid.childElementCount) {
+      grid.innerHTML = EMOJI_SET.map(e =>
+        `<button type="button" class="emoji-btn" onclick="insertEmoji('${e}')">${e}</button>`
+      ).join('');
+    }
     const alreadyOpen = pop.classList.contains('open') && pop.dataset.target === targetId;
     if (alreadyOpen) { pop.classList.remove('open'); return; }
     const rect = btn.getBoundingClientRect();

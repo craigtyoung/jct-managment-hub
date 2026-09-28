@@ -40,7 +40,8 @@ router.use((req, res, next) => {
 router.get('/', (req, res) => {
   const limit = parseInt(req.query.limit) || 30;
   const offset = parseInt(req.query.offset) || 0;
-  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId, audience: req.query.audience });
+  const unreadOnly = req.query.unread === 'true';
+  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId, audience: req.query.audience, unreadOnly });
   res.json(messages);
 });
 

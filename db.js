@@ -2037,7 +2037,7 @@ function scrubStaffFromSlots(id) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-function getMessages({ limit = 30, offset = 0, staffId, audience }) {
+function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = false }) {
   const allStaff = _data.staff;
   const vid = parseInt(staffId);
   const viewer = allStaff.find(s => s.id === vid);
@@ -2065,8 +2065,16 @@ function getMessages({ limit = 30, offset = 0, staffId, audience }) {
     (!m.recipients)
   );
 
-  const sorted = [...visible].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const paged = sorted.slice(offset, offset + limit);
+  let sorted = [...visible].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  // unreadOnly bypasses the recency window entirely: getUnreadCount() (the dashboard
+  // badge) scans the FULL history with no limit, but the normal feed only ever loads
+  // the most recent `limit`. Once the office log outgrew that window, notes older than
+  // it could sit unread forever, uncounted down but also unreachable to actually clear
+  // -- the badge said "5" and nothing in the UI could ever show you all 5. This path
+  // gives the Unread tab the same unbounded reach as the count it's supposed to explain.
+  const paged = unreadOnly
+    ? sorted.filter(m => m.staff_id !== vid && !_data.reads.some(r => r.message_id === m.id && r.staff_id === vid))
+    : sorted.slice(offset, offset + limit);
 
   return paged.map(msg => {
     const author = allStaff.find(s => s.id === msg.staff_id) || {};
