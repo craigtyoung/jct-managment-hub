@@ -35,6 +35,9 @@
     .slot-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .slot-time { font-size:14px; font-weight:800; color:var(--blue); background:var(--blue-soft); border-radius:8px; padding:4px 10px; white-space:nowrap; }
     .slot-prog { font-size:15px; font-weight:700; }
+    .slot-prog.editable { cursor:pointer; border-radius:5px; padding:1px 4px; margin:-1px -4px; }
+    .slot-prog.editable:hover { background:var(--blue-soft); }
+    .slot-prog-edit { font-size:15px; font-weight:700; font-family:inherit; border:1px solid var(--blue); border-radius:5px; padding:1px 4px; margin:-1px -4px; width:auto; min-width:140px; }
     .cat { font-size:10px; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; padding:3px 8px; border-radius:100px; }
     .cat-junior { background:rgba(44,92,156,0.12); color:var(--blue); }
     .cat-adult { background:rgba(22,163,74,0.12); color:var(--green); }
@@ -608,7 +611,7 @@
       return `<div class="slot">
         <div class="slot-top">
           <span class="slot-time">${esc(s.time_label || (s.start+'–'+s.end))}</span>
-          <span class="slot-prog">${esc(s.program)}</span>
+          <span class="slot-prog${canEdit?' editable':''}" ${canEdit?`onclick="editProgram(this,${s.id})" title="Click to rename"`:''}>${esc(s.program)}</span>
           ${(s.kind && s.kind!=='class')?`<span class="kpill ${KIND_CSS[s.kind]||''}">${esc(KIND_LABEL[s.kind]||s.kind)}</span>`:''}
           ${s.coaches?`<span style="font-size:12.5px;color:#4a6080;font-weight:600">· ${esc(s.coaches)}</span>`:''}
           <span class="cat ${catClass(s.category)}">${esc(s.category||'')}</span>
@@ -641,6 +644,28 @@
       if(await put(slotId,{court_pros:cp})){ renderBoard(); }
     }
     async function setField(id, field, val){ if(await put(id,{[field]:val})){ toast('Saved'); } }
+    // Click-to-rename a class's program name (Classes tab). Swaps the label for a
+    // text input in place; Enter/blur saves, Escape cancels — no full re-render
+    // needed just to type, avoids losing scroll position on a long day's list.
+    function editProgram(el, slotId){
+      const cur = el.textContent;
+      let cancelled = false;
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'slot-prog-edit'; inp.value = cur;
+      el.replaceWith(inp);
+      inp.focus(); inp.select();
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+        else if (e.key === 'Escape') { cancelled = true; inp.blur(); }
+      });
+      inp.addEventListener('blur', async () => {
+        if (!cancelled) {
+          const val = inp.value.trim();
+          if (val && val !== cur) await setField(slotId, 'program', val);
+        }
+        renderBoard();
+      });
+    }
     async function toggleCourt(id, c){
       const s=slots.find(x=>x.id===id); const cur=(s.courts||[]);
       const removing=cur.includes(c);
