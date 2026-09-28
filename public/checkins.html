@@ -826,8 +826,9 @@
           if (!(z > a)) return;
           const top = Math.max(0, (a - CAL_START) / CAL_STEP * CAL_ROWH);
           const hgt = Math.max(14, (Math.min(z, CAL_END) - Math.max(a, CAL_START)) / CAL_STEP * CAL_ROWH - 2);
+          const coachSuffix = sc.coaches ? ` · ${esc(sc.coaches)}` : '';
           sched += `<div class="cal-sched" style="top:${top}px;height:${hgt}px" ` +
-            `title="${esc(sc.program)} · ${esc(sc.time_label || (sc.start + '–' + sc.end))} (from Lesson Schedule)">` +
+            `title="${esc(sc.program)} · ${esc(sc.time_label || (sc.start + '–' + sc.end))}${coachSuffix} (from Lesson Schedule)">` +
             `<div class="cal-sched-name">${esc(sc.program)}</div>` +
             `<div class="cal-sched-time">${esc(sc.time_label || (sc.start + '–' + sc.end))}</div>` +
           `</div>`;

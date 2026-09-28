@@ -182,11 +182,16 @@ router.get('/schedule', (req, res) => {
   const [y, m, d] = iso.split('-').map(Number);
   const dayName = DAYS[new Date(y, m - 1, d).getDay()];
   const slots = (db.getProScheduleSlots() || []).filter(s => s.active !== false && s.day === dayName);
-  res.json(slots.map(s => ({
-    id: s.id, start: s.start, end: s.end, time_label: s.time_label,
-    program: s.program, category: s.category, type: s.type,
-    courts: (s.courts || (s.court ? [String(s.court)] : [])).map(String),
-  })));
+  res.json(slots.map(s => {
+    const proIds = Array.isArray(s.pro_ids) ? s.pro_ids : [];
+    const coaches = proIds.map(id => db.getStaffById(id)).filter(Boolean).map(p => p.name).join(', ');
+    return {
+      id: s.id, start: s.start, end: s.end, time_label: s.time_label,
+      program: s.program, category: s.category, type: s.type,
+      courts: (s.courts || (s.court ? [String(s.court)] : [])).map(String),
+      coaches,
+    };
+  }));
 });
 
 // GET /pros — teaching pros + coaching managers, for the lesson picker
