@@ -31,7 +31,7 @@
     { href: '/hub.html',          label: 'Dashboard',  icon: I.home },
     { href: '/checklist.html',    label: 'Checklist',  icon: I.check },
     { href: '/cash-summary.html', label: 'Cash',       icon: I.cash },
-    { href: '/schedule.html',     label: 'Schedule',   icon: I.cal },
+    { href: '/schedule.html',     label: 'Shift Schedule', icon: I.cal },
     { href: '/timesheet.html',    label: 'Timesheets', icon: I.clock },
     { href: '/comms.html',        label: 'Comms',      icon: I.chat },
   ];
@@ -59,8 +59,25 @@
     return 'office';
   }
 
+  // Management browsing in pro mode already has edit rights — send them straight to
+  // the real Lesson Schedule editor instead of the public no-login quick-reference
+  // page the plain PRO nav points to for actual teaching pros. Shared by buildHTML
+  // and mount()'s "own tab" fallback so both agree on where each mode's links go.
+  function effectiveItems(me) {
+    var mode = getMode(me);
+    var items = (mode === 'pro' ? PRO : OFFICE);
+    if (mode === 'pro' && me && me.is_management) {
+      items = items.map(function (l) {
+        return l.href === '/pro-schedule-view.html'
+          ? { href: '/pro-schedule.html', label: 'Lesson Schedule', icon: l.icon }
+          : l;
+      });
+    }
+    return items;
+  }
+
   function buildHTML(me) {
-    var items = (getMode(me) === 'pro' ? PRO : OFFICE);
+    var items = effectiveItems(me);
     var here = norm(location.pathname);
     return items.map(function (l) {
       var active = norm(l.href) === here;
@@ -91,7 +108,7 @@
       // A page that isn't in the shared list (Waitlist, Knowledge Base, Idea Board…) keeps its own
       // highlighted tab at the end, so you can still see where you are.
       var here = norm(location.pathname);
-      var inList = (getMode(me) === 'pro' ? PRO : OFFICE).some(function (l) { return norm(l.href) === here; });
+      var inList = effectiveItems(me).some(function (l) { return norm(l.href) === here; });
       if (!inList) {
         existing.forEach(function (n) { if (n.classList.contains('qnav-active')) html += n.outerHTML; });
       }

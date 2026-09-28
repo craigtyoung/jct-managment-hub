@@ -827,7 +827,7 @@
           const top = Math.max(0, (a - CAL_START) / CAL_STEP * CAL_ROWH);
           const hgt = Math.max(14, (Math.min(z, CAL_END) - Math.max(a, CAL_START)) / CAL_STEP * CAL_ROWH - 2);
           sched += `<div class="cal-sched" style="top:${top}px;height:${hgt}px" ` +
-            `title="${esc(sc.program)} · ${esc(sc.time_label || (sc.start + '–' + sc.end))} (from Court Schedule)">` +
+            `title="${esc(sc.program)} · ${esc(sc.time_label || (sc.start + '–' + sc.end))} (from Lesson Schedule)">` +
             `<div class="cal-sched-name">${esc(sc.program)}</div>` +
             `<div class="cal-sched-time">${esc(sc.time_label || (sc.start + '–' + sc.end))}</div>` +
           `</div>`;
