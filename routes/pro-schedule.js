@@ -18,10 +18,12 @@ function acting(req) { return db.getStaffById(req.actingStaffId); }
 function isManagement(s) { return s && (s.role === 'admin' || s.role === 'manager'); }
 
 // Pros available for assignment: teaching pros + managers who also coach (Victor,
-// David). Admins (Craig, Jaime) run the desk, not lessons, so they're excluded.
+// David), plus anyone else flagged is_pro regardless of their base role (staff
+// management's Office+Pro checkboxes, or an admin who also coaches) — the role-name
+// check alone missed dual-role people who aren't role==='pro' outright.
 router.get('/pros', (req, res) => {
   res.json(db.getAllStaff()
-    .filter(s => ['pro', 'manager'].includes(s.role))
+    .filter(s => ['pro', 'manager'].includes(s.role) || s.is_pro)
     .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role })));
 });
 

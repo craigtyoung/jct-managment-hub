@@ -1928,7 +1928,7 @@ function nowLocal() {
 // disabled staff (management screens that need to see everyone).
 function getAllStaff(includeInactive) {
   return _data.staff.filter(s => includeInactive || s.active !== false)
-    .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role, badge: s.badge || null }))
+    .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role, badge: s.badge || null, is_pro: !!s.is_pro }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
