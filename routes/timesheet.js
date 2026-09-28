@@ -423,7 +423,9 @@ router.get('/export', (req, res) => {
 
   const lines = [];
   lines.push(['Staff', 'Date', 'Shift', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
-  // Combine scheduled shifts (minus voided ones) with manual lines, sorted by date
+  // Combine scheduled shifts (minus voided ones) with manual lines, grouped by
+  // staff (matching the on-screen per-person cards) with a blank-row break
+  // between staff, chronological within each staff's own block.
   const exportRows = [];
   assignments
     .filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`))
@@ -433,7 +435,7 @@ router.get('/export', (req, res) => {
       const s = db.getStaffById(a.staff_id);
       const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
       officeHoursById[a.staff_id] = (officeHoursById[a.staff_id] || 0) + decHrs(as, ae);
-      exportRows.push({ sortKey: a.date + a.shift, cells: [
+      exportRows.push({ staffId: a.staff_id, staffName: s ? s.name : String(a.staff_id), sortKey: a.date + a.shift, cells: [
         s ? s.name : a.staff_id, a.date, a.shift,
         ov?.start || def.start || '', ov?.end || def.end || '',
         as || '', ae || '', hrs(as, ae), en ? en.notes : ''
@@ -442,12 +444,21 @@ router.get('/export', (req, res) => {
   manual.forEach(m => {
     const s = db.getStaffById(m.staff_id);
     officeHoursById[m.staff_id] = (officeHoursById[m.staff_id] || 0) + decHrs(m.actual_start, m.actual_end);
-    exportRows.push({ sortKey: m.date + 'zz', cells: [
+    exportRows.push({ staffId: m.staff_id, staffName: s ? s.name : String(m.staff_id), sortKey: m.date + 'zz', cells: [
       s ? s.name : m.staff_id, m.date, `Added: ${m.label || 'Manual entry'}`,
       '', '', m.actual_start || '', m.actual_end || '', hrs(m.actual_start, m.actual_end), m.notes || ''
     ]});
   });
-  exportRows.sort((a, b) => a.sortKey.localeCompare(b.sortKey)).forEach(r => lines.push(r.cells.map(q).join(',')));
+  const byStaff = {};
+  exportRows.forEach(r => { (byStaff[r.staffId] = byStaff[r.staffId] || []).push(r); });
+  Object.keys(byStaff)
+    .sort((a, b) => byStaff[a][0].staffName.localeCompare(byStaff[b][0].staffName))
+    .forEach((sid, i) => {
+      if (i > 0) lines.push(''); // blank row between staff blocks
+      byStaff[sid]
+        .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+        .forEach(r => lines.push(r.cells.map(q).join(',')));
+    });
   lines.push('');
 
   // Combined hours summary (office + teaching) so dual-role staff total in one place
