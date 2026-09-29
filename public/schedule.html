@@ -84,6 +84,10 @@
     .shift-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
 
     .shift-cell{padding:8px 6px;border-left:1px solid rgba(12,23,56,0.04);min-height:68px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+    /* Office shifts are one-person — a second chip in the same cell is usually an
+       accidental double-fill, not a real second hire. Flag it, don't block it. */
+    .shift-cell.dupe{background:rgba(217,119,6,0.06);}
+    .dupe-cell-flag{font-size:9.5px;font-weight:700;color:#b45309;letter-spacing:0.03em;cursor:help;}
     .shift-cell.today-col{background:rgba(44,92,156,0.03);}
 
     .staff-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 6px 3px 5px;border-radius:100px;font-size:11px;font-weight:600;line-height:1;}
@@ -568,7 +572,12 @@
         for (const d of days) {
           const isToday = d === today;
           const assigned = (weekData[d] && weekData[d][shift]) || [];
-          html += `<div class="shift-cell${isToday?' today-col':''}">`;
+          // Office shifts are one-person; 2+ names in the same cell is usually an
+          // accidental double-fill (the odd ~1hr handoff overlap aside) — flag it
+          // for a manager to glance at, don't stop anyone from doing it.
+          const isDupe = assigned.length > 1;
+          html += `<div class="shift-cell${isToday?' today-col':''}${isDupe?' dupe':''}">`;
+          if (isDupe) html += `<span class="dupe-cell-flag" title="${assigned.length} people scheduled on this office shift — usually one at a time. Worth a quick check this wasn't filled in twice by accident.">⚠ ${assigned.length} on this shift</span>`;
           // Check if slot has a time override (any chip in slot carries it)
           const slotOverrideStart = assigned[0]?.override_start || null;
           const slotOverrideEnd   = assigned[0]?.override_end   || null;

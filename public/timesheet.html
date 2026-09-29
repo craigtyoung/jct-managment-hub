@@ -131,6 +131,7 @@
     .shift-badge.afternoon{background:rgba(44,92,156,0.10);color:var(--blue);}
     .shift-badge.closing{background:rgba(12,23,56,0.07);color:var(--text-2);}
     .shift-badge.manual{background:rgba(22,163,74,0.12);color:var(--green);}
+    .dupe-flag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:100px;font-size:10.5px;font-weight:700;background:rgba(217,119,6,0.12);color:var(--amber);flex-shrink:0;cursor:help;}
     .shift-status-manual{font-size:12px;font-weight:600;color:var(--text);}
     .del-shift-btn{font-size:15px;line-height:1;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font-body);padding:2px 6px;border-radius:6px;transition:all 0.15s;}
     .del-shift-btn:hover{color:#c0392b;background:rgba(192,57,43,0.07);}
@@ -746,6 +747,7 @@
           </div>
           <span class="shift-row-date">${dateLabel}</span>
           <span class="shift-badge ${row.shift}">${SHIFT_LABELS[row.shift]}</span>
+          ${row.double_booked_with ? `<span class="dupe-flag" title="Also scheduled on this shift: ${esc(row.double_booked_with.join(', '))}. Office shifts are one-person — worth checking this wasn't filled in twice by accident.">⚠ +${row.double_booked_with.length}</span>` : ''}
           ${schedHtml}
           <div class="shift-status-area">
             ${statusHtml}

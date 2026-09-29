@@ -68,14 +68,24 @@ router.get('/week', (req, res) => {
 
   // Scheduled shifts voided on the timesheet for this period (schedule untouched)
   const voidSet = new Set(voids.map(v => `${v.staff_id}:${v.date}:${v.shift}`));
+  const liveAssignments = assignments.filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`));
 
-  const rows = assignments
-    .filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`))
+  // Office shifts are meant to be staffed one person at a time (occasional ~1hr
+  // handoff overlap aside) — flag, don't block, when a shift accidentally ends up
+  // with 2+ people on it so management can spot it during payroll review.
+  const shiftStaffing = {}; // `${date}:${shift}` -> [{staff_id, staff_name}]
+  for (const a of liveAssignments) {
+    const k = `${a.date}:${a.shift}`;
+    (shiftStaffing[k] = shiftStaffing[k] || []).push({ staff_id: a.staff_id, staff_name: a.staff_name });
+  }
+
+  const rows = liveAssignments
     .map(a => {
       const key   = `${a.staff_id}:${a.date}:${a.shift}`;
       const entry = entryMap[key] || null;
       const def   = defaults[a.shift] || {};
       const ov    = overrides[`${a.date}:${a.shift}`] || null;
+      const others = (shiftStaffing[`${a.date}:${a.shift}`] || []).filter(o => o.staff_id !== a.staff_id);
       return {
         ...a,
         scheduled_start: ov?.start || def.start || null,
@@ -84,6 +94,7 @@ router.get('/week', (req, res) => {
         actual_end:      entry ? entry.actual_end   : null,
         timesheet_id:    entry ? entry.id           : null,
         notes:           entry ? entry.notes        : '',
+        double_booked_with: others.length ? others.map(o => o.staff_name) : null,
       };
     });
 
