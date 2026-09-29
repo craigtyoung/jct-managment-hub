@@ -666,6 +666,16 @@
     /* Mode visibility */
     body.pro-mode .admin-only    { display: none !important; }
     body:not(.pro-mode) .pro-only { display: none !important; }
+    /* Pro Mode nav trim — teaching pros don't need office-side sections at all
+       (Bubble Monitoring, the redundant "Office Schedule" duplicate of Lesson
+       Schedule, Programs, Facility, Pro Shop). Hidden only in pro-mode, so
+       management browsing office-side still sees everything. */
+    body.pro-mode .pro-hide { display: none !important; }
+    /* Member List: still visible to pros (so it isn't a mystery gap), but
+       greyed out and non-functional until it's actually built for Pro Mode. */
+    body.pro-mode .pro-disabled { opacity: 0.4; pointer-events: none; cursor: default; }
+    body.pro-mode .pro-disabled .nav-badge-soon { display: inline; }
+    .nav-badge-soon { display: none; margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
 
     /* Mode toggle (segmented control) */
     .mode-toggle {
@@ -704,6 +714,39 @@
       background: rgba(167,224,189,0.16); color: #a7e0bd;
       padding: 2px 8px; border-radius: 100px;
     }
+
+    /* ── Quick Check-In (Pro Mode) ── */
+    .qci-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; margin-bottom: 20px; }
+    .qci-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .qci-title { font-family: var(--font-display, inherit); font-size: 1rem; font-weight: 600; color: var(--text); }
+    .qci-self-status { font-size: 12px; font-weight: 600; color: var(--text-3); }
+    .qci-self-status.on { color: var(--blue); }
+    .qci-signin-btn {
+      width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+      background: var(--navy); color: #fff; font-family: inherit; font-size: 14px; font-weight: 600;
+      transition: background 0.15s; margin-bottom: 14px;
+    }
+    .qci-signin-btn:hover { background: var(--blue); }
+    .qci-signin-btn:disabled { background: var(--canvas); color: var(--text-3); cursor: default; }
+    .qci-favs-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+    .qci-favs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .qci-fav-btn {
+      padding: 9px 15px; border-radius: 100px; border: 1px solid var(--border); background: var(--canvas);
+      color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .qci-fav-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .qci-fav-btn.done { background: rgba(47,158,95,0.12); border-color: transparent; color: var(--blue); }
+    .qci-fav-btn.done::after { content: ' ✓'; }
+    .qci-empty { font-size: 12.5px; color: var(--text-3); }
+    .qci-addfav-btn { font-size: 12.5px; color: var(--blue); background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+    .qci-add-form { margin-top: 12px; display: none; }
+    .qci-add-form.open { display: block; }
+    .qci-search-input { width: 100%; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--border); font-family: inherit; font-size: 13px; color: var(--text); background: var(--canvas); }
+    .qci-search-input:focus { outline: none; border-color: var(--blue); }
+    .qci-search-results { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+    .qci-search-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+    .qci-search-row:hover { background: var(--canvas); }
+    .qci-star-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 6px; }
 
     /* ── AI ask-bar ── */
     .ask-bar {
@@ -928,7 +971,7 @@
         Shift Checklist
       </a>
 
-      <a href="/bubble.html" class="nav-link">
+      <a href="/bubble.html" class="nav-link pro-hide">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
         </svg>
@@ -964,7 +1007,7 @@
 
       <div class="nav-group-label">Team</div>
 
-      <a href="/schedule.html" class="nav-link">
+      <a href="/schedule.html" class="nav-link pro-hide" title="Redundant with Lesson Schedule above once in Pro Mode — setMode() already retargets this link's href to pro-schedule.html, so it's the same destination twice">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
@@ -1019,7 +1062,7 @@
 
       <div class="nav-group-label">Members</div>
 
-      <a href="/members.html" class="nav-link">
+      <a href="/members.html" class="nav-link pro-disabled" id="nav-member-list" title="Member List">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
@@ -1027,6 +1070,7 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         Member List
+        <span class="nav-badge-soon">Soon</span>
       </a>
 
       <a href="/checkins.html" class="nav-link checkin-only">
@@ -1038,9 +1082,9 @@
         Member Check-Ins
       </a>
 
-      <div class="nav-group-label">Programs</div>
+      <div class="nav-group-label pro-hide">Programs</div>
 
-      <a href="/house-league.html" class="nav-link">
+      <a href="/house-league.html" class="nav-link pro-hide">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="9"/>
           <path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/>
@@ -1048,7 +1092,7 @@
         House League
       </a>
 
-      <a href="#" class="nav-link nav-soon" title="Coming soon">
+      <a href="#" class="nav-link nav-soon pro-hide" title="Coming soon">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="9"/>
           <path d="M8 12h8M12 8v8"/>
@@ -1056,7 +1100,7 @@
         Round Robin
       </a>
 
-      <div class="nav-group-label">Facility</div>
+      <div class="nav-group-label pro-hide">Facility</div>
 
       <a href="/contractor.html" class="nav-link admin-only">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -1065,9 +1109,9 @@
         Maintenance
       </a>
 
-      <div class="nav-group-label">Pro Shop</div>
+      <div class="nav-group-label pro-hide">Pro Shop</div>
 
-      <a href="/proshop.html" class="nav-link">
+      <a href="/proshop.html" class="nav-link pro-hide">
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <circle cx="10" cy="10" r="6"/>
           <line x1="14.5" y1="14.5" x2="21" y2="21"/>
@@ -1565,6 +1609,22 @@
         <div class="section-live-dot"></div>
         Your Teaching Hub
         <span class="pro-pill" style="margin-left:auto">🎾 Pro Team</span>
+      </div>
+
+      <!-- ── Quick Check-In — one tap to sign in, one tap per favorite student ── -->
+      <div class="qci-card" id="qci-card">
+        <div class="qci-head">
+          <span class="qci-title">Quick Check-In</span>
+          <span class="qci-self-status" id="qci-self-status"></span>
+        </div>
+        <button class="qci-signin-btn" id="qci-signin-btn" onclick="qciSignInSelf()">Sign Me In</button>
+        <div class="qci-favs-label">Favorite students — tap to check in</div>
+        <div class="qci-favs" id="qci-favs"><span class="qci-empty">Loading…</span></div>
+        <button class="qci-addfav-btn" onclick="qciToggleAddForm()">+ Add a favorite student</button>
+        <div class="qci-add-form" id="qci-add-form">
+          <input type="text" class="qci-search-input" id="qci-search-input" placeholder="Search by last name…" oninput="qciSearch(this.value)" autocomplete="off">
+          <div class="qci-search-results" id="qci-search-results"></div>
+        </div>
       </div>
 
       <!-- ── Quick actions ─────────────────────── -->
@@ -2410,6 +2470,7 @@
     // Populate the pro dashboard widgets (runs for pros and for management who can toggle in).
     async function initProDashboard(me) {
       try { renderContacts('pro-contacts-list'); } catch (e) { console.error('pro contacts', e); }
+      try { qciInit(); } catch (e) { console.error('quick check-in', e); }
 
       // On Shift Now — who's working (pros coordinate with the office)
       try {
@@ -2455,6 +2516,108 @@
       }
 
       loadMemos('pro-', 'pro');
+    }
+
+    // ── Quick Check-In (Pro Mode) — one tap to sign in, one tap per favorite ──
+    let qciFavorites = [];
+    let qciSignedInToday = false;
+
+    async function qciInit() {
+      try {
+        const r = await fetch('/api/checkin/favorites');
+        qciFavorites = r.ok ? await r.json() : [];
+      } catch (e) { qciFavorites = []; }
+      qciRenderFavs();
+    }
+
+    function qciRenderFavs() {
+      const wrap = document.getElementById('qci-favs');
+      if (!wrap) return;
+      if (!qciFavorites.length) {
+        wrap.innerHTML = '<span class="qci-empty">No favorites yet — add one below.</span>';
+        return;
+      }
+      wrap.innerHTML = qciFavorites.map(f =>
+        `<button class="qci-fav-btn" id="qci-fav-${f.member_id}" onclick="qciCheckInFavorite(${f.member_id})">${esc(f.first_name)} ${esc((f.last_name || '').slice(0, 1))}.</button>`
+      ).join('');
+    }
+
+    async function qciSignInSelf() {
+      const btn = document.getElementById('qci-signin-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+      try {
+        const r = await fetch('/api/checkin/quick', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: 'self' }),
+        });
+        if (!r.ok) throw new Error('failed');
+        qciSignedInToday = true;
+        const now = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
+        if (btn) { btn.textContent = "You're signed in ✓"; }
+        const status = document.getElementById('qci-self-status');
+        if (status) { status.textContent = `Signed in ${now}`; status.classList.add('on'); }
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign Me In'; }
+        alert('Could not sign in. Try again.');
+      }
+    }
+
+    async function qciCheckInFavorite(memberId) {
+      const btn = document.getElementById('qci-fav-' + memberId);
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch('/api/checkin/quick', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: 'favorite', member_id: memberId }),
+        });
+        if (!r.ok) throw new Error('failed');
+        if (btn) btn.classList.add('done');
+      } catch (e) {
+        if (btn) btn.disabled = false;
+        alert('Could not check that student in. Try again.');
+      }
+    }
+
+    function qciToggleAddForm() {
+      const form = document.getElementById('qci-add-form');
+      if (!form) return;
+      form.classList.toggle('open');
+      if (form.classList.contains('open')) document.getElementById('qci-search-input').focus();
+    }
+
+    let qciSearchTimer = null;
+    function qciSearch(q) {
+      clearTimeout(qciSearchTimer);
+      const results = document.getElementById('qci-search-results');
+      if (!q || q.trim().length < 2) { if (results) results.innerHTML = ''; return; }
+      qciSearchTimer = setTimeout(async () => {
+        try {
+          const r = await fetch('/api/checkin/search?q=' + encodeURIComponent(q.trim()));
+          const members = r.ok ? await r.json() : [];
+          if (!results) return;
+          const favIds = new Set(qciFavorites.map(f => f.member_id));
+          results.innerHTML = members.map(m => {
+            const already = favIds.has(m.id);
+            return `<div class="qci-search-row">
+              <span>${esc(m.first_name)} ${esc(m.last_name)} <span style="color:var(--text-3);font-size:11px">${esc(m.club_number || '')}</span></span>
+              <button class="qci-star-btn" title="${already ? 'Already a favorite' : 'Add as favorite'}" onclick="qciAddFavorite(${m.id})" ${already ? 'disabled' : ''}>${already ? '⭐' : '☆'}</button>
+            </div>`;
+          }).join('') || '<div class="qci-empty" style="padding:6px 10px">No matches.</div>';
+        } catch (e) {}
+      }, 250);
+    }
+
+    async function qciAddFavorite(memberId) {
+      try {
+        const r = await fetch('/api/checkin/favorites', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: memberId }),
+        });
+        if (!r.ok) throw new Error('failed');
+        await qciInit();
+        document.getElementById('qci-search-input').value = '';
+        document.getElementById('qci-search-results').innerHTML = '';
+      } catch (e) { alert('Could not add favorite. Try again.'); }
     }
 
     // Sidebar colour toggle (staff preview vote): light (white) ↔ navy+powder-blue.

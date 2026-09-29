@@ -2,8 +2,20 @@
  * JCT Staff Assistant — floating chat widget
  * Drop one <script src="/chat-widget.js"></script> into any page and it self-installs.
  */
-(function () {
+(async function () {
   'use strict';
+
+  // Pure teaching pros get the simplified Pro Mode interface — no Staff Assistant
+  // clutter. Dual-role staff (e.g. Matthew, who also works the desk) and
+  // management keep it; this checks the real role, not the office/pro nav mode,
+  // so it can't be bypassed by the mode toggle.
+  try {
+    const r = await fetch('/api/me');
+    if (r.ok) {
+      const me = await r.json();
+      if (me && me.role === 'pro') return;
+    }
+  } catch (e) { /* fail open — if /api/me is unreachable, still show the widget */ }
 
   // ── Styles ───────────────────────────────────────────────────────────────────
   const CSS = `
