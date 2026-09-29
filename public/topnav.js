@@ -79,12 +79,36 @@
   function buildHTML(me) {
     var items = effectiveItems(me);
     var here = norm(location.pathname);
-    return items.map(function (l) {
+    var html = items.map(function (l) {
       var active = norm(l.href) === here;
       if (active) return '<span class="qnav qnav-active" title="' + l.label + '">' + l.icon + '<span>' + l.label + '</span></span>';
       return '<a href="' + l.href + '" class="qnav" title="' + l.label + '">' + l.icon + '<span>' + l.label + '</span></a>';
     }).join('');
+    // Management can flip modes on the Timesheets pages, but that flag then
+    // silently follows them everywhere (getMode() reads it on every page) with
+    // no indicator anywhere else — so a click on "Pro" while checking a
+    // timesheet leaves the whole site's nav in pro mode, with the office links
+    // simply gone, and no visible sign why. One small always-on toggle, glued
+    // to the nav itself, so the current mode is never invisible.
+    if (me && me.is_management) {
+      var mode = getMode(me);
+      html += '<span class="topnav-mode" title="Office/Pro nav mode — carries across every page until switched back">' +
+        '<button type="button" class="topnav-mode-btn' + (mode === 'office' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'office\')">Office</button>' +
+        '<button type="button" class="topnav-mode-btn' + (mode === 'pro' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'pro\')">Pro</button>' +
+      '</span>';
+    }
+    return html;
   }
+
+  window.__jctToggleHubMode = function (mode) {
+    try { localStorage.setItem('jct-hub-mode', mode === 'pro' ? 'pro' : 'office'); } catch (e) {}
+    // Pages that force a mode by URL (pro-timesheet, pro-schedule-view) would
+    // just re-show the same mode on reload — send management to the dashboard
+    // instead so switching modes always lands somewhere that reflects it.
+    var path = norm(location.pathname);
+    if (path === '/pro-timesheet' || path === '/pro-schedule-view') location.href = '/hub.html';
+    else location.reload();
+  };
 
   function injectStyleOnce() {
     if (document.getElementById('topnav-style')) return;
@@ -97,11 +121,18 @@
       '.topnav-bar .qnav svg{width:16px;height:16px}' +
       '.topnav-bar .qnav:hover{background:#eef2f8;color:#0c1738}' +
       '.topnav-bar .qnav.qnav-active{background:rgba(44,92,156,0.10);color:#2c5c9c}' +
-      '@media(max-width:640px){.topnav-bar .qnav span{display:none}}';
+      '@media(max-width:640px){.topnav-bar .qnav span{display:none}}' +
+      // Mode toggle pill — styled to work regardless of which page it lands on,
+      // since it can be embedded into a page's own pre-existing nav cluster.
+      '.topnav-mode{display:inline-flex;align-items:center;background:rgba(12,23,56,0.05);border:1px solid rgba(12,23,56,0.08);border-radius:100px;padding:3px;margin-left:6px;gap:1px}' +
+      '.topnav-mode-btn{border:none;background:none;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:11px;font-weight:700;color:#8fa0b8;padding:4px 11px;border-radius:100px;transition:all .15s}' +
+      '.topnav-mode-btn.on{background:#fff;color:#0c1738;box-shadow:0 1px 3px rgba(12,23,56,0.10)}' +
+      '@media(max-width:820px){.topnav-mode{display:none}}';
     document.head.appendChild(s);
   }
 
   function mount(me) {
+    injectStyleOnce();
     var html = buildHTML(me);
     var existing = document.querySelectorAll('.qnav');
     if (existing.length) {
