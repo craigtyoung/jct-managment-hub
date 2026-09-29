@@ -68,7 +68,14 @@ router.get('/week', (req, res) => {
 
   manual.sort((a, b) => (a.staff_name || '').localeCompare(b.staff_name || '') || a.date.localeCompare(b.date) || String(a.actual_start).localeCompare(String(b.actual_start)));
 
-  res.json({ start, end, acting_id: req.actingStaffId, is_management: mgmt, rows, manual });
+  // Rackets strung this period (Pro Shop String Log) — teaching pros who also string
+  // (e.g. Matthew) weren't showing this anywhere: it only ever surfaced on the office
+  // timesheet, which a pro with no office shifts never has a card on. Mirrors the same
+  // db.getStringCounts() call the office sheet already uses.
+  let stringCounts = db.getStringCounts(start, end);
+  if (!mgmt) stringCounts = stringCounts.filter(c => c.staff_id === req.actingStaffId);
+
+  res.json({ start, end, acting_id: req.actingStaffId, is_management: mgmt, rows, manual, string_counts: stringCounts });
 });
 
 // GET /pros — non-salaried teaching pros (management staff-picker source)
@@ -166,27 +173,35 @@ router.get('/export', (req, res) => {
   const lines = [];
   lines.push(['Pro', 'Date', 'Type', 'Class', 'Scheduled Start', 'Scheduled End', 'Actual Start', 'Actual End', 'Hours', 'Notes'].map(q).join(','));
 
-  // Confirmed classes only (unconfirmed = 0 hours, omitted from payroll export)
-  assignments
-    .sort((a, b) => nameOf(a.staff_id).localeCompare(nameOf(b.staff_id)) || a.date.localeCompare(b.date))
-    .forEach(a => {
-      const en = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`];
-      if (!en || !en.actual_start) return;
-      lines.push([
-        nameOf(a.staff_id), a.date, 'Class', a.program,
-        a.start, a.end, en.actual_start, en.actual_end,
-        hrs(en.actual_start, en.actual_end), en.notes || '',
-      ].map(q).join(','));
-    });
-
-  // Manual lines
+  // Classes (confirmed only — unconfirmed = 0 hours, omitted from payroll export) and
+  // manual lines, interleaved chronologically per pro instead of two separate blocks
+  // (all classes, then all manual lines after) so the export reads in proper date order.
+  const exportRows = [];
+  assignments.forEach(a => {
+    const en = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`];
+    if (!en || !en.actual_start) return;
+    exportRows.push({ staffId: a.staff_id, date: a.date, cells: [
+      nameOf(a.staff_id), a.date, 'Class', a.program,
+      a.start, a.end, en.actual_start, en.actual_end,
+      hrs(en.actual_start, en.actual_end), en.notes || '',
+    ]});
+  });
   manual.forEach(m => {
-    lines.push([
+    exportRows.push({ staffId: m.staff_id, date: m.date, cells: [
       nameOf(m.staff_id), m.date, 'Manual', m.program || '',
       '', '', m.actual_start || '', m.actual_end || '',
       hrs(m.actual_start, m.actual_end), m.notes || '',
-    ].map(q).join(','));
+    ]});
   });
+  const byPro = {};
+  exportRows.forEach(r => { (byPro[r.staffId] = byPro[r.staffId] || []).push(r); });
+  Object.keys(byPro)
+    .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+    .forEach(sid => {
+      byPro[sid]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .forEach(r => lines.push(r.cells.map(q).join(',')));
+    });
 
   const who = mgmt ? 'all-pros' : (nameOf(req.actingStaffId) || 'pro').toString().replace(/\s+/g, '-');
   res.setHeader('Content-Type', 'text/csv');

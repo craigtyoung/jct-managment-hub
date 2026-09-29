@@ -375,7 +375,7 @@
     let me = null;
     let isManagement = false;
     let currentStart = '', currentEnd = '';
-    let rows = [], manual = [];
+    let rows = [], manual = [], stringByStaff = {};
 
     // ── Clock ──────────────────────────────────────────────────────
     function updateClock() {
@@ -453,6 +453,7 @@
         const data = await res.json();
         rows   = data.rows   || [];
         manual = data.manual || [];
+        stringByStaff = {}; (data.string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
         render();
         if (silent) requestAnimationFrame(() => window.scrollTo(0, scrollY));
       } catch(e) {
@@ -518,20 +519,35 @@
     function selectPro(id) { selectedProId = (id==='all') ? 'all' : parseInt(id); render(); }
 
     function renderPersonCard(person) {
-      person.rows.sort((a,b)=> a.date.localeCompare(b.date) || String(a.scheduled_start).localeCompare(String(b.scheduled_start)));
-      person.manual.sort((a,b)=> a.date.localeCompare(b.date));
+      // Merge classes + manual lines into one chronological list — they used to render
+      // in two separate blocks (all classes, then a whole separate "Manual entries"
+      // section below), so a manual line never sat in proper date order alongside the
+      // rest of the period. Tag each with `kind` so one row renderer can branch.
+      const items = [
+        ...person.rows.map(r => ({ ...r, kind: 'class' })),
+        ...person.manual.map(m => ({ ...m, kind: 'manual' })),
+      ].sort((a, b) => a.date.localeCompare(b.date) || String(a.scheduled_start || a.actual_start || '').localeCompare(String(b.scheduled_start || b.actual_start || '')));
 
       const classHours  = person.rows.reduce((s,r) => s + (r.actual_start ? (calcHours(r.actual_start, r.actual_end) || 0) : 0), 0);
       const manualHours = person.manual.reduce((s,m) => s + (calcHours(m.actual_start, m.actual_end) || 0), 0);
       const total = classHours + manualHours;
       const confirmed = person.rows.filter(r => r.actual_start).length;
+      const unconfirmedCount = person.rows.length - confirmed;
 
       const hoursPill = total > 0
         ? `<span class="hours-pill has">${fmtHours(total)}</span>`
         : `<span class="hours-pill none">No hours logged</span>`;
+      const sc = stringByStaff[person.id];
+      const stringPill = sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung${sc.unpaid ? ` · ${sc.unpaid} unpaid` : ''}</span>` : '';
+      // Management-only bulk action — confirming each class one checkbox at a time was
+      // the ask to replace; keeps the individual checkboxes too for a pro's own granular
+      // self-serve confirmation.
+      const checkAllBtn = (isManagement && unconfirmedCount > 0)
+        ? `<button class="today-btn" onclick="checkAllForPro(${person.id})" title="Confirm every unconfirmed class this period at its scheduled time">Check all (${unconfirmedCount})</button>`
+        : '';
 
-      const rowsHtml   = person.rows.map(renderClassRow).join('');
-      const manualHtml = renderManualSection(person);
+      const itemsHtml = items.map(it => it.kind === 'manual' ? renderManualRow(it, person) : renderClassRow(it)).join('');
+      const addFormHtml = renderAddManualForm(person);
 
       return `
         <div class="person-card">
@@ -545,11 +561,29 @@
             <div class="person-head-right">
               <span class="progress-text">${confirmed}/${person.rows.length} classes</span>
               ${hoursPill}
+              ${stringPill}
+              ${checkAllBtn}
             </div>
           </div>
-          ${rowsHtml || '<div class="empty-state" style="padding:16px 20px;color:var(--text-3)">No scheduled classes this period.</div>'}
-          ${manualHtml}
+          ${itemsHtml || '<div class="empty-state" style="padding:16px 20px;color:var(--text-3)">No scheduled classes this period.</div>'}
+          ${addFormHtml}
         </div>`;
+    }
+
+    // Management bulk-confirm: every one of this pro's classes that isn't confirmed
+    // yet gets set to its scheduled time, same as ticking each checkbox individually.
+    async function checkAllForPro(personId) {
+      const g = (() => { const groups = {}; rows.forEach(r => { (groups[r.staff_id] = groups[r.staff_id] || []).push(r); }); return groups[personId] || []; })();
+      const targets = g.filter(r => !r.actual_start);
+      if (!targets.length) return;
+      if (!confirm(`Confirm all ${targets.length} unconfirmed class${targets.length===1?'':'es'} at their scheduled times?`)) return;
+      try {
+        await Promise.all(targets.map(r => fetch('/api/pro-timesheet/entry', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: r.staff_id, date: r.date, slot_id: r.slot_id, actual_start: r.scheduled_start || null, actual_end: r.scheduled_end || null, program: r.program }),
+        })));
+      } catch (e) { alert('Some classes could not be confirmed. Try again.'); }
+      load(true);
     }
 
     function renderClassRow(row) {
@@ -564,6 +598,7 @@
       if (isOverride) statusHtml = `<span style="font-size:12px;color:var(--amber);font-weight:600">${fmt12(row.actual_start)} – ${fmt12(row.actual_end)}</span>`;
       else if (isConfirmed) statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
       else statusHtml = `<span style="font-size:12px;color:var(--text-3)">Not confirmed</span>`;
+      const noteHtml = row.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(row.notes)}</span>` : '';
 
       const shiftHours = isConfirmed ? calcHours(row.actual_start, row.actual_end) : null;
       const hoursHtml = shiftHours ? `<span class="shift-hours">${fmtHours(shiftHours)}</span>` : '';
@@ -578,6 +613,7 @@
           <span class="sep">–</span>
           <span class="ov-label" style="width:30px">End</span>
           <input type="time" class="time-input" id="ov-end-${key}" value="${row.actual_end || row.scheduled_end || ''}">
+          <input type="text" class="time-input" id="ov-note-${key}" value="${esc(row.notes || '')}" placeholder="Note (e.g. covering for someone)" style="width:180px;flex:1">
           <button class="ov-save-btn" onclick="saveOverride('${key}', ${row.staff_id}, '${row.date}', ${row.slot_id})">Save</button>
           <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
         </div>` : '';
@@ -595,6 +631,7 @@
           <div class="shift-status-area">
             <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(row.program)}</span>
             ${statusHtml}
+            ${noteHtml}
             ${editBtn}
           </div>
           ${hoursHtml}
@@ -602,30 +639,33 @@
         ${overrideForm}`;
     }
 
-    function renderManualSection(person) {
-      const fid = `manual-form-${person.id}`;
-      const items = person.manual.map(m => {
-        const dt = new Date(m.date + 'T12:00:00');
-        const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
-        const h = calcHours(m.actual_start, m.actual_end);
-        const canDel = isManagement || m.staff_id === me.id;
-        return `<div class="shift-row">
-          <div class="shift-cb-wrap" style="width:17px"></div>
-          <span class="shift-row-date">${dateLabel}</span>
-          <span class="shift-sched">${fmt12(m.actual_start)} – ${fmt12(m.actual_end)}</span>
-          <div class="shift-status-area">
-            <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(m.program || 'Manual entry')}</span>
-            <span class="manual-badge">Manual</span>
-            ${m.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(m.notes)}</span>` : ''}
-            ${canDel ? `<button class="edit-times-btn" onclick="deleteManual(${m.id})">Remove</button>` : ''}
-          </div>
-          ${h ? `<span class="shift-hours">${fmtHours(h)}</span>` : ''}
-        </div>`;
-      }).join('');
+    // A manual line, rendered inline in the same chronological list as class rows
+    // (used to live in its own separate "Manual entries" section below everything
+    // else, so it never sat in proper date order with the rest of the period).
+    function renderManualRow(m, person) {
+      const dt = new Date(m.date + 'T12:00:00');
+      const dateLabel = `${DAY_SHORT[dt.getDay()]} ${MONTHS[dt.getMonth()].slice(0,3)} ${dt.getDate()}`;
+      const h = calcHours(m.actual_start, m.actual_end);
+      const canDel = isManagement || m.staff_id === me.id;
+      return `<div class="shift-row">
+        <div class="shift-cb-wrap" style="color:var(--green);text-align:center;font-size:13px;width:17px">✓</div>
+        <span class="shift-row-date">${dateLabel}</span>
+        <span class="shift-sched">${fmt12(m.actual_start)} – ${fmt12(m.actual_end)}</span>
+        <div class="shift-status-area">
+          <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(m.program || 'Manual entry')}</span>
+          <span class="manual-badge">Manual</span>
+          ${m.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(m.notes)}</span>` : ''}
+          ${canDel ? `<button class="edit-times-btn" onclick="deleteManual(${m.id})">Remove</button>` : ''}
+        </div>
+        ${h ? `<span class="shift-hours">${fmtHours(h)}</span>` : ''}
+      </div>`;
+    }
 
+    // Persistent "+ Add manual entry" affordance at the bottom of the card — the
+    // entries themselves now render inline above, in date order with everything else.
+    function renderAddManualForm(person) {
+      const fid = `manual-form-${person.id}`;
       return `<div class="manual-section">
-        <div class="manual-head">Manual entries <span style="font-weight:400;color:var(--text-3);font-size:11px">— private lessons, subs, off-schedule</span></div>
-        ${items || '<div style="padding:8px 20px;font-size:12px;color:var(--text-3)">None yet.</div>'}
         <div style="padding:12px 20px"><button class="today-btn" onclick="document.getElementById('${fid}').style.display='flex'">+ Add manual entry</button></div>
         <div class="manual-form" id="${fid}" style="display:none">
           <input type="date" class="time-input" id="man-date-${person.id}" value="${todayStr()}" style="width:140px">
@@ -633,6 +673,7 @@
           <input type="time" class="time-input" id="man-start-${person.id}">
           <span class="sep">–</span>
           <input type="time" class="time-input" id="man-end-${person.id}">
+          <input type="text" class="time-input" id="man-note-${person.id}" placeholder="Note (optional)" style="min-width:120px;flex:1">
           <button class="ov-save-btn" onclick="addManual(${person.id})">Add</button>
           <button class="ov-cancel-btn" onclick="document.getElementById('${fid}').style.display='none'">Cancel</button>
         </div>
@@ -662,10 +703,11 @@
     async function saveOverride(key, staffId, date, slotId) {
       const start = document.getElementById('ov-start-'+key)?.value;
       const end   = document.getElementById('ov-end-'+key)?.value;
+      const note  = document.getElementById('ov-note-'+key)?.value || '';
       if (!start || !end) { alert('Enter both start and end times.'); return; }
       await fetch('/api/pro-timesheet/entry', {
         method:'PUT', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ staff_id: staffId, date, slot_id: slotId, actual_start: start, actual_end: end, program: (window._rowData[key]||{}).program })
+        body: JSON.stringify({ staff_id: staffId, date, slot_id: slotId, actual_start: start, actual_end: end, program: (window._rowData[key]||{}).program, notes: note })
       });
       load(true);
     }
@@ -675,10 +717,11 @@
       const prog  = document.getElementById('man-prog-'+personId)?.value;
       const start = document.getElementById('man-start-'+personId)?.value;
       const end   = document.getElementById('man-end-'+personId)?.value;
+      const note  = document.getElementById('man-note-'+personId)?.value || '';
       if (!date || !start || !end) { alert('Date, start and end are required.'); return; }
       await fetch('/api/pro-timesheet/manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: '' })
+        body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: note })
       });
       load(true);
     }
