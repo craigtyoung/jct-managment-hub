@@ -100,6 +100,13 @@
     .wait-name{font-size:13px;font-weight:600;flex:1;}
     .guest-tag{font-size:9px;font-weight:700;background:rgba(22,163,74,0.1);color:#16a34a;border-radius:4px;padding:1px 6px;margin-left:6px;}
     .assign-select{font-family:inherit;font-size:12px;font-weight:600;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--canvas);color:var(--text-2);}
+    /* Always-visible action buttons for the waiting list — .cal-x is opacity:0
+       outside a .cal-block, which is fine for hover-declutter in the grid but
+       makes a button truly invisible (not just subtle) anywhere else. */
+    .wait-x{border:none;background:none;font-size:13px;color:#94a3b8;cursor:pointer;padding:2px 4px;line-height:1;border-radius:4px;flex-shrink:0;}
+    .wait-x:hover{color:#dc2626;background:rgba(220,38,38,0.07);}
+    .wait-x.wait-has-note{color:#b45309;}
+    .wait-x.wait-has-note:hover{color:#b45309;background:rgba(217,119,6,0.08);}
 
     /* Court board — same grid language as the weekly Court Schedule (pro-schedule.html):
        6am-11pm time gutter, one navy-headed column per court. Here the blocks are
@@ -180,6 +187,7 @@
     .bk-t{font-size:11px;color:#94a3b8;font-variant-numeric:tabular-nums;}
     .bk-x{border:none;background:none;font-size:11px;color:#94a3b8;cursor:pointer;padding:1px 3px;line-height:1;}
     .bk-x:hover{color:var(--navy);}
+    .bk-x.bk-has-note{color:#b45309;}
     .bk-del:hover{color:#dc2626;}
     .bk-add{flex-direction:column;align-items:stretch;gap:5px;}
     .bk-in{font-family:inherit;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid #d6dde8;background:#fff;color:var(--navy);width:100%;}
@@ -220,6 +228,7 @@
     .cal-block:hover .cal-x{opacity:1;}
     .cal-x:hover{color:#dc2626;background:rgba(255,255,255,0.7);}
     .cal-x.cal-del{font-size:8.5px;}
+    .cal-x.cal-has-note{opacity:1;color:#b45309;}
     .cal-now{position:absolute;left:0;right:0;height:1.5px;background:var(--green);opacity:0.85;z-index:5;pointer-events:none;}
     .cal-now::before{content:'';position:absolute;left:-3px;top:-2.5px;width:6.5px;height:6.5px;border-radius:50%;background:var(--green);}
     .cal-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text-3);}
@@ -690,8 +699,11 @@
             // Taking someone off a court (✕ in the grid) drops them here, waiting —
             // this list had no way to fully delete a check-in, only re-assign it,
             // so a mis-entered check-in taken off a court was stuck with no exit.
+            const safeName = esc(name).replace(/'/g, "\'");
+            const safeNote = esc(l.note || '').replace(/'/g, "\'");
+            const noteBtn = `<button class="wait-x${l.note ? ' wait-has-note' : ''}" onclick="noteCheckin(${l.id}, '${safeNote}')" title="${l.note ? 'Note: ' + esc(l.note) : 'Add a note'}">📝</button>`;
             const del = IS_ADMIN
-              ? `<button class="cal-x cal-del" onclick="deleteCheckin(${l.id}, '${esc(name).replace(/'/g, "\'")}')" title="Delete this check-in">🗑</button>`
+              ? `<button class="wait-x" onclick="deleteCheckin(${l.id}, '${safeName}')" title="Delete this check-in">🗑</button>`
               : '';
             return `<div class="wait-row">
               <div class="wait-av">${esc(ini)}</div>
@@ -699,7 +711,7 @@
               <select class="assign-select" onchange="assignCourt(${l.id}, this.value)">
                 <option value="">Assign court…</option>${courtOpts}
               </select>
-              ${del}
+              ${noteBtn}${del}
             </div>`;
           }).join('');
         } else {
@@ -849,11 +861,14 @@
           const names = b.players.map(p => {
             const nm = p.member_name || '—';
             const tag = p.guest ? '<span class="cal-g">G</span>' : '';
+            const safeNm = esc(nm).replace(/'/g, "\'");
+            const safeNote = esc(p.note || '').replace(/'/g, "\'");
+            const noteBtn = `<button class="cal-x${p.note ? ' cal-has-note' : ''}" onclick="noteCheckin(${p.id}, '${safeNote}')" title="${p.note ? 'Note: ' + esc(p.note) : 'Add a note'}">📝</button>`;
             const del = IS_ADMIN
-              ? `<button class="cal-x cal-del" onclick="deleteCheckin(${p.id}, '${esc(nm).replace(/'/g, "\'")}')" title="Delete this check-in">🗑</button>`
+              ? `<button class="cal-x cal-del" onclick="deleteCheckin(${p.id}, '${safeNm}')" title="Delete this check-in">🗑</button>`
               : '';
             return `<div class="cal-player"><span>${esc(nm)}${tag}</span>` +
-              `<button class="cal-x" onclick="assignCourt(${p.id}, '')" title="Take ${esc(nm)} off this court">✕</button>${del}</div>`;
+              `<button class="cal-x" onclick="assignCourt(${p.id}, '')" title="Take ${esc(nm)} off this court">✕</button>${noteBtn}${del}</div>`;
           }).join('');
           const range = minToLabel(b.slot) + '–' + minToLabel(b.end);
 
@@ -1041,12 +1056,14 @@
       const rows = b.players.map(function (p) {
         const nm = p.member_name || '—';
         const safe = esc(nm).replace(/'/g, '&#39;');
+        const safeNote = esc(p.note || '').replace(/'/g, '&#39;');
+        const noteBtn = '<button class="bk-x' + (p.note ? ' bk-has-note' : '') + '" onclick="noteCheckin(' + p.id + ', \'' + safeNote + '\')" title="' + (p.note ? 'Note: ' + esc(p.note) : 'Add a note') + '">📝</button>';
         const del = IS_ADMIN
           ? '<button class="bk-x bk-del" onclick="deleteCheckin(' + p.id + ', \'' + safe + '\')" title="Delete this check-in">🗑</button>'
           : '';
         return '<div class="bk-player"><span>' + esc(nm) + (p.guest ? ' <em>guest</em>' : '') + '</span>' +
           '<span class="bk-t">' + esc(String(p.time || '').slice(0, 5)) + '</span>' +
-          '<button class="bk-x" onclick="assignCourt(' + p.id + ', \'\')" title="Take off this court">✕</button>' + del + '</div>';
+          '<button class="bk-x" onclick="assignCourt(' + p.id + ', \'\')" title="Take off this court">✕</button>' + noteBtn + del + '</div>';
       }).join('');
 
       const deleteBookingBtn = IS_ADMIN
@@ -1418,6 +1435,18 @@
       try {
         const r = await fetch('/api/checkin/' + id, { method: 'DELETE' });
         if (!r.ok) { alert('Could not delete that check-in.'); return; }
+        loadCourtBoard();
+      } catch (e) {}
+    }
+
+    // Note on the check-in itself — distinct from the Reconcile tab's per-GameTime-
+    // booking notes (those key off a confirmation number; this lives with the raw
+    // check-in so it still holds for a guest or walk-in with nothing to match).
+    async function noteCheckin(id, existing) {
+      const note = prompt('Note for this check-in (e.g. "paid cash, no PIN" or "GameTime shows 2, we only saw 1"):', existing || '');
+      if (note === null) return;
+      try {
+        await fetch('/api/checkin/' + id + '/note', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ note }) });
         loadCourtBoard();
       } catch (e) {}
     }

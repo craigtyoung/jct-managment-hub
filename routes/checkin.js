@@ -228,6 +228,20 @@ router.patch('/:id/type', (req, res) => {
   res.json({ ok: true });
 });
 
+// PATCH /:id/note — free-text note on the check-in itself (e.g. reconciling
+// against GameTime, or flagging how someone was actually signed in). Same
+// front-desk tier as the time/court/type edits above — this is annotation,
+// not a destructive action.
+router.patch('/:id/note', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Admin staff only' });
+  if (!db.setCheckinNote(req.params.id, req.body.note))
+    return res.status(404).json({ error: 'Check-in not found' });
+  try { sse.broadcast('checkin-update'); } catch (e) {}
+  res.json({ ok: true });
+});
+
 // DELETE /:id — remove a check-in entirely (admin only). Court staff can
 // un-assign a court; only an admin can erase the record.
 router.delete('/:id', (req, res) => {

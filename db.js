@@ -4552,6 +4552,19 @@ function setCheckinTime(id, hhmm, court) {
   return true;
 }
 
+// Free-text note on a check-in — for desk/admin reconciliation flags distinct
+// from the GameTime-booking notes on the Reconcile tab (those key off a GameTime
+// confirmation number; this lives with the raw check-in record itself, so it
+// still holds even for a walk-in or guest with no matching GameTime booking).
+function setCheckinNote(id, note) {
+  const log = (_data.checkin_logs || []).find(l => l.id === parseInt(id));
+  if (!log) return false;
+  const n = String(note || '').trim().slice(0, 300);
+  if (n) log.note = n; else delete log.note;
+  save();
+  return true;
+}
+
 // Remove a check-in outright. Clearing the court only un-assigns someone and
 // leaves them waiting in the feed; this drops the record. Admin-only upstream,
 // for tidying mis-entries rather than routine use.
@@ -5511,6 +5524,7 @@ module.exports = {
   setCheckinLesson,
   setCheckinType,
   setCheckinTime,
+  setCheckinNote,
   deleteCheckin,
   todayLocal: () => nowLocal().slice(0, 10),
   nowLocal,
