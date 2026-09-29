@@ -318,7 +318,8 @@
           else if (r.role === 'contractor') roleCell = '<td><span class="role-badge con">Contractor</span></td>';
           else roleCell = '<td class="jobcell">' +
             '<label class="jobchk"><input type="checkbox" id="off-' + r.id + '"' + (r.role === 'staff' ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Office</label> ' +
-            '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Pro</label></td>';
+            '<label class="jobchk"><input type="checkbox" id="pro-' + r.id + '"' + ((r.role === 'pro' || r.is_pro) ? ' checked' : '') + ' onchange="saveJob(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Pro</label> ' +
+            ((r.role === 'pro' || r.is_pro) ? '<label class="jobchk" title="Stays fully schedulable as a pro, but is left off the pro timesheet and pay review — no hourly pay track."><input type="checkbox" id="vol-' + r.id + '"' + (r.volunteer ? ' checked' : '') + ' onchange="saveVolunteer(' + r.id + ')"' + (inactive ? ' disabled' : '') + '> Volunteer</label>' : '') + '</td>';
           var lastName = r.last_name ? ' ' + esc(r.last_name) : '';
           var certTag = r.certification ? '<div class="cert-tag" title="Tennis Canada certification">' + esc(r.certification) + '</div>' : '';
           var inactiveTag = inactive ? '<span class="inactive-tag">Inactive</span>' : '';
@@ -381,6 +382,14 @@
       if (pro && !adm) { role = 'pro'; is_pro = false; }   // coach only
       else { role = 'staff'; is_pro = pro; }                // office, + pro flag if they also coach
       fetch('/api/staff-mgmt/directory/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role, is_pro: is_pro }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (row) { if (row) { var i = dirRows.findIndex(function (x) { return x.id === id; }); if (i >= 0) dirRows[i] = row; } });
+    }
+    // Volunteer: stays schedulable as a pro everywhere, just excluded from the pro
+    // timesheet + pay review (e.g. Sylvia).
+    function saveVolunteer(id) {
+      var vol = document.getElementById('vol-' + id).checked;
+      fetch('/api/staff-mgmt/directory/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ volunteer: vol }) })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (row) { if (row) { var i = dirRows.findIndex(function (x) { return x.id === id; }); if (i >= 0) dirRows[i] = row; } });
     }

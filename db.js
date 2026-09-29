@@ -4037,7 +4037,7 @@ function getStaffPay() {
   // one line per (staff, job): dual-role people appear twice, once per rate track.
   const lines = [];
   (_data.staff || []).slice()
-    .filter(s => !STAFF_MGMT_IDS.includes(s.id) && s.role !== 'contractor')
+    .filter(s => !STAFF_MGMT_IDS.includes(s.id) && s.role !== 'contractor' && !s.volunteer)
     .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(s => {
       const p = _payRow(s.id);
@@ -4082,6 +4082,7 @@ function updateStaffPay(staffId, job, f, actingId) {
 // load-time migrations can call addCoachAccount before this point in the file.
 function _dirOut(s) {
   return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
+    volunteer: !!s.volunteer,
     badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '',
     certification: s.certification || '', active: s.active !== false };
 }
@@ -4096,6 +4097,7 @@ function addStaffMember(f, passwordHash) {
     last_name: String(f.last_name || '').slice(0, 60),
     role: STAFF_ROLES.includes(f.role) ? f.role : 'staff',
     is_pro: !!f.is_pro,
+    volunteer: !!f.volunteer,
     phone: String(f.phone || '').slice(0, 40),
     email: String(f.email || '').slice(0, 120),
     address: String(f.address || '').slice(0, 200),
@@ -4124,6 +4126,7 @@ function updateStaffMember(staffId, f) {
   if (f.last_name !== undefined) s.last_name = String(f.last_name).slice(0, 60);
   if (f.role !== undefined && STAFF_ROLES.includes(f.role)) s.role = f.role;
   if (f.is_pro !== undefined) s.is_pro = !!f.is_pro;
+  if (f.volunteer !== undefined) s.volunteer = !!f.volunteer;
   if (f.phone !== undefined) s.phone = String(f.phone).slice(0, 40);
   if (f.email !== undefined) s.email = String(f.email).slice(0, 120);
   if (f.address !== undefined) s.address = String(f.address).slice(0, 200);
@@ -4314,6 +4317,15 @@ function _isSalaried(id) {
   return !!(s && s.salaried);
 }
 
+// Volunteer pros (e.g. Sylvia): kept fully schedulable as a pro (pro-schedule
+// assignment, court/program pickers, etc. are untouched), but excluded from the
+// hourly pro timesheet + payroll roster — same "flagged, not deleted" pattern as
+// the salaried exclusion just above.
+function _isVolunteer(id) {
+  const s = getStaffById(id);
+  return !!(s && s.volunteer);
+}
+
 // Resolve the pros assigned to a slot: prefer the per-court map, fall back to the
 // legacy flat pro_ids array. Mirrors getPublicProSchedule.
 function _slotProIds(s) {
@@ -4331,7 +4343,7 @@ function getProAssignmentsForRange(startDate, endDate) {
   const rows = [];
   const last = new Date(endDate + 'T12:00:00');
   for (const s of slots) {
-    const proIds = _slotProIds(s).filter(id => !_isSalaried(id));
+    const proIds = _slotProIds(s).filter(id => !_isSalaried(id) && !_isVolunteer(id));
     if (!proIds.length) continue;
     const wantDow = _SLOT_DAY_ORDER[s.day]; // 1..7 (Mon..Sun)
     if (!wantDow) continue;
@@ -4421,7 +4433,7 @@ function getTeachingPros() {
   const ids = new Set();
   for (const s of getProScheduleSlots()) _slotProIds(s).forEach(id => ids.add(id));
   return [...ids]
-    .filter(id => !_isSalaried(id))
+    .filter(id => !_isSalaried(id) && !_isVolunteer(id))
     .map(id => getStaffById(id))
     .filter(Boolean)
     .map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role }))
@@ -4430,7 +4442,7 @@ function getTeachingPros() {
 
 // Does this person teach at all (used to show the Office⇄Pro toggle for dual-role staff)?
 function isTeachingPro(id) {
-  if (_isSalaried(id)) return false;
+  if (_isSalaried(id) || _isVolunteer(id)) return false;
   const pid = parseInt(id);
   return getProScheduleSlots().some(s => _slotProIds(s).includes(pid));
 }
