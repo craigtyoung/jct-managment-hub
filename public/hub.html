@@ -2002,6 +2002,36 @@
     }
     setInterval(loadMailCard, 60000);   // so a silent link flips to "Not checking" without a page reload
 
+    // ── Unread comms badge ───────────────────────────────────────
+    // Was fetched once inside init() with no "clear" branch, so a badge that had
+    // ever shown stayed lit even after everything was read — and since hub.html
+    // has no live-sync, coming back via browser back/forward (bfcache-restored,
+    // no re-run of init()) never re-checked it either. Named + re-run on
+    // 'pageshow' (fires on bfcache restores, not just fresh loads) and now
+    // explicitly clears every badge when the count is back to 0.
+    async function refreshCommsUnread() {
+      const tileBadge = document.getElementById('comms-tile-badge');
+      const dot = document.getElementById('comms-unread-dot');
+      const proDot = document.getElementById('pro-comms-dot');
+      const navBadge = document.getElementById('comms-nav-badge');
+      try {
+        const unreadRes = await fetch('/api/messages/unread-count');
+        const { count } = await unreadRes.json();
+        if (count > 0) {
+          if (tileBadge) { tileBadge.textContent = `${count} new`; tileBadge.style.display = 'inline-block'; }
+          if (dot) dot.style.display = 'block';
+          if (proDot) proDot.style.display = 'block';
+          if (navBadge) { navBadge.textContent = count; navBadge.style.display = 'inline-block'; }
+        } else {
+          if (tileBadge) tileBadge.style.display = 'none';
+          if (dot) dot.style.display = 'none';
+          if (proDot) proDot.style.display = 'none';
+          if (navBadge) navBadge.style.display = 'none';
+        }
+      } catch (e) { /* non-critical */ }
+    }
+    window.addEventListener('pageshow', refreshCommsUnread);
+
     // ── Init ───────────────────────────────────────────────────
     async function init() {
       const res = await fetch('/api/me');
@@ -2150,21 +2180,7 @@
       } catch(e) {}
 
       // Unread comms badge (the stat card that used to show this is now "Next on Court")
-      try {
-        const unreadRes = await fetch('/api/messages/unread-count');
-        const { count } = await unreadRes.json();
-        if (count > 0) {
-          const tileBadge = document.getElementById('comms-tile-badge');
-          tileBadge.textContent = `${count} new`;
-          tileBadge.style.display = 'inline-block';
-          document.getElementById('comms-unread-dot').style.display = 'block';
-          const proDot = document.getElementById('pro-comms-dot');
-          if (proDot) proDot.style.display = 'block';
-          const navBadge = document.getElementById('comms-nav-badge');
-          navBadge.textContent = count;
-          navBadge.style.display = 'inline-block';
-        }
-      } catch (e) { /* non-critical */ }
+      refreshCommsUnread();
 
       // Waitlist stat card — open/working spots still needing a fill, plus a NEW
       // flag when any of them was logged in roughly the last two shifts (48h) so
