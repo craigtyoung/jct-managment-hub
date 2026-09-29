@@ -228,6 +228,78 @@ router.patch('/:id/type', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Pro Mode: favorite students + one-tap check-in ─────────────────────────────
+
+// GET /favorites — the acting pro's own list (or, for management, a specific
+// pro's list via ?pro_id=, e.g. to review/manage from Staff Management)
+router.get('/favorites', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff) return res.status(401).json({ error: 'Auth required' });
+  const isMgmt = ['admin', 'manager'].includes(staff.role);
+  const proId = (req.query.pro_id && isMgmt) ? parseInt(req.query.pro_id) : req.session.staffId;
+  res.json(db.getFavoritesForPro(proId));
+});
+
+// POST /favorites — add a favorite. A pro adds for themselves; management can
+// add for any pro (e.g. pre-loading a roster from Staff Management).
+router.post('/favorites', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff) return res.status(401).json({ error: 'Auth required' });
+  const isMgmt = ['admin', 'manager'].includes(staff.role);
+  const proId = (req.body.pro_id && isMgmt) ? parseInt(req.body.pro_id) : req.session.staffId;
+  if (!isMgmt && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or management only' });
+  const memberId = parseInt(req.body.member_id);
+  if (!memberId) return res.status(400).json({ error: 'member_id required' });
+  const result = db.addFavorite(proId, memberId, req.session.staffId);
+  if (!result) return res.status(400).json({ error: 'Could not add favorite' });
+  res.json(result);
+});
+
+// DELETE /favorites/:memberId — remove a favorite. Same self-or-management rule.
+router.delete('/favorites/:memberId', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff) return res.status(401).json({ error: 'Auth required' });
+  const isMgmt = ['admin', 'manager'].includes(staff.role);
+  const proId = (req.query.pro_id && isMgmt) ? parseInt(req.query.pro_id) : req.session.staffId;
+  if (!isMgmt && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or management only' });
+  if (!db.removeFavorite(proId, req.params.memberId)) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+// POST /quick — one-tap Pro Mode check-in. Deliberately narrow (unlike /staff):
+// always "now", never backdated, and a favorite target must already be on the
+// acting pro's own list — a pro can't use this to check in an arbitrary member.
+router.post('/quick', (req, res) => {
+  if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
+  const staff = db.getStaffById(req.session.staffId);
+  if (!staff) return res.status(401).json({ error: 'Auth required' });
+  if (staff.role !== 'pro' && !['admin', 'manager'].includes(staff.role)) {
+    return res.status(403).json({ error: 'Pro or management only' });
+  }
+  const { target, member_id } = req.body || {};
+  if (target === 'self') {
+    const { id } = db.addGuestCheckinLog({ guestName: staff.name, hostMemberId: null, court: null });
+    try { sse.broadcast('checkin-update'); } catch (e) {}
+    return res.json({ ok: true, id });
+  }
+  if (target === 'favorite') {
+    const mid = parseInt(member_id);
+    const favorites = db.getFavoritesForPro(req.session.staffId);
+    if (!favorites.some(f => f.member_id === mid)) {
+      return res.status(403).json({ error: 'Not one of your favorites' });
+    }
+    const m = db.getMemberById(mid);
+    if (!m || m.active === false) return res.status(404).json({ error: 'Member not found' });
+    const { id, duplicate } = db.addCheckinLog({ memberId: mid, method: 'favorite' });
+    try { sse.broadcast('checkin-update'); } catch (e) {}
+    return res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name });
+  }
+  res.status(400).json({ error: "target must be 'self' or 'favorite'" });
+});
+
 // PATCH /:id/note — free-text note on the check-in itself (e.g. reconciling
 // against GameTime, or flagging how someone was actually signed in). Same
 // front-desk tier as the time/court/type edits above — this is annotation,

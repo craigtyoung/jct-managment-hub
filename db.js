@@ -4552,6 +4552,43 @@ function setCheckinTime(id, hhmm, court) {
   return true;
 }
 
+// ─── Pro favorite students (Pro Mode quick check-in) ───────────────────────────
+// A pro's personal shortcut list for one-tap check-in — no PIN needed, since
+// tapping a specific name on the pro's own logged-in device already identifies
+// the student unambiguously. Built two ways: the pro stars someone themselves,
+// or management pre-loads a pro's list from Staff Management. Both land here.
+function getFavoritesForPro(proId) {
+  const pid = parseInt(proId);
+  return (_data.pro_favorites || [])
+    .filter(f => f.pro_id === pid)
+    .map(f => {
+      const m = getMemberById(f.member_id);
+      return m ? { favorite_id: f.id, member_id: m.id, first_name: m.first_name, last_name: m.last_name, club_number: m.club_number } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => String(a.last_name).localeCompare(String(b.last_name)));
+}
+function addFavorite(proId, memberId, addedBy) {
+  if (!Array.isArray(_data.pro_favorites)) { _data.pro_favorites = []; _data._seq.pro_favorites = 0; }
+  const pid = parseInt(proId), mid = parseInt(memberId);
+  if (!pid || !mid) return null;
+  const exists = _data.pro_favorites.some(f => f.pro_id === pid && f.member_id === mid);
+  if (exists) return { ok: true, already: true };
+  const id = nextId('pro_favorites');
+  _data.pro_favorites.push({ id, pro_id: pid, member_id: mid, added_by: parseInt(addedBy) || null, created_at: now() });
+  save();
+  return { ok: true, id };
+}
+function removeFavorite(proId, memberId) {
+  if (!Array.isArray(_data.pro_favorites)) return false;
+  const pid = parseInt(proId), mid = parseInt(memberId);
+  const before = _data.pro_favorites.length;
+  _data.pro_favorites = _data.pro_favorites.filter(f => !(f.pro_id === pid && f.member_id === mid));
+  if (_data.pro_favorites.length === before) return false;
+  save();
+  return true;
+}
+
 // Free-text note on a check-in — for desk/admin reconciliation flags distinct
 // from the GameTime-booking notes on the Reconcile tab (those key off a GameTime
 // confirmation number; this lives with the raw check-in record itself, so it
@@ -5526,6 +5563,9 @@ module.exports = {
   setCheckinTime,
   setCheckinNote,
   deleteCheckin,
+  getFavoritesForPro,
+  addFavorite,
+  removeFavorite,
   todayLocal: () => nowLocal().slice(0, 10),
   nowLocal,
   getCheckinLogsByDate,
