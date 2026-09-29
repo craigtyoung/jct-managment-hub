@@ -687,12 +687,19 @@
             const ini = name.split(' ').map(w => w[0]||'').slice(0,2).join('').toUpperCase() || '?';
             const guestTag = l.guest ? '<span class="guest-tag">GUEST</span>' : '';
             const courtOpts = [1,2,3,4,5,6].map(n => `<option value="${n}">Court ${n}</option>`).join('');
+            // Taking someone off a court (✕ in the grid) drops them here, waiting —
+            // this list had no way to fully delete a check-in, only re-assign it,
+            // so a mis-entered check-in taken off a court was stuck with no exit.
+            const del = IS_ADMIN
+              ? `<button class="cal-x cal-del" onclick="deleteCheckin(${l.id}, '${esc(name).replace(/'/g, "\'")}')" title="Delete this check-in">🗑</button>`
+              : '';
             return `<div class="wait-row">
               <div class="wait-av">${esc(ini)}</div>
               <div class="wait-name">${esc(name)}${guestTag}</div>
               <select class="assign-select" onchange="assignCourt(${l.id}, this.value)">
                 <option value="">Assign court…</option>${courtOpts}
               </select>
+              ${del}
             </div>`;
           }).join('');
         } else {
