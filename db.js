@@ -4575,8 +4575,12 @@ function getMemberByPin(pin) {
 // Staff show up as member rows too (club number starting with "S", GameTime's own
 // convention) so they get a PIN via the same kiosk lookup everyone else uses. That row
 // has no link back to their real staff account (the one favorites/check-ins are keyed
-// to) until this runs — matches by exact first+last name, once, and only fills rows
-// that don't already have a staff_id. Ambiguous or unmatched rows are left for a human.
+// to) until this runs — matches once, and only fills rows that don't already have a
+// staff_id. Ambiguous or unmatched rows are left for a human.
+// Tries exact first+last name first, then falls back to first-name-only when exactly
+// one active staff member has that first name — most staff records here only ever had
+// a first name entered (last_name is blank), so requiring both was rejecting nearly
+// everyone even though the right single match was obvious.
 const _isStaffMemberRow = m => String(m.club_number || '').toUpperCase().startsWith('S');
 function linkStaffMembers() {
   const rows = (_data.members || []).filter(m => m.active !== false && _isStaffMemberRow(m) && !m.staff_id);
@@ -4586,10 +4590,19 @@ function linkStaffMembers() {
   for (const m of rows) {
     const fn = String(m.first_name || '').trim().toLowerCase();
     const ln = String(m.last_name || '').trim().toLowerCase();
-    const matches = activeStaff.filter(s =>
+    let matches = activeStaff.filter(s =>
       String(s.name || '').trim().toLowerCase() === fn && String(s.last_name || '').trim().toLowerCase() === ln);
+    let byFirstNameOnly = false;
+    if (!matches.length) {
+      matches = activeStaff.filter(s => String(s.name || '').trim().toLowerCase() === fn);
+      byFirstNameOnly = true;
+    }
     if (matches.length === 1) { m.staff_id = matches[0].id; linked++; }
-    else unmatched.push({ member_id: m.id, name: `${m.first_name} ${m.last_name}`.trim(), reason: matches.length ? 'more than one staff member with this name' : 'no matching staff member found' });
+    else unmatched.push({
+      member_id: m.id, name: `${m.first_name} ${m.last_name}`.trim(),
+      reason: matches.length ? 'more than one staff member named ' + m.first_name
+        : (byFirstNameOnly ? 'no staff member named ' + m.first_name : 'no matching staff member found'),
+    });
   }
   if (linked) save();
   return { linked, unmatched };
