@@ -3407,13 +3407,14 @@ function getApparelPros() {
 // request→approve→issue chain, which is the point (built for a pro checking off a class list).
 function _apparelRosterRow(id) { return (_data.apparel_roster || []).find(r => r.id === parseInt(id)); }
 
-// Staff (pro + manager) get their own roster group, kept live against the actual staff
-// list rather than seeded once like the fixed class rosters — new hires pick up a row
-// automatically, on their next getApparelRoster() call. Existing rows (including any
-// already given) are left alone; this only ever adds.
+// Staff (everyone on the roster — front desk, management, pros) get their own roster
+// group, kept live against the actual staff list rather than seeded once like the fixed
+// class rosters — new hires pick up a row automatically, on their next getApparelRoster()
+// call. Existing rows (including any already given) are left alone; this only ever adds.
+// Not everyone will take a shirt — that's fine, it's opt-in per row same as the classes.
 function _syncApparelStaffRoster() {
   const have = new Set((_data.apparel_roster || []).filter(r => r.program === 'Staff').map(r => r.staff_id));
-  const eligible = (_data.staff || []).filter(s => ['pro', 'manager'].includes(s.role));
+  const eligible = (_data.staff || []).filter(s => s.active !== false);
   let changed = false;
   const at = new Date().toISOString();
   for (const s of eligible) {

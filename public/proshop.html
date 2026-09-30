@@ -307,6 +307,7 @@
               <div class="card-title">Progress</div>
               <div id="ap-roster-summary" class="empty">Loading…</div>
             </div>
+            <div class="ap-chips" id="ap-roster-jump"></div>
             <div id="ap-roster-groups"><div class="empty">Loading…</div></div>
           </div>
 
@@ -692,18 +693,26 @@
       apRenderRoster();
     }
     const AP_COLOUR_LABEL = { navy:'Navy', platinum:'Platinum' };
+    const apProgSlug = p => 'ap-roster-prog-' + p.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     function apRenderRoster(){
       const d = AP.roster; if(!d) return;
       const stockLine = (d.stock||[]).map(c=>`${esc(AP_COLOUR_LABEL[c.colour]||c.label)}: `+c.sizes.map(s=>`${esc(s.size)} ${s.available}`).join(', ')).join(' · ') || 'no stock on hand';
       $('ap-roster-summary').innerHTML = `<div class="ap-roster-total">${d.issued} / ${d.total} shirts given</div><div class="ap-legend">On hand — ${stockLine}. Kids before staff if a size runs low — swap colour per row if you need to.</div>`;
+      $('ap-roster-jump').innerHTML = (d.programs||[]).map(p=>
+        `<button class="ap-chipbtn" onclick="apRosterJump('${apProgSlug(p.program)}')">${esc(p.program)} <span style="opacity:.6">${p.issued}/${p.total}</span></button>`
+      ).join('');
       $('ap-roster-groups').innerHTML = (d.programs||[]).map(p=>`
-        <div class="card ap-roster-group">
+        <div class="card ap-roster-group" id="${apProgSlug(p.program)}">
           <div class="card-title">${esc(p.program)} <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--text-3)">${p.issued} / ${p.total}</span></div>
           <div class="tbl-wrap"><table class="log ap-roster-tbl">
             <thead><tr><th>${p.program==='Staff'?'Staff':'Student'}</th><th>Size</th><th>Colour</th><th></th></tr></thead>
             <tbody>${p.students.map(apRosterRow).join('')}</tbody>
           </table></div>
         </div>`).join('') || '<div class="empty">No rosters loaded.</div>';
+    }
+    function apRosterJump(id){
+      const el = $(id);
+      if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
     }
     function apRosterRow(s){
       const colourOpts = ['navy','platinum'].map(c=>`<option value="${c}" ${s.colour===c?'selected':''}>${AP_COLOUR_LABEL[c]}</option>`).join('');
