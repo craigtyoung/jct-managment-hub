@@ -433,6 +433,30 @@ if (!_data._migrations.apparelSeed2026v1) {
   save();
 }
 
+// Real class rosters (Fall 2026 registration export) for the six Performance Academy groups.
+// One row per student per program — separate from the generic by-class request flow above.
+// Kids get navy only; sizes start blank and are filled in by the pro at class, per shirt.
+const APPAREL_ROSTER_SEED = [
+  { program: 'U9 Performance', names: ['Alikhan, Mila', 'Kaushish, Viaan', 'Leanage, Evaan', 'Liang, Yiyi', 'Mistry, Mila-Rose', 'Piovesan, Clarissa', 'Rahman, Heba', 'Taneja, Evaan', 'Wu, Florence', 'Zhang, Eric'] },
+  { program: 'U10 Performance', names: ['Abdrabo, Zeyad', 'Bao, Kaiya', 'Cui, Justin', 'Galasso, Valentina', 'Gao, Chloe', 'Han, Nathan', 'Hou, Annie', 'Joshi, Aarav', 'Mao, Isaac', 'Marinsky, Andrew', 'McNally-Johnson, Maxwell', 'Miropolsky, Alex', 'Qian, Luke', 'Thambirajah, Nola', 'Wang, Anthony', 'Wang, Kinnie', 'Wu, Mark', 'Zeng, Luca', 'Zhang, Ethan', 'Zhou, Jacob'] },
+  { program: 'U13 Performance', names: ['Anto, Christina', 'Bulfon, Liv', 'Cuthbert, Sasha', 'Galasso, Amelia', 'Han, Hanson', 'Han, Olivia', 'Huang, Bryan', 'Li, Andrew', 'Li, Matthew', 'Mao, Doreen', 'Su, Daniel', 'Thambirajah, Mia', 'Varma, Advaith', 'Waese, Destan', 'Xu, Lydia', 'Yu, Jacob', 'Yue, Daren', 'Zhang, Max', 'Zhou, Abigail'] },
+  { program: 'National Performance', names: ['Allen, Emma', 'Baicoianu, Lucas', 'Bammeke, Michelle', 'Chan, Emma', 'Choe, Alexandra', 'Choe, Lucas', 'De Belchior, Gabriella', 'Duan, Michael', 'Erskine, Ben', 'Fasanya, Ebun', 'Fujita, Kenji', 'Guo, Gavin', 'Iamandi, Naomi', 'Kapoor, Rishan', 'Katerli, Maria', 'Khan, Ali', 'Krumov, Elisa', 'Lalli, Harshaan', 'Liu, Emilia', 'Lungu, Alessia', 'Ma, Ethan', 'Morgan, Maliah', 'Niu, Jamie', 'Niu, Jereme', 'Rajicic, Mila', 'Ross, Christoph', 'Rusic, Elena', 'Slinchenko, Artem', 'Waese, Callen', 'Xie, Evan', 'Xu, Audrey', 'Zhang, Jesse', 'Zhang, Oscar', 'Zhang, Sophia', 'Zharkov, Danil', 'Zhou, Jonathan', 'Zhou, Linus'] },
+  { program: 'National Transition A', names: ['Bao, Jake', 'Calic, Nikola', 'De Belchior, Gabriella', 'Folashakin, Zoey', 'Khan, Aihaan', 'Liu, Emilia', 'Nagi, Aaron', 'Niu, Jamie', 'Niu, Jereme', 'Ostas, Daria', 'Paun, Andrei', 'Sajun, Isaam', 'Sridhar, Aditya', 'Varma, Aditi', 'Yue, Langrui', 'Zhang, Sophia'] },
+  { program: 'National Transition B', names: ['Barakat, Paul', 'Barakat, Sophie', 'Boparai, Sehej', 'Chan, Emma', 'Chen, Junran', 'Lima Diniz, Manuela', 'Lu, Claire', 'Lu, Sean', 'Malhotra, Kabir', 'Parmani, Kabeer', 'Parmani, Kushal', 'Sahu, Rishit', 'Saleemi, Rayyan', 'Seok, Jake', 'Walsh, Ignatia (Ina)', 'Xiong, Allan', 'Zeng, Olivia', 'Zhu, Charlie(YiXuan)'] },
+];
+if (!Array.isArray(_data.apparel_roster)) { _data._seq.apparel_roster = 0; _data.apparel_roster = []; save(); }
+if (!_data._migrations.apparelRosterSeed2026v1) {
+  const at = new Date().toISOString();
+  for (const grp of APPAREL_ROSTER_SEED) {
+    for (const name of grp.names) {
+      _data._seq.apparel_roster = (_data._seq.apparel_roster || 0) + 1;
+      _data.apparel_roster.push({ id: _data._seq.apparel_roster, program: grp.program, name, size: null, issued: false, issued_by: null, issued_at: null, created_at: at });
+    }
+  }
+  _data._migrations.apparelRosterSeed2026v1 = true;
+  save();
+}
+
 // Migration: knowledge base — club docs (rules, pricing, membership, FAQs) the AI
 // assistant reads so it can answer staff questions accurately.
 if (!Array.isArray(_data.knowledge_docs)) {
@@ -3377,6 +3401,62 @@ function getApparelPros() {
     .map(s => ({ id: s.id, name: s.name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Roster-based issuance: real names, one navy shirt per student, size set + issued in one pass
+// at class. Stock still moves through the same apparel_moves ledger as the request flow above,
+// so Overview stock counts and History stay accurate either way — this just skips the
+// request→approve→issue chain, which is the point (built for a pro checking off a class list).
+function _apparelRosterRow(id) { return (_data.apparel_roster || []).find(r => r.id === parseInt(id)); }
+function getApparelRoster() {
+  const onHand = _apparelOnHand();
+  const byProgram = {};
+  for (const r of _data.apparel_roster || []) {
+    (byProgram[r.program] = byProgram[r.program] || []).push({
+      id: r.id, name: r.name, size: r.size, issued: r.issued,
+      issued_by_name: _staffName(r.issued_by), issued_at: r.issued_at,
+    });
+  }
+  const programs = Object.keys(byProgram).sort().map(program => {
+    const students = byProgram[program].sort((a, b) => a.name.localeCompare(b.name));
+    return { program, students, total: students.length, issued: students.filter(s => s.issued).length };
+  });
+  const all = _data.apparel_roster || [];
+  return {
+    programs, total: all.length, issued: all.filter(r => r.issued).length,
+    navy_stock: APPAREL_SIZES.map(size => ({ size, available: onHand[_apKey('navy', size)] || 0 })).filter(x => x.available > 0),
+  };
+}
+function setApparelRosterSize(id, size) {
+  const r = _apparelRosterRow(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.issued) return { error: 'Already issued — reverse it first to change size', status: 409 };
+  size = String(size || '').toUpperCase();
+  if (size && !APPAREL_SIZES.includes(size)) return { error: 'Pick a valid size' };
+  r.size = size || null;
+  save();
+  return { ok: true };
+}
+function issueApparelRosterShirt(id, staffId) {
+  const r = _apparelRosterRow(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.issued) return { error: 'Already issued', status: 409 };
+  if (!r.size) return { error: 'Pick a size first' };
+  const onHand = _apparelOnHand()[_apKey('navy', r.size)] || 0;
+  if (onHand < 1) return { error: `No ${r.size} navy shirts on hand`, status: 409 };
+  _apparelPostMove('issued', 'navy', r.size, -1, null, `Roster: ${r.name} (${r.program})`, staffId);
+  r.issued = true; r.issued_by = staffId; r.issued_at = now();
+  save();
+  return { ok: true };
+}
+function unissueApparelRosterShirt(id, staffId) {
+  const r = _apparelRosterRow(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (!r.issued) return { error: 'Not issued', status: 409 };
+  _apparelPostMove('return', 'navy', r.size, 1, null, `Roster reversal: ${r.name} (${r.program})`, staffId);
+  r.issued = false; r.issued_by = null; r.issued_at = null;
+  save();
+  return { ok: true };
+}
+
 // ─── Office inbox alert ───────────────────────────────────────────────────────
 // A Google Apps Script running INSIDE the shared office Gmail account posts the unread list
 // (sender, subject, time only — never bodies) to the hub every minute, guarded by a shared secret.
@@ -5422,6 +5502,7 @@ module.exports = {
   getApparelRequests, addApparelRequest, approveApparelRequest, declineApparelRequest,
   cancelApparelRequest, issueApparelRequest, reverseApparelRequest,
   addApparelStock, getApparelMoves, getApparelByClass, getApparelPros,
+  getApparelRoster, setApparelRosterSize, issueApparelRosterShirt, unissueApparelRosterShirt,
   getOfficeMailSetup, regenerateOfficeMailSecret, updateOfficeMailSettings, checkOfficeMailSecret,
   recordOfficeMailSync, getOfficeMailStatus,
   getKnowledgeDocs,

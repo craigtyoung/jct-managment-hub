@@ -198,6 +198,10 @@
     .ap-manage-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 90px 2fr auto;gap:8px;align-items:end;}
     @media(max-width:860px){.ap-manage-row{grid-template-columns:1fr 1fr;}.ap-manage-row .btn-add{grid-column:1 / -1;}}
     details.ap-more summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--blue);margin:10px 0 6px;}
+    .ap-roster-total{font-size:20px;font-weight:800;color:var(--navy);}
+    .ap-roster-group + .ap-roster-group{margin-top:14px;}
+    .ap-roster-tbl select{font-family:inherit;font-size:13px;font-weight:700;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--canvas);color:var(--text);}
+    tr.ap-roster-done td{color:var(--text-3);}
   </style>
 </head>
 <body>
@@ -285,20 +289,29 @@
 
           <div class="mf-tabs">
             <button class="mf-tab on" type="button">Performance Academy T-Shirts</button>
-            <span class="ap-mgmt-tag" style="margin-left:0">Management only</span>
           </div>
 
           <div id="mf-tshirts">
-          <div class="page-sub">Free Performance Academy tees for junior classes and pros. Logged by class (no student names), no money involved.</div>
+          <div class="page-sub">Free Performance Academy tees for junior classes and pros. No money involved.</div>
 
           <div class="ap-tabs">
-            <button class="ap-tab on" data-tab="overview" onclick="apTab('overview',this)">Overview</button>
+            <button class="ap-tab on" data-tab="roster" onclick="apTab('roster',this)">Class Rosters</button>
+            <button class="ap-tab" data-tab="overview" onclick="apTab('overview',this)">Overview</button>
             <button class="ap-tab" data-tab="history" onclick="apTab('history',this)">History</button>
             <button class="ap-tab" data-tab="manage" id="ap-tab-manage" onclick="apTab('manage',this)" style="display:none">Manage</button>
           </div>
 
+          <!-- Class Rosters — real names, size + issue in one pass. What a pro uses at class. -->
+          <div id="ap-roster">
+            <div class="card" id="ap-roster-progress">
+              <div class="card-title">Progress</div>
+              <div id="ap-roster-summary" class="empty">Loading…</div>
+            </div>
+            <div id="ap-roster-groups"><div class="empty">Loading…</div></div>
+          </div>
+
           <!-- Overview -->
-          <div id="ap-overview">
+          <div id="ap-overview" style="display:none">
             <div class="card">
               <div class="card-title">Stock available</div>
               <div class="tbl-wrap"><table class="ap-grid" id="ap-stock"><tbody><tr><td class="empty">Loading…</td></tr></tbody></table></div>
@@ -625,7 +638,7 @@
     }
 
     // ───────── Academy Apparel ─────────
-    const AP = { sum:null, classes:[], pros:[], reqs:[], byClass:[], settings:null, filter:null, tab:'overview', formBuilt:false };
+    const AP = { sum:null, classes:[], pros:[], reqs:[], byClass:[], settings:null, filter:null, tab:'roster', formBuilt:false, roster:null, canUnissue:false };
     const AP_STATUS = { requested:['Awaiting approval','amber'], approved:['Approved · hand out','blue'], issued:['Issued','green'], declined:['Declined','red'], cancelled:['Cancelled','grey'], reversed:['Reversed','grey'] };
     const $ = id => document.getElementById(id);
     const apColour = k => { const c=((AP.sum&&AP.sum.colours)||[]).find(x=>x.key===k); return c?c.label:k; };
@@ -637,13 +650,24 @@
       return d;
     }
 
-    // Management only for now (admin + manager) — mirrors DESK_ROLES in routes/apparel.js.
-    const apAllowed = () => !!me && ['admin','manager'].includes(me.role);
+    // Desk (admin/manager/staff) gets the full page; pros get Class Rosters only — mirrors
+    // DESK_ROLES / ROSTER_ROLES in routes/apparel.js.
+    const apAllowedDesk = () => !!me && ['admin','manager','staff'].includes(me.role);
+    const apAllowedRoster = () => !!me && (apAllowedDesk() || me.role==='pro');
     async function apRefresh(){
-      if(!apAllowed()) return;
+      if(!apAllowedRoster()) return;
       $('nav-merch').style.display='';
-      if(!AP.hashHandled){ AP.hashHandled=true; if(/^#(merchandise|apparel)$/.test(location.hash)) showSection('merchandise',$('nav-merch')); }   // deep link, once we know the user is allowed
+      if(!AP.hashHandled){ AP.hashHandled=true; if(/^#(merchandise|apparel|roster)$/.test(location.hash)) showSection('merchandise',$('nav-merch')); }   // deep link, once we know the user is allowed
+      AP.canUnissue = !!me && ['admin','manager'].includes(me.role);
+      // Pro-only: Class Rosters is the whole page, other tabs stay hidden (no desk permission).
+      if(!apAllowedDesk()){
+        document.querySelectorAll('.ap-tab:not([data-tab="roster"])').forEach(b=>b.style.display='none');
+        await apRosterRefresh();
+        return;
+      }
+      document.querySelectorAll('.ap-tab').forEach(b=>b.style.display='');
       const [sum,reqs,byClass]=await Promise.all([apJson('/api/apparel/summary'),apJson('/api/apparel/requests'),apJson('/api/apparel/by-class')]);
+      await apRosterRefresh();
       if(!sum) return;
       AP.sum=sum; AP.reqs=reqs||[]; AP.byClass=byClass||[];
       const p=sum.perms;
@@ -658,6 +682,56 @@
       b.textContent=n; b.style.display=n>0?'':'none';
       b.title=p.approve?'Requests awaiting approval':'Approved requests ready to hand out';
       if(p.manage && AP.tab==='manage') apLoadManage();
+    }
+
+    // ── Class Rosters — real names, size + issue in one pass (also used stand-alone by pros) ──
+    async function apRosterRefresh(){
+      const d = await apJson('/api/apparel/roster');
+      if(!d) return;
+      AP.roster = d;
+      apRenderRoster();
+    }
+    function apRenderRoster(){
+      const d = AP.roster; if(!d) return;
+      const stockLine = (d.navy_stock||[]).map(s=>`${esc(s.size)}: ${s.available}`).join(' · ') || 'no navy stock on hand';
+      $('ap-roster-summary').innerHTML = `<div class="ap-roster-total">${d.issued} / ${d.total} shirts issued</div><div class="ap-legend">Navy on hand — ${stockLine}. Kids before staff if a size runs low.</div>`;
+      $('ap-roster-groups').innerHTML = (d.programs||[]).map(p=>`
+        <div class="card ap-roster-group">
+          <div class="card-title">${esc(p.program)} <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--text-3)">${p.issued} / ${p.total}</span></div>
+          <div class="tbl-wrap"><table class="log ap-roster-tbl">
+            <thead><tr><th>Student</th><th>Size</th><th></th></tr></thead>
+            <tbody>${p.students.map(apRosterRow).join('')}</tbody>
+          </table></div>
+        </div>`).join('') || '<div class="empty">No rosters loaded.</div>';
+    }
+    function apRosterRow(s){
+      if(s.issued){
+        return `<tr class="ap-roster-done"><td>${esc(s.name)}</td><td>${esc(s.size)}</td>
+          <td><span class="ap-pill green">Issued</span>${AP.canUnissue?` <button class="ap-btn" onclick="apRosterUnissue(${s.id})">Undo</button>`:''}</td></tr>`;
+      }
+      const sizeOpts = ['','XS','S','M','L','XL','2XL','3XL'].map(z=>`<option value="${z}" ${s.size===z?'selected':''}>${z||'— size —'}</option>`).join('');
+      return `<tr><td>${esc(s.name)}</td>
+        <td><select onchange="apRosterSize(${s.id},this.value)">${sizeOpts}</select></td>
+        <td><button class="ap-btn pri" ${s.size?'':'disabled'} onclick="apRosterIssue(${s.id})">Issue</button></td></tr>`;
+    }
+    async function apRosterSize(id,size){
+      const d = await apSend('POST',`/api/apparel/roster/${id}/size`,{size});
+      if(!d) return;
+      await apRosterRefresh();
+    }
+    async function apRosterIssue(id){
+      const d = await apSend('POST',`/api/apparel/roster/${id}/issue`,{});
+      if(!d) return;
+      toast('Issued — stock updated');
+      await apRosterRefresh();
+      if(apAllowedDesk()) apRefresh();   // keep the desk stock grid + history in sync too
+    }
+    async function apRosterUnissue(id){
+      if(!confirm('Undo this hand-out? The shirt goes back into stock.')) return;
+      const d = await apSend('POST',`/api/apparel/roster/${id}/unissue`,{});
+      if(!d) return;
+      toast('Reversed — shirt back in stock');
+      await apRosterRefresh();
     }
 
     function apRenderStock(){
@@ -766,7 +840,7 @@
     function apTab(t,btn){
       AP.tab=t;
       document.querySelectorAll('.ap-tab').forEach(b=>b.classList.toggle('on',b===btn));
-      ['overview','history','manage'].forEach(k=>{ $('ap-'+k).style.display=k===t?'':'none'; });
+      ['roster','overview','history','manage'].forEach(k=>{ $('ap-'+k).style.display=k===t?'':'none'; });
       if(t==='manage') apLoadManage();
     }
 

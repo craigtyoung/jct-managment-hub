@@ -9,9 +9,10 @@ const db = require('../db');
 const sse = require('../sse');
 const router = express.Router();
 
-// Who may see and use the tracker at all. Management only while it is being set up;
-// add 'staff' here to open it to the front desk (the UI reads the same rule via /summary perms).
-const DESK_ROLES = ['admin', 'manager'];
+// Who may see and use the tracker at all. Opened to front desk 2026-09-30 (was management-only).
+const DESK_ROLES = ['admin', 'manager', 'staff'];
+// Roster check-off (below) is also usable by pros directly — they're the ones at the class.
+const ROSTER_ROLES = [...DESK_ROLES, 'pro'];
 
 router.use((req, res, next) => {
   req.actingStaffId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
@@ -20,6 +21,7 @@ router.use((req, res, next) => {
 
 const roleOf = id => { const s = db.getStaffById(id); return s ? s.role : null; };
 const isDesk = id => DESK_ROLES.includes(roleOf(id));
+const isRoster = id => ROSTER_ROLES.includes(roleOf(id));
 const isMgmt = id => ['admin', 'manager'].includes(roleOf(id));   // stock corrections, reversals, settings
 
 // Result of a db action → HTTP response (+ live-refresh everyone on success).
@@ -30,7 +32,18 @@ function reply(res, r) {
 }
 const guard = (test, msg) => (req, res, next) => test(req.actingStaffId) ? next() : res.status(403).json({ error: msg });
 
-// Nothing here is visible outside DESK_ROLES.
+// Roster check-off — registered ahead of the DESK_ROLES gate below so pros (not desk staff)
+// can reach it too. This is the "pro checks off their class list" workflow, separate from the
+// by-class request flow, which stays desk/management only.
+router.get('/roster', guard(isRoster, 'Not available for your role'), (req, res) => res.json(db.getApparelRoster()));
+router.post('/roster/:id/size', guard(isRoster, 'Not available for your role'),
+  (req, res) => reply(res, db.setApparelRosterSize(req.params.id, (req.body || {}).size)));
+router.post('/roster/:id/issue', guard(isRoster, 'Not available for your role'),
+  (req, res) => reply(res, db.issueApparelRosterShirt(req.params.id, req.actingStaffId)));
+router.post('/roster/:id/unissue', guard(isMgmt, 'Management only'),
+  (req, res) => reply(res, db.unissueApparelRosterShirt(req.params.id, req.actingStaffId)));
+
+// Nothing below here is visible outside DESK_ROLES.
 router.use(guard(isDesk, 'Academy Apparel is management only for now'));
 
 // Everything the page needs in one call (stock grid, counts, and what this user may do).
