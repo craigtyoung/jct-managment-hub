@@ -532,6 +532,15 @@
     }
 
     init();
+
+    // Some browsers (notably iPad Safari) restore a form field's last-typed value on
+    // navigation or bfcache restore regardless of autocomplete="off" — so "test" (or
+    // whatever was last typed) silently reappears in Search and filters everything out.
+    // Force it blank on every fresh load and every bfcache restore.
+    window.addEventListener('pageshow', () => {
+      const s = document.getElementById('search');
+      if (s && s.value) { s.value = ''; filterMembers(); }
+    });
   </script>
 </body>
 </html>
