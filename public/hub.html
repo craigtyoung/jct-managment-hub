@@ -659,9 +659,40 @@
       --navy-mid:     #123726;
       --navy-hover:   rgba(167,224,189,0.07);
       --border-nav:   rgba(167,224,189,0.08);
+      --court-yellow: #cddc39;
+      --court-yellow-ink: #33440c;
     }
     body.pro-mode .stat-value.accent-blue { color: #2f9e5f; }
     body.pro-mode .status-dot { background: #2f9e5f; }
+    /* Tennis-court line motif — faint, behind the Teaching Hub header only. Doubles
+       service box + centre line, white on the court-green theme; kept very low
+       opacity so it reads as texture, not decoration fighting the content. */
+    .court-lines {
+      position: relative; overflow: hidden;
+    }
+    .court-lines::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      opacity: 0.06;
+      background-image:
+        linear-gradient(var(--blue) 2px, transparent 2px),
+        linear-gradient(90deg, var(--blue) 2px, transparent 2px),
+        linear-gradient(90deg, var(--blue) 2px, transparent 2px);
+      background-size: 100% 100%, 50% 100%, 100% 3px;
+      background-position: 0 0, 0 0, 0 50%;
+      background-repeat: no-repeat, repeat-x, no-repeat;
+      border: 2px solid var(--blue); border-radius: inherit;
+    }
+    .court-lines > * { position: relative; z-index: 1; }
+    /* Personalized accent — set per-user via --my-color (falls back to the mode accent). */
+    body.pro-mode .qci-card { border-left: 3px solid var(--my-color, var(--blue)); }
+    body.pro-mode .qci-title { color: var(--my-color, var(--text)); }
+    /* Satisfying pop on a successful check-in tap. */
+    @keyframes qci-pop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
+    .qci-fav-btn.done, .qci-signin-btn.success-pop { animation: qci-pop 0.34s ease-out; }
+    body.pro-mode .qci-fav-btn.done { background: rgba(205,220,57,0.22); color: var(--court-yellow-ink); }
+    body.pro-mode .qci-signin-btn { background: var(--court-yellow); color: var(--court-yellow-ink); }
+    body.pro-mode .qci-signin-btn:hover { background: #dce775; }
+    body.pro-mode .qci-signin-btn:disabled { background: var(--canvas); color: var(--text-3); }
 
     /* Mode visibility */
     body.pro-mode .admin-only    { display: none !important; }
@@ -1616,7 +1647,7 @@
       </div>
 
       <!-- ── Quick Check-In — one tap to sign in, one tap per favorite student ── -->
-      <div class="qci-card" id="qci-card">
+      <div class="qci-card court-lines" id="qci-card">
         <div class="qci-head">
           <span class="qci-title">Quick Check-In</span>
           <span class="qci-self-status" id="qci-self-status"></span>
@@ -1704,19 +1735,18 @@
           <div class="tile-desc">The full weekly court grid — your classes, courts, and clinics. View-only.</div>
         </a>
 
-        <a href="/comms.html?audience=pro" class="tile t-green" style="position:relative">
-          <div id="pro-comms-dot" class="unread-dot" style="display:none"></div>
+        <div class="tile soon">
           <div class="tile-head">
             <div class="tile-icon">
-              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
-            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <span class="soon-tag">Coming Soon</span>
           </div>
           <div class="tile-name">Communications</div>
-          <div class="tile-desc">Team notes, announcements, and shift info.</div>
-        </a>
+          <div class="tile-desc">A dedicated pro comms log — separate from the office log. Sub-coverage and schedule-change requests already work; browsing the full log is next.</div>
+        </div>
 
         <a href="/pro-timesheet.html" class="tile t-green">
           <div class="tile-head">
@@ -1745,19 +1775,6 @@
           </div>
           <div class="tile-name">Idea Board</div>
           <div class="tile-desc">Share coaching ideas and requests with the pro team.</div>
-        </a>
-
-        <a href="/proshop.html#roster" class="tile t-green">
-          <div class="tile-head">
-            <div class="tile-icon">
-              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-              </svg>
-            </div>
-            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-          <div class="tile-name">Academy Shirts</div>
-          <div class="tile-desc">Check off your class roster — pick a size and hand out a shirt, tracked live.</div>
         </a>
 
       </div>
@@ -2032,19 +2049,13 @@
     async function refreshCommsUnread() {
       const tileBadge = document.getElementById('comms-tile-badge');
       const dot = document.getElementById('comms-unread-dot');
-      const proDot = document.getElementById('pro-comms-dot');
       const navBadge = document.getElementById('comms-nav-badge');
       try {
-        // Office and Pro are two separate comms logs (see db.js getMessages) — each badge
-        // must reflect only the log its own link actually opens. A single shared count here
-        // previously lit the Pro dot off Office-log unread (and vice versa for management,
-        // who can see both), so clicking through often landed on "nothing here."
-        const [officeRes, proRes] = await Promise.all([
-          fetch('/api/messages/unread-count?audience=office'),
-          fetch('/api/messages/unread-count?audience=pro'),
-        ]);
+        // Office-audience only — the pro comms log has no dashboard surface right now
+        // (Communications shows as Coming Soon in Pro Mode; Sub-Coverage/Schedule-Change
+        // post directly and don't need an unread count).
+        const officeRes = await fetch('/api/messages/unread-count?audience=office');
         const officeCount = (await officeRes.json()).count || 0;
-        const proCount = (await proRes.json()).count || 0;
         if (officeCount > 0) {
           if (tileBadge) { tileBadge.textContent = `${officeCount} new`; tileBadge.style.display = 'inline-block'; }
           if (dot) dot.style.display = 'block';
@@ -2054,7 +2065,6 @@
           if (dot) dot.style.display = 'none';
           if (navBadge) navBadge.style.display = 'none';
         }
-        if (proDot) proDot.style.display = proCount > 0 ? 'block' : 'none';
       } catch (e) { /* non-critical */ }
     }
     window.addEventListener('pageshow', refreshCommsUnread);
@@ -2436,6 +2446,11 @@
 
     // Populate the pro dashboard widgets (runs for pros and for management who can toggle in).
     async function initProDashboard(me) {
+      // Personalize the Teaching Hub with the viewer's own staff colour (used elsewhere
+      // for their avatar) — only when they're actually the pro, not management browsing.
+      if (me && me.role === 'pro' && me.color) {
+        document.documentElement.style.setProperty('--my-color', me.color);
+      }
       try { renderContacts('pro-contacts-list'); } catch (e) { console.error('pro contacts', e); }
       try { qciInit(); } catch (e) { console.error('quick check-in', e); }
 
@@ -2520,7 +2535,7 @@
         if (!r.ok) throw new Error('failed');
         qciSignedInToday = true;
         const now = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
-        if (btn) { btn.textContent = "You're signed in ✓"; }
+        if (btn) { btn.textContent = "You're signed in ✓"; btn.classList.add('success-pop'); }
         const status = document.getElementById('qci-self-status');
         if (status) { status.textContent = `Signed in ${now}`; status.classList.add('on'); }
       } catch (e) {

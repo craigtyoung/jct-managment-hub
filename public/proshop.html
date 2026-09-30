@@ -651,22 +651,15 @@
       return d;
     }
 
-    // Desk (admin/manager/staff) gets the full page; pros get Class Rosters only — mirrors
-    // DESK_ROLES / ROSTER_ROLES in routes/apparel.js.
+    // Management-only (admin/manager/staff) — mirrors DESK_ROLES / ROSTER_ROLES in
+    // routes/apparel.js. Academy Shirts (Class Rosters tab included) is a front-desk job,
+    // not something pros reach directly.
     const apAllowedDesk = () => !!me && ['admin','manager','staff'].includes(me.role);
-    const apAllowedRoster = () => !!me && (apAllowedDesk() || me.role==='pro');
     async function apRefresh(){
-      if(!apAllowedRoster()) return;
+      if(!apAllowedDesk()) return;
       $('nav-merch').style.display='';
       if(!AP.hashHandled){ AP.hashHandled=true; if(/^#(merchandise|apparel|roster)$/.test(location.hash)) showSection('merchandise',$('nav-merch')); }   // deep link, once we know the user is allowed
       AP.canUnissue = !!me && ['admin','manager'].includes(me.role);
-      // Pro-only: Class Rosters is the whole page, other tabs stay hidden (no desk permission).
-      if(!apAllowedDesk()){
-        document.querySelectorAll('.ap-tab:not([data-tab="roster"])').forEach(b=>b.style.display='none');
-        await apRosterRefresh();
-        return;
-      }
-      document.querySelectorAll('.ap-tab').forEach(b=>b.style.display='');
       const [sum,reqs,byClass]=await Promise.all([apJson('/api/apparel/summary'),apJson('/api/apparel/requests'),apJson('/api/apparel/by-class')]);
       await apRosterRefresh();
       if(!sum) return;

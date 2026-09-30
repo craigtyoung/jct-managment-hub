@@ -11,8 +11,10 @@ const router = express.Router();
 
 // Who may see and use the tracker at all. Opened to front desk 2026-09-30 (was management-only).
 const DESK_ROLES = ['admin', 'manager', 'staff'];
-// Roster check-off (below) is also usable by pros directly — they're the ones at the class.
-const ROSTER_ROLES = [...DESK_ROLES, 'pro'];
+// Roster check-off (below) is management-only — pros briefly had direct access, but
+// Craig pulled that back 2026-09-30: Academy Shirts is a front-desk/management job, not
+// something pros do courtside.
+const ROSTER_ROLES = DESK_ROLES;
 
 router.use((req, res, next) => {
   req.actingStaffId = db.getEffectiveStaffId(req.session.staffId, req.session.viewAsStaffId);
