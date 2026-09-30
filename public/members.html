@@ -119,6 +119,7 @@
     .pin-set{background:rgba(22,163,74,0.08);color:var(--green);}
     .pin-empty{background:#f3f4f6;color:var(--text-3);}
     .action-btn{padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);font-family:var(--font);font-size:11px;font-weight:600;color:var(--text-2);cursor:pointer;}
+    .select-pill{padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--surface);font-family:var(--font);color:var(--text-2);cursor:pointer;}
     .action-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
     .empty-state{padding:40px;text-align:center;color:var(--text-3);font-size:13px;}
 
@@ -245,6 +246,7 @@
             <th>Phone</th>
             <th class="mgmt-only">PIN</th>
             <th>Type</th>
+            <th class="mgmt-only" id="th-staff-link" style="display:none">Staff Link</th>
             <th class="mgmt-only"></th>
           </tr>
         </thead>
@@ -344,10 +346,22 @@
       filterMembers();
     }
 
+    let staffOptions = [];
+    async function loadStaffOptions() {
+      try {
+        const r = await fetch('/api/members/staff-options');
+        if (r.ok) staffOptions = await r.json();
+      } catch (e) {}
+    }
+
     function filterMembers() {
       const q = (document.getElementById('search').value || '').toLowerCase().trim();
       const noPinOnly = document.getElementById('no-pin-filter').checked;
       const isMgmt = me && (me.role === 'admin' || me.role === 'manager');
+      const showLink = isMgmt && memberFilter === 'staff';
+      const thLink = document.getElementById('th-staff-link');
+      if (thLink) thLink.style.display = showLink ? '' : 'none';
+      if (showLink && !staffOptions.length) loadStaffOptions().then(filterMembers);
 
       let filtered = allMembers;
       if (memberFilter === 'staff') filtered = filtered.filter(isStaffRow);
@@ -374,9 +388,40 @@
           <td><span class="member-phone">${esc(m.phone || '—')}</span></td>
           ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
           <td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>
+          ${showLink ? `<td>${staffLinkCell(m)}</td>` : ''}
           ${isMgmt ? `<td><button class="action-btn" onclick="openEditModal(${m.id})">Edit / PIN</button> <button class="action-btn" style="color:var(--red);border-color:rgba(220,38,38,0.25)" onclick="removeMember(${m.id},'${esc((m.first_name + ' ' + m.last_name)).replace(/'/g, "\\'")}')">Remove</button></td>` : ''}
         </tr>
       `).join('');
+    }
+
+    // Manual override for whatever linkStaffMembers() couldn't safely guess —
+    // nicknames ("Angie" for Angelina), spelling variants ("Lily" vs "Lilly").
+    function staffLinkCell(m) {
+      if (m.staff_id) {
+        const s = staffOptions.find(x => x.id === m.staff_id);
+        return `<span style="font-size:12px;font-weight:600;color:var(--text-2)">${esc(s ? s.name : '#' + m.staff_id)}</span>
+          <button class="action-btn" style="margin-left:4px" onclick="unlinkStaff(${m.id})">Unlink</button>`;
+      }
+      const opts = staffOptions.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+      return `<select class="select-pill" style="font-size:12px;padding:4px 6px" onchange="linkStaffOne(${m.id},this.value)">
+        <option value="">— link to —</option>${opts}
+      </select>`;
+    }
+    async function linkStaffOne(memberId, staffId) {
+      if (!staffId) return;
+      const r = await fetch(`/api/members/${memberId}/link-staff`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: parseInt(staffId) }),
+      });
+      if (!r.ok) { alert('Could not link.'); return; }
+      await load();
+    }
+    async function unlinkStaff(memberId) {
+      if (!confirm('Unlink this staff account?')) return;
+      const r = await fetch(`/api/members/${memberId}/link-staff`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: null }),
+      });
+      if (!r.ok) { alert('Could not unlink.'); return; }
+      await load();
     }
 
     function openAddModal() {

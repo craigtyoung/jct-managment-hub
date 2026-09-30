@@ -4597,6 +4597,12 @@ function linkStaffMembers() {
       matches = activeStaff.filter(s => String(s.name || '').trim().toLowerCase() === fn);
       byFirstNameOnly = true;
     }
+    // Some staff share a first name and are disambiguated as "Daniel B", "Daniel G" —
+    // their whole staff.name IS "first name + last initial". Try that shape too.
+    if (!matches.length && ln) {
+      const withInitial = (fn + ' ' + ln.charAt(0)).toLowerCase();
+      matches = activeStaff.filter(s => String(s.name || '').trim().toLowerCase() === withInitial);
+    }
     if (matches.length === 1) { m.staff_id = matches[0].id; linked++; }
     else unmatched.push({
       member_id: m.id, name: `${m.first_name} ${m.last_name}`.trim(),
@@ -4610,6 +4616,19 @@ function linkStaffMembers() {
 function getMemberByStaffId(staffId) {
   const sid = parseInt(staffId);
   return (_data.members || []).find(m => m.active !== false && m.staff_id === sid) || null;
+}
+// Manual override for the cases linkStaffMembers() can't safely guess — nicknames
+// ("Angie" for Angelina), spelling variants ("Lily" vs "Lilly"), anything name-matching
+// would get wrong. staffId null clears an existing link.
+function setMemberStaffLink(memberId, staffId) {
+  const m = (_data.members || []).find(x => x.id === parseInt(memberId));
+  if (!m) return null;
+  if (staffId === null) { m.staff_id = null; save(); return m; }
+  const s = getStaffById(staffId);
+  if (!s) return null;
+  m.staff_id = s.id;
+  save();
+  return m;
 }
 // Kiosk Pro Check-In: resolve a PIN straight to a real, active staff account — only
 // for a member row that's both flagged as staff AND already linked (linkStaffMembers).
@@ -5714,6 +5733,7 @@ module.exports = {
   getMemberByClubNumber,
   linkStaffMembers,
   getMemberByStaffId,
+  setMemberStaffLink,
   getStaffIdByPin,
   getReconciliation,
   setReconciliationStatus,

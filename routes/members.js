@@ -79,6 +79,25 @@ router.post('/link-staff', (req, res) => {
   res.json({ ok: true, ...db.linkStaffMembers() });
 });
 
+// GET /api/members/staff-options — active staff for the manual "link to staff" picker
+router.get('/staff-options', (req, res) => {
+  if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
+  res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name })));
+});
+
+// POST /api/members/:id/link-staff — manual override for the name-match auto-linker:
+// nicknames, spelling variants, anything it couldn't safely guess. Body: { staff_id }
+// (null to unlink). Manager+.
+router.post('/:id/link-staff', (req, res) => {
+  if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
+  const raw = req.body ? req.body.staff_id : undefined;
+  const staffId = (raw === null || raw === '') ? null : parseInt(raw);
+  if (staffId !== null && !Number.isInteger(staffId)) return res.status(400).json({ error: 'staff_id required' });
+  const m = db.setMemberStaffLink(req.params.id, staffId);
+  if (!m) return res.status(404).json({ error: 'Member or staff not found' });
+  res.json({ ok: true });
+});
+
 // GET /api/members/checkins?date=YYYY-MM-DD — today's check-in log with names (manager+)
 router.get('/checkins', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
