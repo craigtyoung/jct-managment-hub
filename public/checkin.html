@@ -93,9 +93,10 @@
     .pro-fav-btn:disabled{opacity:.6;}
     .pro-fav-btn.done{background:#dcfce7;border-color:transparent;color:var(--green);}
     .pro-fav-btn.done::after{content:' ✓';}
-    .pro-empty{text-align:center;color:var(--text-3);font-size:13px;padding:10px 0 18px;}
-    .btn-court{width:100%;padding:16px;border:none;border-radius:14px;background:var(--navy);color:#fff;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;margin-bottom:10px;transition:background .15s,transform .1s;}
-    .btn-court:active{background:var(--blue);transform:scale(0.98);}
+    .pro-courts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:20px;}
+    .pro-court-btn{width:52px;height:52px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--font);font-size:17px;font-weight:800;cursor:pointer;transition:all .15s;}
+    .pro-court-btn:active{transform:scale(0.94);}
+    .pro-court-btn.on{background:var(--navy);border-color:var(--navy);color:#fff;}
 
     /* Footer */
     .ftr{padding:12px 24px;text-align:center;font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:0.02em;}
@@ -147,13 +148,20 @@
       </div>
 
       <!-- Pro screen — PIN-authenticated (db.getStaffIdByPin), no staff session needed.
-           Kiosk equivalent of the phone app's Quick Check-In. Auto-resets on idle since
-           this is a shared public terminal, not a pro's own device. -->
+           Self check-in happens automatically the moment the PIN resolves; everything
+           below is optional. Deliberately self-contained: nothing here ever links into
+           the staff hub itself (checkins.html etc.) — the kiosk is public, the hub has
+           privileged staff-only information, and a pro should never have a path from
+           one to the other. Auto-resets on idle since this is a shared public terminal. -->
       <div class="screen" id="screen-pro">
+        <div class="success-icon">✓</div>
         <div class="pro-greet" id="pro-greet">—</div>
-        <div class="screen-sub">Tap a favorite to check them in</div>
-        <div class="pro-favs" id="pro-favs"></div>
-        <button class="btn-court" onclick="goToCourtView()">Go to Court View</button>
+        <div id="pro-favs-section" style="display:none">
+          <div class="screen-sub" style="margin-bottom:10px">Check in a student?</div>
+          <div class="pro-favs" id="pro-favs"></div>
+        </div>
+        <div class="screen-sub" style="margin-bottom:10px">Which court are you on?</div>
+        <div class="pro-courts" id="pro-courts"></div>
         <button class="btn-back" onclick="resetToPin()">Done</button>
       </div>
 
@@ -288,17 +296,32 @@
       }
     }
 
-    // Pro screen
-    function showProScreen(data) {
-      document.getElementById('pro-greet').textContent = 'Hi ' + data.pro.name + '!';
+    // Pro screen — entering a valid pro PIN checks that pro in automatically (same
+    // idea as the phone app's "Sign Me In", just triggered by the PIN itself here).
+    // Checking in a student and naming a court are both optional add-ons after that.
+    let proCheckinId = null;
+    let proSelectedCourt = null;
+    async function showProScreen(data) {
+      document.getElementById('pro-greet').textContent = 'Hi ' + data.pro.name + '! You\'re checked in.';
       renderProFavs(data.favorites || []);
+      renderProCourts();
       showScreen('pro');
       armIdleTimer();
+      proCheckinId = null;
+      proSelectedCourt = null;
+      try {
+        const r = await fetch('/api/checkin/pro-quick', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, target: 'self' }),
+        });
+        if (r.ok) { const d = await r.json(); proCheckinId = d.id; loadTodayCount(); }
+      } catch (e) {}
     }
     function renderProFavs(favs) {
-      const wrap = document.getElementById('pro-favs');
-      if (!favs.length) { wrap.innerHTML = '<div class="pro-empty">No favorite students set up yet — add them from the Hub app.</div>'; return; }
-      wrap.innerHTML = favs.map(f =>
+      const section = document.getElementById('pro-favs-section');
+      if (!favs.length) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      document.getElementById('pro-favs').innerHTML = favs.map(f =>
         `<button class="pro-fav-btn" id="pro-fav-${f.member_id}" onclick="proCheckInFavorite(${f.member_id})">${esc(f.first_name)} ${esc((f.last_name || '').slice(0, 1))}.</button>`
       ).join('');
     }
@@ -319,7 +342,25 @@
         alert('Could not check that student in. Try again.');
       }
     }
-    function goToCourtView() { window.location.href = '/checkins.html?view=court'; }
+    function renderProCourts() {
+      document.getElementById('pro-courts').innerHTML = ['1', '2', '3', '4', '5', '6'].map(c =>
+        `<button class="pro-court-btn" id="pro-court-${c}" onclick="proSetCourt('${c}')">${c}</button>`
+      ).join('');
+    }
+    async function proSetCourt(court) {
+      armIdleTimer();
+      if (!proCheckinId) return;
+      document.querySelectorAll('.pro-court-btn').forEach(b => b.classList.remove('on'));
+      const btn = document.getElementById('pro-court-' + court);
+      if (btn) btn.classList.add('on');
+      try {
+        const r = await fetch('/api/checkin/pro-quick', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, target: 'court', checkin_id: proCheckinId, court }),
+        });
+        if (r.ok) proSelectedCourt = court;
+      } catch (e) {}
+    }
 
     // Shared public kiosk — a pro's session here must not linger for whoever walks
     // up next. Any idle stretch on the pro screen resets back to the home PIN screen.
@@ -414,6 +455,7 @@
     // Reset
     function resetToPin() {
       pin = ''; pendingMember = null; pendingMethod = 'pin';
+      proCheckinId = null; proSelectedCourt = null;
       clearTimeout(countdownTimer);
       clearTimeout(idleTimer);
       updateDots();

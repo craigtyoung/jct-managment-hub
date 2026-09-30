@@ -315,12 +315,23 @@ router.post('/quick', (req, res) => {
 // that the target is actually on that pro's favorites list server-side, never trusts
 // a client-supplied staff id.
 
-// POST /api/checkin/pro-quick — body: { pin, target: 'favorite', member_id }
+// POST /api/checkin/pro-quick — body varies by target:
+//   'self'     — the pro's own arrival (fires automatically once the PIN resolves)
+//   'favorite' — { member_id }, must already be on this pro's favorites list
+//   'court'    — { checkin_id, court }, names which court an already-created
+//                check-in (self or favorite) is on — the kiosk equivalent of the
+//                staff hub's court picker, minus the staff hub.
 router.post('/pro-quick', (req, res) => {
   if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many requests' });
-  const { pin, target, member_id } = req.body || {};
+  const { pin, target, member_id, checkin_id, court } = req.body || {};
   const staffId = db.getStaffIdByPin(String(pin || '').trim());
   if (!staffId) return res.status(404).json({ error: 'No pro found with that PIN' });
+  const staff = db.getStaffById(staffId);
+  if (target === 'self') {
+    const { id } = db.addGuestCheckinLog({ guestName: staff.name, hostMemberId: null, court: null });
+    try { sse.broadcast('checkin-update'); } catch (e) {}
+    return res.json({ ok: true, id });
+  }
   if (target === 'favorite') {
     const mid = parseInt(member_id);
     const favorites = db.getFavoritesForPro(staffId);
@@ -331,7 +342,12 @@ router.post('/pro-quick', (req, res) => {
     try { sse.broadcast('checkin-update'); } catch (e) {}
     return res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name });
   }
-  res.status(400).json({ error: "target must be 'favorite'" });
+  if (target === 'court') {
+    if (!db.setCheckinCourt(checkin_id, court)) return res.status(400).json({ error: 'Court must be 1-6' });
+    try { sse.broadcast('checkin-update'); } catch (e) {}
+    return res.json({ ok: true });
+  }
+  res.status(400).json({ error: "target must be 'self', 'favorite', or 'court'" });
 });
 
 // PATCH /:id/note — free-text note on the check-in itself (e.g. reconciling
