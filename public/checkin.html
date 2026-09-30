@@ -144,7 +144,6 @@
         </div>
         <button class="btn-guest" onclick="showGuestScreen()">I'm a guest</button>
         <div class="alt-link"><button onclick="showNameSearch()">Search by last name instead</button></div>
-        <div class="alt-link"><button onclick="showProPin()">🎾 Pro Check-In</button></div>
       </div>
 
       <!-- Pro screen — PIN-authenticated (db.getStaffIdByPin), no staff session needed.
@@ -208,7 +207,6 @@
     let pendingMember = null;
     let pendingMethod = 'pin';
     let countdownTimer = null;
-    let pinMode = 'member'; // 'member' | 'pro'
     let idleTimer = null;
 
     // Clock
@@ -248,14 +246,6 @@
       clearTimeout(countdownTimer);
       countdownTimer = setTimeout(resetToPin, 8000);
     }
-    function showProPin() {
-      pinMode = 'pro';
-      pin = ''; updateDots();
-      document.getElementById('pin-error').innerHTML = '&nbsp;';
-      document.getElementById('pin-title').textContent = 'Pro Check-In';
-      document.getElementById('pin-sub').textContent = 'Enter your PIN';
-      showScreen('pin');
-    }
 
     // PIN logic
     function updateDots() {
@@ -278,7 +268,6 @@
     }
     async function submitPin() {
       if (pin.length < 4) { document.getElementById('pin-error').textContent = 'Enter all 4 digits'; return; }
-      if (pinMode === 'pro') return submitProPin();
       try {
         const r = await fetch('/api/checkin/lookup?pin=' + encodeURIComponent(pin));
         if (r.status === 404) {
@@ -287,25 +276,12 @@
         }
         if (!r.ok) { document.getElementById('pin-error').textContent = 'Something went wrong — try again'; pin = ''; updateDots(); return; }
         const data = await r.json();
+        // Same PIN, two possible answers — a pro's PIN resolves to their own
+        // favorites screen instead of the usual member confirm screen.
+        if (data.pro) { showProScreen(data); return; }
         pendingMember = data.member;
         pendingMethod = 'pin';
         showConfirm(data.already_checked_in);
-      } catch (e) {
-        document.getElementById('pin-error').textContent = 'Connection error — please try again';
-        pin = ''; updateDots();
-      }
-    }
-
-    async function submitProPin() {
-      try {
-        const r = await fetch('/api/checkin/pro-lookup?pin=' + encodeURIComponent(pin));
-        if (r.status === 404) {
-          document.getElementById('pin-error').textContent = 'No pro found with that PIN — try again or see the front desk';
-          pin = ''; updateDots(); return;
-        }
-        if (!r.ok) { document.getElementById('pin-error').textContent = 'Something went wrong — try again'; pin = ''; updateDots(); return; }
-        const data = await r.json();
-        showProScreen(data);
       } catch (e) {
         document.getElementById('pin-error').textContent = 'Connection error — please try again';
         pin = ''; updateDots();
@@ -437,13 +413,11 @@
 
     // Reset
     function resetToPin() {
-      pin = ''; pendingMember = null; pendingMethod = 'pin'; pinMode = 'member';
+      pin = ''; pendingMember = null; pendingMethod = 'pin';
       clearTimeout(countdownTimer);
       clearTimeout(idleTimer);
       updateDots();
       document.getElementById('pin-error').innerHTML = '&nbsp;';
-      document.getElementById('pin-title').textContent = 'Welcome to JCT';
-      document.getElementById('pin-sub').textContent = 'Enter your 4-digit PIN to check in';
       document.getElementById('name-input').value = '';
       document.getElementById('name-results').innerHTML = '';
       showScreen('pin');

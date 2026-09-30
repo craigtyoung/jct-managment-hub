@@ -25,11 +25,20 @@ function kioskMember(m) {
 }
 
 // GET /api/checkin/lookup?pin=XXXX
+// A pro's PIN is the same PIN as their member row (see db.getStaffIdByPin), so this
+// tries pro resolution first — the kiosk doesn't need a separate "I'm a pro" step,
+// the PIN itself carries the answer. Falls through to a normal member lookup.
 router.get('/lookup', (req, res) => {
   if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many lookups — wait a moment' });
   const { pin } = req.query;
   if (!pin || String(pin).length < 2) return res.status(400).json({ error: 'PIN required' });
-  const m = db.getMemberByPin(String(pin).trim());
+  const trimmed = String(pin).trim();
+  const staffId = db.getStaffIdByPin(trimmed);
+  if (staffId) {
+    const staff = db.getStaffById(staffId);
+    return res.json({ pro: { id: staff.id, name: staff.name, color: staff.color }, favorites: db.getFavoritesForPro(staffId) });
+  }
+  const m = db.getMemberByPin(trimmed);
   if (!m) return res.status(404).json({ error: 'No member found with that PIN' });
   const existing = db.getMemberCheckinToday(m.id);
   res.json({ member: kioskMember(m), already_checked_in: !!existing });
@@ -301,21 +310,10 @@ router.post('/quick', (req, res) => {
 });
 
 // ── Pro Check-In (kiosk, PIN-authenticated — no staff session) ─────────────────────
-// Same idea as the phone app's /favorites + /quick above, but the kiosk has no
-// logged-in session to trust, so a pro's own PIN (the same one used for the regular
-// member kiosk — see db.getStaffIdByPin) stands in for auth. Every call re-resolves
-// the staff id from the PIN itself; nothing here ever trusts a client-supplied id.
-
-// GET /api/checkin/pro-lookup?pin=XXXX
-router.get('/pro-lookup', (req, res) => {
-  if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many lookups — wait a moment' });
-  const { pin } = req.query;
-  if (!pin || String(pin).length < 2) return res.status(400).json({ error: 'PIN required' });
-  const staffId = db.getStaffIdByPin(String(pin).trim());
-  if (!staffId) return res.status(404).json({ error: 'No pro found with that PIN' });
-  const staff = db.getStaffById(staffId);
-  res.json({ pro: { id: staff.id, name: staff.name, color: staff.color }, favorites: db.getFavoritesForPro(staffId) });
-});
+// Pro resolution itself happens in /lookup above (same PIN entry as everyone else).
+// This is just the action once a pro is on their own screen — re-verifies the PIN and
+// that the target is actually on that pro's favorites list server-side, never trusts
+// a client-supplied staff id.
 
 // POST /api/checkin/pro-quick — body: { pin, target: 'favorite', member_id }
 router.post('/pro-quick', (req, res) => {
