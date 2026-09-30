@@ -225,6 +225,14 @@
     .cal-pros { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
     .cal-pchip { font-size:9px; font-weight:700; color:#fff; padding:1px 5px; border-radius:100px; }
     .cal-del { position:absolute; top:2px; right:3px; background:rgba(255,255,255,0.65); border:none; color:#dc2626; cursor:pointer; font-size:10px; line-height:1; border-radius:4px; padding:1px 2px; }
+    /* Fitness — one pro's own training, not a lesson holding the court. A small icon
+       badge instead of a full spanning block, so it doesn't read as "court taken" the
+       way a real class does and doesn't crowd out other pros on a shared court. */
+    .cal-fit { position:absolute; width:26px; height:26px; margin-top:2px; border-radius:50%;
+      background:#fff7ed; border:1.5px solid #f59e0b; display:flex; align-items:center; justify-content:center;
+      font-size:13px; box-shadow:0 1px 3px rgba(12,23,56,0.15); z-index:2; }
+    .cal-fit.movable { cursor:grab; } .cal-fit.movable:active { cursor:grabbing; }
+    .cal-fit .cal-del { top:-7px; right:-7px; background:#fff; }
     .cal-legend { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--text3); }
     .cal-legend .lg { display:inline-flex; align-items:center; gap:5px; }
     .cal-legend .sw { width:11px; height:11px; border-radius:3px; }
@@ -506,9 +514,13 @@
           const cells=list.filter(s=>key(s)===t.start+'-'+t.end && (s.courts||[]).includes(c));
           html+='<td>'+cells.map(s=>{
             const ids=(s.court_pros&&s.court_pros[c])||[];
+            const del = canEdit ? `<button onclick="removeSlot(${s.id})" title="Remove this slot" style="float:right;background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;line-height:1;padding:0 0 0 4px">🗑</button>` : '';
+            if(isFitnessSlot(s)){
+              const who=ids.map(id=>{const p=proById(id);return p?p.name:'';}).filter(Boolean).join(', ')||s.coaches||'';
+              return `<div class="ctcell${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''} style="display:flex;align-items:center;gap:4px" title="Fitness${who?' — '+esc(who):''}">${del}🏋️<span style="font-size:10px;color:var(--text3)">Fitness</span></div>`;
+            }
             const chips=ids.map(id=>{const p=proById(id);return p?`<span class="ctp" style="background:${p.color||'#2c5c9c'}" ${canEdit?`draggable="true" ondragstart="dragPro(event,${id})" ondragend="dragEnd(event)"`:''}>${esc(String(p.name).split(' ')[0])}${canEdit?`<button onclick="unassignFromCourt(${s.id},'${c}',${id})" title="Remove">✕</button>`:''}</span>`:''}).join('') || (s.coaches?`<span class="ctp" style="background:#64748b">${esc(s.coaches)}</span>`:'<span class="ctnone">—</span>');
             const prog = (s.type==='private'?'🎾 ':'')+esc(s.program);
-            const del = canEdit ? `<button onclick="removeSlot(${s.id})" title="Remove this slot" style="float:right;background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;line-height:1;padding:0 0 0 4px">🗑</button>` : '';
             return `<div class="ctcell cat-${catAbbr(s.category)}${canEdit?' dz':''}" data-slot="${s.id}" data-court="${c}" ${canEdit?'ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"':''}><div class="ctprog">${del}${prog}</div><div class="ctpros">${chips}</div></div>`;
           }).join('')+'</td>';
         }
@@ -524,6 +536,10 @@
     const CAL_START=360, CAL_END=1380, CAL_STEP=30, CAL_ROWH=42;
     const CAL_ROWS=(CAL_END-CAL_START)/CAL_STEP;
     function hmToMin(t){ const [h,m]=String(t).split(':').map(Number); return h*60+(m||0); }
+    // "Fitness" is one pro's own training on a court, not a lesson — render as a small
+    // icon instead of a full block so it doesn't visually claim the court/time the way a
+    // real class does (this was blocking other pros from reading the court as available).
+    const isFitnessSlot = s => /fitness/i.test(s.program || '');
     function minToHM(m){ m=Math.max(0,Math.round(m)); return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
     function renderCalendar(){
       const board=document.getElementById('board');
@@ -564,6 +580,14 @@
           const prochips=ids.map(id=>{const p=proById(id);return p?`<span class="cal-pchip" style="background:${p.color||'#2c5c9c'}">${esc(String(p.name).split(' ')[0])}</span>`:''}).join('');
           const movable=canEdit && (s.courts||[]).length===1;
           const del=canEdit?`<button class="cal-del" onclick="event.stopPropagation();removeSlot(${s.id})" title="Remove">🗑</button>`:'';
+          if(isFitnessSlot(s)){
+            const who=ids.map(id=>{const p=proById(id);return p?p.name:'';}).filter(Boolean).join(', ')||s.coaches||'';
+            blocks+=`<div class="cal-fit${movable?' movable':''}" style="top:${top}px;left:calc(${left}% + 1px)"`
+              +(movable?` draggable="true" ondragstart="calBlockDrag(event,${s.id})" ondragend="calBlockDragEnd(event)"`:'')
+              +` ondragover="calBlockOver(event)" ondragleave="calBlockLeave(event)" ondrop="calBlockDrop(event,${s.id},'${c}')" title="Fitness${who?' — '+esc(who):''} · ${esc(s.time_label||'')}${movable?' — drag to move':''}">`
+              +`${del}🏋️</div>`;
+            return;
+          }
           blocks+=`<div class="cal-block ${blockClass(s)}${movable?' movable':''}" style="top:${top}px;height:${hgt}px;left:calc(${left}% + 1px);width:calc(${w}% - 3px)"`
             +(movable?` draggable="true" ondragstart="calBlockDrag(event,${s.id})" ondragend="calBlockDragEnd(event)"`:'')
             +` ondragover="calBlockOver(event)" ondragleave="calBlockLeave(event)" ondrop="calBlockDrop(event,${s.id},'${c}')" title="${esc(s.program)} · ${esc(s.time_label||'')}${movable?' — drag to move':''}">`

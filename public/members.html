@@ -233,6 +233,7 @@
         <input type="checkbox" id="no-pin-filter" onchange="filterMembers()"> No PIN only
       </label>
       <button class="btn btn-ghost mgmt-only" onclick="backfillPins()">Auto-fill missing PINs</button>
+      <button class="btn btn-ghost mgmt-only" onclick="linkStaffMembers()">Link staff accounts</button>
     </div>
 
     <div class="card">
@@ -415,6 +416,17 @@
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { alert(d.error || 'Could not set PINs.'); return; }
       alert(`Set PINs for ${d.updated} member${d.updated === 1 ? '' : 's'}.` + (d.skipped && d.skipped.length ? ` ${d.skipped.length} skipped — no usable member number.` : ''));
+      await load();
+    }
+
+    async function linkStaffMembers() {
+      if (!confirm('Match each Staff row to their real staff account by name? Rows already linked are left alone.')) return;
+      const r = await fetch('/api/members/link-staff', { method: 'POST' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { alert(d.error || 'Could not link staff.'); return; }
+      let msg = `Linked ${d.linked} staff member${d.linked === 1 ? '' : 's'}.`;
+      if (d.unmatched && d.unmatched.length) msg += `\n\n${d.unmatched.length} not linked automatically:\n` + d.unmatched.map(u => `• ${u.name} — ${u.reason}`).join('\n');
+      alert(msg);
       await load();
     }
 

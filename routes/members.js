@@ -71,6 +71,14 @@ router.post('/pins/backfill', (req, res) => {
   res.json({ ok: true, updated, skipped });
 });
 
+// POST /api/members/link-staff — match staff-as-member rows (club # starting "S") to
+// their real staff account by exact name, once, so kiosk PIN check-in can later resolve
+// "who is this pro" (manager+). Groundwork for the kiosk Pro Check-In flow.
+router.post('/link-staff', (req, res) => {
+  if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
+  res.json({ ok: true, ...db.linkStaffMembers() });
+});
+
 // GET /api/members/checkins?date=YYYY-MM-DD — today's check-in log with names (manager+)
 router.get('/checkins', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
