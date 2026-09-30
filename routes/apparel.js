@@ -38,6 +38,8 @@ const guard = (test, msg) => (req, res, next) => test(req.actingStaffId) ? next(
 router.get('/roster', guard(isRoster, 'Not available for your role'), (req, res) => res.json(db.getApparelRoster()));
 router.post('/roster/:id/size', guard(isRoster, 'Not available for your role'),
   (req, res) => reply(res, db.setApparelRosterSize(req.params.id, (req.body || {}).size)));
+router.post('/roster/:id/colour', guard(isRoster, 'Not available for your role'),
+  (req, res) => reply(res, db.setApparelRosterColour(req.params.id, (req.body || {}).colour)));
 router.post('/roster/:id/issue', guard(isRoster, 'Not available for your role'),
   (req, res) => reply(res, db.issueApparelRosterShirt(req.params.id, req.actingStaffId)));
 router.post('/roster/:id/unissue', guard(isMgmt, 'Management only'),

@@ -691,38 +691,46 @@
       AP.roster = d;
       apRenderRoster();
     }
+    const AP_COLOUR_LABEL = { navy:'Navy', platinum:'Platinum' };
     function apRenderRoster(){
       const d = AP.roster; if(!d) return;
-      const stockLine = (d.navy_stock||[]).map(s=>`${esc(s.size)}: ${s.available}`).join(' · ') || 'no navy stock on hand';
-      $('ap-roster-summary').innerHTML = `<div class="ap-roster-total">${d.issued} / ${d.total} shirts issued</div><div class="ap-legend">Navy on hand — ${stockLine}. Kids before staff if a size runs low.</div>`;
+      const stockLine = (d.stock||[]).map(c=>`${esc(AP_COLOUR_LABEL[c.colour]||c.label)}: `+c.sizes.map(s=>`${esc(s.size)} ${s.available}`).join(', ')).join(' · ') || 'no stock on hand';
+      $('ap-roster-summary').innerHTML = `<div class="ap-roster-total">${d.issued} / ${d.total} shirts given</div><div class="ap-legend">On hand — ${stockLine}. Kids before staff if a size runs low — swap colour per row if you need to.</div>`;
       $('ap-roster-groups').innerHTML = (d.programs||[]).map(p=>`
         <div class="card ap-roster-group">
           <div class="card-title">${esc(p.program)} <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--text-3)">${p.issued} / ${p.total}</span></div>
           <div class="tbl-wrap"><table class="log ap-roster-tbl">
-            <thead><tr><th>Student</th><th>Size</th><th></th></tr></thead>
+            <thead><tr><th>${p.program==='Staff'?'Staff':'Student'}</th><th>Size</th><th>Colour</th><th></th></tr></thead>
             <tbody>${p.students.map(apRosterRow).join('')}</tbody>
           </table></div>
         </div>`).join('') || '<div class="empty">No rosters loaded.</div>';
     }
     function apRosterRow(s){
+      const colourOpts = ['navy','platinum'].map(c=>`<option value="${c}" ${s.colour===c?'selected':''}>${AP_COLOUR_LABEL[c]}</option>`).join('');
       if(s.issued){
-        return `<tr class="ap-roster-done"><td>${esc(s.name)}</td><td>${esc(s.size)}</td>
-          <td><span class="ap-pill green">Issued</span>${AP.canUnissue?` <button class="ap-btn" onclick="apRosterUnissue(${s.id})">Undo</button>`:''}</td></tr>`;
+        return `<tr class="ap-roster-done"><td>${esc(s.name)}</td><td>${esc(s.size)}</td><td>${esc(AP_COLOUR_LABEL[s.colour]||s.colour)}</td>
+          <td><span class="ap-pill green">Given</span>${AP.canUnissue?` <button class="ap-btn" onclick="apRosterUnissue(${s.id})">Undo</button>`:''}</td></tr>`;
       }
       const sizeOpts = ['','XS','S','M','L','XL','2XL','3XL'].map(z=>`<option value="${z}" ${s.size===z?'selected':''}>${z||'— size —'}</option>`).join('');
       return `<tr><td>${esc(s.name)}</td>
         <td><select onchange="apRosterSize(${s.id},this.value)">${sizeOpts}</select></td>
-        <td><button class="ap-btn pri" ${s.size?'':'disabled'} onclick="apRosterIssue(${s.id})">Issue</button></td></tr>`;
+        <td><select onchange="apRosterColour(${s.id},this.value)">${colourOpts}</select></td>
+        <td><button class="ap-btn pri" ${s.size?'':'disabled'} onclick="apRosterIssue(${s.id})">Given</button></td></tr>`;
     }
     async function apRosterSize(id,size){
       const d = await apSend('POST',`/api/apparel/roster/${id}/size`,{size});
       if(!d) return;
       await apRosterRefresh();
     }
+    async function apRosterColour(id,colour){
+      const d = await apSend('POST',`/api/apparel/roster/${id}/colour`,{colour});
+      if(!d) return;
+      await apRosterRefresh();
+    }
     async function apRosterIssue(id){
       const d = await apSend('POST',`/api/apparel/roster/${id}/issue`,{});
       if(!d) return;
-      toast('Issued — stock updated');
+      toast('Given — stock updated');
       await apRosterRefresh();
       if(apAllowedDesk()) apRefresh();   // keep the desk stock grid + history in sync too
     }

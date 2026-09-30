@@ -450,7 +450,7 @@ if (!_data._migrations.apparelRosterSeed2026v1) {
   for (const grp of APPAREL_ROSTER_SEED) {
     for (const name of grp.names) {
       _data._seq.apparel_roster = (_data._seq.apparel_roster || 0) + 1;
-      _data.apparel_roster.push({ id: _data._seq.apparel_roster, program: grp.program, name, size: null, issued: false, issued_by: null, issued_at: null, created_at: at });
+      _data.apparel_roster.push({ id: _data._seq.apparel_roster, program: grp.program, name, staff_id: null, size: null, colour: 'navy', issued: false, issued_by: null, issued_at: null, created_at: at });
     }
   }
   _data._migrations.apparelRosterSeed2026v1 = true;
@@ -3406,43 +3406,76 @@ function getApparelPros() {
 // so Overview stock counts and History stay accurate either way — this just skips the
 // request→approve→issue chain, which is the point (built for a pro checking off a class list).
 function _apparelRosterRow(id) { return (_data.apparel_roster || []).find(r => r.id === parseInt(id)); }
+
+// Staff (pro + manager) get their own roster group, kept live against the actual staff
+// list rather than seeded once like the fixed class rosters — new hires pick up a row
+// automatically, on their next getApparelRoster() call. Existing rows (including any
+// already given) are left alone; this only ever adds.
+function _syncApparelStaffRoster() {
+  const have = new Set((_data.apparel_roster || []).filter(r => r.program === 'Staff').map(r => r.staff_id));
+  const eligible = (_data.staff || []).filter(s => ['pro', 'manager'].includes(s.role));
+  let changed = false;
+  const at = new Date().toISOString();
+  for (const s of eligible) {
+    if (have.has(s.id)) continue;
+    _data._seq.apparel_roster = (_data._seq.apparel_roster || 0) + 1;
+    _data.apparel_roster.push({ id: _data._seq.apparel_roster, program: 'Staff', staff_id: s.id, name: s.name, size: null, colour: 'platinum', issued: false, issued_by: null, issued_at: null, created_at: at });
+    changed = true;
+  }
+  if (changed) save();
+}
+
 function getApparelRoster() {
+  _syncApparelStaffRoster();
   const onHand = _apparelOnHand();
   const byProgram = {};
   for (const r of _data.apparel_roster || []) {
     (byProgram[r.program] = byProgram[r.program] || []).push({
-      id: r.id, name: r.name, size: r.size, issued: r.issued,
+      id: r.id, name: r.name, size: r.size, colour: r.colour || 'navy', issued: r.issued,
       issued_by_name: _staffName(r.issued_by), issued_at: r.issued_at,
     });
   }
-  const programs = Object.keys(byProgram).sort().map(program => {
+  // Kids before staff: class groups first (alphabetical), Staff always last.
+  const programs = Object.keys(byProgram).sort((a, b) => (a === 'Staff') - (b === 'Staff') || a.localeCompare(b)).map(program => {
     const students = byProgram[program].sort((a, b) => a.name.localeCompare(b.name));
     return { program, students, total: students.length, issued: students.filter(s => s.issued).length };
   });
   const all = _data.apparel_roster || [];
-  return {
-    programs, total: all.length, issued: all.filter(r => r.issued).length,
-    navy_stock: APPAREL_SIZES.map(size => ({ size, available: onHand[_apKey('navy', size)] || 0 })).filter(x => x.available > 0),
-  };
+  const stock = APPAREL_COLOURS.map(c => ({
+    colour: c.key, label: c.label,
+    sizes: APPAREL_SIZES.map(size => ({ size, available: onHand[_apKey(c.key, size)] || 0 })).filter(x => x.available > 0),
+  })).filter(c => c.sizes.length);
+  return { programs, total: all.length, issued: all.filter(r => r.issued).length, stock };
 }
 function setApparelRosterSize(id, size) {
   const r = _apparelRosterRow(id);
   if (!r) return { error: 'Not found', status: 404 };
-  if (r.issued) return { error: 'Already issued — reverse it first to change size', status: 409 };
+  if (r.issued) return { error: 'Already given — undo it first to change size', status: 409 };
   size = String(size || '').toUpperCase();
   if (size && !APPAREL_SIZES.includes(size)) return { error: 'Pick a valid size' };
   r.size = size || null;
   save();
   return { ok: true };
 }
+function setApparelRosterColour(id, colour) {
+  const r = _apparelRosterRow(id);
+  if (!r) return { error: 'Not found', status: 404 };
+  if (r.issued) return { error: 'Already given — undo it first to change colour', status: 409 };
+  colour = String(colour || '').toLowerCase();
+  if (!APPAREL_COLOURS.some(c => c.key === colour)) return { error: 'Pick a valid colour' };
+  r.colour = colour;
+  save();
+  return { ok: true };
+}
 function issueApparelRosterShirt(id, staffId) {
   const r = _apparelRosterRow(id);
   if (!r) return { error: 'Not found', status: 404 };
-  if (r.issued) return { error: 'Already issued', status: 409 };
+  if (r.issued) return { error: 'Already given', status: 409 };
   if (!r.size) return { error: 'Pick a size first' };
-  const onHand = _apparelOnHand()[_apKey('navy', r.size)] || 0;
-  if (onHand < 1) return { error: `No ${r.size} navy shirts on hand`, status: 409 };
-  _apparelPostMove('issued', 'navy', r.size, -1, null, `Roster: ${r.name} (${r.program})`, staffId);
+  const colour = r.colour || 'navy';
+  const onHand = _apparelOnHand()[_apKey(colour, r.size)] || 0;
+  if (onHand < 1) return { error: `No ${r.size} ${colour} shirts on hand`, status: 409 };
+  _apparelPostMove('issued', colour, r.size, -1, null, `${r.program === 'Staff' ? 'Staff' : 'Roster'}: ${r.name} (${r.program})`, staffId);
   r.issued = true; r.issued_by = staffId; r.issued_at = now();
   save();
   return { ok: true };
@@ -3450,8 +3483,8 @@ function issueApparelRosterShirt(id, staffId) {
 function unissueApparelRosterShirt(id, staffId) {
   const r = _apparelRosterRow(id);
   if (!r) return { error: 'Not found', status: 404 };
-  if (!r.issued) return { error: 'Not issued', status: 409 };
-  _apparelPostMove('return', 'navy', r.size, 1, null, `Roster reversal: ${r.name} (${r.program})`, staffId);
+  if (!r.issued) return { error: 'Not given', status: 409 };
+  _apparelPostMove('return', r.colour || 'navy', r.size, 1, null, `Undo: ${r.name} (${r.program})`, staffId);
   r.issued = false; r.issued_by = null; r.issued_at = null;
   save();
   return { ok: true };
@@ -5502,7 +5535,7 @@ module.exports = {
   getApparelRequests, addApparelRequest, approveApparelRequest, declineApparelRequest,
   cancelApparelRequest, issueApparelRequest, reverseApparelRequest,
   addApparelStock, getApparelMoves, getApparelByClass, getApparelPros,
-  getApparelRoster, setApparelRosterSize, issueApparelRosterShirt, unissueApparelRosterShirt,
+  getApparelRoster, setApparelRosterSize, setApparelRosterColour, issueApparelRosterShirt, unissueApparelRosterShirt,
   getOfficeMailSetup, regenerateOfficeMailSecret, updateOfficeMailSettings, checkOfficeMailSecret,
   recordOfficeMailSync, getOfficeMailStatus,
   getKnowledgeDocs,
