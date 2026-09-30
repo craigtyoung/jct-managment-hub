@@ -16,7 +16,7 @@
   var LINKS = [
     { href: '/pro-schedule-view.html', label: 'Pro Schedule', proOrMgmt: true,
       svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>' },
-    { href: '/ideas.html', label: 'Idea Board',
+    { href: '/ideas.html', label: 'Idea Board', officeOnly: true,
       svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>' },
     { href: '/staff-management.html', label: 'Staff Management', mgmt: true,
       svg: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="2" width="6" height="4" rx="1"/><circle cx="12" cy="11" r="2"/><path d="M8.5 17.5c0-1.9 1.6-3.5 3.5-3.5s3.5 1.6 3.5 3.5"/></svg>' },
@@ -33,6 +33,7 @@
     var items = LINKS
       .filter(function (l) { return !l.mgmt || isMgmt; })
       .filter(function (l) { return !l.proOrMgmt || isMgmt || isPro; })
+      .filter(function (l) { return !l.officeOnly || !isPro; })
       .map(function (l) {
         var href = l.href;
         var active = (norm(href) === here) ? ' active' : '';

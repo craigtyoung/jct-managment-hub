@@ -705,7 +705,7 @@
        (Bubble Monitoring, the redundant "Office Schedule" duplicate of Lesson
        Schedule, Programs, Facility, Pro Shop). Hidden only in pro-mode, so
        management browsing office-side still sees everything. */
-    body.pro-mode .pro-hide { display: none !important; }
+    body.pro-mode .pro-hide, body.pro-mode .jct-bell { display: none !important; }
     /* Member List: still visible to pros (so it isn't a mystery gap), but
        greyed out and non-functional until it's actually built for Pro Mode. */
     body.pro-mode .pro-disabled { opacity: 0.4; pointer-events: none; cursor: default; }
@@ -782,6 +782,20 @@
     .qci-search-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
     .qci-search-row:hover { background: var(--canvas); }
     .qci-star-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+
+    /* ── Court + time sheet (favorite check-in requires a court) ── */
+    .qci-court-backdrop { position: fixed; inset: 0; z-index: 400; background: rgba(12,23,56,0.4); opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: flex-end; justify-content: center; }
+    .qci-court-backdrop.open { opacity: 1; pointer-events: auto; }
+    .qci-court-sheet { width: 100%; max-width: 480px; background: var(--surface); border-radius: 18px 18px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateY(100%); transition: transform 0.25s ease; }
+    .qci-court-backdrop.open .qci-court-sheet { transform: translateY(0); }
+    .qci-court-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+    .qci-court-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+    .qci-court-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .qci-court-btn { padding: 12px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--canvas); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .qci-court-btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .qci-court-time-input { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border); font-family: inherit; font-size: 14px; color: var(--text); background: var(--canvas); margin-bottom: 16px; }
+    .qci-court-confirm { width: 100%; padding: 13px 0; border-radius: 10px; border: none; background: var(--blue); color: #fff; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .qci-court-confirm:disabled { background: var(--border); color: var(--text-3); cursor: default; }
 
     /* ── AI ask-bar ── */
     .ask-bar {
@@ -1260,7 +1274,7 @@
     </div>
 
     <!-- ── Assistant (opens the AI chat) ──────── -->
-    <button type="button" class="assistant-slim" onclick="window.jctChat && window.jctChat.open()">
+    <button type="button" class="assistant-slim pro-hide" onclick="window.jctChat && window.jctChat.open()">
       <span class="as-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
       <strong>Ask the Assistant</strong>
       <span class="as-hint">— who's on, latest notes, anything</span>
@@ -1640,12 +1654,6 @@
         <div id="pro-memo-list"></div>
       </div>
 
-      <div class="section-title" style="margin-top:0">
-        <div class="section-live-dot"></div>
-        Your Teaching Hub
-        <span class="pro-pill" style="margin-left:auto">🎾 Pro Team</span>
-      </div>
-
       <!-- ── Quick Check-In — one tap to sign in, one tap per favorite student ── -->
       <div class="qci-card court-lines" id="qci-card">
         <div class="qci-head">
@@ -1657,8 +1665,21 @@
         <div class="qci-favs" id="qci-favs"><span class="qci-empty">Loading…</span></div>
         <button class="qci-addfav-btn" onclick="qciToggleAddForm()">+ Add a favorite student</button>
         <div class="qci-add-form" id="qci-add-form">
-          <input type="text" class="qci-search-input" id="qci-search-input" placeholder="Search by last name…" oninput="qciSearch(this.value)" autocomplete="off">
+          <input type="search" class="qci-search-input" id="qci-search-input" name="q" placeholder="Search students…" oninput="qciSearch(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           <div class="qci-search-results" id="qci-search-results"></div>
+        </div>
+      </div>
+
+      <!-- ── Court + time, required before a favorite check-in completes — feeds
+           straight into Court View as the pro's lesson (lesson_pro/lesson_min). ── -->
+      <div class="qci-court-backdrop" id="qci-court-backdrop" onclick="if(event.target===this)qciCloseCourt()">
+        <div class="qci-court-sheet" role="dialog" aria-label="Court and time">
+          <div class="qci-court-title">Check in <span id="qci-court-name"></span></div>
+          <div class="qci-court-label">Court</div>
+          <div class="qci-court-grid" id="qci-court-grid"></div>
+          <div class="qci-court-label">Time</div>
+          <input type="time" class="qci-court-time-input" id="qci-court-time">
+          <button type="button" class="qci-court-confirm" id="qci-court-confirm" disabled onclick="qciConfirmFavorite()">Check In</button>
         </div>
       </div>
 
@@ -1958,7 +1979,8 @@
       const commsHref = pro ? '/comms.html?audience=pro' : '/comms.html';
       document.querySelectorAll('.sidenav a[href^="/comms.html"]:not(.nav-fixed), .mnav a[href^="/comms.html"]:not(.nav-fixed)').forEach(a => a.setAttribute('href', commsHref));
       // In pro mode, the nav "Schedule" link goes to the pro class scheduler, not the office shift grid.
-      const schedHref = pro ? '/pro-schedule.html' : '/schedule.html';
+      // Real pros get the lean read-only view; only management previewing Pro Mode gets the full editor.
+      const schedHref = pro ? (window.__hubRole === 'pro' ? '/pro-schedule-view.html' : '/pro-schedule.html') : '/schedule.html';
       document.querySelectorAll('.sidenav a[href^="/schedule.html"]:not(.nav-fixed), .mnav a[href^="/schedule.html"]:not(.nav-fixed)').forEach(a => a.setAttribute('href', schedHref));
       // In pro mode, the nav "Timesheets" link goes to the pro timesheet, not the office one.
       const tsHref = pro ? '/pro-timesheet.html' : '/timesheet.html';
@@ -1970,7 +1992,7 @@
       const sub = document.getElementById('subheading');
       if (sub) {
         const dstr = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
-        sub.textContent = pro ? `${dstr} · Pro Mode` : dstr;
+        sub.textContent = dstr;
       }
     }
 
@@ -2544,18 +2566,49 @@
       }
     }
 
-    async function qciCheckInFavorite(memberId) {
+    let qciPendingMember = null, qciPendingCourt = null;
+    function qciCheckInFavorite(memberId) {
+      qciPendingMember = memberId;
+      qciPendingCourt = null;
       const btn = document.getElementById('qci-fav-' + memberId);
-      if (btn) btn.disabled = true;
+      document.getElementById('qci-court-name').textContent = btn ? btn.textContent.replace(' ✓', '') : 'student';
+      document.getElementById('qci-court-grid').innerHTML = [1, 2, 3, 4, 5, 6].map(c =>
+        `<button type="button" class="qci-court-btn" data-c="${c}" onclick="qciPickCourt(${c})">Court ${c}</button>`
+      ).join('');
+      const now = new Date();
+      document.getElementById('qci-court-time').value =
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('qci-court-confirm').disabled = true;
+      document.getElementById('qci-court-backdrop').classList.add('open');
+    }
+    function qciPickCourt(c) {
+      qciPendingCourt = c;
+      document.querySelectorAll('.qci-court-btn').forEach(b => b.classList.toggle('on', parseInt(b.dataset.c) === c));
+      document.getElementById('qci-court-confirm').disabled = false;
+    }
+    function qciCloseCourt() {
+      document.getElementById('qci-court-backdrop').classList.remove('open');
+      qciPendingMember = null; qciPendingCourt = null;
+    }
+    async function qciConfirmFavorite() {
+      if (!qciPendingCourt || !qciPendingMember) return;
+      const memberId = qciPendingMember;
+      const confirmBtn = document.getElementById('qci-court-confirm');
+      confirmBtn.disabled = true;
       try {
         const r = await fetch('/api/checkin/quick', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ target: 'favorite', member_id: memberId }),
+          body: JSON.stringify({
+            target: 'favorite', member_id: memberId, court: qciPendingCourt,
+            time: document.getElementById('qci-court-time').value,
+          }),
         });
         if (!r.ok) throw new Error('failed');
-        if (btn) btn.classList.add('done');
+        const favBtn = document.getElementById('qci-fav-' + memberId);
+        if (favBtn) favBtn.classList.add('done');
+        qciCloseCourt();
       } catch (e) {
-        if (btn) btn.disabled = false;
+        confirmBtn.disabled = false;
         alert('Could not check that student in. Try again.');
       }
     }

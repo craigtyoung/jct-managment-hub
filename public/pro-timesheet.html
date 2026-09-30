@@ -746,6 +746,19 @@
 
       isManagement = !!me.is_management;
 
+      // Pro-facing timesheet isn't reliable yet (shows "no shifts this period" even
+      // when it shouldn't) — parked as Coming Soon until it's fixed. Management's
+      // own roster view below is unaffected.
+      if (me.role === 'pro') {
+        document.querySelector('main.main').innerHTML = `
+          <h1 style="font-family:var(--font-display);font-size:1.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Timesheets</h1>
+          <div class="empty-state">
+            <strong style="display:block;color:var(--text);font-size:15px;margin-bottom:6px">Coming soon</strong>
+            We're still getting this ready for you — check back soon.
+          </div>`;
+        return;
+      }
+
       if (isManagement) document.getElementById('mode-toggle').style.display = 'inline-flex';
 
       document.getElementById('page-hint').textContent = isManagement

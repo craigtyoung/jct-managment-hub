@@ -279,8 +279,11 @@ router.delete('/favorites/:memberId', (req, res) => {
 });
 
 // POST /quick — one-tap Pro Mode check-in. Deliberately narrow (unlike /staff):
-// always "now", never backdated, and a favorite target must already be on the
-// acting pro's own list — a pro can't use this to check in an arbitrary member.
+// never backdated to a different day, and a favorite target must already be on
+// the acting pro's own list — a pro can't use this to check in an arbitrary member.
+// A favorite check-in requires a court (it's the pro's lesson, not a loose arrival)
+// and may adjust the time within today (e.g. checking a student in after coming
+// off court) — both feed straight into Court View via the existing lesson fields.
 router.post('/quick', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
@@ -288,13 +291,18 @@ router.post('/quick', (req, res) => {
   if (staff.role !== 'pro' && !['admin', 'manager'].includes(staff.role)) {
     return res.status(403).json({ error: 'Pro or management only' });
   }
-  const { target, member_id } = req.body || {};
+  const { target, member_id, court, time } = req.body || {};
   if (target === 'self') {
     const { id } = db.addGuestCheckinLog({ guestName: staff.name, hostMemberId: null, court: null });
     try { sse.broadcast('checkin-update'); } catch (e) {}
     return res.json({ ok: true, id });
   }
   if (target === 'favorite') {
+    const c = parseInt(court);
+    if (!Number.isInteger(c) || c < 1 || c > 6) return res.status(400).json({ error: 'Court is required (1–6)' });
+    if (time !== undefined && time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time))) {
+      return res.status(400).json({ error: 'Invalid time' });
+    }
     const mid = parseInt(member_id);
     const favorites = db.getFavoritesForPro(req.session.staffId);
     if (!favorites.some(f => f.member_id === mid)) {
@@ -303,6 +311,9 @@ router.post('/quick', (req, res) => {
     const m = db.getMemberById(mid);
     if (!m || m.active === false) return res.status(404).json({ error: 'Member not found' });
     const { id, duplicate } = db.addCheckinLog({ memberId: mid, method: 'favorite' });
+    db.setCheckinCourt(id, c);
+    db.setCheckinLesson(id, { pro: staff.name, minutes: 60 });
+    if (time) db.setCheckinTime(id, time, c);
     try { sse.broadcast('checkin-update'); } catch (e) {}
     return res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name });
   }
