@@ -300,6 +300,42 @@ router.post('/quick', (req, res) => {
   res.status(400).json({ error: "target must be 'self' or 'favorite'" });
 });
 
+// ── Pro Check-In (kiosk, PIN-authenticated — no staff session) ─────────────────────
+// Same idea as the phone app's /favorites + /quick above, but the kiosk has no
+// logged-in session to trust, so a pro's own PIN (the same one used for the regular
+// member kiosk — see db.getStaffIdByPin) stands in for auth. Every call re-resolves
+// the staff id from the PIN itself; nothing here ever trusts a client-supplied id.
+
+// GET /api/checkin/pro-lookup?pin=XXXX
+router.get('/pro-lookup', (req, res) => {
+  if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many lookups — wait a moment' });
+  const { pin } = req.query;
+  if (!pin || String(pin).length < 2) return res.status(400).json({ error: 'PIN required' });
+  const staffId = db.getStaffIdByPin(String(pin).trim());
+  if (!staffId) return res.status(404).json({ error: 'No pro found with that PIN' });
+  const staff = db.getStaffById(staffId);
+  res.json({ pro: { id: staff.id, name: staff.name, color: staff.color }, favorites: db.getFavoritesForPro(staffId) });
+});
+
+// POST /api/checkin/pro-quick — body: { pin, target: 'favorite', member_id }
+router.post('/pro-quick', (req, res) => {
+  if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many requests' });
+  const { pin, target, member_id } = req.body || {};
+  const staffId = db.getStaffIdByPin(String(pin || '').trim());
+  if (!staffId) return res.status(404).json({ error: 'No pro found with that PIN' });
+  if (target === 'favorite') {
+    const mid = parseInt(member_id);
+    const favorites = db.getFavoritesForPro(staffId);
+    if (!favorites.some(f => f.member_id === mid)) return res.status(403).json({ error: 'Not one of your favorites' });
+    const m = db.getMemberById(mid);
+    if (!m || m.active === false) return res.status(404).json({ error: 'Member not found' });
+    const { id, duplicate } = db.addCheckinLog({ memberId: mid, method: 'favorite' });
+    try { sse.broadcast('checkin-update'); } catch (e) {}
+    return res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name });
+  }
+  res.status(400).json({ error: "target must be 'favorite'" });
+});
+
 // PATCH /:id/note — free-text note on the check-in itself (e.g. reconciling
 // against GameTime, or flagging how someone was actually signed in). Same
 // front-desk tier as the time/court/type edits above — this is annotation,

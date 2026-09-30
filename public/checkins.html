@@ -609,7 +609,10 @@
       if (mr.ok) allMembers = await mr.json();
 
       paintDayLabel();
-      showView('checkins');
+      // Arriving from the kiosk's Pro Check-In (?view=court) lands straight on Court
+      // View instead of the default Check-Ins tab — same pattern as ?date= above.
+      const qView = new URLSearchParams(location.search).get('view');
+      showView(qView === 'court' ? 'court' : 'checkins');
       window.__checkinLiveUpdate = () => {
         loadCheckinTab(BOARD_DATE);
         loadCourtBoard();

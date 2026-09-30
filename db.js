@@ -4598,6 +4598,15 @@ function getMemberByStaffId(staffId) {
   const sid = parseInt(staffId);
   return (_data.members || []).find(m => m.active !== false && m.staff_id === sid) || null;
 }
+// Kiosk Pro Check-In: resolve a PIN straight to a real, active staff account — only
+// for a member row that's both flagged as staff AND already linked (linkStaffMembers).
+// A regular member's PIN, or an unlinked staff row, returns null here.
+function getStaffIdByPin(pin) {
+  const m = getMemberByPin(pin);
+  if (!m || !_isStaffMemberRow(m) || !m.staff_id) return null;
+  const s = getStaffById(m.staff_id);
+  return (s && s.active !== false) ? s.id : null;
+}
 
 function searchMembersByName(q) {
   if (!q) return [];
@@ -5692,6 +5701,7 @@ module.exports = {
   getMemberByClubNumber,
   linkStaffMembers,
   getMemberByStaffId,
+  getStaffIdByPin,
   getReconciliation,
   setReconciliationStatus,
   addReconciliationNote,
