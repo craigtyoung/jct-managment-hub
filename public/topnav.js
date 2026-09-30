@@ -76,28 +76,50 @@
     return items;
   }
 
+  // Returns { navHtml, modeHtml } separately — the mode toggle belongs with the user
+  // cluster (name/avatar/sign-out), top-right, not mixed into the section links on the
+  // left. Kept apart here so mount() can place each piece where it actually belongs.
   function buildHTML(me) {
     var items = effectiveItems(me);
     var here = norm(location.pathname);
-    var html = items.map(function (l) {
+    var navHtml = items.map(function (l) {
       var active = norm(l.href) === here;
       if (active) return '<span class="qnav qnav-active" title="' + l.label + '">' + l.icon + '<span>' + l.label + '</span></span>';
       return '<a href="' + l.href + '" class="qnav" title="' + l.label + '">' + l.icon + '<span>' + l.label + '</span></a>';
     }).join('');
+    var modeHtml = '';
     // Management can flip modes on the Timesheets pages, but that flag then
     // silently follows them everywhere (getMode() reads it on every page) with
     // no indicator anywhere else — so a click on "Pro" while checking a
     // timesheet leaves the whole site's nav in pro mode, with the office links
     // simply gone, and no visible sign why. One small always-on toggle, glued
-    // to the nav itself, so the current mode is never invisible.
+    // to the user cluster, so the current mode is never invisible.
     if (me && me.is_management) {
       var mode = getMode(me);
-      html += '<span class="topnav-mode" title="Office/Pro nav mode — carries across every page until switched back">' +
+      modeHtml = '<span class="topnav-mode" title="Office/Pro nav mode — carries across every page until switched back">' +
         '<button type="button" class="topnav-mode-btn' + (mode === 'office' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'office\')">Office</button>' +
         '<button type="button" class="topnav-mode-btn' + (mode === 'pro' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'pro\')">Pro</button>' +
       '</span>';
     }
-    return html;
+    return { navHtml: navHtml, modeHtml: modeHtml };
+  }
+
+  // Every page's user cluster (clock/avatar/name/sign-out) uses one of two patterns —
+  // .ts-right on most pages, .me-badge on a handful (Comms, Ideas, Academy, Staff
+  // Management). Try both so the toggle always lands top-right next to identity,
+  // never mixed into the left-hand section links (that was the bug: on pages with a
+  // longer link row, like Comms, the extra pill crowded the left cluster and visibly
+  // pushed things around instead of sitting with name/sign-out where it reads as one
+  // control group).
+  function placeModeToggle(modeHtml, navParent) {
+    if (!modeHtml) return;
+    var host = document.querySelector('.ts-right');
+    if (host) { host.insertAdjacentHTML('afterbegin', modeHtml); return; }
+    var badge = document.querySelector('.me-badge');
+    if (badge && badge.parentNode) { badge.insertAdjacentHTML('beforebegin', modeHtml); return; }
+    // Last resort: no known user-cluster hook on this page — keep the old behaviour
+    // (glued to the nav links) rather than dropping the toggle silently.
+    if (navParent) navParent.insertAdjacentHTML('beforeend', modeHtml);
   }
 
   window.__jctToggleHubMode = function (mode) {
@@ -133,7 +155,8 @@
 
   function mount(me) {
     injectStyleOnce();
-    var html = buildHTML(me);
+    var built = buildHTML(me);
+    var html = built.navHtml;
     var existing = document.querySelectorAll('.qnav');
     if (existing.length) {
       // A page that isn't in the shared list (Waitlist, Knowledge Base, Idea Board…) keeps its own
@@ -158,6 +181,7 @@
       var pill = document.getElementById('unread-pill');
       var comms = wrap.querySelector('a[href^="/comms.html"], .qnav-active[title*="Comms"]');
       if (pill && comms) comms.parentNode.insertBefore(pill, comms.nextSibling);
+      placeModeToggle(built.modeHtml, parent);
     } else {
       // No top nav on this page — inject a bar so it isn't stranded.
       injectStyleOnce();
@@ -166,6 +190,7 @@
       bar.setAttribute('aria-label', 'Primary');
       bar.innerHTML = html;
       document.body.insertBefore(bar, document.body.firstChild);
+      placeModeToggle(built.modeHtml, bar);
     }
   }
 
