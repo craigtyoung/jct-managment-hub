@@ -649,6 +649,7 @@
        PRO MODE — teaching pros (court-green theme)
     ───────────────────────────────────────────── */
     body.pro-mode {
+      background: linear-gradient(180deg, #eaf8ee 0%, #f6fbf4 45%, var(--canvas) 100%);
       --blue:         #2f9e5f;
       --blue-soft:    rgba(47,158,95,0.10);
       --blue-glow:    rgba(47,158,95,0.18);
@@ -757,17 +758,28 @@
     .qci-self-status { font-size: 12px; font-weight: 600; color: var(--text-3); }
     .qci-self-status.on { color: var(--blue); }
     .qci-signin-btn {
-      width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
-      background: var(--navy); color: #fff; font-family: inherit; font-size: 14px; font-weight: 600;
-      transition: background 0.15s; margin-bottom: 14px;
+      width: 100%; padding: 20px 22px; border-radius: 16px; border: none; cursor: pointer;
+      background: var(--navy); color: #fff; font-family: inherit;
+      transition: background 0.15s, transform 0.1s; margin-bottom: 14px;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
     }
+    .qci-signin-btn:active { transform: scale(0.99); }
     .qci-signin-btn:hover { background: var(--blue); }
-    .qci-signin-btn:disabled { background: var(--canvas); color: var(--text-3); cursor: default; }
+    .qci-signin-btn:disabled { background: var(--canvas); color: var(--text-3); cursor: default; transform: none; }
+    .qci-signin-title { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+    .qci-signin-sub { font-size: 12.5px; font-weight: 500; opacity: 0.75; }
+    body.pro-mode .qci-signin-sub { color: var(--court-yellow-ink); opacity: 0.65; }
     .qci-favs-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
     .qci-favs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .qci-fav-btn {
-      padding: 9px 15px; border-radius: 100px; border: 1px solid var(--border); background: var(--canvas);
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 15px 7px 7px; border-radius: 100px; border: 1px solid var(--border); background: var(--canvas);
       color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .qci-fav-avatar {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; background: var(--blue-soft); color: var(--blue);
     }
     .qci-fav-btn:hover { border-color: var(--blue); color: var(--blue); }
     .qci-fav-btn.done { background: rgba(47,158,95,0.12); border-color: transparent; color: var(--blue); }
@@ -1660,7 +1672,10 @@
           <span class="qci-title">Quick Check-In</span>
           <span class="qci-self-status" id="qci-self-status"></span>
         </div>
-        <button class="qci-signin-btn" id="qci-signin-btn" onclick="qciSignInSelf()">Sign Me In</button>
+        <button class="qci-signin-btn" id="qci-signin-btn" onclick="qciSignInSelf()">
+          <span class="qci-signin-title" id="qci-signin-title">Sign Me In</span>
+          <span class="qci-signin-sub" id="qci-signin-sub">Tap to check in for today</span>
+        </button>
         <div class="qci-favs-label">Favorite students — tap to check in</div>
         <div class="qci-favs" id="qci-favs"><span class="qci-empty">Loading…</span></div>
         <button class="qci-addfav-btn" onclick="qciToggleAddForm()">+ Add a favorite student</button>
@@ -2541,14 +2556,20 @@
         wrap.innerHTML = '<span class="qci-empty">No favorites yet — add one below.</span>';
         return;
       }
-      wrap.innerHTML = qciFavorites.map(f =>
-        `<button class="qci-fav-btn" id="qci-fav-${f.member_id}" onclick="qciCheckInFavorite(${f.member_id})">${esc(f.first_name)} ${esc((f.last_name || '').slice(0, 1))}.</button>`
-      ).join('');
+      wrap.innerHTML = qciFavorites.map(f => {
+        const initials = ((f.first_name || '')[0] || '') + ((f.last_name || '')[0] || '');
+        return `<button class="qci-fav-btn" id="qci-fav-${f.member_id}" onclick="qciCheckInFavorite(${f.member_id})">
+          <span class="qci-fav-avatar">${esc(initials.toUpperCase())}</span>${esc(f.first_name)} ${esc((f.last_name || '').slice(0, 1))}.</button>`;
+      }).join('');
     }
 
     async function qciSignInSelf() {
       const btn = document.getElementById('qci-signin-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+      const title = document.getElementById('qci-signin-title');
+      const sub = document.getElementById('qci-signin-sub');
+      if (btn) { btn.disabled = true; }
+      if (title) title.textContent = 'Signing in…';
+      if (sub) sub.style.display = 'none';
       try {
         const r = await fetch('/api/checkin/quick', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2557,11 +2578,14 @@
         if (!r.ok) throw new Error('failed');
         qciSignedInToday = true;
         const now = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
-        if (btn) { btn.textContent = "You're signed in ✓"; btn.classList.add('success-pop'); }
+        if (title) title.textContent = "You're signed in ✓";
+        if (btn) btn.classList.add('success-pop');
         const status = document.getElementById('qci-self-status');
         if (status) { status.textContent = `Signed in ${now}`; status.classList.add('on'); }
       } catch (e) {
-        if (btn) { btn.disabled = false; btn.textContent = 'Sign Me In'; }
+        if (btn) { btn.disabled = false; }
+        if (title) title.textContent = 'Sign Me In';
+        if (sub) sub.style.display = '';
         alert('Could not sign in. Try again.');
       }
     }
@@ -2570,8 +2594,8 @@
     function qciCheckInFavorite(memberId) {
       qciPendingMember = memberId;
       qciPendingCourt = null;
-      const btn = document.getElementById('qci-fav-' + memberId);
-      document.getElementById('qci-court-name').textContent = btn ? btn.textContent.replace(' ✓', '') : 'student';
+      const fav = qciFavorites.find(f => f.member_id === memberId);
+      document.getElementById('qci-court-name').textContent = fav ? `${fav.first_name} ${(fav.last_name || '').slice(0, 1)}.` : 'student';
       document.getElementById('qci-court-grid').innerHTML = [1, 2, 3, 4, 5, 6].map(c =>
         `<button type="button" class="qci-court-btn" data-c="${c}" onclick="qciPickCourt(${c})">Court ${c}</button>`
       ).join('');
