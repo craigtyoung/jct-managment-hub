@@ -328,13 +328,17 @@ router.post('/quick', (req, res) => {
 
 // POST /api/checkin/pro-quick — body varies by target:
 //   'self'     — the pro's own arrival (fires automatically once the PIN resolves)
-//   'favorite' — { member_id }, must already be on this pro's favorites list
+//   'favorite' — { member_id, court, time? }, must already be on this pro's favorites
+//                list. Court is required (it's the pro's lesson, not a loose arrival)
+//                and time may be adjusted within today (e.g. checking a student in
+//                after coming off court) — same rule as the Pro Mode app's /quick,
+//                both feeding straight into Court View via the lesson fields.
 //   'court'    — { checkin_id, court }, names which court an already-created
 //                check-in (self or favorite) is on — the kiosk equivalent of the
 //                staff hub's court picker, minus the staff hub.
 router.post('/pro-quick', (req, res) => {
   if (!rateOk(req.ip)) return res.status(429).json({ error: 'Too many requests' });
-  const { pin, target, member_id, checkin_id, court } = req.body || {};
+  const { pin, target, member_id, checkin_id, court, time } = req.body || {};
   const staffId = db.getStaffIdByPin(String(pin || '').trim());
   if (!staffId) return res.status(404).json({ error: 'No pro found with that PIN' });
   const staff = db.getStaffById(staffId);
@@ -344,12 +348,20 @@ router.post('/pro-quick', (req, res) => {
     return res.json({ ok: true, id });
   }
   if (target === 'favorite') {
+    const c = parseInt(court);
+    if (!Number.isInteger(c) || c < 1 || c > 6) return res.status(400).json({ error: 'Court is required (1–6)' });
+    if (time !== undefined && time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time))) {
+      return res.status(400).json({ error: 'Invalid time' });
+    }
     const mid = parseInt(member_id);
     const favorites = db.getFavoritesForPro(staffId);
     if (!favorites.some(f => f.member_id === mid)) return res.status(403).json({ error: 'Not one of your favorites' });
     const m = db.getMemberById(mid);
     if (!m || m.active === false) return res.status(404).json({ error: 'Member not found' });
     const { id, duplicate } = db.addCheckinLog({ memberId: mid, method: 'favorite' });
+    db.setCheckinCourt(id, c);
+    db.setCheckinLesson(id, { pro: staff.name, minutes: 60 });
+    if (time) db.setCheckinTime(id, time, c);
     try { sse.broadcast('checkin-update'); } catch (e) {}
     return res.json({ ok: true, id, duplicate, first_name: m.first_name, last_name: m.last_name });
   }

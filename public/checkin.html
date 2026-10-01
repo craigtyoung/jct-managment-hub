@@ -98,6 +98,20 @@
     .pro-court-btn:active{transform:scale(0.94);}
     .pro-court-btn.on{background:var(--navy);border-color:var(--navy);color:#fff;}
 
+    /* Favorite-student check-in — court + time sheet (mirrors the Pro Mode app) */
+    .fav-ci-backdrop{display:none;position:fixed;inset:0;background:rgba(12,23,56,0.55);align-items:center;justify-content:center;z-index:50;padding:20px;}
+    .fav-ci-backdrop.open{display:flex;}
+    .fav-ci-sheet{background:var(--surface);color:var(--text);border-radius:18px;padding:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.35);}
+    .fav-ci-title{font-size:17px;font-weight:800;color:var(--navy);text-align:center;margin-bottom:16px;}
+    .fav-ci-label{font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;}
+    .fav-ci-courts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;}
+    .fav-ci-time{width:100%;font-family:var(--font);font-size:16px;padding:12px 14px;border:2px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);outline:none;margin-bottom:18px;}
+    .fav-ci-time:focus{border-color:var(--blue);}
+    .fav-ci-confirm{width:100%;padding:16px;border:none;border-radius:14px;background:var(--green);color:#fff;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;}
+    .fav-ci-confirm:disabled{opacity:.4;cursor:default;}
+    .fav-ci-confirm:not(:disabled):active{background:#15803d;transform:scale(0.98);}
+    .fav-ci-cancel{width:100%;margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
+
     /* Footer */
     .ftr{padding:12px 24px;text-align:center;font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:0.02em;}
   </style>
@@ -163,6 +177,22 @@
         <div class="screen-sub" style="margin-bottom:10px">Which court are you on?</div>
         <div class="pro-courts" id="pro-courts"></div>
         <button class="btn-back" onclick="resetToPin()">Done</button>
+      </div>
+
+      <!-- Favorite-student check-in — court + time, required before it completes
+           (mirrors the Pro Mode app's own confirmation). Lets a pro set the actual
+           time instead of "now" — e.g. checking a student in just after coming off
+           court, rather than right when it happened. -->
+      <div class="fav-ci-backdrop" id="fav-ci-backdrop" onclick="if(event.target===this) favCiCancel()">
+        <div class="fav-ci-sheet" role="dialog" aria-label="Court and time">
+          <div class="fav-ci-title">Check in <span id="fav-ci-name"></span></div>
+          <div class="fav-ci-label">Court</div>
+          <div class="fav-ci-courts" id="fav-ci-courts"></div>
+          <div class="fav-ci-label">Time</div>
+          <input type="time" class="fav-ci-time" id="fav-ci-time">
+          <button type="button" class="fav-ci-confirm" id="fav-ci-confirm" disabled onclick="favCiConfirm()">Check In</button>
+          <button type="button" class="fav-ci-cancel" onclick="favCiCancel()">Cancel</button>
+        </div>
       </div>
 
       <!-- Guest screen — guests can't self-serve check in (fee needs collecting), so this
@@ -325,20 +355,60 @@
         `<button class="pro-fav-btn" id="pro-fav-${f.member_id}" onclick="proCheckInFavorite(${f.member_id})">${esc(f.first_name)} ${esc((f.last_name || '').slice(0, 1))}.</button>`
       ).join('');
     }
-    async function proCheckInFavorite(memberId) {
+    // Tapping a favorite opens the court + time sheet instead of checking in
+    // immediately — court is required (it's the pro's lesson), time defaults to
+    // now but can be moved back for a student checked in after coming off court.
+    let favCiPendingMember = null, favCiPendingCourt = null;
+    function proCheckInFavorite(memberId) {
       armIdleTimer();
+      favCiPendingMember = memberId;
+      favCiPendingCourt = null;
       const btn = document.getElementById('pro-fav-' + memberId);
-      if (btn) btn.disabled = true;
+      document.getElementById('fav-ci-name').textContent = btn ? btn.textContent.replace(' ✓', '') : 'student';
+      document.getElementById('fav-ci-courts').innerHTML = ['1', '2', '3', '4', '5', '6'].map(c =>
+        `<button type="button" class="pro-court-btn" data-c="${c}" onclick="favCiPickCourt('${c}')">${c}</button>`
+      ).join('');
+      const now = new Date();
+      document.getElementById('fav-ci-time').value =
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('fav-ci-confirm').disabled = true;
+      document.getElementById('fav-ci-backdrop').classList.add('open');
+      // Idle timer paused while the sheet is open — a pro adjusting the time
+      // shouldn't get bounced back to the PIN screen mid-interaction.
+      clearTimeout(idleTimer);
+    }
+    function favCiPickCourt(c) {
+      favCiPendingCourt = c;
+      document.querySelectorAll('#fav-ci-courts .pro-court-btn').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+      document.getElementById('fav-ci-confirm').disabled = false;
+    }
+    function favCiCancel() {
+      document.getElementById('fav-ci-backdrop').classList.remove('open');
+      favCiPendingMember = null; favCiPendingCourt = null;
+      armIdleTimer();
+    }
+    async function favCiConfirm() {
+      if (!favCiPendingCourt || !favCiPendingMember) return;
+      const memberId = favCiPendingMember;
+      const confirmBtn = document.getElementById('fav-ci-confirm');
+      confirmBtn.disabled = true;
       try {
         const r = await fetch('/api/checkin/pro-quick', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin, target: 'favorite', member_id: memberId }),
+          body: JSON.stringify({
+            pin, target: 'favorite', member_id: memberId, court: favCiPendingCourt,
+            time: document.getElementById('fav-ci-time').value,
+          }),
         });
         if (!r.ok) throw new Error('failed');
+        const btn = document.getElementById('pro-fav-' + memberId);
         if (btn) btn.classList.add('done');
         loadTodayCount();
+        document.getElementById('fav-ci-backdrop').classList.remove('open');
+        favCiPendingMember = null; favCiPendingCourt = null;
+        armIdleTimer();
       } catch (e) {
-        if (btn) btn.disabled = false;
+        confirmBtn.disabled = false;
         alert('Could not check that student in. Try again.');
       }
     }
