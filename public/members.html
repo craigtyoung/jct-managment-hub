@@ -123,6 +123,16 @@
     .action-btn:hover{border-color:rgba(44,92,156,0.25);color:var(--blue);}
     .empty-state{padding:40px;text-align:center;color:var(--text-3);font-size:13px;}
 
+    /* Staff row avatar + row-level overflow menu (Staff filter view) */
+    .row-avatar{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;margin-right:9px;vertical-align:middle;overflow:hidden;flex-shrink:0;}
+    .row-avatar-plain{background:#e4e8f0;color:var(--text-3);}
+    .row-menu-wrap{position:relative;display:inline-block;}
+    .row-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);overflow:hidden;z-index:20;}
+    .row-menu.open{display:block;}
+    .row-menu button{display:block;width:100%;padding:9px 14px;border:none;background:transparent;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--text-2);text-align:left;cursor:pointer;}
+    .row-menu button:hover{background:#f1f5f9;}
+    .row-menu button.danger{color:var(--red);border-top:1px solid var(--border);}
+
     /* Modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;}
     .modal-overlay.open{display:flex;}
@@ -246,7 +256,7 @@
             <th>Member #</th>
             <th>Phone</th>
             <th class="mgmt-only">PIN</th>
-            <th>Type</th>
+            <th id="th-type">Type</th>
             <th class="mgmt-only" id="th-staff-link" style="display:none">Staff Link</th>
             <th class="mgmt-only"></th>
           </tr>
@@ -378,8 +388,11 @@
       const noPinOnly = document.getElementById('no-pin-filter').checked;
       const isMgmt = me && (me.role === 'admin' || me.role === 'manager');
       const showLink = isMgmt && memberFilter === 'staff';
+      const staffView = memberFilter === 'staff';
       const thLink = document.getElementById('th-staff-link');
       if (thLink) thLink.style.display = showLink ? '' : 'none';
+      const thType = document.getElementById('th-type');
+      if (thType) thType.style.display = staffView ? 'none' : '';
       if (showLink && !staffOptions.length) loadStaffOptions().then(filterMembers);
 
       let filtered = allMembers;
@@ -402,25 +415,48 @@
 
       tbody.innerHTML = filtered.map(m => `
         <tr>
-          <td><div class="member-name">${esc(m.first_name)} ${esc(m.last_name)}</div></td>
+          <td><div class="member-name">${staffView ? rowAvatar(m) : ''}${esc(m.first_name)} ${esc(m.last_name)}</div></td>
           <td style="font-size:12px;color:var(--text-3);font-weight:500">${esc(m.club_number || '—')}</td>
           <td><span class="member-phone">${esc(m.phone || '—')}</span></td>
           ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
-          <td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>
+          ${staffView ? '' : `<td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>`}
           ${showLink ? `<td>${staffLinkCell(m)}</td>` : ''}
-          ${isMgmt ? `<td><button class="action-btn" onclick="openEditModal(${m.id})">Edit / PIN</button> <button class="action-btn" style="color:var(--red);border-color:rgba(220,38,38,0.25)" onclick="removeMember(${m.id},'${esc((m.first_name + ' ' + m.last_name)).replace(/'/g, "\\'")}')">Remove</button></td>` : ''}
+          ${isMgmt ? `<td>${rowMenu(m)}</td>` : ''}
         </tr>
       `).join('');
+
+      // Avatar images load async (staffAvatar fetches the photo) — fill them in
+      // after the row HTML is in the DOM.
+      if (staffView) {
+        filtered.forEach(m => {
+          if (!m.staff_id) return;
+          const el = document.getElementById('avatar-' + m.id);
+          if (!el || !window.staffAvatar) return;
+          const s = staffOptions.find(x => x.id === m.staff_id);
+          staffAvatar(el, m.staff_id, (s && s.name) || '', (s && s.color) || '#666');
+        });
+      }
+    }
+
+    // Small round avatar to the left of the name in Staff view — a real photo if
+    // the linked staff account has one (via staffAvatar.js), initials otherwise.
+    // Unlinked staff rows fall back to the member's own initials (no staff_id yet
+    // to fetch a photo for).
+    function rowAvatar(m) {
+      if (m.staff_id) return `<span class="row-avatar" id="avatar-${m.id}"></span>`;
+      const initials = ((m.first_name || '')[0] || '') + ((m.last_name || '')[0] || '');
+      return `<span class="row-avatar row-avatar-plain">${esc(initials.toUpperCase())}</span>`;
     }
 
     // Manual override for whatever linkStaffMembers() couldn't safely guess —
     // nicknames ("Angie" for Angelina), spelling variants ("Lily" vs "Lilly").
+    // Unlink lives in the row's ⋯ menu now, not here — this column stays just
+    // the link itself plus Students, so the row reads as one line.
     function staffLinkCell(m) {
       if (m.staff_id) {
         const s = staffOptions.find(x => x.id === m.staff_id);
         const name = s ? s.name : '#' + m.staff_id;
         return `<span style="font-size:12px;font-weight:600;color:var(--text-2)">${esc(name)}</span>
-          <button class="action-btn" style="margin-left:4px" onclick="unlinkStaff(${m.id})">Unlink</button>
           <button class="action-btn" style="margin-left:4px" onclick="openFavModal(${m.staff_id},'${esc(name).replace(/'/g, "\\'")}')">Students</button>`;
       }
       const opts = staffOptions.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
@@ -428,6 +464,30 @@
         <option value="">— link to —</option>${opts}
       </select>`;
     }
+
+    // Row overflow menu — Edit/PIN, Unlink (staff rows only, if linked), Remove.
+    // Replaces the old row of separate buttons so the row stays one clean line.
+    function rowMenu(m) {
+      const name = esc(m.first_name + ' ' + m.last_name).replace(/'/g, "\\'");
+      let items = `<button onclick="closeRowMenus();openEditModal(${m.id})">Edit / PIN</button>`;
+      if (showLink && m.staff_id) items += `<button onclick="closeRowMenus();unlinkStaff(${m.id})">Unlink</button>`;
+      items += `<button class="danger" onclick="closeRowMenus();removeMember(${m.id},'${name}')">Remove</button>`;
+      return `<div class="row-menu-wrap">
+        <button class="action-btn" onclick="toggleRowMenu(event, ${m.id})">⋯</button>
+        <div class="row-menu" id="row-menu-${m.id}">${items}</div>
+      </div>`;
+    }
+    function toggleRowMenu(e, id) {
+      e.stopPropagation();
+      const menu = document.getElementById('row-menu-' + id);
+      const isOpen = menu.classList.contains('open');
+      closeRowMenus();
+      if (!isOpen) menu.classList.add('open');
+    }
+    function closeRowMenus() {
+      document.querySelectorAll('.row-menu.open').forEach(el => el.classList.remove('open'));
+    }
+    document.addEventListener('click', closeRowMenus);
     async function linkStaffOne(memberId, staffId) {
       if (!staffId) return;
       const r = await fetch(`/api/members/${memberId}/link-staff`, {

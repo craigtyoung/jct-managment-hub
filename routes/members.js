@@ -79,10 +79,11 @@ router.post('/link-staff', (req, res) => {
   res.json({ ok: true, ...db.linkStaffMembers() });
 });
 
-// GET /api/members/staff-options — active staff for the manual "link to staff" picker
+// GET /api/members/staff-options — active staff for the manual "link to staff" picker.
+// Includes color so the Member List staff row can render a staffAvatar() circle.
 router.get('/staff-options', (req, res) => {
   if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
-  res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name })));
+  res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name, color: s.color })));
 });
 
 // POST /api/members/:id/link-staff — manual override for the name-match auto-linker:
