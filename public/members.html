@@ -293,6 +293,24 @@
     </div>
   </div>
 
+  <!-- Manage Students (favorites) Modal — lets admin/manager link a pro's one-tap
+       kiosk/Pro Mode favorites on their behalf, instead of the pro having to add
+       their own from the kiosk or phone. Backend (/api/checkin/favorites) already
+       supported a pro_id override for management; this is the missing UI for it. -->
+  <div class="modal-overlay" id="fav-modal" onclick="if(event.target===this)closeFavModal()">
+    <div class="modal">
+      <h2 id="fav-modal-title">Manage Students</h2>
+      <div class="modal-hint" style="margin-bottom:10px">Students linked here show up as one-tap favorites for this pro on the kiosk and Pro Mode app.</div>
+      <input type="search" id="fav-search" class="search-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search students to add…" oninput="favSearch(this.value)" style="width:100%;margin-bottom:8px">
+      <div id="fav-search-results" style="margin-bottom:14px;"></div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Current students</div>
+      <div id="fav-current-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeFavModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/staff-avatar.js"></script>
   <script src="/app-version.js"></script>
   <script>
@@ -400,8 +418,10 @@
     function staffLinkCell(m) {
       if (m.staff_id) {
         const s = staffOptions.find(x => x.id === m.staff_id);
-        return `<span style="font-size:12px;font-weight:600;color:var(--text-2)">${esc(s ? s.name : '#' + m.staff_id)}</span>
-          <button class="action-btn" style="margin-left:4px" onclick="unlinkStaff(${m.id})">Unlink</button>`;
+        const name = s ? s.name : '#' + m.staff_id;
+        return `<span style="font-size:12px;font-weight:600;color:var(--text-2)">${esc(name)}</span>
+          <button class="action-btn" style="margin-left:4px" onclick="unlinkStaff(${m.id})">Unlink</button>
+          <button class="action-btn" style="margin-left:4px" onclick="openFavModal(${m.staff_id},'${esc(name).replace(/'/g, "\\'")}')">Students</button>`;
       }
       const opts = staffOptions.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
       return `<select class="select-pill" style="font-size:12px;padding:4px 6px" onchange="linkStaffOne(${m.id},this.value)">
@@ -423,6 +443,66 @@
       });
       if (!r.ok) { alert('Could not unlink.'); return; }
       await load();
+    }
+
+    // Manage Students (favorites) — admin/manager linking students to a pro,
+    // same list the pro sees as one-tap favorites on the kiosk and Pro Mode app.
+    let favModalProId = null, favModalCurrent = [];
+    async function openFavModal(staffId, proName) {
+      favModalProId = staffId;
+      document.getElementById('fav-modal-title').textContent = `Manage Students — ${proName}`;
+      document.getElementById('fav-search').value = '';
+      document.getElementById('fav-search-results').innerHTML = '';
+      await loadFavCurrent();
+      document.getElementById('fav-modal').classList.add('open');
+    }
+    function closeFavModal() {
+      document.getElementById('fav-modal').classList.remove('open');
+      favModalProId = null; favModalCurrent = [];
+    }
+    async function loadFavCurrent() {
+      const r = await fetch(`/api/checkin/favorites?pro_id=${favModalProId}`);
+      favModalCurrent = r.ok ? await r.json() : [];
+      renderFavCurrent();
+    }
+    function renderFavCurrent() {
+      const wrap = document.getElementById('fav-current-list');
+      if (!favModalCurrent.length) { wrap.innerHTML = '<div class="modal-hint">No students linked yet.</div>'; return; }
+      wrap.innerHTML = favModalCurrent.map(f => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;font-weight:600;">${esc(f.first_name)} ${esc(f.last_name)}</span>
+          <button class="action-btn" style="color:var(--red);border-color:rgba(220,38,38,0.25)" onclick="removeFav(${f.member_id})">Remove</button>
+        </div>
+      `).join('');
+    }
+    function favSearch(q) {
+      q = (q || '').toLowerCase().trim();
+      const results = document.getElementById('fav-search-results');
+      if (q.length < 2) { results.innerHTML = ''; return; }
+      const currentIds = new Set(favModalCurrent.map(f => f.member_id));
+      const matches = allMembers.filter(m => !isStaffRow(m) && !currentIds.has(m.id) &&
+        (m.first_name + ' ' + m.last_name).toLowerCase().includes(q)).slice(0, 8);
+      results.innerHTML = matches.length ? matches.map(m => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+          <span style="font-size:13px;">${esc(m.first_name)} ${esc(m.last_name)}</span>
+          <button class="action-btn" onclick="addFav(${m.id})">+ Add</button>
+        </div>
+      `).join('') : '<div class="modal-hint">No match.</div>';
+    }
+    async function addFav(memberId) {
+      const r = await fetch('/api/checkin/favorites', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pro_id: favModalProId, member_id: memberId }),
+      });
+      if (!r.ok) { alert('Could not add that student.'); return; }
+      document.getElementById('fav-search').value = '';
+      document.getElementById('fav-search-results').innerHTML = '';
+      await loadFavCurrent();
+    }
+    async function removeFav(memberId) {
+      const r = await fetch(`/api/checkin/favorites/${memberId}?pro_id=${favModalProId}`, { method: 'DELETE' });
+      if (!r.ok) { alert('Could not remove that student.'); return; }
+      await loadFavCurrent();
     }
 
     function openAddModal() {
