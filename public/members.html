@@ -232,10 +232,10 @@
     <div class="stats" id="stats-row"></div>
 
     <div class="toolbar">
-      <div class="search-wrap">
+      <form class="search-wrap" autocomplete="off" onsubmit="return false;">
         <svg class="search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input class="search-input" id="search" name="q" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search members…" oninput="filterMembers()">
-      </div>
+        <input class="search-input" id="search" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search members…" oninput="filterMembers()">
+      </form>
       <div class="view-tabs" id="staff-filter-tabs" style="margin-bottom:0;">
         <button class="view-tab active" onclick="setMemberFilter('all',this)">All</button>
         <button class="view-tab" onclick="setMemberFilter('members',this)">Members</button>
@@ -421,7 +421,7 @@
           ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
           ${staffView ? '' : `<td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>`}
           ${showLink ? `<td>${staffLinkCell(m)}</td>` : ''}
-          ${isMgmt ? `<td>${rowMenu(m)}</td>` : ''}
+          ${isMgmt ? `<td>${rowMenu(m, showLink)}</td>` : ''}
         </tr>
       `).join('');
 
@@ -467,7 +467,7 @@
 
     // Row overflow menu — Edit/PIN, Unlink (staff rows only, if linked), Remove.
     // Replaces the old row of separate buttons so the row stays one clean line.
-    function rowMenu(m) {
+    function rowMenu(m, showLink) {
       const name = esc(m.first_name + ' ' + m.last_name).replace(/'/g, "\\'");
       let items = `<button onclick="closeRowMenus();openEditModal(${m.id})">Edit / PIN</button>`;
       if (showLink && m.staff_id) items += `<button onclick="closeRowMenus();unlinkStaff(${m.id})">Unlink</button>`;
