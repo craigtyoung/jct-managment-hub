@@ -711,13 +711,13 @@
       const colourOpts = ['navy','platinum'].map(c=>`<option value="${c}" ${s.colour===c?'selected':''}>${AP_COLOUR_LABEL[c]}</option>`).join('');
       if(s.issued){
         return `<tr class="ap-roster-done"><td>${esc(s.name)}</td><td>${esc(s.size)}</td><td>${esc(AP_COLOUR_LABEL[s.colour]||s.colour)}</td>
-          <td><span class="ap-pill green">Given</span>${AP.canUnissue?` <button class="ap-btn" onclick="apRosterUnissue(${s.id})">Undo</button>`:''}</td></tr>`;
+          <td><span class="ap-pill green">Given ✓</span>${AP.canUnissue?` <button class="ap-btn" onclick="apRosterUnissue(${s.id})">Undo</button>`:''}</td></tr>`;
       }
       const sizeOpts = ['','XS','S','M','L','XL','2XL','3XL'].map(z=>`<option value="${z}" ${s.size===z?'selected':''}>${z||'— size —'}</option>`).join('');
       return `<tr><td>${esc(s.name)}</td>
         <td><select onchange="apRosterSize(${s.id},this.value)">${sizeOpts}</select></td>
         <td><select onchange="apRosterColour(${s.id},this.value)">${colourOpts}</select></td>
-        <td><button class="ap-btn pri" ${s.size?'':'disabled'} onclick="apRosterIssue(${s.id})">Given</button></td></tr>`;
+        <td><button class="ap-btn" ${s.size?'':'disabled'} onclick="apRosterIssue(${s.id})">Mark Given</button></td></tr>`;
     }
     async function apRosterSize(id,size){
       const d = await apSend('POST',`/api/apparel/roster/${id}/size`,{size});
