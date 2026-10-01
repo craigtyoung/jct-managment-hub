@@ -919,9 +919,12 @@
       document.title = 'Pro Comms · JCT';
       const trig = document.querySelector('#compose-trigger span');
       if (trig) trig.textContent = 'Post a note for the pro team...';
-      // Visible banner so it's unmistakable which log you're in.
+      // Visible banner so it's unmistakable which log you're in — only useful for
+      // management, who can toggle between the office and pro logs. A pro only ever
+      // sees their own log, so the reminder is just clutter for them.
       const main = document.querySelector('.main');
-      if (main && !document.getElementById('pro-aud-banner')) {
+      const isPro = me && me.role === 'pro';
+      if (main && !isPro && !document.getElementById('pro-aud-banner')) {
         const b = document.createElement('div');
         b.id = 'pro-aud-banner';
         b.style.cssText = 'display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:9px 14px;border-radius:12px;background:rgba(47,158,95,0.10);border:1px solid rgba(47,158,95,0.30);color:#2f9e5f;font-weight:700;font-size:13px';
