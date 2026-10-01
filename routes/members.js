@@ -79,10 +79,13 @@ router.post('/link-staff', (req, res) => {
   res.json({ ok: true, ...db.linkStaffMembers() });
 });
 
-// GET /api/members/staff-options — active staff for the manual "link to staff" picker.
-// Includes color so the Member List staff row can render a staffAvatar() circle.
+// GET /api/members/staff-options — active staff for the manual "link to staff" picker,
+// and for resolving a pro's name/colour on the Member List staff row (Students button).
+// Office staff get read access too (not just admin/manager) — they can manage a pro's
+// Students but not the link-to-staff picker itself; see isMgmt-gated POST below.
 router.get('/staff-options', (req, res) => {
-  if (!isMgmt(req.actingStaffId)) return res.status(403).json({ error: 'Management only' });
+  const staff = db.getStaffById(req.actingStaffId);
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Staff only' });
   res.json(db.getAllStaff().map(s => ({ id: s.id, name: s.name, color: s.color })));
 });
 

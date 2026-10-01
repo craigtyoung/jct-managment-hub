@@ -239,26 +239,26 @@ router.patch('/:id/type', (req, res) => {
 
 // ── Pro Mode: favorite students + one-tap check-in ─────────────────────────────
 
-// GET /favorites — the acting pro's own list (or, for management, a specific
-// pro's list via ?pro_id=, e.g. to review/manage from Staff Management)
+// GET /favorites — the acting pro's own list (or, for office/management, a
+// specific pro's list via ?pro_id=, e.g. to review/manage from Member List)
 router.get('/favorites', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff) return res.status(401).json({ error: 'Auth required' });
-  const isMgmt = ['admin', 'manager'].includes(staff.role);
-  const proId = (req.query.pro_id && isMgmt) ? parseInt(req.query.pro_id) : req.session.staffId;
+  const canActOnBehalf = ['admin', 'manager', 'staff'].includes(staff.role);
+  const proId = (req.query.pro_id && canActOnBehalf) ? parseInt(req.query.pro_id) : req.session.staffId;
   res.json(db.getFavoritesForPro(proId));
 });
 
-// POST /favorites — add a favorite. A pro adds for themselves; management can
-// add for any pro (e.g. pre-loading a roster from Staff Management).
+// POST /favorites — add a favorite. A pro adds for themselves; office/management
+// can add for any pro (e.g. front desk linking students from Member List).
 router.post('/favorites', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff) return res.status(401).json({ error: 'Auth required' });
-  const isMgmt = ['admin', 'manager'].includes(staff.role);
-  const proId = (req.body.pro_id && isMgmt) ? parseInt(req.body.pro_id) : req.session.staffId;
-  if (!isMgmt && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or management only' });
+  const canActOnBehalf = ['admin', 'manager', 'staff'].includes(staff.role);
+  const proId = (req.body.pro_id && canActOnBehalf) ? parseInt(req.body.pro_id) : req.session.staffId;
+  if (!canActOnBehalf && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or office/management only' });
   const memberId = parseInt(req.body.member_id);
   if (!memberId) return res.status(400).json({ error: 'member_id required' });
   const result = db.addFavorite(proId, memberId, req.session.staffId);
@@ -266,14 +266,14 @@ router.post('/favorites', (req, res) => {
   res.json(result);
 });
 
-// DELETE /favorites/:memberId — remove a favorite. Same self-or-management rule.
+// DELETE /favorites/:memberId — remove a favorite. Same self-or-office/management rule.
 router.delete('/favorites/:memberId', (req, res) => {
   if (!req.session?.staffId) return res.status(401).json({ error: 'Auth required' });
   const staff = db.getStaffById(req.session.staffId);
   if (!staff) return res.status(401).json({ error: 'Auth required' });
-  const isMgmt = ['admin', 'manager'].includes(staff.role);
-  const proId = (req.query.pro_id && isMgmt) ? parseInt(req.query.pro_id) : req.session.staffId;
-  if (!isMgmt && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or management only' });
+  const canActOnBehalf = ['admin', 'manager', 'staff'].includes(staff.role);
+  const proId = (req.query.pro_id && canActOnBehalf) ? parseInt(req.query.pro_id) : req.session.staffId;
+  if (!canActOnBehalf && staff.role !== 'pro') return res.status(403).json({ error: 'Pro or office/management only' });
   if (!db.removeFavorite(proId, req.params.memberId)) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });

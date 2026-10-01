@@ -257,7 +257,7 @@
             <th>Phone</th>
             <th class="mgmt-only">PIN</th>
             <th id="th-type">Type</th>
-            <th class="mgmt-only" id="th-staff-link" style="display:none">Staff Link</th>
+            <th id="th-staff-link" style="display:none">Staff Link</th>
             <th class="mgmt-only"></th>
           </tr>
         </thead>
@@ -387,13 +387,18 @@
       const q = (document.getElementById('search').value || '').toLowerCase().trim();
       const noPinOnly = document.getElementById('no-pin-filter').checked;
       const isMgmt = me && (me.role === 'admin' || me.role === 'manager');
-      const showLink = isMgmt && memberFilter === 'staff';
+      // Office staff (role 'staff') get the Students column too — managing a pro's
+      // favorite students — but not the link-to-staff picker or Unlink/Remove,
+      // which stay admin/manager only.
+      const canManageStudents = isMgmt || (me && me.role === 'staff');
       const staffView = memberFilter === 'staff';
+      const showStaffCol = canManageStudents && staffView;
+      const showLink = isMgmt && staffView;
       const thLink = document.getElementById('th-staff-link');
-      if (thLink) thLink.style.display = showLink ? '' : 'none';
+      if (thLink) thLink.style.display = showStaffCol ? '' : 'none';
       const thType = document.getElementById('th-type');
       if (thType) thType.style.display = staffView ? 'none' : '';
-      if (showLink && !staffOptions.length) loadStaffOptions().then(filterMembers);
+      if (showStaffCol && !staffOptions.length) loadStaffOptions().then(filterMembers);
 
       let filtered = allMembers;
       if (memberFilter === 'staff') filtered = filtered.filter(isStaffRow);
@@ -420,7 +425,7 @@
           <td><span class="member-phone">${esc(m.phone || '—')}</span></td>
           ${isMgmt ? `<td><span class="pin-badge ${m.pin ? 'pin-set' : 'pin-empty'}">${m.pin ? m.pin : 'No PIN'}</span></td>` : ''}
           ${staffView ? '' : `<td style="font-size:12px;color:var(--text-3);text-transform:capitalize">${esc(m.member_type || 'full')}</td>`}
-          ${showLink ? `<td>${staffLinkCell(m)}</td>` : ''}
+          ${showStaffCol ? `<td>${staffLinkCell(m, isMgmt)}</td>` : ''}
           ${isMgmt ? `<td>${rowMenu(m, showLink)}</td>` : ''}
         </tr>
       `).join('');
@@ -451,14 +456,17 @@
     // Manual override for whatever linkStaffMembers() couldn't safely guess —
     // nicknames ("Angie" for Angelina), spelling variants ("Lily" vs "Lilly").
     // Unlink lives in the row's ⋯ menu now, not here — this column stays just
-    // the link itself plus Students, so the row reads as one line.
-    function staffLinkCell(m) {
+    // the link itself plus Students, so the row reads as one line. Office staff
+    // see the same name + Students button but not the link-to-staff picker —
+    // linking a member to a staff account stays admin/manager only.
+    function staffLinkCell(m, isMgmt) {
       if (m.staff_id) {
         const s = staffOptions.find(x => x.id === m.staff_id);
         const name = s ? s.name : '#' + m.staff_id;
         return `<span style="font-size:12px;font-weight:600;color:var(--text-2)">${esc(name)}</span>
           <button class="action-btn" style="margin-left:4px" onclick="openFavModal(${m.staff_id},'${esc(name).replace(/'/g, "\\'")}')">Students</button>`;
       }
+      if (!isMgmt) return `<span style="font-size:12px;color:var(--text-3)">—</span>`;
       const opts = staffOptions.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
       return `<select class="select-pill" style="font-size:12px;padding:4px 6px" onchange="linkStaffOne(${m.id},this.value)">
         <option value="">— link to —</option>${opts}
