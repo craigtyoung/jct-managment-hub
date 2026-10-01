@@ -294,6 +294,7 @@
       box-shadow: 0 3px 12px rgba(12,23,56,0.12);
     }
     .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-jct-mark { display: none; } /* shown only on the condensed mobile header — see media query below */
     .hero-logo {
       width: 210px; flex-shrink: 0;
       opacity: 0.95;
@@ -582,6 +583,13 @@
       .hero-logo { display: none; }
       .hero-divider { display: none; }
       .hero-avatar { width: 44px; height: 44px; order: -1; }
+      /* The wide logo doesn't fit this compact header — same small square mark
+         pro-schedule-view.html uses instead, so the brand is never fully absent. */
+      .hero-jct-mark {
+        display: flex; align-items: center; justify-content: center; order: -2;
+        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+        background: var(--navy); color: #fff; font-weight: 800; font-size: 11px; letter-spacing: 0.02em;
+      }
       .hero-text { flex: 1; min-width: 0; }
       .page-greeting { font-size: 1.2rem; margin-bottom: 2px; }
       .page-sub { font-size: 12px; }
@@ -1264,6 +1272,7 @@
     <!-- ── Hero Header ──────────────────────── -->
     <div class="page-hero">
       <img src="/jct-logo.png" class="hero-logo" alt="Joshua Creek Tennis" />
+      <div class="hero-jct-mark" aria-hidden="true">JCT</div>
       <div class="hero-divider"></div>
       <div class="hero-text">
         <h1 class="page-greeting" id="greeting">Good day.</h1>
@@ -2158,7 +2167,6 @@
       else if (!canToggle) startMode = 'admin';
       else startMode = localStorage.getItem('jct-hub-mode') || 'admin';
       if (canToggle) document.getElementById('mode-toggle').style.display = 'inline-flex';
-      else if (isPro) document.getElementById('mode-locked-pill').style.display = 'inline-flex';
       setMode(startMode);
 
       if (isPro || canToggle) { try { initProDashboard(me); } catch (e) { console.error('initProDashboard', e); } }
