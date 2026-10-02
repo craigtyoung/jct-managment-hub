@@ -863,6 +863,13 @@
       }
     } catch (e) {}
 
+    // Deep-link: ?to=<staffId> pre-selects a specific recipient (used by the pro
+    // dashboard's Reach the Team "Message" button, e.g. messaging David directly).
+    try {
+      const toId = parseInt(new URLSearchParams(location.search).get('to'), 10);
+      if (toId) toggleRecipient(toId);
+    } catch (e) {}
+
     // Deep-link: ?msg=<id> jumps to a specific note (used by the dashboard's
     // latest-notes list). Jump to that note's day, open it, scroll, and flash it.
     try {
