@@ -122,6 +122,76 @@
     if (navParent) navParent.insertAdjacentHTML('beforeend', modeHtml);
   }
 
+  // ── Shared mobile header ────────────────────────────────────────────────────
+  // Every page used to hand-roll its own mobile header (or have none at all), so
+  // the top of the screen looked different on each one and sign-out was only
+  // reachable from Comms. This renders ONE header for every page: brand mark,
+  // page title, date, avatar, sign-out. Page-specific headers are hidden on
+  // mobile by the injected style so there's never two stacked bars.
+  function pageTitle(me) {
+    var here = norm(location.pathname);
+    var all = OFFICE.concat(PRO, [
+      { href: '/pro-schedule.html',   label: 'Lesson Schedule' },
+      { href: '/checkins.html',       label: 'Member Check-Ins' },
+      { href: '/members.html',        label: 'Member List' },
+      { href: '/ideas.html',          label: 'Idea Board' },
+      { href: '/waitlist.html',       label: 'Academy Openings' },
+      { href: '/academy.html',        label: 'Wait Lists' },
+      { href: '/proshop.html',        label: 'Pro Shop' },
+      { href: '/staff-management.html', label: 'Staff Management' },
+      { href: '/bubble.html',         label: 'Bubble Monitoring' },
+      { href: '/house-league.html',   label: 'House League' },
+    ]);
+    for (var i = 0; i < all.length; i++) {
+      if (norm(all[i].href) === here) return all[i].label;
+    }
+    // Fall back to the document title with the site suffix stripped.
+    return (document.title || 'JCT').split(/[—·|]/)[0].replace(/JCT Staff Hub/i, '').trim() || 'JCT';
+  }
+
+  window.__jctSignOut = function () {
+    fetch('/api/auth/logout', { method: 'POST' })
+      .then(function () { location.href = '/login.html'; })
+      .catch(function () { location.href = '/login.html'; });
+  };
+
+  function mountMobileHeader(me) {
+    if (document.querySelector('.jct-mhead')) return;
+    var title = pageTitle(me);
+    var dateStr = new Date().toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+    var head = document.createElement('header');
+    head.className = 'jct-mhead';
+    head.innerHTML =
+      '<a class="jct-mhead-mark" href="/hub.html" aria-label="Dashboard">JCT</a>' +
+      '<div class="jct-mhead-txt">' +
+        '<div class="jct-mhead-title">' + title + '</div>' +
+        '<div class="jct-mhead-date">' + dateStr + '</div>' +
+      '</div>' +
+      // Signed-out pages (the public pro-schedule quick reference) get the brand +
+      // title only — no avatar, and no sign-out button for a session that isn't there.
+      (me ? '<div class="jct-mhead-right">' +
+        '<div class="jct-mhead-av" id="jct-mhead-av"></div>' +
+        '<button type="button" class="jct-mhead-out" onclick="window.__jctSignOut()" aria-label="Sign out" title="Sign out">' +
+          '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
+        '</button>' +
+      '</div>' : '');
+    document.body.insertBefore(head, document.body.firstChild);
+    if (me && typeof window.staffAvatar === 'function') {
+      try { window.staffAvatar(document.getElementById('jct-mhead-av'), me.id, me.name, me.color); } catch (e) {}
+    }
+  }
+
+  // "More" was reduced to a single duplicate link (Idea Board, already on the
+  // dashboard), so the tab is dead weight on a 5-slot bottom bar. Remove the
+  // trigger wherever a page hand-coded it; the sheet markup can stay harmlessly.
+  function stripMoreTab() {
+    document.querySelectorAll('.mnav-item').forEach(function (n) {
+      var txt = (n.textContent || '').trim().toLowerCase();
+      var oc = (n.getAttribute('onclick') || '');
+      if (txt === 'more' || /mnavOpenMore|openMore/.test(oc)) n.remove();
+    });
+  }
+
   window.__jctToggleHubMode = function (mode) {
     try { localStorage.setItem('jct-hub-mode', mode === 'pro' ? 'pro' : 'office'); } catch (e) {}
     // Pages that force a mode by URL (pro-timesheet, pro-schedule-view) would
@@ -149,12 +219,40 @@
       '.topnav-mode{display:inline-flex;align-items:center;background:rgba(12,23,56,0.05);border:1px solid rgba(12,23,56,0.08);border-radius:100px;padding:3px;margin-left:6px;gap:1px}' +
       '.topnav-mode-btn{border:none;background:none;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:11px;font-weight:700;color:#8fa0b8;padding:4px 11px;border-radius:100px;transition:all .15s}' +
       '.topnav-mode-btn.on{background:#fff;color:#0c1738;box-shadow:0 1px 3px rgba(12,23,56,0.10)}' +
-      '@media(max-width:820px){.topnav-mode{display:none}}';
+      '@media(max-width:820px){.topnav-mode{display:none}}' +
+      // ── Shared mobile header (one per page, replaces every hand-rolled one) ──
+      '.jct-mhead{display:none}' +
+      '@media(max-width:820px){' +
+        '.jct-mhead{display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:150;' +
+          'background:#fff;border-bottom:1px solid rgba(12,23,56,0.08);' +
+          'padding:9px 14px calc(9px);font-family:Inter,system-ui,sans-serif;}' +
+        '.jct-mhead-mark{display:flex;align-items:center;justify-content:center;width:34px;height:34px;' +
+          'border-radius:10px;flex-shrink:0;background:#0c1738;color:#fff;font-weight:800;font-size:11px;' +
+          'letter-spacing:0.02em;text-decoration:none;}' +
+        '.jct-mhead-txt{flex:1;min-width:0;}' +
+        '.jct-mhead-title{font-size:14px;font-weight:700;color:#0c1738;line-height:1.2;' +
+          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.jct-mhead-date{font-size:11px;color:#8fa0b8;margin-top:1px;}' +
+        '.jct-mhead-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}' +
+        '.jct-mhead-av{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;' +
+          'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;background:#e8eef8;}' +
+        '.jct-mhead-av img{width:100%;height:100%;object-fit:cover;}' +
+        '.jct-mhead-out{display:flex;align-items:center;justify-content:center;width:32px;height:32px;' +
+          'border-radius:9px;border:1px solid rgba(12,23,56,0.10);background:#fff;color:#8fa0b8;cursor:pointer;padding:0;}' +
+        '.jct-mhead-out svg{width:16px;height:16px;}' +
+        '.jct-mhead-out:active{color:#ef4444;border-color:rgba(239,68,68,0.35);}' +
+        // Page-specific headers stand down on mobile so there's never two bars.
+        // Pages use one of two patterns for their own desktop header (.topstrip or
+        // .topbar) plus the injected .topnav-bar — all three defer to this one.
+        '.topstrip,.topbar,.topnav-bar{display:none !important;}' +
+      '}';
     document.head.appendChild(s);
   }
 
   function mount(me) {
     injectStyleOnce();
+    mountMobileHeader(me);
+    stripMoreTab();
     var built = buildHTML(me);
     var html = built.navHtml;
     var existing = document.querySelectorAll('.qnav');
@@ -182,6 +280,12 @@
       var comms = wrap.querySelector('a[href^="/comms.html"], .qnav-active[title*="Comms"]');
       if (pill && comms) comms.parentNode.insertBefore(pill, comms.nextSibling);
       placeModeToggle(built.modeHtml, parent);
+    } else if (document.querySelector('.sidenav')) {
+      // The dashboard has its own left launcher, top strip AND its own Office/Pro
+      // toggle on desktop, and is deliberately left alone there — it only needs
+      // the shared MOBILE header (already mounted above). Injecting a second bar
+      // or a second mode toggle here would duplicate what the page already has.
+      return;
     } else {
       // No top nav on this page — inject a bar so it isn't stranded.
       injectStyleOnce();

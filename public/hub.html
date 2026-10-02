@@ -246,35 +246,6 @@
       display: flex; align-items: center; gap: 6px;
     }
     .ts-right { display: flex; align-items: center; gap: 16px; }
-    /* ── Pro Mode's own top-right corner: brand mark above the status-dot row ── */
-    .pro-brand-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-    .pro-brand-mark {
-      display: flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
-      background: var(--navy); color: #fff; font-weight: 800; font-size: 10px; letter-spacing: 0.02em;
-    }
-    @media (max-width: 820px) {
-      /* Redundant on a phone, which already shows the time — drop it for Pro Mode
-         specifically so the top strip isn't repeating what the OS already shows. */
-      body.pro-mode .topstrip > div:first-child { display: none; }
-    }
-    /* ── Pro Mode status dots — small, horizontally-scrollable glance row ── */
-    .pro-status-dots {
-      display: flex; align-items: center; gap: 6px;
-      overflow-x: auto; -webkit-overflow-scrolling: touch;
-      max-width: 220px; scrollbar-width: none;
-    }
-    .pro-status-dots::-webkit-scrollbar { display: none; }
-    .pro-dot {
-      flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; font-weight: 600; color: var(--text-2);
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: 100px; padding: 5px 10px; white-space: nowrap;
-    }
-    .pro-dot .pd-led { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--text-3); }
-    .pro-dot .pd-led.on { background: var(--blue); }
-    .pro-dot .pd-led.warn { background: #d97706; }
-    @media (max-width: 820px) { .pro-status-dots { max-width: 150px; } }
     .assistant-btn {
       display: inline-flex; align-items: center; gap: 7px;
       background: var(--surface-2); border: 1px solid var(--border);
@@ -711,7 +682,6 @@
     body.pro-mode .contact-card,
     body.pro-mode .tile,
     body.pro-mode .ask-bar,
-    body.pro-mode .pro-dot,
     body.pro-mode .qci-fav-btn {
       background: rgba(255,255,255,0.55);
       backdrop-filter: blur(16px) saturate(140%);
@@ -720,17 +690,23 @@
       box-shadow: 0 8px 28px rgba(12,23,56,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
     }
     /* Merge the shared hero header into the Quick Check-In card directly below it —
-       one continuous glass surface instead of two stacked boxes. */
-    body.pro-mode .page-hero { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none; }
-    body.pro-mode .qci-card { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; border-top: none; box-shadow: none; }
-    /* Rebalance the hero: avatar + greeting lead on the left; the JCT mark moves out
-       to its own slot in the top strip (see .pro-brand-mark) instead of sharing this
-       row, so it's hidden here. CSS-only — the shared .page-hero markup and the
-       office view's layout are both untouched. */
-    body.pro-mode .hero-avatar { order: 1; }
-    body.pro-mode .hero-text   { order: 2; }
-    body.pro-mode .hero-divider { display: none; }
-    body.pro-mode .hero-logo, body.pro-mode .hero-jct-mark { display: none; }
+       one continuous glass surface instead of two stacked boxes. Gated on
+       .can-self-checkin: when Quick Check-In is hidden (anyone who doesn't teach,
+       e.g. Craig or Jaime) there's nothing below to merge INTO, so the hero must
+       keep its normal rounded corners and bottom margin instead of butting
+       straight into the next section. That mismatch was the "no spacing between
+       the boxes" misalignment on the admin-as-pro view. */
+    body.pro-mode.can-self-checkin .page-hero { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none; }
+    body.pro-mode.can-self-checkin .qci-card { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; border-top: none; box-shadow: none; }
+    /* Rebalance the hero on MOBILE pro view: avatar + greeting lead on the left,
+       small JCT mark moves to the right edge (it leads on the left by default via
+       order:-2 in the mobile block below). Order only — no display changes, so
+       desktop keeps the normal wide logo and the office view is untouched. */
+    @media (max-width: 768px) {
+      body.pro-mode .hero-avatar   { order: 1; }
+      body.pro-mode .hero-text     { order: 2; }
+      body.pro-mode .hero-jct-mark { order: 3; }
+    }
     /* Quick-action tiles (Sub/Coverage, Schedule Change) were dominating the
        screen above the real headline feature — shrink to a compact 2-up row on
        mobile pro view so Quick Check-In reads as the primary function again. */
@@ -1340,16 +1316,6 @@
         <button id="mode-pro" onclick="setMode('pro')">Pro</button>
       </div>
       <span id="mode-locked-pill" class="pro-pill" style="display:none">🎾 Pro Mode</span>
-      <!-- Pro Mode's own top-right corner: brand mark leads, the glance row of status
-           dots sits below it — its own slot, not sharing the hero row below. -->
-      <div class="pro-brand-col pro-only">
-        <div class="pro-brand-mark" aria-hidden="true">JCT</div>
-        <div class="pro-status-dots" id="pro-status-dots">
-          <span class="pro-dot" id="pd-unread" title="Unread Comm Log notes"><span class="pd-led" id="pd-unread-led"></span><span id="pd-unread-txt">—</span></span>
-          <span class="pro-dot" id="pd-bubble" title="Latest bubble temperature"><span class="pd-led" id="pd-bubble-led"></span><span id="pd-bubble-txt">—</span></span>
-          <span class="pro-dot" id="pd-next" title="Next class on the courts"><span class="pd-led" id="pd-next-led"></span><span id="pd-next-txt">—</span></span>
-        </div>
-      </div>
       <div class="ts-status">
         <div class="status-dot"></div>
         <span style="font-size:11px;color:var(--text-3)">All systems online</span>
@@ -2057,61 +2023,6 @@
       } catch (e) {}
     }
 
-    // ── Pro Mode status dots — small glance row in the top strip (unread, bubble, next class).
-    // Hidden via .pro-only unless pro-mode is active; fetches are harmless no-ops otherwise.
-    async function loadProStatusDots() {
-      try {
-        const r = await fetch('/api/messages/unread-count?audience=pro');
-        if (r.ok) {
-          const { count } = await r.json();
-          document.getElementById('pd-unread-txt').textContent = count > 0 ? count + ' unread' : 'No unread';
-          document.getElementById('pd-unread-led').classList.toggle('on', count > 0);
-        }
-      } catch (e) {}
-      try {
-        const r = await fetch('/api/bubble?limit=1');
-        if (r.ok) {
-          const rows = await r.json();
-          const latest = rows[0];
-          const txt = document.getElementById('pd-bubble-txt');
-          const led = document.getElementById('pd-bubble-led');
-          if (latest && latest.temperature != null) {
-            txt.textContent = latest.temperature + '°';
-            const hrs = latest.created_at ? (Date.now() - new Date(latest.created_at).getTime()) / 3600000 : 99;
-            led.classList.toggle('warn', hrs > 4);
-            led.classList.toggle('on', hrs <= 4);
-          } else {
-            txt.textContent = 'No reading';
-          }
-        }
-      } catch (e) {}
-      try {
-        const r = await fetch('/api/pro-schedule/slots');
-        if (r.ok) {
-          const slots = await r.json();
-          const CODES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-          const now = new Date();
-          const dayCode = CODES[now.getDay()];
-          const nowMin = now.getHours() * 60 + now.getMinutes();
-          const toMin = t => { const [h,m] = String(t||'0:0').split(':').map(Number); return (h||0)*60 + (m||0); };
-          const todays = (slots || [])
-            .filter(s => s.day === dayCode && (s.season || 'indoor') === 'indoor' && toMin(s.end) > nowMin)
-            .sort((a,b) => toMin(a.start) - toMin(b.start));
-          const txt = document.getElementById('pd-next-txt');
-          const led = document.getElementById('pd-next-led');
-          if (todays.length) {
-            const s = todays[0];
-            const startMin = toMin(s.start);
-            const running = startMin <= nowMin;
-            const fmt = m => { let h = Math.floor(m/60), mm = m%60, ap = h<12?'AM':'PM'; h = h%12||12; return mm ? `${h}:${String(mm).padStart(2,'0')} ${ap}` : `${h} ${ap}`; };
-            txt.textContent = running ? 'On now' : fmt(startMin);
-            led.classList.toggle('on', running);
-          } else {
-            txt.textContent = 'Done for today';
-          }
-        }
-      } catch (e) {}
-    }
     // Prompt to check the bubble when the latest reading is stale (or none today).
     function updateBubbleWarn(latest) {
       const el = document.getElementById('bub-warn'); if (!el) return;
@@ -2902,7 +2813,6 @@
     }
 
     init();
-    loadProStatusDots();
 
     // ── Notification enrollment prompt ──────────────────────────────────────────
     // Push is opt-in per device. Surface a clear prompt on the dashboard (not buried
@@ -3148,6 +3058,7 @@
   <script src="/staff-avatar.js"></script>
   <script src="/chat-widget.js"></script>
   <script src="/app-version.js"></script>
+  <script src="/topnav.js"></script>
   <script src="/status-strip.js"></script>
   <script src="/mobile-more.js"></script>
   <script src="/notif-bell.js"></script>

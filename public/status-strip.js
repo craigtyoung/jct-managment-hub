@@ -62,8 +62,9 @@
       bar = document.createElement('div');
       bar.id = 'status-strip';
       bar.className = 'status-strip';
-      // Sits directly under whatever top nav the page has.
-      var topnav = document.querySelector('.topnav-bar, .topbar, .topstrip');
+      // Sits directly under whatever top nav the page has. The shared mobile
+      // header comes first so the strip lands under it on a phone.
+      var topnav = document.querySelector('.jct-mhead, .topnav-bar, .topbar, .topstrip');
       if (topnav && topnav.parentNode) topnav.parentNode.insertBefore(bar, topnav.nextSibling);
       else document.body.insertBefore(bar, document.body.firstChild);
     }
@@ -74,8 +75,56 @@
         '<span class="ss-label">' + it.label + '</span>' +
       '</a>';
     }).join('');
-    items.forEach(function (it) { setVal(el('ss-' + it.key), it.value); });
+    items.forEach(function (it) {
+      if (it.text != null) { var n = el('ss-' + it.key); if (n) n.textContent = it.text; }
+      else setVal(el('ss-' + it.key), it.value);
+    });
+    bindDragGuard(bar);
     state.mounted = true;
+  }
+
+  // The strip scrolls horizontally on a phone, but every item is a link — so a
+  // drag to scroll it was landing as a tap and navigating away mid-swipe. Track
+  // how far the finger moved and swallow the click if it was a scroll, not a tap.
+  function bindDragGuard(bar) {
+    if (bar.__dragGuard) return;
+    bar.__dragGuard = true;
+    var x0 = 0, y0 = 0, moved = false;
+    bar.addEventListener('touchstart', function (e) {
+      var t = e.touches && e.touches[0]; if (!t) return;
+      x0 = t.clientX; y0 = t.clientY; moved = false;
+    }, { passive: true });
+    bar.addEventListener('touchmove', function (e) {
+      var t = e.touches && e.touches[0]; if (!t) return;
+      if (Math.abs(t.clientX - x0) > 8 || Math.abs(t.clientY - y0) > 8) moved = true;
+    }, { passive: true });
+    bar.addEventListener('click', function (e) {
+      if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+  }
+
+  // Earliest class today that hasn't finished yet. Mirrors the dashboard's own
+  // "Next on Court" maths so the two never disagree.
+  function nextClass(slots) {
+    var CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var now = new Date();
+    var dayCode = CODES[now.getDay()];
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    function toMin(t) {
+      var p = String(t || '0:0').split(':');
+      return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+    }
+    var todays = (slots || []).filter(function (s) {
+      return s.day === dayCode && (s.season || 'indoor') === 'indoor' && toMin(s.end) > nowMin;
+    }).sort(function (a, b) { return toMin(a.start) - toMin(b.start); });
+    if (!todays.length) return null;
+    var s = todays[0];
+    var startMin = toMin(s.start);
+    if (startMin <= nowMin) return { label: 'On now', title: (s.program || 'Class') + ' is on court now' };
+    var h = Math.floor(startMin / 60), m = startMin % 60, ap = h < 12 ? 'AM' : 'PM';
+    h = h % 12 || 12;
+    var lbl = m ? h + ':' + String(m).padStart(2, '0') : String(h);
+    return { label: lbl + ' ' + ap, title: (s.program || 'Class') + ' starts at ' + lbl + ' ' + ap };
   }
 
   function refresh() {
@@ -84,7 +133,7 @@
       me = m;
       if (!me) return Promise.reject();
       var jobs = [];
-      var data = { inToday: 0, courts: 0, unassigned: 0, spots: 0, unread: 0 };
+      var data = { inToday: 0, courts: 0, unassigned: 0, spots: 0, unread: 0, temp: null, next: null };
       if (me.can_view_checkins) {
         jobs.push(fetch('/api/checkin/feed').then(function (r) { return r.ok ? r.json() : { logs: [] }; })
           .then(function (d) {
@@ -100,9 +149,22 @@
           .then(function (rows) { data.spots = (rows || []).filter(function (s) { return s.status !== 'filled'; }).length; })
           .catch(function () {}));
       }
-      var audience = me.is_pro && !me.is_management ? '?audience=pro' : '';
+      var audience = (me.role === 'pro' || me.is_pro) && !me.is_management ? '?audience=pro' : '';
       jobs.push(fetch('/api/messages/unread-count' + audience).then(function (r) { return r.ok ? r.json() : { count: 0 }; })
         .then(function (d) { data.unread = d.count || 0; }).catch(function () {}));
+
+      // Bubble temperature — a read-only glance for everyone, including pros. They
+      // don't get the Bubble Monitoring page itself (deliberately trimmed from the
+      // pro nav), but knowing how cold the bubble is before walking on court is
+      // useful, so the number travels even where the page doesn't.
+      jobs.push(fetch('/api/bubble?limit=1').then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (rows) { data.temp = rows && rows[0] ? rows[0].temperature : null; })
+        .catch(function () {}));
+
+      // Next class on the courts today — the one piece of schedule a teaching pro
+      // actually wants at a glance.
+      jobs.push(fetch('/api/pro-schedule/slots').then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (slots) { data.next = nextClass(slots); }).catch(function () {}));
 
       return Promise.all(jobs).then(function () {
         var items = [];
@@ -117,7 +179,16 @@
             href: '/waitlist.html', title: 'Academy openings still needing to be filled' });
         }
         items.push({ key: 'unread', value: data.unread, label: 'Unread Notes', color: '#6366f1',
-          href: '/comms.html', title: 'Unread notes in the Comm Log' });
+          href: (me.role === 'pro' || me.is_pro) && !me.is_management ? '/comms.html?audience=pro' : '/comms.html',
+          title: 'Unread notes in the Comm Log' });
+        if (data.temp != null) {
+          items.push({ key: 'temp', value: 1, text: data.temp + '°', label: 'Bubble', color: '#0ea5e9',
+            href: me.can_view_checkins ? '/bubble.html' : '#', title: 'Latest logged bubble temperature' });
+        }
+        if (data.next) {
+          items.push({ key: 'next', value: 1, text: data.next.label, label: 'Next Class', color: '#16a34a',
+            href: '/pro-schedule-view.html', title: data.next.title });
+        }
         mount(items);
       });
     }).catch(function () {});

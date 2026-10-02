@@ -480,8 +480,17 @@
       window._rowData = {};
 
       if (!list.length) {
+        // A pro with nothing scheduled this period used to land on a dead end: the
+        // text said "add a manual entry below", but the add form only ever rendered
+        // inside a person card, so there was nothing below it — the page read as
+        // broken for exactly the people who most need to log off-schedule work.
+        // Render their own (empty) card instead so the form is always reachable.
+        if (!isManagement && me) {
+          main.innerHTML = renderPersonCard({ id: me.id, name: me.name, color: me.color, rows: [], manual: [] });
+          return;
+        }
         main.innerHTML = `<div class="empty-state" style="padding:40px 20px;text-align:center;color:var(--text-3)">
-          No classes assigned this period.${isManagement ? '' : ' Add a manual entry below if you taught off-schedule.'}
+          No classes assigned this period.
         </div>`;
         return;
       }

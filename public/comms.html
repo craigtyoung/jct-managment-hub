@@ -962,18 +962,9 @@
       document.title = 'Pro Comms · JCT';
       const trig = document.querySelector('#compose-trigger span');
       if (trig) trig.textContent = 'Post a note for the pro team...';
-      // Visible banner so it's unmistakable which log you're in — only useful for
-      // management, who can toggle between the office and pro logs. A pro only ever
-      // sees their own log, so the reminder is just clutter for them.
-      const main = document.querySelector('.main');
-      const isPro = me && me.role === 'pro';
-      if (main && !isPro && !document.getElementById('pro-aud-banner')) {
-        const b = document.createElement('div');
-        b.id = 'pro-aud-banner';
-        b.style.cssText = 'display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:9px 14px;border-radius:12px;background:rgba(47,158,95,0.10);border:1px solid rgba(47,158,95,0.30);color:#2f9e5f;font-weight:700;font-size:13px';
-        b.textContent = '🎾 Pro Team log — visible to the teaching pros + management only.';
-        main.insertBefore(b, main.firstChild);
-      }
+      // The old green "🎾 Pro Team log — visible to the teaching pros + management"
+      // banner lived here. Removed: the header already names the log you're in, so
+      // it was a loud, emoji-led restatement of something the page title covers.
       // Keep the nav "Comms" links on the pro log while viewing it.
       document.querySelectorAll('.sidenav a[href^="/comms.html"], .mnav a[href^="/comms.html"]').forEach(a => a.setAttribute('href', '/comms.html?audience=pro'));
     }
