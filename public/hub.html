@@ -246,6 +246,23 @@
       display: flex; align-items: center; gap: 6px;
     }
     .ts-right { display: flex; align-items: center; gap: 16px; }
+    /* ── Pro Mode status dots — small, horizontally-scrollable glance row ── */
+    .pro-status-dots {
+      display: flex; align-items: center; gap: 6px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      max-width: 220px; scrollbar-width: none;
+    }
+    .pro-status-dots::-webkit-scrollbar { display: none; }
+    .pro-dot {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 10px; white-space: nowrap;
+    }
+    .pro-dot .pd-led { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--text-3); }
+    .pro-dot .pd-led.on { background: var(--blue); }
+    .pro-dot .pd-led.warn { background: #d97706; }
+    @media (max-width: 820px) { .pro-status-dots { max-width: 150px; } }
     .assistant-btn {
       display: inline-flex; align-items: center; gap: 7px;
       background: var(--surface-2); border: 1px solid var(--border);
@@ -674,6 +691,14 @@
        of two stacked white boxes. */
     body.pro-mode .page-hero { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none; background: linear-gradient(135deg, #ffffff 0%, #f4f8fd 100%); }
     body.pro-mode .qci-card { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; border-top: none; background: linear-gradient(180deg, #f4f8fd 0%, #ffffff 60%); }
+    /* Rebalance the hero: avatar + greeting read as the primary left-side block (like
+       "Good morning, Mara Voss"), small JCT mark moves to the right edge as a brand
+       badge instead of leading on the left. CSS order only — the shared .page-hero
+       markup itself is untouched, so the office view's layout doesn't change. */
+    body.pro-mode .hero-avatar { order: 1; }
+    body.pro-mode .hero-text   { order: 2; }
+    body.pro-mode .hero-divider { order: 3; }
+    body.pro-mode .hero-logo, body.pro-mode .hero-jct-mark { order: 4; }
     /* Tennis-court line motif — faint, behind the Teaching Hub header only. Doubles
        service box + centre line, white on the court-green theme; kept very low
        opacity so it reads as texture, not decoration fighting the content. */
@@ -781,14 +806,16 @@
     body.pro-dark-preview .ask-bar,
     body.pro-dark-preview .stat-card,
     body.pro-dark-preview .contact-card,
-    body.pro-dark-preview .tile { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    body.pro-dark-preview .tile,
+    body.pro-dark-preview .pro-dot { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
     body.pro-dark-preview .qci-search-input,
     body.pro-dark-preview .qci-court-time-input { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: var(--text); }
     body.pro-dark-preview .dark-preview-toggle { background: rgba(255,255,255,0.10); color: var(--text); border-color: rgba(255,255,255,0.2); }
     .dark-preview-toggle {
-      position: fixed; bottom: 70px; right: 14px; z-index: 500;
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(66px + env(safe-area-inset-bottom, 0px)); z-index: 290;
       font-family: var(--font-body); font-size: 11px; font-weight: 700;
-      padding: 8px 14px; border-radius: 100px; border: 1px solid var(--border);
+      padding: 6px 16px; border-radius: 100px; border: 1px solid var(--border);
       background: var(--navy); color: #fff; cursor: pointer;
       box-shadow: 0 2px 10px rgba(12,23,56,0.25);
     }
@@ -1288,6 +1315,13 @@
         <button id="mode-pro" onclick="setMode('pro')">Pro</button>
       </div>
       <span id="mode-locked-pill" class="pro-pill" style="display:none">🎾 Pro Mode</span>
+      <!-- Small glance row, pro-mode only — fills the space the "All systems online"
+           status line leaves empty once that's hidden on mobile. -->
+      <div class="pro-status-dots pro-only" id="pro-status-dots">
+        <span class="pro-dot" id="pd-unread" title="Unread Comm Log notes"><span class="pd-led" id="pd-unread-led"></span><span id="pd-unread-txt">—</span></span>
+        <span class="pro-dot" id="pd-bubble" title="Latest bubble temperature"><span class="pd-led" id="pd-bubble-led"></span><span id="pd-bubble-txt">—</span></span>
+        <span class="pro-dot" id="pd-next" title="Next class on the courts"><span class="pd-led" id="pd-next-led"></span><span id="pd-next-txt">—</span></span>
+      </div>
       <div class="ts-status">
         <div class="status-dot"></div>
         <span style="font-size:11px;color:var(--text-3)">All systems online</span>
@@ -1744,7 +1778,7 @@
 
       <!-- ── Quick actions ─────────────────────── -->
       <div class="tile-grid">
-        <a href="/comms.html?audience=pro&amp;compose=sub-coverage" class="tile t-amber">
+        <a href="/comms.html?audience=pro&amp;compose=sub-coverage" class="tile t-sky">
           <div class="tile-head">
             <div class="tile-icon">
               <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
@@ -1996,6 +2030,62 @@
         const rows = (await r.json()).slice(0, 3);
         renderBubble(rows);
         updateBubbleWarn(rows[0]);
+      } catch (e) {}
+    }
+
+    // ── Pro Mode status dots — small glance row in the top strip (unread, bubble, next class).
+    // Hidden via .pro-only unless pro-mode is active; fetches are harmless no-ops otherwise.
+    async function loadProStatusDots() {
+      try {
+        const r = await fetch('/api/messages/unread-count?audience=pro');
+        if (r.ok) {
+          const { count } = await r.json();
+          document.getElementById('pd-unread-txt').textContent = count > 0 ? count + ' unread' : 'No unread';
+          document.getElementById('pd-unread-led').classList.toggle('on', count > 0);
+        }
+      } catch (e) {}
+      try {
+        const r = await fetch('/api/bubble?limit=1');
+        if (r.ok) {
+          const rows = await r.json();
+          const latest = rows[0];
+          const txt = document.getElementById('pd-bubble-txt');
+          const led = document.getElementById('pd-bubble-led');
+          if (latest && latest.temperature != null) {
+            txt.textContent = latest.temperature + '°';
+            const hrs = latest.created_at ? (Date.now() - new Date(latest.created_at).getTime()) / 3600000 : 99;
+            led.classList.toggle('warn', hrs > 4);
+            led.classList.toggle('on', hrs <= 4);
+          } else {
+            txt.textContent = 'No reading';
+          }
+        }
+      } catch (e) {}
+      try {
+        const r = await fetch('/api/pro-schedule/slots');
+        if (r.ok) {
+          const slots = await r.json();
+          const CODES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          const now = new Date();
+          const dayCode = CODES[now.getDay()];
+          const nowMin = now.getHours() * 60 + now.getMinutes();
+          const toMin = t => { const [h,m] = String(t||'0:0').split(':').map(Number); return (h||0)*60 + (m||0); };
+          const todays = (slots || [])
+            .filter(s => s.day === dayCode && (s.season || 'indoor') === 'indoor' && toMin(s.end) > nowMin)
+            .sort((a,b) => toMin(a.start) - toMin(b.start));
+          const txt = document.getElementById('pd-next-txt');
+          const led = document.getElementById('pd-next-led');
+          if (todays.length) {
+            const s = todays[0];
+            const startMin = toMin(s.start);
+            const running = startMin <= nowMin;
+            const fmt = m => { let h = Math.floor(m/60), mm = m%60, ap = h<12?'AM':'PM'; h = h%12||12; return mm ? `${h}:${String(mm).padStart(2,'0')} ${ap}` : `${h} ${ap}`; };
+            txt.textContent = running ? 'On now' : fmt(startMin);
+            led.classList.toggle('on', running);
+          } else {
+            txt.textContent = 'Done for today';
+          }
+        }
       } catch (e) {}
     }
     // Prompt to check the bubble when the latest reading is stale (or none today).
@@ -2766,6 +2856,7 @@
     }
 
     init();
+    loadProStatusDots();
 
     // ── TEMPORARY DEV PREVIEW — dark/light toggle for Pro Mode's main dashboard.
     // Only shows the toggle button when ?darkpreview=1 is in the URL, so no real
