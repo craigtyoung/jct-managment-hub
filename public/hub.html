@@ -683,31 +683,28 @@
     }
 
     /* ─────────────────────────────────────────────
-       PRO MODE — dark navy theme with a glass-card effect
+       PRO MODE — light blue theme with a glass-card effect
     ───────────────────────────────────────────── */
     body.pro-mode {
-      background: radial-gradient(circle at 50% -5%, #1c3f73 0%, #0d1f3d 48%, #081527 100%);
+      background: linear-gradient(180deg, #eaf1fb 0%, #f5f9fd 40%, #fafcfe 100%);
       background-attachment: fixed;
-      --blue:         #5ec8e8;
-      --blue-soft:    rgba(94,200,232,0.14);
-      --blue-glow:    rgba(94,200,232,0.22);
-      --powder:       #a9ddf3;
-      --powder-dim:   rgba(169,221,243,0.55);
-      --powder-faint: rgba(169,221,243,0.20);
+      --blue:         #2c5c9c;
+      --blue-soft:    rgba(44,92,156,0.10);
+      --blue-glow:    rgba(44,92,156,0.18);
+      --powder:       #b1c9fb;
+      --powder-dim:   rgba(177,201,251,0.55);
+      --powder-faint: rgba(177,201,251,0.20);
       --navy:         #0c1738;
       --navy-mid:     #111e40;
-      --navy-hover:   rgba(94,200,232,0.10);
-      --border-nav:   rgba(255,255,255,0.08);
-      --text:         #eaf2fb;
-      --text-2:       #aebedc;
-      --text-3:       #7d90b3;
-      --border:       rgba(255,255,255,0.14);
-      --canvas:       #0d1f3d;
-      --surface:      rgba(255,255,255,0.06);
-      --surface-2:    rgba(255,255,255,0.09);
+      --navy-hover:   rgba(177,201,251,0.07);
+      --border-nav:   rgba(177,201,251,0.07);
     }
-    /* Glass-card effect — frosted, translucent surfaces over the navy gradient
-       instead of flat opaque boxes. Plain CSS backdrop-filter, no extra libraries. */
+    /* Glass-card effect — frosted, translucent surfaces over the soft gradient
+       instead of flat opaque boxes. Deliberately scoped to explicit selectors with
+       their OWN background value, NOT the shared --surface/--border variables —
+       a dark version of this once overrode --surface globally and made the bottom
+       nav bar (which also uses var(--surface)) see-through. Never repeat that;
+       anything outside this selector list must stay on the normal opaque surface. */
     body.pro-mode .page-hero,
     body.pro-mode .qci-card,
     body.pro-mode .stat-card,
@@ -716,11 +713,11 @@
     body.pro-mode .ask-bar,
     body.pro-mode .pro-dot,
     body.pro-mode .qci-fav-btn {
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(18px) saturate(150%);
-      -webkit-backdrop-filter: blur(18px) saturate(150%);
-      border-color: rgba(255,255,255,0.14);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border-color: rgba(12,23,56,0.08);
+      box-shadow: 0 8px 28px rgba(12,23,56,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
     }
     /* Merge the shared hero header into the Quick Check-In card directly below it —
        one continuous glass surface instead of two stacked boxes. */
@@ -734,8 +731,17 @@
     body.pro-mode .hero-text   { order: 2; }
     body.pro-mode .hero-divider { display: none; }
     body.pro-mode .hero-logo, body.pro-mode .hero-jct-mark { display: none; }
-    body.pro-mode .qci-search-input,
-    body.pro-mode .qci-court-time-input { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: var(--text); }
+    /* Quick-action tiles (Sub/Coverage, Schedule Change) were dominating the
+       screen above the real headline feature — shrink to a compact 2-up row on
+       mobile pro view so Quick Check-In reads as the primary function again. */
+    @media (max-width: 768px) {
+      #pro-view .tile-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      #pro-view .tile { padding: 14px 12px; }
+      #pro-view .tile-head { margin-bottom: 8px; }
+      #pro-view .tile-icon svg { width: 20px; height: 20px; }
+      #pro-view .tile-name { font-size: 0.85rem; margin-bottom: 2px; }
+      #pro-view .tile-desc { display: none; }
+    }
     /* Tennis-court line motif — faint, behind the Teaching Hub header only. Doubles
        service box + centre line; kept very low opacity so it reads as texture, not
        decoration fighting the content. */
@@ -2316,11 +2322,14 @@
       const isPro = me.role === 'pro';
       window.__canToggle = canToggle;
       window.__hubRole = me.role;
-      // Quick Check-In is for people who actually teach — real pros, or a dual-role
-      // manager (David/Victor) currently assigned in the live Lesson Schedule. is_pro
-      // is a live check against that schedule (db.isTeachingPro), not a static flag,
-      // so this follows automatically as teaching assignments change.
-      document.body.classList.toggle('can-self-checkin', !!me.is_pro);
+      // Quick Check-In is for people who actually teach. Real pros (role === 'pro')
+      // always get it, full stop — even a brand-new pro with zero scheduled classes
+      // yet still needs Sign Me In and favorites. is_pro is a LIVE check against the
+      // Lesson Schedule (db.isTeachingPro, not a static flag) — relying on it alone
+      // broke Roger's test account, which has no slots assigned. It's only the right
+      // signal for the OTHER case: a dual-role manager (David/Victor) who isn't
+      // role 'pro' but is currently teaching a class.
+      document.body.classList.toggle('can-self-checkin', me.role === 'pro' || !!me.is_pro);
       if (me.role === 'admin') { const ml = document.getElementById('nav-mail-setup'); if (ml) ml.style.display = ''; }
       let startMode;
       if (isPro) startMode = 'pro';
