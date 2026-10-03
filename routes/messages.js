@@ -77,19 +77,33 @@ router.post('/', (req, res) => {
   const { content, shift, category } = req.body;
   if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
   const validShifts = ['morning', 'afternoon', 'evening', 'general'];
-  // recipients: array of staff IDs or empty/absent = everyone (within the audience)
-  const recipients = Array.isArray(req.body.recipients) && req.body.recipients.length > 0
-    ? req.body.recipients.map(Number)
-    : null;
+  const author = db.getStaffById(req.actingStaffId);
+
+  // Court-reply: the mirror-image exception to quick_ping. ANY office-audience staffer
+  // (not just admin/manager) may send a one-line reply straight back to the pro who sent
+  // a specific quick ping — scoped tightly to replying to a message that is actually a
+  // court ping in the office log, never a general office-can-post-to-pro permission.
+  const courtReplyToId = req.body.court_reply_to ? parseInt(req.body.court_reply_to) : null;
+  let courtReplyTargetId = null;
+  if (courtReplyToId && author && author.role !== 'pro') {
+    const orig = db.getMessage(courtReplyToId);
+    if (orig && orig.court_ping && orig.audience === 'office') courtReplyTargetId = orig.staff_id;
+  }
+
+  // recipients: array of staff IDs or empty/absent = everyone (within the audience).
+  // A court-reply always overrides this to target the original pro.
+  const recipients = courtReplyTargetId
+    ? [courtReplyTargetId]
+    : (Array.isArray(req.body.recipients) && req.body.recipients.length > 0 ? req.body.recipients.map(Number) : null);
 
   // Audience: pros always post to the pro log; management may choose; office → office.
   // Exception: a pro's "quick ping" (dashboard one-liner, not the Comms composer) is the
   // one deliberate crack in that wall — it needs to reach the front desk directly, not
   // just management's view of the pro log, so it's explicitly routed to 'office' instead.
-  const author = db.getStaffById(req.actingStaffId);
   const isQuickPing = req.body.quick_ping === true && author && author.role === 'pro';
   let audience = 'office';
-  if (author && author.role === 'pro') audience = isQuickPing ? 'office' : 'pro';
+  if (courtReplyTargetId) audience = 'pro';
+  else if (author && author.role === 'pro') audience = isQuickPing ? 'office' : 'pro';
   else if (req.body.audience === 'pro' && author && ['admin', 'manager'].includes(author.role)) audience = 'pro';
 
   // Urgent and Staff Memo are management-only signals — staff should call for urgent
@@ -114,6 +128,9 @@ router.post('/', (req, res) => {
     time_sensitive: timeSensitive,
     court_ping: isQuickPing,
   });
+  // Replying to a court ping is itself an acknowledgment — mark the original read for
+  // this staffer so it clears from their own "Messages from the Court" card too.
+  if (courtReplyTargetId) db.markRead(courtReplyToId, req.actingStaffId);
   sse.broadcast('update');
 
   // Push notifications to the intended recipients (never the author), respecting

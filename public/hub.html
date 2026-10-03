@@ -3130,7 +3130,11 @@
               <div class="court-ping-av" data-av="${m.author_id}" data-name="${esc(m.author_name||'?')}" data-color="${esc(m.author_color||'#2c5c9c')}"></div>
               <div class="court-ping-content">
                 <span class="court-ping-name">${esc(m.author_name)}:</span> ${esc(m.content)}
-                <div><button class="court-ping-ack" onclick="ackCourtPing(${m.id})">Got it</button></div>
+                <form class="court-ping-reply-form" onsubmit="return sendCourtReply(event,${m.id})" style="display:flex;gap:6px;margin-top:9px">
+                  <input type="text" id="court-reply-input-${m.id}" maxlength="200" placeholder="Got it 👍 (or type a quick reply)"
+                    style="flex:1;min-width:0;padding:6px 10px;border-radius:7px;border:1px solid rgba(217,119,6,0.3);background:#fff;color:var(--text);font-family:var(--font-body);font-size:12.5px">
+                  <button type="submit" class="court-ping-ack" style="margin-top:0">Send</button>
+                </form>
               </div>
             </div>
           </div>`).join('');
@@ -3143,9 +3147,24 @@
       if (diff < 60) return diff + 'm ago';
       return Math.round(diff / 60) + 'h ago';
     }
-    async function ackCourtPing(id) {
-      await fetch('/api/messages/' + id + '/read', { method: 'POST' });
+    // Send a one-line reply straight back to the pro who sent this ping — "Got it 👍"
+    // if left blank, or whatever the staffer typed. Also marks the original read
+    // (server-side), so the card clears itself once sent.
+    async function sendCourtReply(e, id) {
+      e.preventDefault();
+      const input = document.getElementById('court-reply-input-' + id);
+      const content = (input && input.value.trim()) || 'Got it 👍';
+      const btn = e.target.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, court_reply_to: id }),
+        });
+      } catch (err) { /* non-critical — worst case the card just stays put */ }
       loadCourtPings();
+      return false;
     }
 
     // SSE: refresh check-in feed in real time when any member signs in, and the
