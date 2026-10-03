@@ -249,9 +249,22 @@
     document.head.appendChild(s);
   }
 
+  // Lazy-loads the global "Messages from the Court" popup (court-alert.js) for any
+  // non-pro signed-in viewer, on every page — a pro's quick ping needs to interrupt
+  // whoever's at the desk regardless of which page they're on, not just the dashboard.
+  function loadCourtAlert(me) {
+    if (!me || me.role === 'pro') return;
+    if (window.__jctCourtAlertBoot) { window.__jctCourtAlertBoot(me); return; }
+    var sc = document.createElement('script');
+    sc.src = '/court-alert.js';
+    sc.onload = function () { if (window.__jctCourtAlertBoot) window.__jctCourtAlertBoot(me); };
+    document.head.appendChild(sc);
+  }
+
   function mount(me) {
     injectStyleOnce();
     mountMobileHeader(me);
+    loadCourtAlert(me);
     stripMoreTab();
     var built = buildHTML(me);
     var html = built.navHtml;

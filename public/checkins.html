@@ -564,6 +564,13 @@
   <script src="/staff-avatar.js"></script>
   <script src="/app-version.js"></script>
   <script src="/help-icon.js"></script>
+  <!-- This page predates topnav.js's shared nav (its own nav is hand-rolled), so the
+       global court-ping popup is wired in directly rather than via topnav.js. -->
+  <script src="/court-alert.js"></script>
+  <script>
+    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) { if (window.__jctCourtAlertBoot) window.__jctCourtAlertBoot(m); }).catch(function () {});
+  </script>
   <script>
     let me = null, allMembers = [];
 
