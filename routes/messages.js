@@ -83,9 +83,13 @@ router.post('/', (req, res) => {
     : null;
 
   // Audience: pros always post to the pro log; management may choose; office → office.
+  // Exception: a pro's "quick ping" (dashboard one-liner, not the Comms composer) is the
+  // one deliberate crack in that wall — it needs to reach the front desk directly, not
+  // just management's view of the pro log, so it's explicitly routed to 'office' instead.
   const author = db.getStaffById(req.actingStaffId);
+  const isQuickPing = req.body.quick_ping === true && author && author.role === 'pro';
   let audience = 'office';
-  if (author && author.role === 'pro') audience = 'pro';
+  if (author && author.role === 'pro') audience = isQuickPing ? 'office' : 'pro';
   else if (req.body.audience === 'pro' && author && ['admin', 'manager'].includes(author.role)) audience = 'pro';
 
   // Urgent and Staff Memo are management-only signals — staff should call for urgent
@@ -95,7 +99,9 @@ router.post('/', (req, res) => {
   let effCategory = category;
   if ((effCategory === 'urgent' || effCategory === 'memo') && !isMgmt) effCategory = 'general';
   // Time-sensitive: a lightweight flag anyone can set (badge + dashboard float). Not a category.
-  const timeSensitive = req.body.time_sensitive === true || req.body.time_sensitive === 'true';
+  // A quick ping always sets it — the whole point is that it floats to the top of the
+  // office dashboard's notes panel instead of waiting in the ordinary feed.
+  const timeSensitive = isQuickPing || req.body.time_sensitive === true || req.body.time_sensitive === 'true';
 
   const id = db.createMessage({
     staffId: req.actingStaffId,

@@ -1792,14 +1792,46 @@
       </div>
 
       <!-- ── Live Stats ────────────────────────── -->
-      <div class="stats-grid" style="grid-template-columns:1fr;max-width:260px">
+      <div class="stats-grid" style="grid-template-columns:1fr">
         <div class="stat-card live">
           <span class="stat-live-dot"></span>
           <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <div class="stat-label">In the Office Now</div>
-          <div class="stat-value" id="pro-shift-val">—</div>
-          <div class="stat-sub" id="pro-shift-sub">Loading…</div>
-          <div class="stat-av" id="pro-shift-av"></div>
+          <div class="stat-label">In the Office Today</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:2px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Morning</span>
+              <span class="stat-av" id="pro-shift-morning-av" style="margin-top:0"></span>
+              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-morning-sub">Loading…</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Afternoon</span>
+              <span class="stat-av" id="pro-shift-afternoon-av" style="margin-top:0"></span>
+              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-afternoon-sub">Loading…</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Evening</span>
+              <span class="stat-av" id="pro-shift-closing-av" style="margin-top:0"></span>
+              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-closing-sub">Loading…</span>
+            </div>
+          </div>
+          <a class="contact-btn ph" href="tel:+19052575019" title="Call the office" style="flex:0 0 auto;display:inline-flex;margin-top:12px;padding:7px 14px">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Call the Office
+          </a>
+          <!-- Quick ping: one line, straight to the office dashboard — not the Comms log.
+               No hover available on a phone, so the instruction sits as plain text instead. -->
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-size:10.5px;color:var(--text-3);margin-bottom:6px">Need something from the office? Send a quick note — it goes straight to the front desk.</div>
+            <form id="quick-ping-form" style="display:flex;gap:6px" onsubmit="return sendQuickPing(event)">
+              <input id="quick-ping-input" type="text" maxlength="200" placeholder="e.g. Need more balls on Court 3"
+                style="flex:1;min-width:0;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text);font-family:var(--font-body);font-size:13px">
+              <button type="submit" id="quick-ping-btn" title="Send to the office" aria-label="Send to the office"
+                style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--canvas);color:var(--text-2);cursor:pointer">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </form>
+            <div id="quick-ping-status" style="font-size:11px;color:var(--text-3);margin-top:6px;min-height:14px"></div>
+          </div>
         </div>
       </div>
 
@@ -1923,6 +1955,36 @@
       if (!q) return;
       inp.value = '';
       if (window.jctChat) window.jctChat.ask(q);
+    }
+
+    // ── Quick ping (pro → office, bypasses the Comms composer entirely) ─────────
+    async function sendQuickPing(e) {
+      e.preventDefault();
+      const input = document.getElementById('quick-ping-input');
+      const btn = document.getElementById('quick-ping-btn');
+      const status = document.getElementById('quick-ping-status');
+      const content = input.value.trim();
+      if (!content) return false;
+      btn.disabled = true;
+      status.textContent = '';
+      try {
+        const r = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, quick_ping: true }),
+        });
+        if (!r.ok) throw new Error('send failed');
+        input.value = '';
+        status.textContent = 'Sent to the office ✓';
+        status.style.color = 'var(--blue)';
+      } catch (e) {
+        status.textContent = 'Could not send — try again.';
+        status.style.color = '#dc2626';
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { if (status.textContent) { status.textContent = ''; status.style.color = 'var(--text-3)'; } }, 4000);
+      }
+      return false;
     }
 
     // ── Reach the Team ─────────────────────────────────────────
@@ -2576,28 +2638,31 @@
       try { renderContacts('pro-contacts-list'); } catch (e) { console.error('pro contacts', e); }
       try { qciInit(); } catch (e) { console.error('quick check-in', e); }
 
-      // On Shift Now — who's working (pros coordinate with the office)
+      // In the Office Today — all three office shifts at a glance (pros coordinate
+      // with the office), not just whoever's on right now.
       try {
         const h = new Date().getHours();
-        const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
-        const shiftLabel = { morning: 'Morning', afternoon: 'Afternoon', closing: 'Closing' }[shift];
+        const nowShift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
         const today = new Date().toISOString().slice(0, 10);
-        const sr = await fetch(`/api/schedule/shift?date=${today}&shift=${shift}`);
-        const assigned = await sr.json();
-        const scv = document.getElementById('pro-shift-val');
-        const scs = document.getElementById('pro-shift-sub');
-        if (scv) {
-          scv.textContent = assigned.length;
-          scv.className = 'stat-value ' + (assigned.length ? 'accent-blue' : '');
-          scs.textContent = assigned.length
-            ? `${shiftLabel} · ${assigned.map(a => (a.staff_name || '').split(' ')[0]).join(', ')}`
-            : `${shiftLabel} · none assigned`;
-          const av = document.getElementById('pro-shift-av');
+        const SHIFTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['closing', 'Evening']];
+        const results = await Promise.all(SHIFTS.map(([key]) =>
+          fetch(`/api/schedule/shift?date=${today}&shift=${key}`).then(r => r.ok ? r.json() : []).catch(() => [])
+        ));
+        SHIFTS.forEach(([key], i) => {
+          const assigned = results[i] || [];
+          const sub = document.getElementById(`pro-shift-${key}-sub`);
+          const av = document.getElementById(`pro-shift-${key}-av`);
+          if (sub) {
+            const nowTag = key === nowShift ? '<strong style="color:var(--blue)">Now · </strong>' : '';
+            sub.innerHTML = nowTag + (assigned.length
+              ? assigned.map(a => esc((a.staff_name || '').split(' ')[0])).join(', ')
+              : '<span style="color:var(--text-3)">none assigned</span>');
+          }
           if (av) {
             av.innerHTML = assigned.slice(0,5).map(a => `<span class="sa" data-av="${a.staff_id||''}" data-name="${esc(a.staff_name||'?')}" data-color="${a.staff_color||'#2c5c9c'}"></span>`).join('');
             av.querySelectorAll('[data-av]').forEach(el => staffAvatar(el, el.dataset.av, el.dataset.name, el.dataset.color));
           }
-        }
+        });
       } catch (e) {}
 
       // Oakville weather
