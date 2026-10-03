@@ -112,6 +112,7 @@ router.post('/', (req, res) => {
     show_on: req.body.show_on,
     audience,
     time_sensitive: timeSensitive,
+    court_ping: isQuickPing,
   });
   sse.broadcast('update');
 

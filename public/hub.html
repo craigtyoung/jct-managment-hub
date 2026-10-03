@@ -426,6 +426,29 @@
     .memo-dot.active { background: #4338ca; }
 
     /* ─────────────────────────────────────────────
+       MESSAGES FROM THE COURT (pro quick-pings — needs-attention-now styling,
+       distinct from the calmer indigo Staff Memo card)
+    ───────────────────────────────────────────── */
+    .court-ping-card {
+      background: #fff7ed; border: 1.5px solid #f59e0b; border-radius: 16px;
+      padding: 13px 16px; margin-bottom: 10px;
+      animation: courtPingGlow 1.6s ease-in-out infinite;
+    }
+    @keyframes courtPingGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.0); border-color: #f59e0b; }
+      50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.16); border-color: #d97706; }
+    }
+    .court-ping-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .court-ping-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: #b45309; display: flex; align-items: center; gap: 5px; }
+    .court-ping-meta { font-size: 11px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+    .court-ping-body { display: flex; align-items: flex-start; gap: 10px; }
+    .court-ping-av { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+    .court-ping-content { flex: 1; font-size: 14px; color: var(--text); line-height: 1.5; }
+    .court-ping-name { font-weight: 700; color: var(--text); }
+    .court-ping-ack { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; padding: 6px 13px; border-radius: 8px; border: 1px solid #f59e0b; background: #fff; color: #b45309; font-family: var(--font-body); font-size: 12px; font-weight: 700; cursor: pointer; }
+    .court-ping-ack:hover { background: #fff7ed; }
+
+    /* ─────────────────────────────────────────────
        SECTION HEADER
     ───────────────────────────────────────────── */
     .section-title {
@@ -1369,6 +1392,13 @@
       <div id="memo-list"></div>
     </div>
 
+    <!-- ── Messages from the Court (pro quick-pings) — distinct from Latest Messages
+         on purpose: a pro needs something RIGHT NOW, so this flashes + dings rather
+         than waiting to be noticed in the ordinary feed. Clears itself once read. ── -->
+    <div id="court-ping-section" style="display:none">
+      <div id="court-ping-list"></div>
+    </div>
+
     <!-- ── Comm Log + Today's Check-ins (two-column) ───
          Experiment 2026-09-26: swapped with Bubble Monitoring (now below the
          stats grid) so check-ins — the desk's live to-do — gets the prominent
@@ -1797,27 +1827,27 @@
           <span class="stat-live-dot"></span>
           <div class="stat-ico-bg"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           <div class="stat-label">In the Office Today</div>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:2px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Morning</span>
-              <span class="stat-av" id="pro-shift-morning-av" style="margin-top:0"></span>
-              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-morning-sub">Loading…</span>
+          <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-top:4px">
+            <div style="flex:1 1 76px;min-width:76px">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px">Morning</div>
+              <div class="stat-av" id="pro-shift-morning-av" style="margin-top:0;margin-bottom:4px"></div>
+              <div style="font-size:11px;color:var(--text-2);line-height:1.3" id="pro-shift-morning-sub">Loading…</div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Afternoon</span>
-              <span class="stat-av" id="pro-shift-afternoon-av" style="margin-top:0"></span>
-              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-afternoon-sub">Loading…</span>
+            <div style="flex:1 1 76px;min-width:76px">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px">Afternoon</div>
+              <div class="stat-av" id="pro-shift-afternoon-av" style="margin-top:0;margin-bottom:4px"></div>
+              <div style="font-size:11px;color:var(--text-2);line-height:1.3" id="pro-shift-afternoon-sub">Loading…</div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:11px;font-weight:700;color:var(--text-3);width:64px;flex-shrink:0">Evening</span>
-              <span class="stat-av" id="pro-shift-closing-av" style="margin-top:0"></span>
-              <span style="font-size:12.5px;color:var(--text-2)" id="pro-shift-closing-sub">Loading…</span>
+            <div style="flex:1 1 76px;min-width:76px">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px">Evening</div>
+              <div class="stat-av" id="pro-shift-closing-av" style="margin-top:0;margin-bottom:4px"></div>
+              <div style="font-size:11px;color:var(--text-2);line-height:1.3" id="pro-shift-closing-sub">Loading…</div>
             </div>
+            <a class="contact-btn ph" href="tel:+19052575019" title="Call the office" style="flex:0 0 auto;align-self:center;display:inline-flex;padding:7px 11px">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Call
+            </a>
           </div>
-          <a class="contact-btn ph" href="tel:+19052575019" title="Call the office" style="flex:0 0 auto;display:inline-flex;margin-top:12px;padding:7px 14px">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            Call the Office
-          </a>
           <!-- Quick ping: one line, straight to the office dashboard — not the Comms log.
                No hover available on a phone, so the instruction sits as plain text instead. -->
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
@@ -2454,6 +2484,7 @@
       }
 
       loadMemos('', '');
+      loadCourtPings();
     }
 
     async function loadCheckins() {
@@ -3049,6 +3080,74 @@
       loadMemos(prefix, audienceQ);
     }
 
+    // ── Messages from the Court: a pro's quick-ping, surfaced as its own flashing
+    // card rather than folded into Latest Messages — the point is to be noticed
+    // immediately, not browsed later. Drawn from the office audience's unread set
+    // (quick pings are always time_sensitive, so this naturally clears once read).
+    // A short tone plays for any ping that's new since the last check — not on the
+    // very first load, so opening the dashboard doesn't itself trigger noise.
+    let __courtPingSeen = null;
+    function playCourtPingSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [880, 1320].forEach((freq, i) => {
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = 'sine'; osc.frequency.value = freq;
+          osc.connect(gain); gain.connect(ctx.destination);
+          const start = ctx.currentTime + i * 0.14;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+          osc.start(start); osc.stop(start + 0.24);
+        });
+      } catch (e) { /* audio not available — silent fallback */ }
+    }
+    async function loadCourtPings() {
+      const wrap = document.getElementById('court-ping-section');
+      const list = document.getElementById('court-ping-list');
+      if (!wrap || !list || !window.__me) return;
+      try {
+        const r = await fetch('/api/messages?unread=true');
+        const unread = await r.json();
+        const pings = (Array.isArray(unread) ? unread : []).filter(m => m.court_ping)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        if (!pings.length) { wrap.style.display = 'none'; list.innerHTML = ''; __courtPingSeen = __courtPingSeen || new Set(); return; }
+        wrap.style.display = '';
+        if (__courtPingSeen === null) {
+          // First load this page-view: establish the baseline silently.
+          __courtPingSeen = new Set(pings.map(p => p.id));
+        } else if (pings.some(p => !__courtPingSeen.has(p.id))) {
+          pings.forEach(p => __courtPingSeen.add(p.id));
+          playCourtPingSound();
+        }
+        list.innerHTML = pings.map(m => `
+          <div class="court-ping-card">
+            <div class="court-ping-head">
+              <span class="court-ping-tag">📍 Message from the Court</span>
+              <span class="court-ping-meta">${relTimeShort(m.created_at)}</span>
+            </div>
+            <div class="court-ping-body">
+              <div class="court-ping-av" data-av="${m.author_id}" data-name="${esc(m.author_name||'?')}" data-color="${esc(m.author_color||'#2c5c9c')}"></div>
+              <div class="court-ping-content">
+                <span class="court-ping-name">${esc(m.author_name)}:</span> ${esc(m.content)}
+                <div><button class="court-ping-ack" onclick="ackCourtPing(${m.id})">Got it</button></div>
+              </div>
+            </div>
+          </div>`).join('');
+        list.querySelectorAll('[data-av]').forEach(el => staffAvatar(el, el.dataset.av, el.dataset.name, el.dataset.color));
+      } catch (e) { /* non-critical */ }
+    }
+    function relTimeShort(iso) {
+      const diff = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+      if (diff < 1) return 'just now';
+      if (diff < 60) return diff + 'm ago';
+      return Math.round(diff / 60) + 'h ago';
+    }
+    async function ackCourtPing(id) {
+      await fetch('/api/messages/' + id + '/read', { method: 'POST' });
+      loadCourtPings();
+    }
+
     // SSE: refresh check-in feed in real time when any member signs in, and the
     // dashboard notes preview(s) whenever a note/reply/edit happens anywhere.
     (function () {
@@ -3062,6 +3161,7 @@
             refreshProNotesPreview();
             loadMemos('', '');
             loadMemos('pro-', 'pro');
+            loadCourtPings();
           }
         };
       } catch (e) {}

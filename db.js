@@ -2153,6 +2153,7 @@ function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = f
       shift: msg.shift,
       category: msg.category || 'general',
       time_sensitive: !!msg.time_sensitive,
+      court_ping: !!msg.court_ping,
       audience: aud,
       recipients,
       receipt_staff: receiptStaff.map(s => ({ id: s.id, name: s.name, color: s.color })),
@@ -2229,7 +2230,7 @@ function setMessageImage(id, filename) {
   return true;
 }
 
-function createMessage({ staffId, content, shift, category, recipients, show_on, audience, time_sensitive }) {
+function createMessage({ staffId, content, shift, category, recipients, show_on, audience, time_sensitive, court_ping }) {
   const id = nextId('messages');
   const aud = audience === 'pro' ? 'pro' : 'office';
   const officeCategories = ['urgent', 'memo', 'membership', 'pro-shop', 'maintenance', 'academy', 'general'];
@@ -2245,6 +2246,7 @@ function createMessage({ staffId, content, shift, category, recipients, show_on,
     shift,
     category: validCategories.includes(category) ? category : 'general',
     time_sensitive: !!time_sensitive,
+    court_ping: !!court_ping,
     audience: aud,
     recipients: recipients && recipients.length > 0 ? recipients.map(Number) : null,
     show_on: validShowOn,
