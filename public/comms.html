@@ -755,8 +755,12 @@
   const todayStr = localDateStr(new Date());
   // The day a note belongs to: its scheduled show_on date, else the day it was posted.
   function effDate(m) { return m.show_on || localDateStr(m.created_at); }
-  // Is this note relevant to me — an everyone-note, or one targeted to include me?
-  function isRelevantToMe(m) { return !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(me.id)); }
+  // Is this note relevant to me — an everyone-note, one targeted to include me, or one I
+  // authored myself (a targeted note I wrote doesn't list my own id in recipients, but a
+  // reply to it still needs to reach me — see isMyUnread). Must match the server's
+  // getUnreadCount()/getMessages() reachesMe check exactly, or the dashboard badge
+  // (server-counted) and this page's own badge/Unread tab (client-counted) disagree.
+  function isRelevantToMe(m) { return m.author_id === me.id || !m.recipients || (Array.isArray(m.recipients) && m.recipients.includes(me.id)); }
   // A note counts toward MY unread if it's relevant, unread, and not scheduled for the
   // future. No separate "not mine" check: authoring a note auto-marks it read server-side,
   // so it's never unread to its own author -- unless a reply resurfaces it, which is a
@@ -993,7 +997,10 @@
       if (!canSeeCounts) { el.style.display = 'none'; return; }
       const count = messages.filter(m => {
         if (effDate(m) > todayStr) return false; // scheduled notes don't count until their day
-        const isRecipient = m.recipients === null || (Array.isArray(m.recipients) && m.recipients.includes(s.id));
+        // Same reachesMe logic as isRelevantToMe: authored-by-them always counts (a
+        // reply can resurface their own note as unread), same as everyone-notes and
+        // notes that name them as a recipient.
+        const isRecipient = m.author_id === s.id || m.recipients === null || (Array.isArray(m.recipients) && m.recipients.includes(s.id));
         if (!isRecipient) return false;
         return !(m.reads || []).some(r => r.id === s.id);
       }).length;
