@@ -127,6 +127,7 @@ router.post('/', (req, res) => {
     audience,
     time_sensitive: timeSensitive,
     court_ping: isQuickPing,
+    court_reply: !!courtReplyTargetId,
   });
   // Replying to a court ping is itself an acknowledgment — mark the original read for
   // this staffer so it clears from their own "Messages from the Court" card too.

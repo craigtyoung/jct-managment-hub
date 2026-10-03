@@ -1,18 +1,22 @@
 /*
- * court-alert.js — a pro's "quick ping" interrupts whatever the office is doing,
- * on whatever page they're on. The dashboard's "Messages from the Court" card only
- * helps if someone happens to be looking at the dashboard; this is the same data
- * (court_ping messages, unread for the viewer) surfaced as a full-screen popup
- * instead, so an urgent on-court request can't be missed just because the front
- * desk is on Cash Summary or Check-ins at the time.
+ * court-alert.js — a two-way, full-screen interrupt so a court ping (or the reply
+ * to one) can't be missed just because the right person isn't looking at the
+ * dashboard. The dashboard's "Messages from the Court" card only helps if someone
+ * happens to be looking at the dashboard; this surfaces the same underlying data
+ * as a popup instead, wherever the viewer actually is — Cash Summary, Check-ins,
+ * the pro's own schedule view, anywhere.
  *
- * Loaded dynamically by topnav.js for any non-pro signed-in viewer (never for pros
- * — they're the senders here, not the receivers). Self-contained: injects its own
- * styles, escapes its own text, lazy-loads staff-avatar.js if a page doesn't
- * already have it.
+ * Two directions, same component: a non-pro viewer gets popped for an unread
+ * court_ping (a pro needs something); a pro viewer gets popped for an unread
+ * court_reply (the office answered). boot(me) picks the direction from the
+ * viewer's own role — see checkKind below.
  *
- * Deliberately separate from the Comm Log in every way — own data flag
- * (court_ping), own surfacing (popup, not a feed), own reply path
+ * Loaded dynamically by topnav.js for every signed-in viewer. Self-contained:
+ * injects its own styles, escapes its own text, lazy-loads staff-avatar.js if a
+ * page doesn't already have it.
+ *
+ * Deliberately separate from the Comm Log in every way — own data flags
+ * (court_ping / court_reply), own surfacing (popup, not a feed), own reply path
  * (court_reply_to), on purpose. See routes/messages.js for the server side.
  */
 (function () {
@@ -56,6 +60,7 @@
       '.jct-ca-send{flex:0 0 auto;padding:9px 16px;border-radius:9px;border:none;background:#2c5c9c;color:#fff;' +
         'font-weight:700;font-size:13px;cursor:pointer}' +
       '.jct-ca-send:disabled{opacity:0.6;cursor:default}' +
+      '.jct-ca-dismiss-solo{width:100%;margin-bottom:9px}' +
       '.jct-ca-dismiss{display:block;width:100%;text-align:center;padding:8px;background:none;border:none;' +
         'color:#8fa0b8;font-size:12px;cursor:pointer;text-decoration:underline;font-family:Inter,system-ui,sans-serif}' +
       '.jct-ca-dismiss:hover{color:#475569}';
@@ -103,67 +108,80 @@
 
   function tryShowNext() {
     if (modalEl || !queue.length) return;
-    showModal(queue.shift());
+    showModal(queue.shift(), checkKind);
   }
 
-  function showModal(m) {
+  // Two directions share this one popup: a pro's ping needs a reply box (office side),
+  // the office's reply back just needs to be seen and cleared (pro side) — Craig's call,
+  // no reply-to-a-reply loop for now.
+  function showModal(m, kind) {
     injectStyle();
     playPing();
+    var isReply = kind === 'reply';
+    var tag = isReply ? '💬 Reply from the Office' : '📍 Message from the Court';
+    var footHtml = isReply
+      ? '<button type="button" class="jct-ca-send jct-ca-dismiss-solo" id="jct-ca-dismiss-btn">Dismiss</button>'
+      : '<form class="jct-ca-form" id="jct-ca-form">' +
+          '<input class="jct-ca-input" id="jct-ca-input" maxlength="200" placeholder="Got it 👍 (or type a quick reply)">' +
+          '<button type="submit" class="jct-ca-send">Send</button>' +
+        '</form>' +
+        '<button type="button" class="jct-ca-dismiss" id="jct-ca-dismiss-btn">Dismiss without replying</button>';
     modalEl = document.createElement('div');
     modalEl.className = 'jct-ca-backdrop';
     modalEl.innerHTML =
       '<div class="jct-ca-card">' +
-        '<div class="jct-ca-head"><span class="jct-ca-tag">📍 Message from the Court</span>' +
+        '<div class="jct-ca-head"><span class="jct-ca-tag">' + tag + '</span>' +
           '<span class="jct-ca-meta">' + esc(relTime(m.created_at)) + '</span></div>' +
         '<div class="jct-ca-body">' +
           '<div class="jct-ca-av" id="jct-ca-av"></div>' +
           '<div class="jct-ca-text"><span class="jct-ca-name">' + esc(m.author_name) + ':</span> ' + esc(m.content) + '</div>' +
         '</div>' +
-        '<div class="jct-ca-foot">' +
-          '<form class="jct-ca-form" id="jct-ca-form">' +
-            '<input class="jct-ca-input" id="jct-ca-input" maxlength="200" placeholder="Got it 👍 (or type a quick reply)">' +
-            '<button type="submit" class="jct-ca-send">Send</button>' +
-          '</form>' +
-          '<button type="button" class="jct-ca-dismiss" id="jct-ca-dismiss-btn">Dismiss without replying</button>' +
-        '</div>' +
+        '<div class="jct-ca-foot">' + footHtml + '</div>' +
       '</div>';
     document.body.appendChild(modalEl);
     ensureAvatarHelper().then(function () {
       if (window.staffAvatar) window.staffAvatar(document.getElementById('jct-ca-av'), m.author_id, m.author_name, m.author_color || '#2c5c9c');
     });
-    document.getElementById('jct-ca-input').focus();
-    document.getElementById('jct-ca-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var input = document.getElementById('jct-ca-input');
-      var content = (input.value || '').trim() || 'Got it 👍';
-      var btn = e.target.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      fetch('/api/messages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content, court_reply_to: m.id }),
-      }).catch(function () {}).then(closeModal);
-    });
+    var form = document.getElementById('jct-ca-form');
+    if (form) {
+      document.getElementById('jct-ca-input').focus();
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var input = document.getElementById('jct-ca-input');
+        var content = (input.value || '').trim() || 'Got it 👍';
+        var btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        fetch('/api/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: content, court_reply_to: m.id }),
+        }).catch(function () {}).then(closeModal);
+      });
+    }
     document.getElementById('jct-ca-dismiss-btn').addEventListener('click', function () {
       fetch('/api/messages/' + m.id + '/read', { method: 'POST' }).catch(function () {}).then(closeModal);
     });
   }
 
+  var checkKind = 'ping';
   async function check() {
     try {
       var r = await fetch('/api/messages?unread=true');
       if (!r.ok) return;
       var unread = await r.json();
-      var pings = (Array.isArray(unread) ? unread : [])
-        .filter(function (m) { return m.court_ping && !shownIds[m.id]; })
+      var flag = checkKind === 'reply' ? 'court_reply' : 'court_ping';
+      var items = (Array.isArray(unread) ? unread : [])
+        .filter(function (m) { return m[flag] && !shownIds[m.id]; })
         .sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
-      if (!pings.length) return;
-      pings.forEach(function (p) { shownIds[p.id] = true; queue.push(p); });
+      if (!items.length) return;
+      items.forEach(function (p) { shownIds[p.id] = true; queue.push(p); });
       tryShowNext();
     } catch (e) {}
   }
 
   function boot(me) {
-    if (!me || me.role === 'pro') return;  // pros send these, they don't receive them
+    if (!me) return;
+    // Pros wait for a reply from the office; everyone else waits for a ping from a pro.
+    checkKind = me.role === 'pro' ? 'reply' : 'ping';
     check();
     setInterval(check, 45000);  // safety net if an SSE 'update' is missed
     try {

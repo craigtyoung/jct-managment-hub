@@ -249,11 +249,12 @@
     document.head.appendChild(s);
   }
 
-  // Lazy-loads the global "Messages from the Court" popup (court-alert.js) for any
-  // non-pro signed-in viewer, on every page — a pro's quick ping needs to interrupt
-  // whoever's at the desk regardless of which page they're on, not just the dashboard.
+  // Lazy-loads the global court-ping popup (court-alert.js) for any signed-in viewer,
+  // on every page. Two-way: a pro's quick ping needs to interrupt the office wherever
+  // they are, and the office's reply needs to interrupt the pro back just the same —
+  // court-alert.js itself decides which direction applies based on the viewer's role.
   function loadCourtAlert(me) {
-    if (!me || me.role === 'pro') return;
+    if (!me) return;
     if (window.__jctCourtAlertBoot) { window.__jctCourtAlertBoot(me); return; }
     var sc = document.createElement('script');
     sc.src = '/court-alert.js';
