@@ -73,8 +73,16 @@ router.post('/', (req, res) => {
   res.json(result);
 });
 
-// GET /range?start=YYYY-MM-DD&end=YYYY-MM-DD
-router.get('/range', (req, res) => {
+// Cash totals (monthly / custom-range rollups) are restricted to the same trio as
+// Pay Review (Craig, Jaime, Victor) — office staff balance day-to-day cash but never
+// see aggregate totals; David (manager) is deliberately excluded too.
+function requireCashTotalsAccess(req, res, next) {
+  if (!db.canManageStaff(req.session.staffId)) return res.status(403).json({ error: 'Not authorized to view cash totals' });
+  next();
+}
+
+// GET /range?start=YYYY-MM-DD&end=YYYY-MM-DD — raw per-day data (trio only)
+router.get('/range', requireCashTotalsAccess, (req, res) => {
   const { start, end } = req.query;
   if (!start || !end) return res.status(400).json({ error: 'start and end required' });
   res.json(db.getCashSummaryRange(start, end));
@@ -195,15 +203,9 @@ router.get('/export', (req, res) => {
   res.send(csv);
 });
 
-// GET /monthly?date=YYYY-MM-DD — month-to-date rollup (1st of that date's month → that date)
-router.get('/monthly', (req, res) => {
-  const { date } = req.query;
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return res.status(400).json({ error: 'date required (YYYY-MM-DD)' });
-  }
-  const month = date.slice(0, 7);
-  const start = `${month}-01`;
-  const end   = date;                    // "to date" — stops at the day being viewed
+// Shared aggregator — used by both the month-to-date rollup and the arbitrary
+// custom-range totals (season / year-in-review / anything in between).
+function aggregateCashRange(start, end) {
   const rows  = db.getCashSummaryRange(start, end);
 
   const sumArr = a => (a || []).reduce((x, v) => x + (v != null ? Number(v) || 0 : 0), 0);
@@ -220,7 +222,7 @@ router.get('/monthly', (req, res) => {
   };
 
   const agg = {
-    month, start, end, days: 0,
+    start, end, days: 0,
     pro_shop:      { tennis_balls: 0, stringing: 0, accessories: 0, racquet_sales: 0, grips: 0, total: 0 },
     court_fees:    { lessons: 0, guests: 0, payg: 0, total: 0 },
     drinks_snacks: { drinks: 0, snacks: 0, total: 0 },
@@ -256,7 +258,31 @@ router.get('/monthly', (req, res) => {
     if (dayHadData) agg.days += 1;
   }
   agg.cash_sales = agg.grand_total - agg.card_slips;
+  return agg;
+}
+
+// GET /monthly?date=YYYY-MM-DD — month-to-date rollup (1st of that date's month → that
+// date). Trio only (Craig, Jaime, Victor) — same tier as Pay Review.
+router.get('/monthly', requireCashTotalsAccess, (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date required (YYYY-MM-DD)' });
+  }
+  const month = date.slice(0, 7);
+  const agg = aggregateCashRange(`${month}-01`, date);
+  agg.month = month;
   res.json(agg);
+});
+
+// GET /totals?start=YYYY-MM-DD&end=YYYY-MM-DD — arbitrary custom-range rollup (a
+// season, a quarter, a full year-in-review, anything in between). Trio only.
+router.get('/totals', requireCashTotalsAccess, (req, res) => {
+  const { start, end } = req.query;
+  if (!start || !end || !/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+    return res.status(400).json({ error: 'start and end required (YYYY-MM-DD)' });
+  }
+  if (start > end) return res.status(400).json({ error: 'start must be on or before end' });
+  res.json(aggregateCashRange(start, end));
 });
 
 // GET /settings — unit prices (all staff read these to compute line amounts)

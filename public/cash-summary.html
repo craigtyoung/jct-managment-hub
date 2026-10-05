@@ -421,7 +421,8 @@
     <div class="sdw-head">
       <div class="sdw-toggle">
         <button type="button" class="sdw-toggle-btn active" id="sdw-tab-daily" onclick="setSummaryView('daily')">Daily</button>
-        <button type="button" class="sdw-toggle-btn" id="sdw-tab-monthly" onclick="setSummaryView('monthly')">Monthly</button>
+        <button type="button" class="sdw-toggle-btn cash-totals-only" id="sdw-tab-monthly" onclick="setSummaryView('monthly')">Monthly</button>
+        <button type="button" class="sdw-toggle-btn cash-totals-only" id="sdw-tab-range" onclick="setSummaryView('range')">Range</button>
       </div>
       <button class="sdw-close" onclick="closeSummary()" aria-label="Close">&#10005;</button>
     </div>
@@ -517,6 +518,17 @@
       <div id="sdw-monthly" style="display:none">
         <div class="sdw-month-meta" id="sdw-month-meta">Month to date</div>
         <div id="sdw-month-body"></div>
+      </div>
+
+      <div id="sdw-range" style="display:none">
+        <div class="ctx-date" style="margin-bottom:8px">
+          <input type="date" id="sdw-range-start" style="flex:1">
+          <span style="color:rgba(177,201,251,0.55);font-size:12px">to</span>
+          <input type="date" id="sdw-range-end" style="flex:1">
+        </div>
+        <button type="button" class="ctx-btn primary" style="margin-bottom:12px" onclick="loadRangeTotals()">Show Totals</button>
+        <div class="sdw-month-meta" id="sdw-range-meta">Pick a start and end date — a season, a quarter, a full year, anything.</div>
+        <div id="sdw-range-body"></div>
       </div>
     </div>
   </div>
@@ -1467,42 +1479,35 @@
       setSummaryView('daily');   // always open on the daily view
     }
 
-    // Daily ⇄ Monthly-to-date toggle in the summary drawer.
+    // Daily ⇄ Monthly-to-date ⇄ Custom-range toggle in the summary drawer.
+    // Monthly + Range are trio-only (Craig/Jaime/Victor) — tabs are hidden for everyone
+    // else via the .cash-totals-only class (see init()), but guard here too in case a
+    // stale tab click slips through.
     function setSummaryView(view) {
-      const daily = getEl('sdw-daily'), monthly = getEl('sdw-monthly');
-      const tabD = getEl('sdw-tab-daily'), tabM = getEl('sdw-tab-monthly');
-      const isMonthly = view === 'monthly';
-      if (daily)   daily.style.display   = isMonthly ? 'none' : '';
-      if (monthly) monthly.style.display = isMonthly ? '' : 'none';
-      if (tabD) tabD.classList.toggle('active', !isMonthly);
-      if (tabM) tabM.classList.toggle('active', isMonthly);
-      if (isMonthly) loadMonthly();
+      if ((view === 'monthly' || view === 'range') && !(me && me.can_view_cash_totals)) view = 'daily';
+      const daily = getEl('sdw-daily'), monthly = getEl('sdw-monthly'), range = getEl('sdw-range');
+      const tabD = getEl('sdw-tab-daily'), tabM = getEl('sdw-tab-monthly'), tabR = getEl('sdw-tab-range');
+      if (daily)   daily.style.display   = view === 'daily'   ? '' : 'none';
+      if (monthly) monthly.style.display = view === 'monthly' ? '' : 'none';
+      if (range)   range.style.display   = view === 'range'   ? '' : 'none';
+      if (tabD) tabD.classList.toggle('active', view === 'daily');
+      if (tabM) tabM.classList.toggle('active', view === 'monthly');
+      if (tabR) tabR.classList.toggle('active', view === 'range');
+      if (view === 'monthly') loadMonthly();
+      if (view === 'range' && !getEl('sdw-range-start').value) {
+        // first open — default the range to the current month so there's something to see
+        getEl('sdw-range-start').value = currentDate.slice(0, 7) + '-01';
+        getEl('sdw-range-end').value   = currentDate;
+      }
     }
 
-    async function loadMonthly() {
-      const body = getEl('sdw-month-body');
-      const meta = getEl('sdw-month-meta');
-      if (body) body.innerHTML = '<div class="sdw-month-empty">Loading…</div>';
-      let m;
-      try {
-        const res = await fetch(`/api/cash-summary/monthly?date=${currentDate}`);
-        if (!res.ok) throw new Error('failed');
-        m = await res.json();
-      } catch (e) {
-        if (body) body.innerHTML = '<div class="sdw-month-empty">Could not load monthly totals.</div>';
-        return;
-      }
-      const monthName = new Date(m.start + 'T12:00:00').toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
-      const endLabel  = new Date(m.end + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-      if (meta) meta.textContent = `${monthName} · through ${endLabel} · ${m.days} day${m.days === 1 ? '' : 's'} with sales`;
-
-      if (!m.days) {
-        if (body) body.innerHTML = '<div class="sdw-month-empty">No sales recorded yet this month.</div>';
-        return;
-      }
+    // Shared renderer for both the monthly rollup and the custom-range totals — same
+    // aggregate shape comes back from both /monthly and /totals.
+    function renderCashTotals(m, totalLabel) {
+      if (!m.days) return '<div class="sdw-month-empty">No sales recorded in that period.</div>';
       const avg = m.grand_total / m.days;
       const row = (label, val, cls) => `<div class="${cls || 'sdw-sub'}"><span class="sdw-label">${label}</span><span class="sdw-val">${fmt(val)}</span></div>`;
-      body.innerHTML =
+      return (
         '<div class="sdw-section">Pro Shop</div>' +
         row('Tennis Balls',  m.pro_shop.tennis_balls) +
         row('Stringing',     m.pro_shop.stringing) +
@@ -1522,8 +1527,49 @@
         '<div class="sdw-section">Tender</div>' +
         row('Cash Sales',  m.cash_sales) +
         row('Card Slips',  m.card_slips) +
-        '<div class="sdw-total-row"><span class="sdw-label">Total Sales (MTD)</span><span class="sdw-val">' + fmt(m.grand_total) + '</span></div>' +
-        row('Daily Average', avg, 'sdw-cat-total');
+        '<div class="sdw-total-row"><span class="sdw-label">' + totalLabel + '</span><span class="sdw-val">' + fmt(m.grand_total) + '</span></div>' +
+        row('Daily Average', avg, 'sdw-cat-total')
+      );
+    }
+
+    async function loadMonthly() {
+      const body = getEl('sdw-month-body');
+      const meta = getEl('sdw-month-meta');
+      if (body) body.innerHTML = '<div class="sdw-month-empty">Loading…</div>';
+      let m;
+      try {
+        const res = await fetch(`/api/cash-summary/monthly?date=${currentDate}`);
+        if (!res.ok) throw new Error('failed');
+        m = await res.json();
+      } catch (e) {
+        if (body) body.innerHTML = '<div class="sdw-month-empty">Could not load monthly totals.</div>';
+        return;
+      }
+      const monthName = new Date(m.start + 'T12:00:00').toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+      const endLabel  = new Date(m.end + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+      if (meta) meta.textContent = `${monthName} · through ${endLabel} · ${m.days} day${m.days === 1 ? '' : 's'} with sales`;
+      if (body) body.innerHTML = renderCashTotals(m, 'Total Sales (MTD)');
+    }
+
+    async function loadRangeTotals() {
+      const start = getEl('sdw-range-start').value, end = getEl('sdw-range-end').value;
+      const body = getEl('sdw-range-body'), meta = getEl('sdw-range-meta');
+      if (!start || !end) return;
+      if (start > end) { if (meta) meta.textContent = 'Start date must be before end date.'; return; }
+      if (body) body.innerHTML = '<div class="sdw-month-empty">Loading…</div>';
+      let m;
+      try {
+        const res = await fetch(`/api/cash-summary/totals?start=${start}&end=${end}`);
+        if (!res.ok) throw new Error('failed');
+        m = await res.json();
+      } catch (e) {
+        if (body) body.innerHTML = '<div class="sdw-month-empty">Could not load totals for that range.</div>';
+        return;
+      }
+      const startLabel = new Date(m.start + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+      const endLabel   = new Date(m.end   + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (meta) meta.textContent = `${startLabel} → ${endLabel} · ${m.days} day${m.days === 1 ? '' : 's'} with sales`;
+      if (body) body.innerHTML = renderCashTotals(m, 'Total Sales (Range)');
     }
     function closeSummary() {
       getEl('summary-drawer')?.classList.remove('open');
@@ -1538,6 +1584,7 @@
       if (meRes.status === 401) { window.location.href = '/login.html'; return; }
       me = await meRes.json();
       if (!me.is_management) document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = 'none');
+      if (!me.can_view_cash_totals) document.querySelectorAll('.cash-totals-only').forEach(el => el.style.display = 'none');
 
       // Nav avatar
       const av = getEl('nav-avatar');

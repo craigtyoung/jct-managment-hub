@@ -197,6 +197,7 @@ app.get('/api/me', requireAuth, (req, res) => {
     can_view_as: db.canViewAs(real.id),
     can_manage_directory: db.canManageDirectory(eff.id), // Directory: all management (incl. David)
     can_manage_pay: db.canManageStaff(eff.id),           // Pay Review: trio only
+    can_view_cash_totals: db.canManageStaff(eff.id),     // Cash Summary monthly/range totals: trio only (not David, not office)
     can_manage_staff: db.canManageDirectory(eff.id),     // legacy alias → portal (directory) access
     must_set_password: !!real.must_set_password,
     real_id: real.id, real_name: real.name, real_color: real.color, real_role: real.role,
