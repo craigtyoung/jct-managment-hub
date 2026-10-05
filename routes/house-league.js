@@ -84,6 +84,15 @@ router.post('/:league/notes', (req, res) => {
 });
 router.delete('/notes/:id', guard(isMgmt, 'Management only'), (req, res) => reply(res, db.deleteHouseLeagueNote(req.params.id)));
 
+// Club-membership lookup for the Match Builder's one-off sub picker. Separate from
+// both the HL roster and the HL subs list — these are full club members who aren't
+// on this league's roster but are filling in for a night.
+router.get('/member-search', (req, res) => {
+  const results = db.searchMembersByName(req.query.q || '').slice(0, 8)
+    .map(m => ({ id: m.id, name: (m.first_name + ' ' + m.last_name).trim(), phone: m.phone || '' }));
+  res.json(results);
+});
+
 // Substitutes list — people to call for coverage, kept separate from the active roster.
 router.get('/:league/subs', (req, res) => {
   if (!validLeague(req.params.league)) return res.status(400).json({ error: 'Unknown league' });

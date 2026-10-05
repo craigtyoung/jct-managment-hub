@@ -5353,6 +5353,21 @@ function getHousePairings(league, weekId) {
 function getAllHousePairings(league) {
   return _data.hl_pairings.filter(function (p) { return p.league === league; });
 }
+// A pairing's extras1/extras2 hold one-off sub or guest names dropped onto a court
+// for that week only — never touch hl_players (the official roster). The name
+// travels with the pairing itself, so it still displays correctly even if the
+// underlying sub/membership record is later edited or removed.
+function sanitizeExtra(e) {
+  if (!e || typeof e !== 'object') return null;
+  var name = String(e.name || '').trim().slice(0, 80);
+  if (!name) return null;
+  var kind = ['sub', 'guest', 'member'].indexOf(e.kind) !== -1 ? e.kind : 'guest';
+  var id = String(e.id || (kind + '_' + Date.now())).slice(0, 40);
+  return { id: id, name: name, kind: kind };
+}
+function sanitizeExtras(arr) {
+  return (Array.isArray(arr) ? arr : []).map(sanitizeExtra).filter(Boolean);
+}
 function addHousePairing(league, weekId, data) {
   weekId = parseInt(weekId);
   var court = parseInt(data.court) || (getHousePairings(league, weekId).length + 1);
@@ -5360,6 +5375,8 @@ function addHousePairing(league, weekId, data) {
     id: nextId('hl_pairings'), league: league, week_id: weekId, court: court,
     team1: Array.isArray(data.team1) ? data.team1.map(Number) : [],
     team2: Array.isArray(data.team2) ? data.team2.map(Number) : [],
+    extras1: sanitizeExtras(data.extras1),
+    extras2: sanitizeExtras(data.extras2),
     score1: null, score2: null,
   };
   _data.hl_pairings.push(p);
@@ -5371,6 +5388,8 @@ function updateHousePairing(id, data) {
   if (!p) return { error: 'Not found', status: 404 };
   if (data.team1 !== undefined) p.team1 = data.team1.map(Number);
   if (data.team2 !== undefined) p.team2 = data.team2.map(Number);
+  if (data.extras1 !== undefined) p.extras1 = sanitizeExtras(data.extras1);
+  if (data.extras2 !== undefined) p.extras2 = sanitizeExtras(data.extras2);
   if (data.court !== undefined) p.court = parseInt(data.court);
   if (data.score1 !== undefined) p.score1 = (data.score1 === '' || data.score1 === null) ? null : Number(data.score1);
   if (data.score2 !== undefined) p.score2 = (data.score2 === '' || data.score2 === null) ? null : Number(data.score2);

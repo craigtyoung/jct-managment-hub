@@ -296,8 +296,10 @@
       const onTeam1 = (p.team1||[]).includes(playerId);
       document.getElementById('match-modal-title').textContent = week ? week.label : '';
       document.getElementById('match-modal-sub').textContent = 'Court ' + p.court;
-      document.getElementById('match-team1').innerHTML = `<span class="${onTeam1?'mine':''}">${(p.team1||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ')}</span><span>${p.score1==null?'—':p.score1}</span>`;
-      document.getElementById('match-team2').innerHTML = `<span class="${!onTeam1?'mine':''}">${(p.team2||[]).map(id=>esc(byId[id]||'?')).join(' &amp; ')}</span><span>${p.score2==null?'—':p.score2}</span>`;
+      const t1names = [...(p.team1||[]).map(id=>esc(byId[id]||'?')), ...(p.extras1||[]).map(ex=>esc(ex.name)+' (sub)')];
+      const t2names = [...(p.team2||[]).map(id=>esc(byId[id]||'?')), ...(p.extras2||[]).map(ex=>esc(ex.name)+' (sub)')];
+      document.getElementById('match-team1').innerHTML = `<span class="${onTeam1?'mine':''}">${t1names.join(' &amp; ')}</span><span>${p.score1==null?'—':p.score1}</span>`;
+      document.getElementById('match-team2').innerHTML = `<span class="${!onTeam1?'mine':''}">${t2names.join(' &amp; ')}</span><span>${p.score2==null?'—':p.score2}</span>`;
       document.getElementById('match-modal').classList.add('show');
     }
     function closeMatchModal(){ document.getElementById('match-modal').classList.remove('show'); }
@@ -344,12 +346,16 @@
     }
     function courtVisual(pairing){
       const byId = {}; data.players.forEach(pl => byId[pl.id] = pl.name);
-      const names = ids => (ids||[]).length ? esc(ids.map(id=>byId[id]||'?').join(' & ')) : '<span class="cv-names tbd">TBD</span>';
+      const names = (ids, extras) => {
+        const parts = (ids||[]).map(id=>byId[id]||'?');
+        (extras||[]).forEach(ex => parts.push(ex.name + ' (sub)'));
+        return parts.length ? esc(parts.join(' & ')) : '<span class="cv-names tbd">TBD</span>';
+      };
       return `<div class="court-visual">
         <div class="cv-label">Court ${pairing.court}</div>
-        <div class="cv-team"><span class="cv-names">${names(pairing.team1)}</span><span class="cv-score">${pairing.score1==null?'':pairing.score1}</span></div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team1, pairing.extras1)}</span><span class="cv-score">${pairing.score1==null?'':pairing.score1}</span></div>
         <div class="cv-net"></div>
-        <div class="cv-team"><span class="cv-names">${names(pairing.team2)}</span><span class="cv-score">${pairing.score2==null?'':pairing.score2}</span></div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team2, pairing.extras2)}</span><span class="cv-score">${pairing.score2==null?'':pairing.score2}</span></div>
       </div>`;
     }
     function renderMatchCards(){

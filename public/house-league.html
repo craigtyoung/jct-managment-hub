@@ -279,6 +279,19 @@
           </div>
 
           <div class="card">
+            <div class="card-title">Subs &amp; guests for tonight — drag onto a team below</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <input type="text" id="guest-name" placeholder="Type a guest's name" style="flex:1;min-width:160px" onkeydown="if(event.key==='Enter')addGuestExtra()">
+              <button class="btn-add" onclick="addGuestExtra()">+ Add guest</button>
+            </div>
+            <div style="position:relative;margin-bottom:10px">
+              <input type="text" id="member-search" placeholder="Search club members by last name…" style="width:100%" oninput="onMemberSearchInput()">
+              <div id="member-search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:5;max-height:220px;overflow-y:auto"></div>
+            </div>
+            <div class="player-rail" id="extra-rail"><div class="empty">No subs or guests added yet.</div></div>
+          </div>
+
+          <div class="card">
             <div class="card-title">Courts</div>
             <div class="drag-hint-bar" id="drag-hint" style="display:none"></div>
             <div id="courts-wrap"><div class="empty">No courts yet — add one above.</div></div>
@@ -370,6 +383,7 @@
   <script src="/staff-avatar.js"></script>
   <script>
     let me = null, isMgmt = false, league = 'MHL', roster = [], weeks = [], grid = { players: [], weeks: [], attendance: {} }, currentWeekId = null, pairings = [], allPairings = [], houseNotes = [];
+    let sessionExtras = [], extraIndex = {}; // one-off subs/guests for tonight — never touch the roster
     let schedSession = 1, resSession = 1;
     let rosterSortBy = 'name', rosterSortDir = 'asc';
     const STATUS_CYCLE = [null, 'in', 'bye', 'na']; // click cycles through these
@@ -404,6 +418,7 @@
       document.getElementById('lg-MHL').classList.toggle('on', lg==='MHL');
       document.getElementById('lg-WHL').classList.toggle('on', lg==='WHL');
       schedSession = 1; resSession = 1; standSession = 1; matchWeekIdx = -1;
+      sessionExtras = [];
       await loadGrid();
       await loadAllPairings();
       renderRoster();
@@ -506,6 +521,7 @@
     async function loadHouseSubs(){
       houseSubs = await jfetch('/api/house-league/' + league + '/subs') || [];
       renderHouseSubs();
+      renderExtraRail();
     }
     function renderHouseSubs(){
       const body = document.getElementById('subs-body');
@@ -563,6 +579,7 @@
       pairings = await jfetch('/api/house-league/' + league + '/weeks/' + currentWeekId + '/pairings') || [];
       renderCourts();
       renderPlayerRail();
+      renderExtraRail();
     }
 
     // ── Coverage requests: player-flagged "can't make it" from the public view ──
@@ -806,12 +823,16 @@
     }
     function courtVisual(pairing){
       const byId = {}; roster.forEach(pl => byId[pl.id] = pl.name);
-      const names = ids => (ids||[]).length ? esc(ids.map(id=>byId[id]||'?').join(' & ')) : '<span class="cv-names tbd">TBD</span>';
+      const names = (ids, extras) => {
+        const parts = (ids||[]).map(id=>byId[id]||'?');
+        (extras||[]).forEach(ex => parts.push(ex.name + ' (sub)'));
+        return parts.length ? esc(parts.join(' & ')) : '<span class="cv-names tbd">TBD</span>';
+      };
       return `<div class="court-visual">
         <div class="cv-label">Court ${pairing.court}</div>
-        <div class="cv-team"><span class="cv-names">${names(pairing.team1)}</span><span class="cv-score">${pairing.score1==null?'':pairing.score1}</span></div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team1, pairing.extras1)}</span><span class="cv-score">${pairing.score1==null?'':pairing.score1}</span></div>
         <div class="cv-net"></div>
-        <div class="cv-team"><span class="cv-names">${names(pairing.team2)}</span><span class="cv-score">${pairing.score2==null?'':pairing.score2}</span></div>
+        <div class="cv-team"><span class="cv-names">${names(pairing.team2, pairing.extras2)}</span><span class="cv-score">${pairing.score2==null?'':pairing.score2}</span></div>
       </div>`;
     }
     async function renderMatchCards(){
@@ -870,6 +891,93 @@
     }
 
     function setRailFilter(v){ railRatingFilter = v; renderPlayerRail(); }
+
+    // ── Subs & guests: one-off court fills for tonight, never added to hl_players.
+    // Sourced from the existing Substitutes list, a club-membership search, or a
+    // typed guest name. Stored on the pairing itself (extras1/extras2) so a chip
+    // keeps its name even if the underlying sub/member record changes later. ──
+    let memberSearchTimer = null, memberSearchResults = [];
+    let dragExtraId = null, dragExtraFromPairingId = null, dragExtraFromTeam = null;
+
+    function rebuildExtraIndex(){
+      extraIndex = {};
+      houseSubs.forEach(s => { const id = 'sub_' + s.id; extraIndex[id] = { id, name: s.name, kind: 'sub' }; });
+      sessionExtras.forEach(x => { extraIndex[x.id] = x; });
+      pairings.forEach(p => { (p.extras1||[]).forEach(x => { extraIndex[x.id] = x; }); (p.extras2||[]).forEach(x => { extraIndex[x.id] = x; }); });
+    }
+    function assignedExtraIds(){
+      const ids = new Set();
+      pairings.forEach(p => { (p.extras1||[]).forEach(x=>ids.add(x.id)); (p.extras2||[]).forEach(x=>ids.add(x.id)); });
+      return ids;
+    }
+    function extraChip(e, opts){
+      opts = opts || {};
+      const kindLabel = e.kind === 'member' ? 'MEMBER' : e.kind === 'sub' ? 'SUB' : 'GUEST';
+      const rm = opts.removable ? `<span class="rm" onclick="removeExtraFromTeam(${opts.pairingId},'${opts.team}','${e.id}')">✕</span>` : '';
+      const fromPairing = opts.removable ? opts.pairingId : 'null';
+      const fromTeam = opts.removable ? `'${opts.team}'` : 'null';
+      const drag = `draggable="true" ondragstart="dragExtra(event,'${e.id}',${fromPairing},${fromTeam})" ondragend="dragExtraEnd(event)"`;
+      return `<span class="p-chip" ${drag} data-extra="${e.id}" title="${esc(e.name)} — ${kindLabel}" style="background:#64748b">${esc(e.name)}<span class="tag">${kindLabel}</span>${rm}</span>`;
+    }
+    function renderExtraRail(){
+      rebuildExtraIndex();
+      const assigned = assignedExtraIds();
+      const subChips = houseSubs.map(s => ({ id: 'sub_' + s.id, name: s.name, kind: 'sub' }));
+      const all = [...subChips, ...sessionExtras].filter(e => !assigned.has(e.id));
+      const rail = document.getElementById('extra-rail');
+      if (!rail) return;
+      rail.innerHTML = all.length ? all.map(e => extraChip(e)).join('') : '<div class="empty">No subs or guests added yet.</div>';
+    }
+    function addGuestExtra(){
+      const input = document.getElementById('guest-name');
+      const name = input.value.trim();
+      if (!name) return;
+      const id = 'guest_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      sessionExtras.push({ id, name, kind: 'guest' });
+      input.value = '';
+      renderExtraRail();
+    }
+    function onMemberSearchInput(){
+      clearTimeout(memberSearchTimer);
+      const q = document.getElementById('member-search').value.trim();
+      const results = document.getElementById('member-search-results');
+      if (q.length < 2) { results.innerHTML = ''; results.style.display = 'none'; return; }
+      memberSearchTimer = setTimeout(async () => {
+        const d = await jfetch('/api/house-league/member-search?q=' + encodeURIComponent(q));
+        if (!d) return;
+        memberSearchResults = d;
+        results.innerHTML = d.length
+          ? d.map((m,i) => `<div onclick="pickMember(${i})" style="padding:7px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${esc(m.name)}${m.phone?' <span style="color:var(--text-3)">'+esc(m.phone)+'</span>':''}</div>`).join('')
+          : '<div class="empty" style="padding:7px 10px">No members match.</div>';
+        results.style.display = '';
+      }, 250);
+    }
+    function pickMember(i){
+      const m = memberSearchResults[i];
+      if (!m) return;
+      const extraId = 'member_' + m.id;
+      if (!sessionExtras.some(x=>x.id===extraId)) sessionExtras.push({ id: extraId, name: m.name, kind: 'member' });
+      document.getElementById('member-search').value = '';
+      document.getElementById('member-search-results').innerHTML = '';
+      document.getElementById('member-search-results').style.display = 'none';
+      renderExtraRail();
+    }
+    async function removeExtraFromTeam(pairingId, team, extraId){
+      const p = pairings.find(x => x.id === pairingId);
+      if (!p) return;
+      const field = team === 'team1' ? 'extras1' : 'extras2';
+      const next = (p[field] || []).filter(x => x.id !== extraId);
+      await updatePairing(pairingId, field, next);
+      renderExtraRail();
+    }
+    function dragExtra(e, id, fromPairingId, fromTeam){
+      dragExtraId = id;
+      dragExtraFromPairingId = fromPairingId || null;
+      dragExtraFromTeam = fromTeam || null;
+      try { e.dataTransfer.setData('text/plain', 'x:' + id); e.dataTransfer.effectAllowed = 'move'; } catch(err){}
+      e.currentTarget.classList.add('dragging');
+    }
+    function dragExtraEnd(e){ e.currentTarget.classList.remove('dragging'); dragExtraId = null; dragExtraFromPairingId = null; dragExtraFromTeam = null; hideDragHint(); stopAutoScroll(); }
 
     function renderPlayerRail(){
       const assigned = assignedPlayerIds();
@@ -974,7 +1082,7 @@
     }
     function stopAutoScroll(){ if (autoScrollRAF) cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; autoScrollDy = 0; }
     document.addEventListener('dragover', (e) => {
-      if (!dragPlayerId) { stopAutoScroll(); return; }
+      if (!dragPlayerId && !dragExtraId) { stopAutoScroll(); return; }
       const margin = 80, maxSpeed = 16;
       const y = e.clientY, h = window.innerHeight;
       let dy = 0;
@@ -1007,6 +1115,27 @@
       e.preventDefault();
       e.currentTarget.classList.remove('drop-hot');
       hideDragHint();
+
+      if (dragExtraId){
+        const extraId = dragExtraId;
+        const fromPairingId = dragExtraFromPairingId, fromTeam = dragExtraFromTeam;
+        dragExtraId = null; dragExtraFromPairingId = null; dragExtraFromTeam = null;
+        if (fromPairingId === pairingId && fromTeam === team) return;
+        const p = pairings.find(x => x.id === pairingId);
+        if (!p) return;
+        const field = team === 'team1' ? 'extras1' : 'extras2';
+        const current = (p[field] || []).slice();
+        if (current.some(x => x.id === extraId)) return;
+        if ((p[team]||[]).length + current.length >= 2) { toast('That team already has 2 players'); return; }
+        const extraObj = extraIndex[extraId];
+        if (!extraObj) return;
+        current.push(extraObj);
+        await updatePairing(pairingId, field, current);
+        if (fromPairingId) await removeExtraFromTeam(fromPairingId, fromTeam, extraId);
+        else renderExtraRail();
+        return;
+      }
+
       let id = dragPlayerId;
       try { id = parseInt(e.dataTransfer.getData('text/plain')) || dragPlayerId; } catch(err){}
       if (!id) return;
@@ -1016,7 +1145,8 @@
       if (!p) return;
       const current = (p[team] || []).slice();
       if (current.includes(id)) return;
-      if (current.length >= 2) { toast('That team already has 2 players'); return; }
+      const extrasField = team === 'team1' ? 'extras1' : 'extras2';
+      if (current.length + (p[extrasField]||[]).length >= 2) { toast('That team already has 2 players'); return; }
       current.push(id);
       await updatePairing(pairingId, team, current);
       if (fromPairingId) await removeFromTeam(fromPairingId, fromTeam, id); // moved from another court, not the rail
@@ -1031,6 +1161,7 @@
     }
 
     function renderCourts(){
+      rebuildExtraIndex();
       const wrap = document.getElementById('courts-wrap');
       if (!pairings.length) { wrap.innerHTML = '<div class="empty">No courts yet — add one above.</div>'; return; }
       wrap.innerHTML = pairings.map(p => `
@@ -1041,12 +1172,14 @@
               <div class="team-label">Team 1</div>
               <div class="team-zone" ondragover="dzOver(event,${p.id},'team1')" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team1')">
                 ${(p.team1||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team1'}) : ''; }).join('')}
+                ${(p.extras1||[]).map(ex => extraChip(ex, {removable:true, pairingId:p.id, team:'team1'})).join('')}
               </div>
             </div>
             <div>
               <div class="team-label">Team 2</div>
               <div class="team-zone" ondragover="dzOver(event,${p.id},'team2')" ondragleave="dzLeave(event)" ondrop="dzDrop(event,${p.id},'team2')">
                 ${(p.team2||[]).map(id => { const pl = roster.find(r=>r.id===id); return pl ? playerChip(pl, {removable:true, pairingId:p.id, team:'team2'}) : ''; }).join('')}
+                ${(p.extras2||[]).map(ex => extraChip(ex, {removable:true, pairingId:p.id, team:'team2'})).join('')}
               </div>
             </div>
           </div>
