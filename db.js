@@ -4653,10 +4653,16 @@ function getStaffIdByPin(pin) {
 function searchMembersByName(q) {
   if (!q) return [];
   const s = String(q).toLowerCase().trim();
+  // Was last_name/club_number only, despite the search box's own placeholder
+  // promising "member name" — a member typed by first name (e.g. "Abheer" for
+  // Abheer Sharma) matched nothing and looked like a broken/missing account.
+  // Also match first_name, and "first last" as typed together.
   return (_data.members || [])
     .filter(m => m.active !== false && (
       String(m.last_name || '').toLowerCase().startsWith(s) ||
-      String(m.club_number || '').toLowerCase().startsWith(s)
+      String(m.first_name || '').toLowerCase().startsWith(s) ||
+      String(m.club_number || '').toLowerCase().startsWith(s) ||
+      (String(m.first_name || '') + ' ' + String(m.last_name || '')).toLowerCase().startsWith(s)
     ))
     .sort((a, b) => String(a.last_name).localeCompare(String(b.last_name)) || String(a.first_name).localeCompare(String(b.first_name)));
 }
