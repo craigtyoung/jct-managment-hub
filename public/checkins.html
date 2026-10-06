@@ -1023,6 +1023,16 @@
       const b = bookingByKey(EDIT_KEY);
       if (!b) { EDIT_KEY = null; if (el) el.remove(); return; }
 
+      // loadCourtBoard() repaints this editor on every check-in anywhere in the
+      // club (SSE "keep an open editor showing live data"), which on a busy
+      // night can fire every few seconds — and a full innerHTML rebuild below
+      // wipes out whatever the desk was mid-typing in "Find a member", along
+      // with the results dropdown they were about to click. Looks exactly like
+      // clicking a match and having nothing happen. Preserve + restore it.
+      const prevFind = document.getElementById('bk-find');
+      const findVal = prevFind ? prevFind.value : '';
+      const findFocused = prevFind === document.activeElement;
+
       if (!el) {
         el = document.createElement('div');
         el.id = 'bk-modal';
@@ -1104,6 +1114,17 @@
             '<button class="bk-go" onclick="addGuestToBooking(\u0027' + b.key + '\u0027)">Add guest</button></div>' +
           '</div></div>' +
         '</div>';
+
+      // Restore the in-progress search (value, results, focus) this rebuild would
+      // otherwise have silently discarded.
+      if (findVal) {
+        const newFind = document.getElementById('bk-find');
+        if (newFind) {
+          newFind.value = findVal;
+          if (findFocused) { newFind.focus(); newFind.setSelectionRange(findVal.length, findVal.length); }
+        }
+        bookingFind(b.key);
+      }
     }
 
     // Every player in the booking carries the override, so it holds however the
@@ -1354,7 +1375,8 @@
     }
 
     async function addMemberToBooking(key, memberId) {
-      const b = bookingByKey(key); if (!b) return;
+      const b = bookingByKey(key);
+      if (!b) { alert('This booking changed while you were searching — close and reopen it, then try again.'); return; }
       const r = await fetch('/api/checkin/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ member_id: memberId, method: 'staff' }),
@@ -1369,7 +1391,8 @@
     window.addMemberToBooking = addMemberToBooking;
 
     async function addGuestToBooking(key) {
-      const b = bookingByKey(key); if (!b) return;
+      const b = bookingByKey(key);
+      if (!b) { alert('This booking changed while you were typing — close and reopen it, then try again.'); return; }
       const box = document.getElementById('bk-guest');
       const name = box ? box.value.trim() : '';
       if (!name) { if (box) box.focus(); return; }
