@@ -155,6 +155,19 @@
       .catch(function () { location.href = '/login.html'; });
   };
 
+  // Office⇄Pro toggle for the 4 managers (Craig/Jaime/Victor/David) — on mobile the
+  // sidenav (desktop) and the .topnav-mode pill (both only ever shown above ~768-820px)
+  // are both hidden, so management had no way to switch modes on a phone at all. This
+  // puts the same toggle inside the one header that's always visible on mobile.
+  function mobileModeToggleHtml(me) {
+    if (!me || !me.is_management) return '';
+    var mode = getMode(me);
+    return '<span class="jct-mhead-mode" title="Office/Pro mode">' +
+      '<button type="button" class="jct-mhead-mode-btn' + (mode === 'office' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'office\')">Office</button>' +
+      '<button type="button" class="jct-mhead-mode-btn' + (mode === 'pro' ? ' on' : '') + '" onclick="window.__jctToggleHubMode(\'pro\')">Pro</button>' +
+    '</span>';
+  }
+
   function mountMobileHeader(me) {
     if (document.querySelector('.jct-mhead')) return;
     var title = pageTitle(me);
@@ -170,6 +183,7 @@
       // Signed-out pages (the public pro-schedule quick reference) get the brand +
       // title only — no avatar, and no sign-out button for a session that isn't there.
       (me ? '<div class="jct-mhead-right">' +
+        mobileModeToggleHtml(me) +
         '<div class="jct-mhead-av" id="jct-mhead-av"></div>' +
         '<button type="button" class="jct-mhead-out" onclick="window.__jctSignOut()" aria-label="Sign out" title="Sign out">' +
           '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
@@ -234,6 +248,9 @@
           'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '.jct-mhead-date{font-size:11px;color:#8fa0b8;margin-top:1px;}' +
         '.jct-mhead-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}' +
+        '.jct-mhead-mode{display:inline-flex;align-items:center;background:rgba(12,23,56,0.05);border:1px solid rgba(12,23,56,0.08);border-radius:100px;padding:2px;gap:1px;flex-shrink:0;}' +
+        '.jct-mhead-mode-btn{border:none;background:none;cursor:pointer;font-family:Inter,system-ui,sans-serif;font-size:10.5px;font-weight:700;color:#8fa0b8;padding:4px 9px;border-radius:100px;}' +
+        '.jct-mhead-mode-btn.on{background:#fff;color:#0c1738;box-shadow:0 1px 3px rgba(12,23,56,0.10);}' +
         '.jct-mhead-av{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;' +
           'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;background:#e8eef8;}' +
         '.jct-mhead-av img{width:100%;height:100%;object-fit:cover;}' +

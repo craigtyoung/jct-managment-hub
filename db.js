@@ -4202,7 +4202,7 @@ function _dirOut(s) {
   return { id: s.id, first_name: s.name, last_name: s.last_name || '', role: s.role, is_pro: !!s.is_pro,
     volunteer: !!s.volunteer,
     badge: s.badge || null, color: s.color, phone: s.phone || '', email: s.email || '', address: s.address || '',
-    certification: s.certification || '', active: s.active !== false };
+    certification: s.certification || '', active: s.active !== false, must_set_password: !!s.must_set_password };
 }
 function getStaffDirectory() {
   return (_data.staff || []).slice().sort((a, b) => a.name.localeCompare(b.name)).map(_dirOut);

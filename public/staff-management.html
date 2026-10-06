@@ -102,6 +102,9 @@
     .role-badge { font-size:11px; font-weight:600; border-radius:100px; padding:2px 10px; white-space:nowrap; }
     .role-badge.mgr { background:rgba(44,92,156,0.12); color:#24507f; }
     .role-badge.con { background:rgba(245,158,11,0.16); color:#b45309; }
+    .login-badge { font-size:11px; font-weight:600; border-radius:100px; padding:2px 10px; white-space:nowrap; }
+    .login-badge.ok { background:rgba(5,150,105,0.10); color:#047857; }
+    .login-badge.pending { background:rgba(245,158,11,0.16); color:#b45309; }
     .row-act { background:transparent; border:none; cursor:pointer; font-size:14px; padding:4px 6px; border-radius:7px; opacity:0.7; }
     .row-act:hover { opacity:1; background:var(--surface2); }
     .del-act:hover { background:rgba(239,68,68,0.12); }
@@ -310,9 +313,10 @@
           '<button class="view-tab' + (dirFilter === 'inactive' ? ' active' : '') + '" onclick="setDirFilter(\'inactive\',this)">Inactive</button>' +
           '<button class="view-tab' + (dirFilter === 'all' ? ' active' : '') + '" onclick="setDirFilter(\'all\',this)">All</button>' +
         '</div>' +
-        '<div class="grid-wrap"><table><thead><tr><th>Staff</th><th>Role</th><th>Contact</th><th></th></tr></thead><tbody>' +
+        '<div class="grid-wrap"><table><thead><tr><th>Staff</th><th>Role</th><th>Contact</th><th>Login</th><th></th></tr></thead><tbody>' +
         rows.map(function (r) {
           var inactive = r.active === false;
+          var loginCell = '<td><span class="login-badge ' + (r.must_set_password ? 'pending' : 'ok') + '">' + (r.must_set_password ? 'Pending' : 'Logged in') + '</span></td>';
           var roleCell;
           if (r.role === 'manager' || r.role === 'admin') roleCell = '<td><span class="role-badge mgr">Manager</span></td>';
           else if (r.role === 'contractor') roleCell = '<td><span class="role-badge con">Contractor</span></td>';
@@ -333,6 +337,7 @@
             '<td><div class="who"><div class="av" id="dav-' + r.id + '" style="cursor:pointer" title="Change photo" onclick="pickPhoto(' + r.id + ')"></div><div class="who-nm"><span class="nm">' + esc(r.first_name) + lastName + '</span>' + certTag + inactiveTag + '</div></div></td>' +
             roleCell +
             '<td>' + contactCell(r) + '</td>' +
+            loginCell +
             '<td style="white-space:nowrap">' + actions + '</td>' +
             '</tr>';
         }).join('') +
