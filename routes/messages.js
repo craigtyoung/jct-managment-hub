@@ -41,7 +41,8 @@ router.get('/', (req, res) => {
   const limit = parseInt(req.query.limit) || 30;
   const offset = parseInt(req.query.offset) || 0;
   const unreadOnly = req.query.unread === 'true';
-  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId, audience: req.query.audience, unreadOnly });
+  const includeCourt = req.query.includeCourt === 'true';
+  const messages = db.getMessages({ limit, offset, staffId: req.actingStaffId, audience: req.query.audience, unreadOnly, includeCourt });
   res.json(messages);
 });
 
@@ -129,9 +130,9 @@ router.post('/', (req, res) => {
     court_ping: isQuickPing,
     court_reply: !!courtReplyTargetId,
   });
-  // Replying to a court ping is itself an acknowledgment — mark the original read for
-  // this staffer so it clears from their own "Messages from the Court" card too.
-  if (courtReplyTargetId) db.markRead(courtReplyToId, req.actingStaffId);
+  // Replying to a court ping resolves it — delete it outright (no permanent record
+  // wanted for this kind of on-court chatter) rather than just marking it read.
+  if (courtReplyTargetId) db.deleteMessage(courtReplyToId);
   sse.broadcast('update');
 
   // Push notifications to the intended recipients (never the author), respecting
@@ -155,8 +156,17 @@ router.post('/', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// POST mark as read
+// POST mark as read — court pings/replies are ephemeral by design (see getMessages):
+// dismissing one deletes it outright instead of recording a read, so no permanent
+// trace is left once it's been seen. Ordinary notes and Staff Memos (ackMemo also
+// hits this endpoint) keep the normal read-record behaviour.
 router.post('/:id/read', (req, res) => {
+  const msg = db.getMessage(req.params.id);
+  if (msg && (msg.court_ping || msg.court_reply)) {
+    db.deleteMessage(req.params.id);
+    sse.broadcast('update');
+    return res.json({ ok: true });
+  }
   db.markRead(req.params.id, req.actingStaffId);
   res.json({ ok: true });
 });

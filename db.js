@@ -2061,7 +2061,7 @@ function scrubStaffFromSlots(id) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = false }) {
+function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = false, includeCourt = false }) {
   const allStaff = _data.staff;
   const vid = parseInt(staffId);
   const viewer = allStaff.find(s => s.id === vid);
@@ -2077,7 +2077,13 @@ function getMessages({ limit = 30, offset = 0, staffId, audience, unreadOnly = f
   // office/contractor → office; management → whichever audience they requested.
   const aud = viewerIsPro ? 'pro' : (audience === 'pro' ? 'pro' : 'office');
   if (aud === 'pro' && !(viewerIsMgmt || viewerIsPro)) return [];
-  const inAudience = _data.messages.filter(m => (m.audience || 'office') === aud);
+  // Court pings/replies are deliberately separate from the Comm Log (own card, own
+  // popup — see court-alert.js) and ephemeral (deleted outright once dismissed, not
+  // just marked read). Excluded from every ordinary listing by default so they never
+  // clutter the Comms log or the Latest Messages preview; the two surfaces that are
+  // actually meant to show them (the dashboard's court-ping card, the court-alert
+  // popup) opt in with includeCourt=true.
+  const inAudience = _data.messages.filter(m => (m.audience || 'office') === aud && (includeCourt || !(m.court_ping || m.court_reply)));
 
   // Privacy: management sees the whole log for the audience (oversight). Everyone else
   // only sees a note if they authored it, it targets them specifically, or it's an

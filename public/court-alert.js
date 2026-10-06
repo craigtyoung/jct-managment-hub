@@ -165,7 +165,7 @@
   var checkKind = 'ping';
   async function check() {
     try {
-      var r = await fetch('/api/messages?unread=true');
+      var r = await fetch('/api/messages?unread=true&includeCourt=true');
       if (!r.ok) return;
       var unread = await r.json();
       var flag = checkKind === 'reply' ? 'court_reply' : 'court_ping';
