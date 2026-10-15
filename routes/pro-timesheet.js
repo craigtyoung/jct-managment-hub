@@ -105,11 +105,12 @@ router.put('/entry', (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /manual — add a manual line (private lesson, sub, off-grid). Flagged for management.
+// POST /manual — add a manual line (covered class, staff meeting, round robin, off-grid).
+// Private lessons are out of scope. Flagged for management.
 router.post('/manual', (req, res) => {
   const acting = db.getStaffById(req.actingStaffId);
   if (!acting) return res.status(401).json({ error: 'Not authenticated' });
-  const { staff_id, date, actual_start, actual_end, program, notes } = req.body;
+  const { staff_id, date, actual_start, actual_end, program, notes, category } = req.body;
   const mgmt = isManagement(acting);
   const targetId = (staff_id && mgmt) ? parseInt(staff_id) : req.actingStaffId;
   if (targetId !== req.actingStaffId && !mgmt) {
@@ -118,9 +119,12 @@ router.post('/manual', (req, res) => {
   if (!date || !actual_start || !actual_end) {
     return res.status(400).json({ error: 'date, actual_start, actual_end required' });
   }
+  if (category !== 'academy' && category !== 'off_court') {
+    return res.status(400).json({ error: 'category must be "academy" (covered class) or "off_court" (meeting, round robin, etc.)' });
+  }
   const item = db.addProManualEntry({
     staffId: targetId, date, actualStart: actual_start, actualEnd: actual_end,
-    program, notes: notes || '', submittedBy: req.actingStaffId,
+    program, notes: notes || '', submittedBy: req.actingStaffId, category,
   });
   res.json({ ok: true, item });
 });
@@ -188,7 +192,7 @@ router.get('/export', (req, res) => {
   });
   manual.forEach(m => {
     exportRows.push({ staffId: m.staff_id, date: m.date, cells: [
-      nameOf(m.staff_id), m.date, 'Manual', m.program || '',
+      nameOf(m.staff_id), m.date, m.category === 'academy' ? 'Manual (Academy)' : 'Manual (Off Court)', m.program || '',
       '', '', m.actual_start || '', m.actual_end || '',
       hrs(m.actual_start, m.actual_end), m.notes || '',
     ]});

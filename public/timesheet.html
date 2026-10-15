@@ -358,6 +358,7 @@
       </button>
       <button class="today-btn" onclick="goToday()">Current period</button>
       <button class="today-btn" onclick="exportTimesheet()" style="margin-left:auto">Export CSV</button>
+      <button class="today-btn mgmt-only" style="display:none" onclick="exportPayrollSummary()">Export Payroll Summary</button>
     </div>
 
     <!-- Person cards -->
@@ -446,6 +447,7 @@
 
     // ── Nav ────────────────────────────────────────────────────────
     function exportTimesheet() { window.location.href = '/api/timesheet/export?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
+    function exportPayrollSummary() { window.location.href = '/api/timesheet/payroll-summary?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
 
     // Office/Pro toggle — same localStorage key hub.html's dashboard toggle uses, so the
     // choice carries over everywhere else that reads it (topnav.js's mode-aware nav, etc.).
@@ -1041,6 +1043,7 @@
       const _ang=document.getElementById('admin-nav-group'); if(me.role==='admin'&&_ang)_ang.style.display='block';
 
       isAdmin  = ['admin','manager'].includes(me.role);
+      document.querySelectorAll('.mgmt-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
       canConfirm = true; // everyone can confirm their own
 
       if (isAdmin) document.getElementById('mode-toggle').style.display = 'inline-flex';

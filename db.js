@@ -587,6 +587,16 @@ if (Array.isArray(_data.academy_classes) && !_data.academy_classes.some(c => c.c
 // Gated by a flag so edits/deletions survive reboots.
 if (!Array.isArray(_data.pro_schedule_slots)) { _data.pro_schedule_slots = []; _data._seq.pro_schedule_slots = 0; }
 if (!Array.isArray(_data.pro_timesheet_entries)) { _data.pro_timesheet_entries = []; _data._seq.pro_timesheet_entries = 0; }
+// Migration: backfill category on manual pro-timesheet entries logged before the
+// Academy/Off Court split existed. Defaults to off_court (meetings/evaluations were
+// the more common historical case) — correct any that were actually a covered class.
+{
+  let changed = false;
+  (_data.pro_timesheet_entries || []).forEach(e => {
+    if (e.source === 'manual' && !e.category) { e.category = 'off_court'; changed = true; }
+  });
+  if (changed) save();
+}
 if (!_data._migrations) _data._migrations = {};
 
 // Migration: flag salaried staff so they're kept OUT of the hourly timesheets
@@ -4538,13 +4548,19 @@ function upsertProTimesheetEntry({ staffId, date, slotId, actualStart, actualEnd
   save();
 }
 
-// Add a manual line (private lesson, sub, off-grid). Flagged source:'manual' so
-// management can scan a period for hand-entered hours.
-function addProManualEntry({ staffId, date, actualStart, actualEnd, program, notes, submittedBy }) {
+// Add a manual line (covered class, staff meeting, round robin, off-grid). Flagged
+// source:'manual' so management can scan a period for hand-entered hours. Private
+// lessons are out of scope — not tracked here.
+// category distinguishes on-court work (a covered class — counts toward Academy
+// hours, same as the auto-generated grid) from off-court work (meetings, round
+// robins, evaluations) for payroll's Academy/Off Court split. Required: a manual
+// line's hours are payroll-facing, so it must be explicit, never guessed.
+function addProManualEntry({ staffId, date, actualStart, actualEnd, program, notes, submittedBy, category }) {
   if (!Array.isArray(_data.pro_timesheet_entries)) { _data.pro_timesheet_entries = []; _data._seq.pro_timesheet_entries = 0; }
   const entry = {
     id: nextId('pro_timesheet_entries'),
     staff_id: parseInt(staffId), date, slot_id: null, source: 'manual',
+    category: category === 'academy' ? 'academy' : 'off_court',
     program: program || 'Manual entry',
     actual_start: actualStart || null, actual_end: actualEnd || null,
     notes: notes || '', updated_by: submittedBy, updated_at: now(),

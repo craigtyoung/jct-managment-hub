@@ -662,7 +662,7 @@
         <span class="shift-sched">${fmt12(m.actual_start)} – ${fmt12(m.actual_end)}</span>
         <div class="shift-status-area">
           <span style="font-size:12.5px;font-weight:600;color:var(--text-2)">${esc(m.program || 'Manual entry')}</span>
-          <span class="manual-badge">Manual</span>
+          <span class="manual-badge">${m.category === 'academy' ? 'Academy' : 'Off Court'}</span>
           ${m.notes ? `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(m.notes)}</span>` : ''}
           ${canDel ? `<button class="edit-times-btn" onclick="deleteManual(${m.id})">Remove</button>` : ''}
         </div>
@@ -677,6 +677,11 @@
       return `<div class="manual-section">
         <div style="padding:12px 20px"><button class="today-btn" onclick="document.getElementById('${fid}').style.display='flex'">+ Add manual entry</button></div>
         <div class="manual-form" id="${fid}" style="display:none">
+          <select class="time-input" id="man-cat-${person.id}" style="width:130px">
+            <option value="">Academy or Off Court?</option>
+            <option value="academy">Academy (covered class)</option>
+            <option value="off_court">Off Court (meeting, round robin, etc.)</option>
+          </select>
           <input type="date" class="time-input" id="man-date-${person.id}" value="${todayStr()}" style="width:140px">
           <input type="text" class="time-input" id="man-prog-${person.id}" placeholder="Lesson / description" style="flex:1;min-width:140px">
           <input type="time" class="time-input" id="man-start-${person.id}">
@@ -722,15 +727,17 @@
     }
 
     async function addManual(personId) {
+      const cat   = document.getElementById('man-cat-'+personId)?.value;
       const date  = document.getElementById('man-date-'+personId)?.value;
       const prog  = document.getElementById('man-prog-'+personId)?.value;
       const start = document.getElementById('man-start-'+personId)?.value;
       const end   = document.getElementById('man-end-'+personId)?.value;
       const note  = document.getElementById('man-note-'+personId)?.value || '';
+      if (!cat) { alert('Pick Academy or Off Court.'); return; }
       if (!date || !start || !end) { alert('Date, start and end are required.'); return; }
       await fetch('/api/pro-timesheet/manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: note })
+        body: JSON.stringify({ staff_id: personId, date, actual_start: start, actual_end: end, program: prog, notes: note, category: cat })
       });
       load(true);
     }

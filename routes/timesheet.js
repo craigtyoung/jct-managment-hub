@@ -46,6 +46,8 @@ router.use((req, res, next) => {
   next();
 });
 
+function isManagement(s) { return s && ['admin', 'manager'].includes(s.role); }
+
 // GET a pay period's scheduled shifts + timesheet entries merged
 // ?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/week', (req, res) => {
@@ -503,6 +505,81 @@ router.get('/export', (req, res) => {
   res.send(lines.join('\n'));
 });
 
+// GET /payroll-summary?start=&end= — one row per staff member, vertical layout:
+// Regular (office) Hours, Academy Hours, Off Court Hours, Strung (#), Expenses ($),
+// Total Hours. A locked snapshot for the moment payroll is run — not stored server-side;
+// re-run the same start/end later to regenerate it from current records.
+router.get('/payroll-summary', (req, res) => {
+  const acting = db.getStaffById(req.actingStaffId);
+  if (!isManagement(acting)) return res.status(403).json({ error: 'Management only' });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const start = req.query.start || periodStart(today);
+  const end   = req.query.end   || periodEnd(start);
+
+  const assignments = db.getAssignmentsForRange(start, end);
+  const manual       = db.getManualTimesheetForRange(start, end);
+  const voids        = db.getTimesheetVoidsForRange(start, end);
+  const entries      = db.getTimesheetForRange(start, end);
+  const entryMap = {};
+  for (const e of entries) entryMap[`${e.staff_id}:${e.date}:${e.shift}`] = e;
+  const voidSet = new Set(voids.map(v => `${v.staff_id}:${v.date}:${v.shift}`));
+
+  const decHrs = (s, e2) => {
+    if (!s || !e2) return 0;
+    const [sh, sm] = s.split(':').map(Number), [eh, em] = e2.split(':').map(Number);
+    let m = (eh * 60 + em) - (sh * 60 + sm); if (m < 0) m += 1440;
+    return m / 60;
+  };
+
+  const regularHoursById = {};
+  assignments.filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`)).forEach(a => {
+    const en = entryMap[`${a.staff_id}:${a.date}:${a.shift}`];
+    regularHoursById[a.staff_id] = (regularHoursById[a.staff_id] || 0) + decHrs(en?.actual_start, en?.actual_end);
+  });
+  manual.forEach(m => {
+    regularHoursById[m.staff_id] = (regularHoursById[m.staff_id] || 0) + decHrs(m.actual_start, m.actual_end);
+  });
+
+  const proByStaff = buildProHoursByStaff(start, end);
+  const stringCounts = db.getStringCounts(start, end); // count only, no $ — matches the String Log's own rule
+  const stringByStaff = {}; stringCounts.forEach(c => { stringByStaff[c.staff_id] = c.total; });
+
+  const expenseTotalById = {};
+  const allItems = db.getExpenseItemsForPeriodAllStaff(start);
+  Object.entries(allItems).forEach(([sid, items]) => {
+    expenseTotalById[sid] = (items || []).reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
+  });
+
+  const staffIds = new Set([
+    ...Object.keys(regularHoursById), ...Object.keys(proByStaff),
+    ...Object.keys(stringByStaff), ...Object.keys(expenseTotalById),
+  ].map(Number));
+
+  const q = c => `"${String(c ?? '').replace(/"/g, '""')}"`;
+  const lines = [];
+  lines.push(['Staff', 'Regular Hours', 'Academy Hours', 'Off Court Hours', 'Strung (#)', 'Expenses', 'Total Hours'].map(q).join(','));
+  [...staffIds]
+    .sort((a, b) => { const na = db.getStaffById(a), nb = db.getStaffById(b); return (na ? na.name : String(a)).localeCompare(nb ? nb.name : String(b)); })
+    .forEach(id => {
+      const s = db.getStaffById(id);
+      const regular = regularHoursById[id] || 0;
+      const academy = proByStaff[id] ? proByStaff[id].academy_hours : 0;
+      const offCourt = proByStaff[id] ? proByStaff[id].off_court_hours : 0;
+      const strung = stringByStaff[id] || 0;
+      const expenses = expenseTotalById[id] || 0;
+      lines.push([
+        s ? s.name : id,
+        regular.toFixed(2), academy.toFixed(2), offCourt.toFixed(2),
+        strung, expenses.toFixed(2), (regular + academy + offCourt).toFixed(2),
+      ].map(q).join(','));
+    });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="payroll-summary-${start}_${end}.csv"`);
+  res.send(lines.join('\n'));
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // Pro/teaching hours per staff for a period — confirmed classes + manual lines only
@@ -526,17 +603,19 @@ function buildProHoursByStaff(start, end) {
   }
   const byStaff = {};
   const add = (staffId, line) => {
-    if (!byStaff[staffId]) byStaff[staffId] = { lines: [], total_hours: 0 };
+    if (!byStaff[staffId]) byStaff[staffId] = { lines: [], total_hours: 0, academy_hours: 0, off_court_hours: 0 };
     byStaff[staffId].lines.push(line);
     byStaff[staffId].total_hours += line.hours;
+    if (line.category === 'off_court') byStaff[staffId].off_court_hours += line.hours;
+    else byStaff[staffId].academy_hours += line.hours;   // grid classes + covered-class manual lines
   };
   for (const a of assignments) {
     const en = entryMap[`${a.staff_id}:${a.slot_id}:${a.date}`];
     if (!en || !en.actual_start) continue; // unconfirmed classes = 0 hours
-    add(a.staff_id, { date: a.date, program: a.program || 'Class', actual_start: en.actual_start, actual_end: en.actual_end, hours: decimalHours(en.actual_start, en.actual_end), kind: 'class' });
+    add(a.staff_id, { date: a.date, program: a.program || 'Class', actual_start: en.actual_start, actual_end: en.actual_end, hours: decimalHours(en.actual_start, en.actual_end), kind: 'class', category: 'academy' });
   }
   for (const m of manual) {
-    add(m.staff_id, { date: m.date, program: m.program || 'Manual', actual_start: m.actual_start, actual_end: m.actual_end, hours: decimalHours(m.actual_start, m.actual_end), kind: 'manual' });
+    add(m.staff_id, { date: m.date, program: m.program || 'Manual', actual_start: m.actual_start, actual_end: m.actual_end, hours: decimalHours(m.actual_start, m.actual_end), kind: 'manual', category: m.category === 'off_court' ? 'off_court' : 'academy' });
   }
   // Sort each staff's lines by date
   for (const s of Object.values(byStaff)) s.lines.sort((a, b) => a.date.localeCompare(b.date));
