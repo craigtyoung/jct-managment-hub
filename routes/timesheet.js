@@ -505,10 +505,12 @@ router.get('/export', (req, res) => {
   res.send(lines.join('\n'));
 });
 
-// GET /payroll-summary?start=&end= — one row per staff member, vertical layout:
-// Regular (office) Hours, Academy Hours, Off Court Hours, Strung (#), Expenses ($),
-// Total Hours. A locked snapshot for the moment payroll is run — not stored server-side;
-// re-run the same start/end later to regenerate it from current records.
+// GET /payroll-summary?start=&end= — itemized payroll snapshot, one block per staff
+// member (name, then every paid line — office shifts, academy classes, off court,
+// stringing, expenses — in date order, then that person's own totals right underneath).
+// Mirrors the old pay sheet's per-person layout but vertical (one block after another)
+// instead of side-by-side columns needing horizontal scroll. Not stored server-side —
+// re-run the same start/end later to regenerate from current records.
 router.get('/payroll-summary', (req, res) => {
   const acting = db.getStaffById(req.actingStaffId);
   if (!isManagement(acting)) return res.status(403).json({ error: 'Management only' });
@@ -521,6 +523,8 @@ router.get('/payroll-summary', (req, res) => {
   const manual       = db.getManualTimesheetForRange(start, end);
   const voids        = db.getTimesheetVoidsForRange(start, end);
   const entries      = db.getTimesheetForRange(start, end);
+  const defaults     = db.getShiftDefaults();
+  const overrides    = db.getTimeOverridesForRange(start, end);
   const entryMap = {};
   for (const e of entries) entryMap[`${e.staff_id}:${e.date}:${e.shift}`] = e;
   const voidSet = new Set(voids.map(v => `${v.staff_id}:${v.date}:${v.shift}`));
@@ -531,48 +535,92 @@ router.get('/payroll-summary', (req, res) => {
     let m = (eh * 60 + em) - (sh * 60 + sm); if (m < 0) m += 1440;
     return m / 60;
   };
+  const fmt12 = t => {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM', h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  };
 
-  const regularHoursById = {};
+  // byStaff[id] = { name, rows: [{sortKey, cells:[Date,Type,Time In,Time Out,Hours,Detail,Amount]}],
+  //                 regular, academy, offCourt, strung, expenses }
+  const byStaff = {};
+  const bucket = id => {
+    if (!byStaff[id]) {
+      const s = db.getStaffById(id);
+      byStaff[id] = { name: s ? s.name : String(id), rows: [], regular: 0, academy: 0, offCourt: 0, strung: 0, expenses: 0 };
+    }
+    return byStaff[id];
+  };
+
+  // Office shifts (minus voided) + manual office lines
   assignments.filter(a => !voidSet.has(`${a.staff_id}:${a.date}:${a.shift}`)).forEach(a => {
-    const en = entryMap[`${a.staff_id}:${a.date}:${a.shift}`];
-    regularHoursById[a.staff_id] = (regularHoursById[a.staff_id] || 0) + decHrs(en?.actual_start, en?.actual_end);
+    const key = `${a.staff_id}:${a.date}:${a.shift}`;
+    const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
+    const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
+    const hours = decHrs(as, ae);
+    const b = bucket(a.staff_id);
+    b.regular += hours;
+    b.rows.push({ sortKey: a.date + a.shift, cells: [a.date, a.shift, fmt12(as || ov?.start || def.start), fmt12(ae || ov?.end || def.end), hours ? hours.toFixed(2) : '', en ? en.notes || '' : '', ''] });
   });
   manual.forEach(m => {
-    regularHoursById[m.staff_id] = (regularHoursById[m.staff_id] || 0) + decHrs(m.actual_start, m.actual_end);
+    const hours = decHrs(m.actual_start, m.actual_end);
+    const b = bucket(m.staff_id);
+    b.regular += hours;
+    b.rows.push({ sortKey: m.date + 'zz', cells: [m.date, `Added: ${m.label || 'Manual entry'}`, fmt12(m.actual_start), fmt12(m.actual_end), hours ? hours.toFixed(2) : '', m.notes || '', ''] });
   });
 
+  // Academy (grid classes + covered-class manual) + Off Court manual
   const proByStaff = buildProHoursByStaff(start, end);
-  const stringCounts = db.getStringCounts(start, end); // count only, no $ — matches the String Log's own rule
-  const stringByStaff = {}; stringCounts.forEach(c => { stringByStaff[c.staff_id] = c.total; });
+  Object.entries(proByStaff).forEach(([id, data]) => {
+    const b = bucket(id);
+    b.academy = data.academy_hours; b.offCourt = data.off_court_hours;
+    data.lines.forEach(l => {
+      const isOffCourt = l.category === 'off_court';
+      b.rows.push({ sortKey: l.date + (isOffCourt ? 'offcourt' : 'academy'), cells: [l.date, isOffCourt ? 'Off Court' : 'Academy', fmt12(l.actual_start), fmt12(l.actual_end), l.hours.toFixed(2), l.program || '', ''] });
+    });
+  });
 
-  const expenseTotalById = {};
+  // Stringing — one row per racquet, count only (no $, per the String Log's own rule)
+  const stringLogs = db.getStringLogs().filter(l => {
+    if (l.strung_by == null) return false;
+    const d = l.strung_date || l.date;
+    return d >= start && d <= end;
+  });
+  stringLogs.forEach(l => {
+    const b = bucket(l.strung_by);
+    b.strung += 1;
+    const d = l.strung_date || l.date;
+    b.rows.push({ sortKey: d + 'string', cells: [d, 'Stringing', '', '', '', l.member ? `Strung for ${l.member}` : 'Strung', ''] });
+  });
+
+  // Expenses, folded in with the person instead of a separate end-of-report section
   const allItems = db.getExpenseItemsForPeriodAllStaff(start);
   Object.entries(allItems).forEach(([sid, items]) => {
-    expenseTotalById[sid] = (items || []).reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
+    (items || []).forEach(item => {
+      const amt = parseFloat(item.amount) || 0;
+      const b = bucket(parseInt(sid));
+      b.expenses += amt;
+      b.rows.push({ sortKey: item.date + 'zzexpense', cells: [item.date, 'Expense', '', '', '', item.description || '', amt.toFixed(2)] });
+    });
   });
-
-  const staffIds = new Set([
-    ...Object.keys(regularHoursById), ...Object.keys(proByStaff),
-    ...Object.keys(stringByStaff), ...Object.keys(expenseTotalById),
-  ].map(Number));
 
   const q = c => `"${String(c ?? '').replace(/"/g, '""')}"`;
   const lines = [];
-  lines.push(['Staff', 'Regular Hours', 'Academy Hours', 'Off Court Hours', 'Strung (#)', 'Expenses', 'Total Hours'].map(q).join(','));
-  [...staffIds]
-    .sort((a, b) => { const na = db.getStaffById(a), nb = db.getStaffById(b); return (na ? na.name : String(a)).localeCompare(nb ? nb.name : String(b)); })
-    .forEach(id => {
-      const s = db.getStaffById(id);
-      const regular = regularHoursById[id] || 0;
-      const academy = proByStaff[id] ? proByStaff[id].academy_hours : 0;
-      const offCourt = proByStaff[id] ? proByStaff[id].off_court_hours : 0;
-      const strung = stringByStaff[id] || 0;
-      const expenses = expenseTotalById[id] || 0;
-      lines.push([
-        s ? s.name : id,
-        regular.toFixed(2), academy.toFixed(2), offCourt.toFixed(2),
-        strung, expenses.toFixed(2), (regular + academy + offCourt).toFixed(2),
-      ].map(q).join(','));
+  Object.keys(byStaff)
+    .sort((a, b) => byStaff[a].name.localeCompare(byStaff[b].name))
+    .forEach((sid, i) => {
+      const b = byStaff[sid];
+      if (i > 0) lines.push('');
+      lines.push(q(b.name));
+      lines.push(['Date', 'Type', 'Time In', 'Time Out', 'Hours', 'Detail', 'Amount'].map(q).join(','));
+      b.rows.sort((x, y) => x.sortKey.localeCompare(y.sortKey)).forEach(r => lines.push(r.cells.map(q).join(',')));
+      const totalHours = b.regular + b.academy + b.offCourt;
+      lines.push(['TOTAL', '', '', '', totalHours.toFixed(2), '', b.expenses.toFixed(2)].map(q).join(','));
+      if (b.regular)  lines.push(['', '', '', '', 'Regular Hours', b.regular.toFixed(2), ''].map(q).join(','));
+      if (b.academy)  lines.push(['', '', '', '', 'Academy Hours', b.academy.toFixed(2), ''].map(q).join(','));
+      if (b.offCourt) lines.push(['', '', '', '', 'Off Court Hours', b.offCourt.toFixed(2), ''].map(q).join(','));
+      if (b.strung)   lines.push(['', '', '', '', 'Strung', b.strung, ''].map(q).join(','));
     });
 
   res.setHeader('Content-Type', 'text/csv');
