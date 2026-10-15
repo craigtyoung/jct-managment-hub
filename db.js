@@ -400,6 +400,13 @@ if (!Array.isArray(_data.string_logs)) {
   _data.string_logs = [];
   save();
 }
+// Migration: backfill strung_date (the date payroll should attribute the work to) for
+// entries logged before the taken-in/strung-on split existed. Defaults to the old single `date`.
+{
+  let changed = false;
+  (_data.string_logs || []).forEach(l => { if (!l.strung_date) { l.strung_date = l.date; changed = true; } });
+  if (changed) save();
+}
 
 // Pro Shop → Academy Apparel: free performance tees issued to Performance Academy classes + pros.
 // Stock is an append-only movement ledger (on-hand = sum of qty); requests move
@@ -3096,19 +3103,24 @@ function deleteWaitlistSpot(id) {
 // ─── Pro Shop: String Log (rackets strung — counts only, no pay/rates) ─────────
 // "paid" = the MEMBER paid at pickup (stringer pay lives on the timesheet). Marking it records the
 // date + who, and every change is kept in paid_log so it can't be flipped silently.
+// `date` = taken in (order date); `strung_date` = when the work was actually done. Payroll period
+// attribution (getStringCounts) runs on strung_date, since that's what the stringer should be paid
+// for — a racket taken in near a pay-period boundary but strung the next period must land there.
 const _torontoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 function getStringLogs() {
   const nameById = {}; (_data.staff || []).forEach(s => nameById[s.id] = s.name);
   return (_data.string_logs || []).filter(l => l.active !== false)
-    .slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id)
+    .slice().sort((a, b) => String(b.strung_date || b.date).localeCompare(String(a.strung_date || a.date)) || b.id - a.id)
     .map(l => ({ ...l, strung_by_name: nameById[l.strung_by] || '—', taken_in_by_name: nameById[l.taken_in_by] || '', paid_by_name: nameById[l.paid_by] || '' }));
 }
-function addStringLog({ date, member, string, tension, strung_by, taken_in_by, string_source }) {
+function addStringLog({ date, strung_date, member, string, tension, strung_by, taken_in_by, string_source }) {
   if (!Array.isArray(_data.string_logs)) { _data.string_logs = []; _data._seq.string_logs = 0; }
   const id = nextId('string_logs');
+  const d = (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : _torontoToday();
   _data.string_logs.push({
     id,
-    date: (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : _torontoToday(),
+    date: d,
+    strung_date: (typeof strung_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(strung_date)) ? strung_date : d,
     member: String(member || '').slice(0, 120),
     string: String(string || '').slice(0, 80),
     tension: String(tension || '').slice(0, 40),
@@ -3139,6 +3151,7 @@ function updateStringLog(id, f, staffId) {
     (l.paid_log = l.paid_log || []).push({ action: paid ? 'paid' : 'unpaid', by: staffId || null, date: paid ? l.paid_date : _torontoToday(), at: now() });
   }
   if (f.date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(f.date)) l.date = f.date;
+  if (f.strung_date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(f.strung_date)) l.strung_date = f.strung_date;
   if (f.member !== undefined) l.member = String(f.member).slice(0, 120);
   if (f.string !== undefined) l.string = String(f.string).slice(0, 80);
   if (f.tension !== undefined) l.tension = String(f.tension).slice(0, 40);
@@ -3157,7 +3170,7 @@ function getStringCounts(start, end) {
   const nameById = {}, colorById = {}; (_data.staff || []).forEach(s => { nameById[s.id] = s.name; colorById[s.id] = s.color; });
   const map = {};
   (_data.string_logs || []).filter(l => l.active !== false)
-    .filter(l => (!start || String(l.date) >= start) && (!end || String(l.date) <= end))
+    .filter(l => { const d = String(l.strung_date || l.date); return (!start || d >= start) && (!end || d <= end); })
     .forEach(l => {
     if (l.strung_by == null) return;
     const k = l.strung_by;

@@ -253,7 +253,8 @@
             <div class="card-title">Log a string</div>
             <form autocomplete="off" onsubmit="return false;">
             <div class="add-grid">
-              <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
+              <div class="fld"><label>Date taken in</label><input type="date" id="f-date" autocomplete="off" onchange="syncStrungDate()"></div>
+              <div class="fld"><label>Date strung</label><input type="date" id="f-strung-date" autocomplete="off" oninput="strungDateTouched=true"></div>
               <div class="fld"><label>Member</label><input type="text" id="f-member" placeholder="Member name" autocomplete="off"></div>
               <div class="fld"><label>String used</label><input type="text" id="f-string" placeholder="e.g. Luxilon ALU" autocomplete="off"></div>
               <div class="fld"><label>Tension</label><input type="text" id="f-tension" placeholder="e.g. 55" autocomplete="off" name="tension_lbs"></div>
@@ -266,7 +267,7 @@
               <input type="checkbox" id="f-own-string" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;">
               <label for="f-own-string" style="font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;user-select:none;">Member providing own string (labour only)</label>
             </div>
-            <div style="margin-top:6px;font-size:11px;color:var(--text-3);">Leave "Strung by" blank to log that an order was taken in — fill it in later with the ✎ edit button once it's strung.</div>
+            <div style="margin-top:6px;font-size:11px;color:var(--text-3);">Leave "Strung by" blank to log that an order was taken in — fill it in later with the ✎ edit button once it's strung. "Date strung" drives which pay period the stringer is credited for — update it if the racket wasn't strung the same day it came in.</div>
           </div>
 
           <!-- Log -->
@@ -275,8 +276,8 @@
             <div class="ap-chips" id="str-chips"></div>
             <div class="tbl-wrap">
               <table class="log">
-                <thead><tr><th>Date</th><th>Member</th><th>String</th><th>Tension</th><th>Taken in</th><th>Strung by</th><th>Client paid</th><th></th></tr></thead>
-                <tbody id="log-body"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+                <thead><tr><th>Taken in</th><th>Strung</th><th>Member</th><th>String</th><th>Tension</th><th>Taken in by</th><th>Strung by</th><th>Client paid</th><th></th></tr></thead>
+                <tbody id="log-body"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -415,7 +416,8 @@
       <div class="pd-title" id="ed-title">Edit string entry</div>
       <div class="pd-sub">Update any field — commonly used to fill in who strung it once it's done.</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="fld"><label>Date</label><input type="date" id="ed-date" autocomplete="off"></div>
+        <div class="fld"><label>Date taken in</label><input type="date" id="ed-date" autocomplete="off"></div>
+        <div class="fld"><label>Date strung</label><input type="date" id="ed-strung-date" autocomplete="off"></div>
         <div class="fld"><label>Member</label><input type="text" id="ed-member" autocomplete="off"></div>
         <div class="fld"><label>String used</label><input type="text" id="ed-string" autocomplete="off"></div>
         <div class="fld"><label>Tension</label><input type="text" id="ed-tension" autocomplete="off"></div>
@@ -437,7 +439,8 @@
 
   <script src="/staff-avatar.js"></script>
   <script>
-    let me=null, canDelete=false, canAdd=false, staff=[], officeStaff=[], stringers=[];
+    let me=null, canDelete=false, canAdd=false, staff=[], officeStaff=[], stringers=[], strungDateTouched=false;
+    function syncStrungDate(){ if(!strungDateTouched) document.getElementById('f-strung-date').value=document.getElementById('f-date').value; }
     const optList=(list,selId)=>'<option value="">— select —</option>'+list.map(s=>`<option value="${s.id}"${s.id===selId?' selected':''}>${esc(s.name)}</option>`).join('');
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
@@ -465,6 +468,7 @@
       stringers=staff.filter(s=>STRINGERS.some(n=>String(s.name||'').toLowerCase().includes(n)));
       document.getElementById('f-by').innerHTML=optList(stringers,'');
       document.getElementById('f-date').value=new Date().toLocaleDateString('en-CA');
+      document.getElementById('f-strung-date').value=document.getElementById('f-date').value;
       canAdd = me.role==='admin' || me.role==='manager' || STRINGERS.some(n=>String(me.name||'').toLowerCase().includes(n));
       if(!canAdd) document.getElementById('add-card').style.display='none';
       await loadAll();
@@ -530,10 +534,11 @@
         `<button class="ap-chipbtn ${stringFilter==='unpaid'?'on':''}" onclick="setStringFilter('unpaid')">Unpaid (${unpaid})</button>`+
         (pending?`<button class="ap-chipbtn ${stringFilter==='pending'?'on':''}" onclick="setStringFilter('pending')">Pending (${pending})</button>`:'');
       const rows=stringFilter==='unpaid'?stringRows.filter(r=>!r.paid):stringFilter==='pending'?stringRows.filter(r=>!r.strung_by):stringRows;
-      if(!stringRows.length){ body.innerHTML='<tr><td colspan="8" class="empty">No strings logged yet. Add the first one above.</td></tr>'; return; }
-      if(!rows.length){ body.innerHTML='<tr><td colspan="8" class="empty">Nothing waiting. Every string is paid.</td></tr>'; return; }
+      if(!stringRows.length){ body.innerHTML='<tr><td colspan="9" class="empty">No strings logged yet. Add the first one above.</td></tr>'; return; }
+      if(!rows.length){ body.innerHTML='<tr><td colspan="9" class="empty">Nothing waiting. Every string is paid.</td></tr>'; return; }
       body.innerHTML=rows.map(r=>`<tr>
         <td>${esc(fmtDate(r.date))}</td>
+        <td>${esc(fmtDate(r.strung_date||r.date))}</td>
         <td>${esc(r.member)||'<span style="color:var(--text-3)">—</span>'}</td>
         <td>${r.string?esc(r.string):'<span style="color:var(--text-3)">—</span>'}${r.string_source==='member'?'<span style="margin-left:5px;font-size:10px;font-weight:700;color:var(--blue);background:rgba(44,92,156,0.10);border-radius:4px;padding:1px 5px;">own</span>':''}</td>
         <td>${esc(r.tension)||'<span style="color:var(--text-3)">—</span>'}</td>
@@ -552,6 +557,7 @@
       if(!strung_by && !taken_in_by){ toast('Pick who took it in or who strung it'); return; }
       const body={
         date:document.getElementById('f-date').value,
+        strung_date:document.getElementById('f-strung-date').value,
         member:document.getElementById('f-member').value.trim(),
         string:document.getElementById('f-string').value.trim(),
         tension:document.getElementById('f-tension').value.trim(),
@@ -571,6 +577,9 @@
       document.getElementById('f-taken').value='';
       document.getElementById('f-by').value='';
       document.getElementById('f-own-string').checked=false;
+      strungDateTouched=false;
+      document.getElementById('f-date').value=new Date().toLocaleDateString('en-CA');
+      document.getElementById('f-strung-date').value=document.getElementById('f-date').value;
       await loadAll(); toast(strung_by?'Logged':'Logged as pending — fill in "strung by" once it\'s done');
     }
     let editId=null;
@@ -578,6 +587,7 @@
       const r=stringRows.find(x=>x.id===id); if(!r) return;
       editId=id;
       document.getElementById('ed-date').value=r.date||'';
+      document.getElementById('ed-strung-date').value=r.strung_date||r.date||'';
       document.getElementById('ed-member').value=r.member||'';
       document.getElementById('ed-string').value=r.string||'';
       document.getElementById('ed-tension').value=r.tension||'';
@@ -595,6 +605,7 @@
       if(!strung_by && !taken_in_by){ toast('Pick who took it in or who strung it'); return; }
       const body={
         date:document.getElementById('ed-date').value,
+        strung_date:document.getElementById('ed-strung-date').value,
         member:document.getElementById('ed-member').value.trim(),
         string:document.getElementById('ed-string').value.trim(),
         tension:document.getElementById('ed-tension').value.trim(),
@@ -609,7 +620,7 @@
       const r=stringRows.find(x=>x.id===id); if(!r) return;
       paidId=id;
       const t=new Date().toLocaleDateString('en-CA');
-      document.getElementById('pd-sub').textContent=(r.member||'Racket')+' · strung '+fmtDate(r.date);
+      document.getElementById('pd-sub').textContent=(r.member||'Racket')+' · strung '+fmtDate(r.strung_date||r.date);
       const d=document.getElementById('pd-date'); d.value=t; d.max=t;
       document.getElementById('pd-overlay').style.display='flex';
       setTimeout(()=>d.focus(),0);
