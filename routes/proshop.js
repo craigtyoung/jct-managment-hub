@@ -23,7 +23,7 @@ router.get('/strings', (req, res) => res.json(db.getStringLogs()));
 router.get('/strings/counts', (req, res) => res.json(db.getStringCounts()));
 
 router.post('/strings', (req, res) => {
-  if (!isMgmt(req.actingStaffId) && !isStringer(req.actingStaffId)) return res.status(403).json({ error: 'Only Lilly, Matthew, or managers can log string entries' });
+  // Any office staff can take a racket in and log the entry; marking it strung/paid stays gated below.
   const { date, strung_date, member, string, tension, strung_by, taken_in_by, string_source } = req.body;
   if (!strung_by && !taken_in_by) return res.status(400).json({ error: 'Pick who took it in or who strung it' });
   const id = db.addStringLog({ date, strung_date, member, string, tension, strung_by, taken_in_by, string_source });
@@ -31,17 +31,16 @@ router.post('/strings', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// "Client paid" (the member paid at pickup): front desk, Lilly/Matthew and management can mark it;
-// only management can undo it. Editing anything else follows the same rule as logging an entry.
-const roleOf = id => { const s = db.getStaffById(id); return s ? s.role : null; };
-const canMarkPaid = id => isMgmt(id) || isStringer(id) || roleOf(id) === 'staff';
+// "Client paid" (the member paid at pickup): only Lilly/Matthew and management can mark it;
+// only management can undo it. Editing anything else follows the same rule as marking paid.
+const canMarkPaid = id => isMgmt(id) || isStringer(id);
 
 router.put('/strings/:id', (req, res) => {
   const id = req.actingStaffId, b = req.body || {};
   const editsOther = Object.keys(b).some(k => !['paid', 'paid_date'].includes(k));
   if (editsOther && !isMgmt(id) && !isStringer(id)) return res.status(403).json({ error: 'Only Lilly, Matthew, or managers can edit string entries' });
   if (b.paid !== undefined) {
-    if (b.paid && !canMarkPaid(id)) return res.status(403).json({ error: 'Only front desk, Lilly, Matthew, or managers can mark a string as paid' });
+    if (b.paid && !canMarkPaid(id)) return res.status(403).json({ error: 'Only Lilly, Matthew, or managers can mark a string as paid' });
     if (!b.paid && !isMgmt(id)) return res.status(403).json({ error: 'Only a manager can undo a paid entry' });
   }
   const l = db.updateStringLog(req.params.id, b, id);

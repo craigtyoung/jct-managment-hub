@@ -469,7 +469,7 @@
       document.getElementById('f-by').innerHTML=optList(stringers,'');
       document.getElementById('f-date').value=new Date().toLocaleDateString('en-CA');
       document.getElementById('f-strung-date').value=document.getElementById('f-date').value;
-      canAdd = me.role==='admin' || me.role==='manager' || STRINGERS.some(n=>String(me.name||'').toLowerCase().includes(n));
+      canAdd = true; // any office staff can take a racket in and log the entry
       if(!canAdd) document.getElementById('add-card').style.display='none';
       await loadAll();
     }
@@ -505,7 +505,7 @@
     let stringRows=[], stringFilter='all', paidId=null;
     // Mirrors the server rules in routes/proshop.js (the server is what actually enforces them).
     const STRING_PEOPLE=['lil','matthew'];
-    const canMarkPaidUI=()=>!!me&&(['admin','manager','staff'].includes(me.role)||STRING_PEOPLE.some(n=>String(me.name||'').toLowerCase().includes(n)));
+    const canMarkPaidUI=()=>!!me&&(['admin','manager'].includes(me.role)||STRING_PEOPLE.some(n=>String(me.name||'').toLowerCase().includes(n)));
     const canUndoPaidUI=()=>canDelete;
 
     async function loadLog(){
