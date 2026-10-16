@@ -50,11 +50,10 @@ function isManagement(s) { return s && ['admin', 'manager'].includes(s.role); }
 
 // GET a pay period's scheduled shifts + timesheet entries merged
 // ?start=YYYY-MM-DD&end=YYYY-MM-DD
-router.get('/week', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
-  const start = req.query.start || periodStart(today);
-  const end   = req.query.end   || periodEnd(start);
-
+// Shared data-gathering behind both the /week JSON endpoint (live page) and the
+// /export-pdf endpoint (static report) — one source of truth for what a pay
+// period's rows look like so the PDF never drifts from what the hub shows.
+function buildWeekData(start, end) {
   const assignments = db.getAssignmentsForRange(start, end);
   const entries     = db.getTimesheetForRange(start, end);
   const defaults    = db.getShiftDefaults();
@@ -126,7 +125,14 @@ router.get('/week', (req, res) => {
   // accounting can total dual-role staff (office + teaching) in one place.
   const proByStaff = buildProHoursByStaff(start, end);
 
-  res.json({ start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start), pro_by_staff: proByStaff });
+  return { start, end, rows, defaults, period_expenses: periodExp, period_receipts: db.getPeriodReceiptsForRange(start), string_counts: db.getStringCounts(start, end), expense_items: db.getExpenseItemsForPeriodAllStaff(start), pro_by_staff: proByStaff };
+}
+
+router.get('/week', (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const start = req.query.start || periodStart(today);
+  const end   = req.query.end   || periodEnd(start);
+  res.json(buildWeekData(start, end));
 });
 
 // PUT upsert a timesheet entry
@@ -507,6 +513,210 @@ router.get('/export', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="timesheets-${start}_${end}.csv"`);
   res.send(lines.join('\n'));
 });
+
+// GET /export-pdf?start=&end= — a formatted PDF of the pay period, visually matching
+// the Timesheets page (person cards, staff colors, pills) instead of a flat CSV.
+// Built from the exact same data as /week (buildWeekData) so it never drifts from
+// what the hub shows. Rendered by printing a static HTML document to PDF with a
+// headless Chromium (puppeteer-core + @sparticuz/chromium — no external service,
+// no account, no recurring cost; the Chromium binary just ships inside the app).
+router.get('/export-pdf', (req, res) => {
+  (async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const start = req.query.start || periodStart(today);
+    const end   = req.query.end   || periodEnd(start);
+    const { rows, string_counts, pro_by_staff } = buildWeekData(start, end);
+
+    const stringByStaff = {}; (string_counts || []).forEach(c => { stringByStaff[c.staff_id] = c; });
+
+    const groups = {};
+    for (const row of rows) {
+      if (!groups[row.staff_id]) {
+        const s = db.getStaffById(row.staff_id);
+        groups[row.staff_id] = { id: row.staff_id, name: row.staff_name, color: (s && s.color) || '#2c5c9c', role: row.staff_role, rows: [] };
+      }
+      groups[row.staff_id].rows.push(row);
+    }
+    const SHIFT_ORDER = { morning: 0, afternoon: 1, closing: 2, manual: 3 };
+    Object.values(groups).forEach(g => g.rows.sort((a, b) => a.date.localeCompare(b.date) || (SHIFT_ORDER[a.shift] ?? 9) - (SHIFT_ORDER[b.shift] ?? 9)));
+
+    const html = buildTimesheetPdfHtml({ start, end, groups, stringByStaff, proByStaff: pro_by_staff });
+
+    let browser;
+    try {
+      // v123+ of @sparticuz/chromium ships as ESM with a CJS compat wrapper —
+      // require() returns { default: <actual chromium object> }, not the object itself.
+      const chromium = require('@sparticuz/chromium').default;
+      const puppeteer = require('puppeteer-core');
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdf = await page.pdf({ format: 'Letter', printBackground: true, margin: { top: '28px', bottom: '28px', left: '24px', right: '24px' } });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="timesheets-${start}_${end}.pdf"`);
+      res.send(pdf);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      res.status(500).json({ error: 'PDF export failed: ' + err.message });
+    } finally {
+      if (browser) await browser.close();
+    }
+  })();
+});
+
+function fmt12pdf(t) {
+  if (!t) return '—';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+function calcHoursPdf(s, e) {
+  if (!s || !e) return null;
+  const [sh, sm] = s.split(':').map(Number), [eh, em] = e.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  return mins > 0 ? mins / 60 : null;
+}
+function fmtHoursPdf(h) {
+  if (h === null || h === undefined || isNaN(h)) return '—';
+  const hrs = Math.floor(h), mins = Math.round((h - hrs) * 60);
+  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+function escPdf(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function toMinutesPdf(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; }
+function computeFlagsPdf(rows) {
+  const notConfirmed = rows.filter(r => !r.actual_start).length;
+  const doubleBooked = rows.filter(r => r.double_booked_with && r.double_booked_with.length).length;
+  const byDate = {};
+  rows.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+  const overlapDates = new Set();
+  Object.entries(byDate).forEach(([date, dayRows]) => {
+    if (dayRows.length < 2) return;
+    const spans = dayRows
+      .map(r => [r.actual_start || r.scheduled_start, r.actual_end || r.scheduled_end])
+      .filter(([s, e]) => s && e)
+      .map(([s, e]) => [toMinutesPdf(s), toMinutesPdf(e)]);
+    for (let i = 0; i < spans.length; i++) {
+      for (let j = i + 1; j < spans.length; j++) {
+        if (spans[i][0] < spans[j][1] && spans[j][0] < spans[i][1]) overlapDates.add(date);
+      }
+    }
+  });
+  return { notConfirmed, doubleBooked, overlapDates: [...overlapDates] };
+}
+const SHIFT_LABELS_PDF = { morning: 'Morning', afternoon: 'Afternoon', closing: 'Closing', manual: 'Added' };
+
+function renderPdfShiftRow(row) {
+  if (row.is_manual) {
+    const hrs = calcHoursPdf(row.actual_start, row.actual_end);
+    return `<div class="pr-row">
+      <span class="pr-date">${row.date}</span>
+      <span class="pr-badge manual">Added</span>
+      <span class="pr-mid">${escPdf(row.label || 'Manual entry')} · ${fmt12pdf(row.actual_start)} – ${fmt12pdf(row.actual_end)}</span>
+      <span class="pr-hours">${hrs ? fmtHoursPdf(hrs) : ''}</span>
+    </div>`;
+  }
+  const isConfirmed = !!row.actual_start;
+  const isOverride = isConfirmed && (row.actual_start !== row.scheduled_start || row.actual_end !== row.scheduled_end);
+  const dupe = row.double_booked_with && row.double_booked_with.length
+    ? `<span class="pr-dupe">⚠ +${row.double_booked_with.length}</span>` : '';
+  let statusHtml;
+  if (isOverride) statusHtml = `<span class="pr-override">${fmt12pdf(row.actual_start)} – ${fmt12pdf(row.actual_end)}</span>`;
+  else if (isConfirmed) statusHtml = `<span class="pr-confirmed">Confirmed ✓</span>`;
+  else statusHtml = `<span class="pr-pending">Not confirmed</span>`;
+  const shiftHours = isConfirmed ? calcHoursPdf(row.actual_start, row.actual_end) : null;
+  const schedHtml = isOverride ? '' : `<span class="pr-sched">${fmt12pdf(row.scheduled_start)} – ${fmt12pdf(row.scheduled_end)}</span>`;
+  return `<div class="pr-row">
+    <span class="pr-date">${row.date}</span>
+    <span class="pr-badge ${row.shift}">${SHIFT_LABELS_PDF[row.shift] || row.shift}</span>
+    ${dupe}
+    <span class="pr-mid">${schedHtml}${statusHtml}${row.notes ? `<span class="pr-note">${escPdf(row.notes)}</span>` : ''}</span>
+    <span class="pr-hours">${shiftHours ? fmtHoursPdf(shiftHours) : ''}</span>
+  </div>`;
+}
+
+function renderPdfPersonCard(person, stringByStaff, proByStaff) {
+  const totalHours = person.rows.reduce((sum, r) => sum + (calcHoursPdf(r.actual_start, r.actual_end) || 0), 0);
+  const confirmed = person.rows.filter(r => r.actual_start).length;
+  const total = person.rows.length;
+  const flags = computeFlagsPdf(person.rows);
+  const flagParts = [];
+  if (flags.notConfirmed > 0) flagParts.push(`${flags.notConfirmed} not worked`);
+  if (flags.overlapDates.length) flagParts.push(`${flags.overlapDates.length} overlap${flags.overlapDates.length > 1 ? 's' : ''}`);
+  if (flags.doubleBooked > 0) flagParts.push(`${flags.doubleBooked} double-booked`);
+  const flagPill = flagParts.length ? `<span class="pr-pill pr-flag">⚠ ${flagParts.join(' · ')}</span>` : '';
+
+  const pro = (proByStaff || {})[person.id] || null;
+  const proHours = pro ? (pro.total_hours || 0) : 0;
+  const combined = totalHours + proHours;
+  const hoursPill = totalHours > 0 ? `<span class="pr-pill pr-green">${fmtHoursPdf(totalHours)}${proHours > 0 ? ' office' : ''}</span>` : (proHours > 0 ? '' : `<span class="pr-pill pr-none">No hours logged</span>`);
+  const teachPill = proHours > 0 ? `<span class="pr-pill pr-blue">${fmtHoursPdf(proHours)} teaching</span>` : '';
+  const totalPill = proHours > 0 ? `<span class="pr-pill pr-navy">Total ${fmtHoursPdf(combined)}</span>` : '';
+  const sc = stringByStaff[person.id];
+  const stringPill = sc && sc.total ? `<span class="pr-pill pr-blue">🎾 ${sc.total} strung</span>` : '';
+
+  return `<div class="pr-card">
+    <div class="pr-head">
+      <div class="pr-head-left">
+        <span class="pr-chip" style="background:${person.color}18;color:${person.color}">${escPdf(person.name)}</span>
+        <span class="pr-role">${escPdf(person.role || '')}</span>
+      </div>
+      <div class="pr-head-right">
+        <span class="pr-progress">${confirmed}/${total} shifts</span>
+        ${flagPill}${hoursPill}${teachPill}${totalPill}${stringPill}
+      </div>
+    </div>
+    ${person.rows.map(renderPdfShiftRow).join('')}
+  </div>`;
+}
+
+function buildTimesheetPdfHtml({ start, end, groups, stringByStaff, proByStaff }) {
+  const staffIds = Object.keys(groups).map(Number).sort((a, b) => groups[a].name.localeCompare(groups[b].name));
+  const cards = staffIds.map(id => renderPdfPersonCard(groups[id], stringByStaff, proByStaff)).join('');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    @page { margin: 0; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',system-ui,sans-serif;font-size:11.5px;line-height:1.4;color:#0c1738;background:#fff;}
+    .pr-title{font-size:18px;font-weight:700;color:#0c1738;margin-bottom:2px;}
+    .pr-sub{font-size:11px;color:#8fa0b8;margin-bottom:18px;}
+    .pr-card{border:1px solid rgba(12,23,56,0.12);border-radius:10px;overflow:hidden;margin-bottom:12px;page-break-inside:avoid;}
+    .pr-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f4f9;border-bottom:1px solid rgba(12,23,56,0.08);flex-wrap:wrap;gap:6px;}
+    .pr-head-left{display:flex;align-items:center;gap:8px;}
+    .pr-chip{display:inline-block;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:700;}
+    .pr-role{font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8fa0b8;}
+    .pr-head-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .pr-progress{font-size:10.5px;color:#8fa0b8;}
+    .pr-pill{display:inline-block;padding:2px 9px;border-radius:100px;font-size:10.5px;font-weight:700;}
+    .pr-green{background:rgba(22,163,74,0.10);color:#16a34a;}
+    .pr-blue{background:rgba(44,92,156,0.12);color:#2c5c9c;}
+    .pr-navy{background:#0c1738;color:#f0f4ff;}
+    .pr-none{color:#8fa0b8;font-weight:400;}
+    .pr-flag{background:rgba(217,119,6,0.16);color:#b45309;}
+    .pr-row{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(12,23,56,0.05);font-size:11px;}
+    .pr-row:last-child{border-bottom:none;}
+    .pr-date{width:72px;color:#4a6080;flex-shrink:0;}
+    .pr-badge{display:inline-block;padding:1px 7px;border-radius:100px;font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;flex-shrink:0;}
+    .pr-badge.morning{background:rgba(251,191,36,0.16);color:#b45309;}
+    .pr-badge.afternoon{background:rgba(44,92,156,0.12);color:#2c5c9c;}
+    .pr-badge.closing{background:rgba(12,23,56,0.08);color:#4a6080;}
+    .pr-badge.manual{background:rgba(22,163,74,0.14);color:#16a34a;}
+    .pr-dupe{font-size:9.5px;font-weight:700;color:#b45309;flex-shrink:0;}
+    .pr-mid{flex:1;display:flex;gap:8px;align-items:center;min-width:0;color:#4a6080;}
+    .pr-sched{color:#8fa0b8;}
+    .pr-confirmed{color:#16a34a;font-weight:600;}
+    .pr-override{color:#2c5c9c;font-weight:600;}
+    .pr-pending{color:#b45309;font-weight:600;}
+    .pr-note{font-style:italic;color:#8fa0b8;font-size:10px;}
+    .pr-hours{font-weight:700;color:#0c1738;flex-shrink:0;}
+  </style></head><body>
+    <div class="pr-title">JCT Staff Hub — Timesheets</div>
+    <div class="pr-sub">Pay period: ${start} to ${end}</div>
+    ${cards || '<div style="color:#8fa0b8">No shifts scheduled this period.</div>'}
+  </body></html>`;
+}
 
 // GET /payroll-summary?start=&end= — itemized payroll snapshot, one block per staff
 // member (name, then every paid line — office shifts, academy classes, off court,

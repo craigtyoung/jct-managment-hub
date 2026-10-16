@@ -358,6 +358,7 @@
       </button>
       <button class="today-btn" onclick="goToday()">Current period</button>
       <button class="today-btn" onclick="exportTimesheet()" style="margin-left:auto">Export CSV</button>
+      <button class="today-btn" onclick="exportTimesheetPdf()">Export PDF</button>
       <button class="today-btn mgmt-only" style="display:none" onclick="exportPayrollSummary()">Export Payroll Summary</button>
     </div>
 
@@ -447,6 +448,7 @@
 
     // ── Nav ────────────────────────────────────────────────────────
     function exportTimesheet() { window.location.href = '/api/timesheet/export?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
+    function exportTimesheetPdf() { window.location.href = '/api/timesheet/export-pdf?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
     function exportPayrollSummary() { window.location.href = '/api/timesheet/payroll-summary?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
 
     // Office/Pro toggle — same localStorage key hub.html's dashboard toggle uses, so the
@@ -556,11 +558,14 @@
       }
     }
 
-    // Pay-period flags: not-confirmed shifts and overlapping shift times, so
-    // management can scan a person's block instead of reading every row.
+    // Pay-period flags: not-confirmed shifts, this person's own overlapping shift
+    // times, and shifts double-booked with someone else (existing per-row
+    // double_booked_with data) — rolled up so management can scan a person's
+    // block instead of reading every row.
     function toMinutes(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; }
     function computeFlags(rows) {
       const notConfirmed = rows.filter(r => !r.actual_start).length;
+      const doubleBooked = rows.filter(r => r.double_booked_with && r.double_booked_with.length).length;
       const byDate = {};
       rows.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
       const overlapDates = new Set();
@@ -576,7 +581,7 @@
           }
         }
       });
-      return { notConfirmed, overlapDates: [...overlapDates] };
+      return { notConfirmed, doubleBooked, overlapDates: [...overlapDates] };
     }
 
     function renderPersonCard(person) {
@@ -590,8 +595,9 @@
       const flagParts = [];
       if (flags.notConfirmed > 0) flagParts.push(`${flags.notConfirmed} not worked`);
       if (flags.overlapDates.length) flagParts.push(`${flags.overlapDates.length} overlap${flags.overlapDates.length > 1 ? 's' : ''}`);
+      if (flags.doubleBooked > 0) flagParts.push(`${flags.doubleBooked} double-booked`);
       const flagPill = flagParts.length
-        ? `<span class="hours-pill has" title="${flags.overlapDates.length ? 'Overlapping on: ' + flags.overlapDates.join(', ') : 'Shifts not confirmed this period'}" style="background:rgba(217,119,6,0.14);color:#b45309">⚠ ${flagParts.join(' · ')}</span>`
+        ? `<span class="hours-pill has" title="${flags.overlapDates.length ? 'Overlapping on: ' + flags.overlapDates.join(', ') : 'Needs a look this period'}" style="background:rgba(217,119,6,0.14);color:#b45309">⚠ ${flagParts.join(' · ')}</span>`
         : '';
 
       // Teaching hours (read-only, pulled from the Pro timesheet for this period)
