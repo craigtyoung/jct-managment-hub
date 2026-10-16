@@ -393,6 +393,7 @@
           <input type="date" id="date-picker" onchange="changeDate(this.value)" style="position:absolute;left:50%;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none">
         </div>
         <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="export-btn" onclick="exportLegacyCSV()" title="Old balancing-sheet layout — day blocks side by side, same categories Jaime used">Export (Old Format)</button>
       </div>
     </div>
 
@@ -517,6 +518,7 @@
 
       <div id="sdw-monthly" style="display:none">
         <div class="sdw-month-meta" id="sdw-month-meta">Month to date</div>
+        <button type="button" class="ctx-btn primary" style="margin-bottom:12px" onclick="exportLegacyMonthCSV()" title="Whole month, old balancing-sheet layout — every day stacked in one file">Export Month (Old Format)</button>
         <div id="sdw-month-body"></div>
       </div>
 
@@ -1422,6 +1424,14 @@
 
     function exportCSV() {
       window.location.href = `/api/cash-summary/export?date=${currentDate}`;
+    }
+
+    function exportLegacyCSV() {
+      window.location.href = `/api/cash-summary/export-legacy?date=${currentDate}`;
+    }
+
+    function exportLegacyMonthCSV() {
+      window.location.href = `/api/cash-summary/export-legacy-month?month=${currentDate.slice(0, 7)}`;
     }
 
     // Dev/test helper: switch to the dedicated Sample sheet (a fixed test date, NOT today),

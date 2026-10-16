@@ -203,6 +203,178 @@ router.get('/export', (req, res) => {
   res.send(csv);
 });
 
+// ── Legacy-format export ────────────────────────────────────────────────────
+// Jaime's old pre-hub spreadsheet laid shifts out side by side (one column
+// block per shift: 5 numbered line-slots + a Total column), stacked under a
+// per-day header, with a Daily Totals + Opening Float footer. She still
+// hand-copies each day into a master spreadsheet in that shape, so this
+// reproduces it directly instead of the category-rollup /export format above.
+// Two real, deliberate deviations from the original sheet (flagged so they can
+// be changed if Jaime wants the originals back):
+//   1. The original reused "Shift Total-Court Fees" as the label for the
+//      Drinks & Snacks subtotal too, and labeled the daily Court Fees total
+//      "Guest Income" — both look like copy-paste drift, not intent. Each
+//      total gets its own clear label here instead.
+//   2. The original hard-coded 2 stacked rows each for Guests and PAYG (amount
+//      + "time and court" note). The real data allows any number of entries
+//      per shift, so instead of silently dropping a 3rd booking to fit a
+//      2-row slot, each category shows its shift total in the block and the
+//      full itemized list (shift, type, court, time, name, amount) follows
+//      underneath the grid — same detail Jaime had, just not force-fit into
+//      a fixed row count.
+function legacyBlankSummary(date) {
+  return { date, opening_float: 100, closing_float: null, shifts: SHIFT_LABELS.slice(0, 3).map((_, i) => blankShift(i)) };
+}
+
+function buildLegacyDayRows(summary) {
+  const fmt = v => (v != null ? Number(v) : 0).toFixed(2);
+  const sumArr = arr => (arr || []).reduce((a, v) => a + (v != null ? Number(v) : 0), 0);
+  const sumObj = (arr, key) => (arr || []).reduce((a, o) => a + (o?.[key] != null ? Number(o[key]) : 0), 0);
+  const cfEntries = sh => {
+    const e = sh.court_fees && sh.court_fees.entries;
+    if (e) return e;
+    const cf = sh.court_fees || {};
+    return [
+      ...(cf.private_lessons || []).map(o => ({ type: 'lesson', ...o })),
+      ...(cf.guests || []).map(o => ({ type: 'guest', ...o })),
+      ...(cf.payg || []).map(o => ({ type: 'payg', ...o })),
+    ];
+  };
+  const sumByType = (sh, t) => cfEntries(sh).filter(e => e && e.type === t).reduce((a, e) => a + (Number(e.amount) || 0), 0);
+
+  const shifts = (summary.shifts || []).slice(0, 3); // Morning / Afternoon / Closing blocks, matching the live hub
+  const rows = [];
+  const push = cells => rows.push(cells);
+
+  // Lay out N shift blocks side by side: each block is [slot1..slot5, Total],
+  // with one blank spacer column between blocks. Column A (the first cell of
+  // the row) is the shared row label, outside every block.
+  const blockRow = (label, cellsFn) => {
+    const out = [label];
+    shifts.forEach((s, i) => {
+      if (i > 0) out.push('');
+      out.push(...cellsFn(s));
+    });
+    push(out);
+  };
+  const slotRow = (label, getArr) => blockRow(label, s => {
+    const arr = getArr(s) || [];
+    const vals = Array.from({ length: 5 }, (_, i) => arr[i] != null ? fmt(Number(arr[i])) : '');
+    return [...vals, fmt(sumArr(arr))];
+  });
+  const slotObjAmountRow = (label, getArr) => blockRow(label, s => {
+    const arr = getArr(s) || [];
+    const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.amount != null ? fmt(Number(arr[i].amount)) : '');
+    return [...vals, fmt(sumObj(arr, 'amount'))];
+  });
+  const slotObjMemberRow = (label, getArr) => blockRow(label, s => {
+    const arr = getArr(s) || [];
+    const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.member || '');
+    return [...vals, ''];
+  });
+  const totalOnlyRow = (label, getTotal) => blockRow(label, s => ['', '', '', '', '', fmt(getTotal(s))]);
+
+  const d = new Date(summary.date + 'T12:00:00');
+  const dayName = d.toLocaleDateString('en-CA', { weekday: 'long' });
+  const dateLabel = d.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
+  push([`${dayName}, ${dateLabel}`]);
+  blockRow('', s => ['Staff:', s.staff_name || '', '', '', '', '']);
+  blockRow('', () => ['1', '2', '3', '4', '5', 'Total']);
+
+  push(['PRO SHOP']);
+  slotRow('Tennis Balls', s => s.pro_shop?.tennis_balls);
+  slotObjAmountRow('Stringing', s => s.pro_shop?.stringing);
+  slotObjMemberRow('', s => s.pro_shop?.stringing);
+  slotRow('Accessories', s => s.pro_shop?.accessories);
+  slotObjAmountRow('Racquet Sales', s => s.pro_shop?.racquet_sales);
+  slotObjMemberRow('', s => s.pro_shop?.racquet_sales);
+  slotRow('Grips', s => s.pro_shop?.grips);
+  const psTotal = s => sumArr(s.pro_shop?.tennis_balls) + sumObj(s.pro_shop?.stringing, 'amount') + sumArr(s.pro_shop?.accessories) + sumObj(s.pro_shop?.racquet_sales, 'amount') + sumArr(s.pro_shop?.grips);
+  totalOnlyRow('Shift Total — Pro Shop', psTotal);
+  push([]);
+
+  push(['COURT FEES']);
+  totalOnlyRow('Private Lesson Fees', s => sumByType(s, 'lesson'));
+  totalOnlyRow('Guests', s => sumByType(s, 'guest'));
+  totalOnlyRow('PAYG', s => sumByType(s, 'payg'));
+  const cfTotal = s => sumByType(s, 'lesson') + sumByType(s, 'guest') + sumByType(s, 'payg');
+  totalOnlyRow('Shift Total — Court Fees', cfTotal);
+  push([]);
+
+  push(['DRINKS & SNACKS']);
+  slotRow('Drinks', s => s.drinks_snacks?.drinks);
+  slotRow('Snacks', s => s.drinks_snacks?.snacks);
+  const dsTotal = s => sumArr(s.drinks_snacks?.drinks) + sumArr(s.drinks_snacks?.snacks);
+  totalOnlyRow('Shift Total — Drinks & Snacks', dsTotal);
+  push([]);
+
+  totalOnlyRow('SHIFT TOTAL', s => psTotal(s) + cfTotal(s) + dsTotal(s));
+  push([]);
+
+  push(['DAILY TOTALS']);
+  push(['Pro Shop',        fmt(shifts.reduce((a, s) => a + psTotal(s), 0))]);
+  push(['Court Fees',      fmt(shifts.reduce((a, s) => a + cfTotal(s), 0))]);
+  push(['Drinks & Snacks', fmt(shifts.reduce((a, s) => a + dsTotal(s), 0))]);
+  push(['Opening Float',   fmt(summary.opening_float != null ? summary.opening_float : 100)]);
+  push(['Closing Float',   summary.closing_float != null ? fmt(summary.closing_float) : '']);
+  push([]);
+
+  // Itemized court-fee detail (any number of entries per shift — see deviation
+  // #2 above) instead of forcing bookings into a fixed 2-row slot.
+  const anyEntries = shifts.some(s => (cfEntries(s) || []).some(e => e.amount));
+  if (anyEntries) {
+    push(['— Court Fee Detail —']);
+    push(['Shift', 'Type', 'Court', 'Time', 'Name', 'Amount']);
+    shifts.forEach(s => {
+      cfEntries(s).filter(e => e.amount).forEach(e => {
+        push([s.label || '', e.type || '', e.court || '', e.time || '', e.name || e.detail || '', fmt(Number(e.amount || 0))]);
+      });
+    });
+    push([]);
+  }
+
+  return rows;
+}
+
+function legacyRowsToCsv(rows) {
+  const q = cell => `"${String(cell ?? '').replace(/"/g, '""')}"`;
+  return rows.map(cells => cells.map(q).join(',')).join('\n');
+}
+
+// GET /export-legacy?date=YYYY-MM-DD — one day, old-sheet layout
+router.get('/export-legacy', (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date required (YYYY-MM-DD)' });
+  const summary = db.getCashSummary(date) || legacyBlankSummary(date);
+  const csv = legacyRowsToCsv(buildLegacyDayRows(summary));
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="cash-summary-legacy-${date}.csv"`);
+  res.send(csv);
+});
+
+// GET /export-legacy-month?month=YYYY-MM — every day that month, same layout,
+// stacked one after another (what Jaime currently builds by hand). Trio-only,
+// same tier as the Monthly/Range totals views.
+router.get('/export-legacy-month', requireCashTotalsAccess, (req, res) => {
+  const { month } = req.query;
+  if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'month required (YYYY-MM)' });
+  const [yr, mo] = month.split('-').map(Number);
+  const lastDay = new Date(yr, mo, 0).getDate();
+  const monthLabel = new Date(`${month}-01T12:00:00`).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+
+  const allRows = [[monthLabel], []];
+  for (let day = 1; day <= lastDay; day++) {
+    const date = `${month}-${String(day).padStart(2, '0')}`;
+    const summary = db.getCashSummary(date) || legacyBlankSummary(date);
+    allRows.push(...buildLegacyDayRows(summary));
+    allRows.push([]);
+  }
+  const csv = legacyRowsToCsv(allRows);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="cash-summary-legacy-${month}.csv"`);
+  res.send(csv);
+});
+
 // Shared aggregator — used by both the month-to-date rollup and the arbitrary
 // custom-range totals (season / year-in-review / anything in between).
 function aggregateCashRange(start, end) {
