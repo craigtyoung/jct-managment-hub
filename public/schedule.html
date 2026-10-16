@@ -527,9 +527,9 @@
     function goToday()  { currentWeekStart = mondayOf(new Date()); load(); }
 
     // ── Load ───────────────────────────────────────────────────────
-    async function load() {
+    async function load(silent = false) {
       document.getElementById('week-label').textContent = fmtWeekLabel(currentWeekStart);
-      document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>';
+      if (!silent) document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>';
       try {
         const { assignments } = await fetchJSONRetry(`/api/schedule/week?start=${currentWeekStart}`);
         weekData = {};
@@ -545,9 +545,13 @@
         }
         render();
       } catch(e) {
-        document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Couldn\'t load the schedule — the server may be waking up.<br><button onclick="load()" style="margin-top:12px;padding:7px 16px;border:1px solid rgba(44,92,156,0.35);background:rgba(44,92,156,0.08);color:var(--blue);border-radius:8px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer">Retry</button></div>';
+        if (!silent) document.getElementById('schedule-grid').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Couldn\'t load the schedule — the server may be waking up.<br><button onclick="load()" style="margin-top:12px;padding:7px 16px;border:1px solid rgba(44,92,156,0.35);background:rgba(44,92,156,0.08);color:var(--blue);border-radius:8px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer">Retry</button></div>';
       }
     }
+    // Without this, live-sync.js falls back to the plain `load` global on every SSE
+    // broadcast hub-wide and runs it non-silent — flashing "Loading…" over the whole
+    // grid on activity that has nothing to do with the schedule.
+    window.onLiveUpdate = () => load(true);
 
     // ── Render ─────────────────────────────────────────────────────
     function render() {

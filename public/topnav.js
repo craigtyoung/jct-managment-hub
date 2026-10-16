@@ -212,8 +212,13 @@
     // just re-show the same mode on reload — send management to the dashboard
     // instead so switching modes always lands somewhere that reflects it.
     var path = norm(location.pathname);
-    if (path === '/pro-timesheet' || path === '/pro-schedule-view') location.href = '/hub.html';
-    else location.reload();
+    if (path === '/pro-timesheet' || path === '/pro-schedule-view') { location.href = '/hub.html'; return; }
+    // Timesheets has its own Pro-side page (Pro Timesheet) rather than an in-page
+    // mode switch — send straight to the matching page instead of reloading into
+    // a mode the page itself never reflects.
+    if (path === '/timesheet.html' && mode === 'pro') { location.href = '/pro-timesheet.html'; return; }
+    if (path === '/pro-timesheet.html' && mode === 'office') { location.href = '/timesheet.html'; return; }
+    location.reload();
   };
 
   function injectStyleOnce() {
