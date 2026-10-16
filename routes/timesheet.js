@@ -447,6 +447,9 @@ router.get('/export', (req, res) => {
       const en = entryMap[key]; const def = defaults[a.shift] || {}; const ov = overrides[`${a.date}:${a.shift}`] || null;
       const s = db.getStaffById(a.staff_id);
       const as = en ? en.actual_start : null, ae = en ? en.actual_end : null;
+      // Match the hub's own definition of "confirmed" (isConfirmed = !!actual_start) —
+      // a scheduled-but-never-confirmed shift shouldn't appear in the pay-period export.
+      if (!as) return;
       officeHoursById[a.staff_id] = (officeHoursById[a.staff_id] || 0) + decHrs(as, ae);
       exportRows.push({ staffId: a.staff_id, staffName: s ? s.name : String(a.staff_id), sortKey: a.date + a.shift, cells: [
         s ? s.name : a.staff_id, a.date, a.shift,

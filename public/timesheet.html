@@ -556,6 +556,29 @@
       }
     }
 
+    // Pay-period flags: not-confirmed shifts and overlapping shift times, so
+    // management can scan a person's block instead of reading every row.
+    function toMinutes(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; }
+    function computeFlags(rows) {
+      const notConfirmed = rows.filter(r => !r.actual_start).length;
+      const byDate = {};
+      rows.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+      const overlapDates = new Set();
+      Object.entries(byDate).forEach(([date, dayRows]) => {
+        if (dayRows.length < 2) return;
+        const spans = dayRows
+          .map(r => [r.actual_start || r.scheduled_start, r.actual_end || r.scheduled_end])
+          .filter(([s, e]) => s && e)
+          .map(([s, e]) => [toMinutes(s), toMinutes(e)]);
+        for (let i = 0; i < spans.length; i++) {
+          for (let j = i + 1; j < spans.length; j++) {
+            if (spans[i][0] < spans[j][1] && spans[j][0] < spans[i][1]) overlapDates.add(date);
+          }
+        }
+      });
+      return { notConfirmed, overlapDates: [...overlapDates] };
+    }
+
     function renderPersonCard(person) {
       const totalHours = person.rows.reduce((sum, r) => {
         return sum + (calcHours(r.actual_start, r.actual_end) || 0);
@@ -563,6 +586,13 @@
       const confirmed = person.rows.filter(r => r.actual_start).length;
       const total     = person.rows.length;
       const expenses  = periodExpenses[person.id] ?? null;
+      const flags = computeFlags(person.rows);
+      const flagParts = [];
+      if (flags.notConfirmed > 0) flagParts.push(`${flags.notConfirmed} not worked`);
+      if (flags.overlapDates.length) flagParts.push(`${flags.overlapDates.length} overlap${flags.overlapDates.length > 1 ? 's' : ''}`);
+      const flagPill = flagParts.length
+        ? `<span class="hours-pill has" title="${flags.overlapDates.length ? 'Overlapping on: ' + flags.overlapDates.join(', ') : 'Shifts not confirmed this period'}" style="background:rgba(217,119,6,0.14);color:#b45309">⚠ ${flagParts.join(' · ')}</span>`
+        : '';
 
       // Teaching hours (read-only, pulled from the Pro timesheet for this period)
       const pro = proByStaff[person.id] || null;
@@ -631,10 +661,11 @@
             </div>
             <div class="person-head-right">
               <span class="progress-text">${confirmed}/${total} shifts</span>
+              ${flagPill}
               ${hoursPill}
               ${teachPill}
               ${totalPill}
-              ${(() => { const sc = stringByStaff[person.id]; return sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung${sc.unpaid ? ` · ${sc.unpaid} unpaid` : ''}</span>` : ''; })()}
+              ${(() => { const sc = stringByStaff[person.id]; return sc && sc.total ? `<span class="hours-pill has" title="Rackets strung this period (Pro Shop String Log)" style="background:rgba(44,92,156,0.10);color:var(--blue)">🎾 ${sc.total} strung</span>` : ''; })()}
             </div>
           </div>
           ${shiftRowsHtml}

@@ -33,7 +33,7 @@ router.get('/shift', (req, res) => {
 // PUT set all staff for a shift (admin/manager only) — replaces existing
 router.put('/shift', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) {
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) {
     return res.status(403).json({ error: 'Not authorised' });
   }
   const { date, shift, staff_ids } = req.body;
@@ -56,7 +56,7 @@ router.get('/rules', (req, res) => {
 // POST create a recurring rule — one record per staff member
 router.post('/rules', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
   const { staff_id, shift, day_of_week, start_date, end_date, start, end } = req.body;
   const validShifts = ['morning', 'afternoon', 'closing'];
   if (!staff_id || !validShifts.includes(shift) || day_of_week === undefined || !start_date) {
@@ -70,7 +70,7 @@ router.post('/rules', (req, res) => {
 // Pass start+end to set, omit (or null) to clear
 router.put('/override', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
   const { date, shift, start, end } = req.body;
   const validShifts = ['morning', 'afternoon', 'closing'];
   if (!date || !validShifts.includes(shift)) return res.status(400).json({ error: 'date and shift required' });
@@ -85,7 +85,7 @@ router.put('/override', (req, res) => {
 // DELETE a recurring rule
 router.delete('/rules/:id', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
   db.deleteShiftRule(req.params.id);
   res.json({ ok: true });
 });
@@ -93,7 +93,7 @@ router.delete('/rules/:id', (req, res) => {
 // POST skip one occurrence of a recurring rule (remove a person for just this day)
 router.post('/skip', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
   const { date, shift, staff_id } = req.body;
   const validShifts = ['morning', 'afternoon', 'closing'];
   if (!date || !validShifts.includes(shift) || !staff_id) return res.status(400).json({ error: 'date, shift, staff_id required' });
@@ -104,7 +104,7 @@ router.post('/skip', (req, res) => {
 // DELETE a skip (restore a person to that day's recurring occurrence)
 router.delete('/skip', (req, res) => {
   const staff = db.getStaffById(req.actingStaffId);
-  if (!staff || !['admin', 'manager'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
+  if (!staff || !['admin', 'manager', 'staff'].includes(staff.role)) return res.status(403).json({ error: 'Not authorised' });
   const { date, shift, staff_id } = req.body;
   if (!date || !shift || !staff_id) return res.status(400).json({ error: 'date, shift, staff_id required' });
   db.removeShiftSkip({ staffId: staff_id, date, shift });

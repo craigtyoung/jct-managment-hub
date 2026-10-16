@@ -1005,10 +1005,10 @@
       const _nr=document.getElementById('nav-role'); if(_nr)_nr.textContent=me.role;
       const _ang=document.getElementById('admin-nav-group'); if(me.role==='admin'&&_ang)_ang.style.display='block';
 
-      canEdit = ['admin','manager'].includes(me.role);
+      canEdit = ['admin','manager','staff'].includes(me.role);
       document.getElementById('admin-hint').textContent = canEdit
         ? 'Click + on any shift slot to assign staff, or check "Repeat weekly" to set a recurring rule.'
-        : 'View-only. Admins and managers can edit assignments.';
+        : 'View-only.';
 
       if (me && me.role === 'pro') PRO_VIEW = true;
       if (PRO_VIEW) {
