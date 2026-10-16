@@ -358,7 +358,6 @@
       </button>
       <button class="today-btn" onclick="goToday()">Current period</button>
       <button class="today-btn" onclick="exportTimesheet()" style="margin-left:auto">Export CSV</button>
-      <button class="today-btn" onclick="exportTimesheetPdf()">Export PDF</button>
       <button class="today-btn mgmt-only" style="display:none" onclick="exportPayrollSummary()">Export Payroll Summary</button>
     </div>
 
@@ -448,7 +447,6 @@
 
     // ── Nav ────────────────────────────────────────────────────────
     function exportTimesheet() { window.location.href = '/api/timesheet/export?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
-    function exportTimesheetPdf() { window.location.href = '/api/timesheet/export-pdf?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
     function exportPayrollSummary() { window.location.href = '/api/timesheet/payroll-summary?start=' + encodeURIComponent(currentStart) + '&end=' + encodeURIComponent(currentEnd); }
 
     // Office/Pro toggle — same localStorage key hub.html's dashboard toggle uses, so the
