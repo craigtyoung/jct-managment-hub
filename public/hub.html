@@ -2345,12 +2345,19 @@
       loadBubbleRec();
       loadCourtSlots();
 
+      // Single source of truth for "what shift are we in right now" — honors
+      // per-date overrides and per-rule custom hours (e.g. someone starting
+      // Closing at 4 instead of 6), not a fixed clock cutoff. Also sidesteps
+      // the UTC-rollover bug a raw toISOString() date would hit late at night.
+      const fallbackShift = () => { const h = new Date().getHours(); return h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing'; };
+      let cs = null;
+      try { cs = await fetch('/api/schedule/current-shift').then(r => r.ok ? r.json() : null); } catch (e) {}
+
       // Checklist progress tile + stat card
       try {
-        const h = new Date().getHours();
-        const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const shift = (cs && cs.shift) || fallbackShift();
         const shiftLabel = { morning: 'Morning', afternoon: 'Afternoon', closing: 'Closing' }[shift];
-        const today = new Date().toISOString().slice(0, 10);
+        const today = (cs && cs.date) || new Date().toISOString().slice(0, 10);
         const pr = await fetch(`/api/checklist/progress?shift=${shift}&date=${today}`);
         const prog = await pr.json();
         const handled = prog.complete + (prog.not_required || 0);
@@ -2381,10 +2388,9 @@
 
       // Schedule tile + On Shift Now stat card — who's on today
       try {
-        const h = new Date().getHours();
-        const shift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+        const shift = (cs && cs.shift) || fallbackShift();
         const shiftLabel = { morning:'Morning', afternoon:'Afternoon', closing:'Closing' }[shift];
-        const today = new Date().toISOString().slice(0, 10);
+        const today = (cs && cs.date) || new Date().toISOString().slice(0, 10);
         const sr = await fetch(`/api/schedule/shift?date=${today}&shift=${shift}`);
         const assigned = await sr.json();
         const footer = document.getElementById('schedule-tile-footer');
@@ -2672,9 +2678,9 @@
       // In the Office Today — all three office shifts at a glance (pros coordinate
       // with the office), not just whoever's on right now.
       try {
-        const h = new Date().getHours();
-        const nowShift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
-        const today = new Date().toISOString().slice(0, 10);
+        const cs = await fetch('/api/schedule/current-shift').then(r => r.ok ? r.json() : null).catch(() => null);
+        const nowShift = (cs && cs.shift) || (() => { const h = new Date().getHours(); return h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing'; })();
+        const today = (cs && cs.date) || new Date().toISOString().slice(0, 10);
         const SHIFTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['closing', 'Evening']];
         const results = await Promise.all(SHIFTS.map(([key]) =>
           fetch(`/api/schedule/shift?date=${today}&shift=${key}`).then(r => r.ok ? r.json() : []).catch(() => [])

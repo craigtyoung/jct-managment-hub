@@ -604,7 +604,7 @@
         ? `<span class="hours-pill total" title="Office + teaching = total pay hours">Total ${fmtHours(combined)}</span>`
         : '';
 
-      const shiftRowsHtml = person.rows.map(r => renderShiftRow(r, person)).join('');
+      const shiftRowsHtml = person.rows.filter(r => !r.chain_of).map(r => renderShiftRow(r, person)).join('');
 
       // Read-only teaching-hours block (edited on the Pro timesheet — one source of truth)
       const proSection = (pro && pro.lines && pro.lines.length) ? `
@@ -710,6 +710,10 @@
           ${mEditForm}`;
       }
 
+      // ── Back-to-back shifts for one person on one day (e.g. an 8-4 day entered
+      // as Morning+Afternoon) — render as a single combined row ──
+      if (row.chain_lead) return renderChainRow(row, dateLabel);
+
       // ── Scheduled shift ──
       const key = `${row.staff_id}-${row.date}-${row.shift}`;
       const isConfirmed = !!row.actual_start;
@@ -785,6 +789,150 @@
           ${shiftHoursHtml}
         </div>
         ${overrideForm}`;
+    }
+
+    // ── Combined row for back-to-back shifts (e.g. Morning+Afternoon = one
+    // continuous 8-4 day) — one checkbox/edit-times to confirm the whole span;
+    // on save it's split back across the underlying per-shift entries so
+    // dashboard/checklist/payroll keep working per-bucket as before.
+    function renderChainRow(row, dateLabel) {
+      const legs = row.chain_legs;
+      const key = `${row.staff_id}-${row.date}-chain`;
+      const chainStart = legs[0].scheduled_start;
+      const chainEnd   = legs[legs.length - 1].scheduled_end;
+      const isConfirmed = legs.every(l => !!l.actual_start && !!l.actual_end);
+      const actualStart = isConfirmed ? legs[0].actual_start : null;
+      const actualEnd   = isConfirmed ? legs[legs.length - 1].actual_end : null;
+      const isOverride = isConfirmed && (actualStart !== chainStart || actualEnd !== chainEnd);
+      const dupe = [...new Set(legs.flatMap(l => l.double_booked_with || []))];
+      const noteText = esc(legs[0].notes || '');
+
+      window._chainData = window._chainData || {};
+      window._chainData[key] = { staff_id: row.staff_id, date: row.date, legs };
+
+      const canConfirmThisRow = isAdmin || (row.staff_id === me.id);
+      const canEditTimes = isAdmin || (isConfirmed && row.staff_id === me.id);
+      const canDelete    = isAdmin || row.staff_id === me.id;
+
+      let statusHtml = '';
+      if (isOverride) {
+        statusHtml = `<span class="shift-status-override">${fmt12(actualStart)} – ${fmt12(actualEnd)}</span>`;
+        if (legs[0].notes) statusHtml += `<span style="font-size:11px;color:var(--text-3);font-style:italic">${esc(legs[0].notes)}</span>`;
+      } else if (isConfirmed) {
+        statusHtml = `<span class="shift-status-confirmed">Confirmed ✓</span>`;
+      } else {
+        statusHtml = `<span class="shift-status-pending">Not confirmed</span>`;
+      }
+
+      const editBtn = canEditTimes
+        ? `<button class="edit-times-btn" onclick="openOverride('${key}')">Edit times</button>`
+        : '';
+      const delBtn = canDelete
+        ? `<button class="del-shift-btn" title="Remove this shift from the timesheet" onclick="deleteChainShift(${row.staff_id}, '${row.date}', '${key}')">🗑</button>`
+        : '';
+
+      const shiftHours = isConfirmed ? calcHours(actualStart, actualEnd) : null;
+      const shiftHoursHtml = shiftHours ? `<span class="shift-hours" title="Hours worked this shift">${fmtHours(shiftHours)}</span>` : '';
+
+      const overrideForm = canEditTimes ? `
+        <div class="override-form" id="override-${key}">
+          <span class="ov-label">Start</span>
+          <input type="time" class="time-input" id="ov-start-${key}" value="${actualStart || chainStart || ''}">
+          <span class="sep">–</span>
+          <span class="ov-label" style="width:30px">End</span>
+          <input type="time" class="time-input" id="ov-end-${key}" value="${actualEnd || chainEnd || ''}">
+          <input type="text" class="time-input" id="ov-note-${key}" value="${noteText}" placeholder="Reason (optional)" style="width:180px;flex:1" autocomplete="off">
+          <button class="ov-save-btn" onclick="saveChainOverride('${key}', ${row.staff_id}, '${row.date}')">Save</button>
+          <button class="ov-cancel-btn" onclick="closeOverride('${key}')">Cancel</button>
+        </div>` : '';
+
+      const schedHtml = isOverride ? '' : `<span class="shift-sched">${fmt12(chainStart)} – ${fmt12(chainEnd)}</span>`;
+      const badgesHtml = legs.map(l => `<span class="shift-badge ${l.shift}">${SHIFT_LABELS[l.shift]}</span>`).join('<span style="color:var(--text-3);font-size:10px;margin:0 1px">+</span>');
+
+      return `
+        <div class="shift-row" id="row-${key}">
+          <div class="shift-cb-wrap">
+            <input type="checkbox" class="shift-cb"
+              id="cb-${key}"
+              ${isConfirmed ? 'checked' : ''}
+              ${!canConfirmThisRow ? 'disabled' : ''}
+              onchange="toggleChain('${key}', ${row.staff_id}, '${row.date}')">
+          </div>
+          <span class="shift-row-date">${dateLabel}</span>
+          ${badgesHtml}
+          ${dupe.length ? `<span class="dupe-flag" title="Also scheduled on part of this day: ${esc(dupe.join(', '))}. Office shifts are one-person — worth checking this wasn't filled in twice by accident.">⚠ +${dupe.length}</span>` : ''}
+          ${schedHtml}
+          <div class="shift-status-area">
+            ${statusHtml}
+            ${editBtn}
+            ${delBtn}
+          </div>
+          ${shiftHoursHtml}
+        </div>
+        ${overrideForm}`;
+    }
+
+    async function toggleChain(key, staffId, date) {
+      const cb = document.getElementById(`cb-${key}`);
+      const isChecked = cb.checked;
+      const data = window._chainData && window._chainData[key];
+      if (!data) return;
+      cb.disabled = true;
+      try {
+        await Promise.all(data.legs.map(l => fetch('/api/timesheet/entry', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staff_id: staffId, date, shift: l.shift,
+            actual_start: isChecked ? (l.scheduled_start || null) : null,
+            actual_end:   isChecked ? (l.scheduled_end   || null) : null,
+          }),
+        })));
+        await reloadPersonCard(staffId);
+      } catch (e) {
+        cb.checked = !isChecked;
+        cb.disabled = false;
+      }
+    }
+
+    async function saveChainOverride(key, staffId, date) {
+      const start = document.getElementById(`ov-start-${key}`)?.value;
+      const end   = document.getElementById(`ov-end-${key}`)?.value;
+      const note  = document.getElementById(`ov-note-${key}`)?.value.trim() || '';
+      if (!start || !end) { alert('Enter both start and end times.'); return; }
+      const data = window._chainData && window._chainData[key];
+      if (!data) return;
+      const legs = data.legs;
+      // Split the entered span across each leg at the legs' own shared boundary
+      // times (legs are contiguous by construction — see buildWeekData's chain
+      // detection, which only merges shifts with zero gap between them).
+      const puts = legs.map((l, i) => {
+        const legStart = i === 0 ? start : legs[i - 1].scheduled_end;
+        const legEnd   = i === legs.length - 1 ? end : l.scheduled_end;
+        return fetch('/api/timesheet/entry', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId, date, shift: l.shift, actual_start: legStart, actual_end: legEnd, notes: i === 0 ? note : '' }),
+        });
+      });
+      try {
+        await Promise.all(puts);
+        await reloadPersonCard(staffId);
+      } catch (e) { alert('Failed to save.'); }
+    }
+
+    async function deleteChainShift(staffId, date, key) {
+      if (!confirm('Remove this shift from the timesheet for this pay period?\n\nThe schedule itself is not changed.')) return;
+      const data = window._chainData && window._chainData[key];
+      if (!data) return;
+      try {
+        await Promise.all(data.legs.map(l => fetch('/api/timesheet/void', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_id: staffId, date, shift: l.shift }),
+        })));
+        await reloadPersonCard(staffId);
+      } catch (e) { alert('Failed to remove the shift.'); }
     }
 
     // ── Toggle shift confirmation ──────────────────────────────────

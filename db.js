@@ -2671,6 +2671,65 @@ function setShiftDefault(shift, startTime, endTime) {
   save();
 }
 
+// Single source of truth for "what time does this shift actually run on this
+// date" — same precedence the Schedule week view already used per-person
+// (routes/schedule.js: override > the rule's own custom hours > the generic
+// default), generalized to shift level for callers that don't have one
+// specific person in mind (dashboard "who's on now", checklist's auto-picked
+// shift). If more than one person is assigned the same shift that day with
+// different custom hours, widens to the earliest start / latest end so the
+// shift reads as "live" for the whole span either of them could be working.
+function getResolvedShiftWindow(date, shift) {
+  const ov = getShiftTimeOverride(date, shift);
+  if (ov && ov.start && ov.end) return { start: ov.start, end: ov.end, source: 'override' };
+  const withCustom = getAssignmentsForRange(date, date)
+    .filter(a => a.shift === shift && a.rule_start && a.rule_end);
+  if (withCustom.length) {
+    const start = withCustom.map(a => a.rule_start).sort()[0];
+    const end   = withCustom.map(a => a.rule_end).sort().slice(-1)[0];
+    return { start, end, source: 'rule' };
+  }
+  const def = (_data.shift_defaults || {})[shift] || {};
+  return { start: def.start || null, end: def.end || null, source: 'default' };
+}
+
+function getResolvedShiftWindows(date) {
+  return {
+    morning:   getResolvedShiftWindow(date, 'morning'),
+    afternoon: getResolvedShiftWindow(date, 'afternoon'),
+    closing:   getResolvedShiftWindow(date, 'closing'),
+  };
+}
+
+// Which shift bucket is actually "live" for a given date+time (HH:MM, 24h) —
+// replaces the hardcoded clock-cutoff guess (before 1pm = morning, before 7pm
+// = afternoon, else closing) that used to live separately in hub.html,
+// checklist.html, and chat.js and couldn't see a day's real custom hours.
+// Picks the first window (in shift order) whose [start,end) contains the
+// time; if none does (a gap between shifts, or before/after the whole day),
+// falls back to the most recent shift that has already started, so there's
+// always a sensible answer even outside normal hours.
+function getCurrentShiftForDate(date, hhmm) {
+  const windows = getResolvedShiftWindows(date);
+  const order = ['morning', 'afternoon', 'closing'];
+  const toMin = t => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const nowMin = toMin(hhmm);
+  for (const key of order) {
+    const w = windows[key];
+    const s = toMin(w.start), e = toMin(w.end);
+    if (s != null && e != null && nowMin != null && nowMin >= s && nowMin < e) return { date, shift: key, start: w.start, end: w.end };
+  }
+  let best = null;
+  for (const key of order) {
+    const w = windows[key];
+    const s = toMin(w.start);
+    if (s != null && nowMin != null && s <= nowMin) best = { date, shift: key, start: w.start, end: w.end };
+  }
+  if (best) return best;
+  const first = order[0];
+  return { date, shift: first, start: windows[first].start, end: windows[first].end };
+}
+
 function getTimesheetForRange(startDate, endDate) {
   return _data.timesheet_entries
     .filter(e => e.date >= startDate && e.date <= endDate)
@@ -5766,6 +5825,9 @@ module.exports = {
   getTimeOverridesForRange,
   getShiftDefaults,
   setShiftDefault,
+  getResolvedShiftWindow,
+  getResolvedShiftWindows,
+  getCurrentShiftForDate,
   getTimesheetForRange,
   upsertTimesheetEntry,
   deleteTimesheetEntry,

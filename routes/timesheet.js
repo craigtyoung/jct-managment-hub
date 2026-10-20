@@ -86,8 +86,13 @@ function buildWeekData(start, end) {
       const others = (shiftStaffing[`${a.date}:${a.shift}`] || []).filter(o => o.staff_id !== a.staff_id);
       return {
         ...a,
-        scheduled_start: ov?.start || def.start || null,
-        scheduled_end:   ov?.end   || def.end   || null,
+        // Override > this person's own recurring-rule hours > the shift's generic
+        // default — matches the Schedule week view's precedence (routes/schedule.js)
+        // so a custom-hours shift (e.g. someone starting Closing at 4 instead of 6)
+        // shows its real scheduled time here instead of silently falling back to
+        // the default window.
+        scheduled_start: ov?.start || a.rule_start || def.start || null,
+        scheduled_end:   ov?.end   || a.rule_end   || def.end   || null,
         actual_start:    entry ? entry.actual_start : null,
         actual_end:      entry ? entry.actual_end   : null,
         timesheet_id:    entry ? entry.id           : null,
@@ -95,6 +100,47 @@ function buildWeekData(start, end) {
         double_booked_with: others.length ? others.map(o => o.staff_name) : null,
       };
     });
+
+  // Back-to-back shifts for the SAME person on the SAME day (e.g. one continuous
+  // 8am-4pm day entered as Morning+Afternoon so the dashboard/checklist correctly
+  // show them on shift through both windows) collapse into a single row to
+  // confirm/log on the Timesheet page, instead of two separate lines. Detected
+  // purely by exact time adjacency — one shift's scheduled_end equals the next's
+  // scheduled_start — so it only kicks in when the schedule genuinely has no gap.
+  // Underlying per-shift rows/entries are untouched; this only adds display
+  // metadata the front end uses to render + save them as one combined line.
+  {
+    const SHIFT_ORDER = ['morning', 'afternoon', 'closing'];
+    const byStaffDate = {};
+    rows.forEach(r => { const k = `${r.staff_id}:${r.date}`; (byStaffDate[k] = byStaffDate[k] || []).push(r); });
+    Object.values(byStaffDate).forEach(group => {
+      if (group.length < 2) return;
+      group.sort((a, b) => SHIFT_ORDER.indexOf(a.shift) - SHIFT_ORDER.indexOf(b.shift));
+      let chain = [group[0]];
+      const flush = () => {
+        if (chain.length > 1) {
+          const lead = chain[0];
+          lead.chain_lead = true;
+          lead.chain_legs = chain.map(r => ({
+            shift: r.shift, scheduled_start: r.scheduled_start, scheduled_end: r.scheduled_end,
+            actual_start: r.actual_start, actual_end: r.actual_end, notes: r.notes,
+            double_booked_with: r.double_booked_with,
+          }));
+          for (let i = 1; i < chain.length; i++) chain[i].chain_of = lead.shift;
+        }
+      };
+      for (let i = 1; i < group.length; i++) {
+        const prev = group[i - 1], cur = group[i];
+        if (prev.scheduled_end && cur.scheduled_start && prev.scheduled_end === cur.scheduled_start) {
+          chain.push(cur);
+        } else {
+          flush();
+          chain = [cur];
+        }
+      }
+      flush();
+    });
+  }
 
   // Manual lines (staff meetings, coverage, off-schedule) — appended as their own rows
   for (const m of manual) {
@@ -456,7 +502,7 @@ router.get('/export', (req, res) => {
       officeHoursById[a.staff_id] = (officeHoursById[a.staff_id] || 0) + decHrs(as, ae);
       exportRows.push({ staffId: a.staff_id, staffName: s ? s.name : String(a.staff_id), sortKey: a.date + a.shift, cells: [
         s ? s.name : a.staff_id, a.date, a.shift,
-        ov?.start || def.start || '', ov?.end || def.end || '',
+        ov?.start || a.rule_start || def.start || '', ov?.end || a.rule_end || def.end || '',
         as || '', ae || '', hrs(as, ae), en ? en.notes : ''
       ]});
     });
@@ -567,7 +613,7 @@ router.get('/payroll-summary', (req, res) => {
     const hours = decHrs(as, ae);
     const b = bucket(a.staff_id);
     b.regular += hours;
-    b.rows.push({ sortKey: a.date + a.shift, cells: [a.date, a.shift, fmt12(as || ov?.start || def.start), fmt12(ae || ov?.end || def.end), hours ? hours.toFixed(2) : '', en ? en.notes || '' : '', ''] });
+    b.rows.push({ sortKey: a.date + a.shift, cells: [a.date, a.shift, fmt12(as || ov?.start || a.rule_start || def.start), fmt12(ae || ov?.end || a.rule_end || def.end), hours ? hours.toFixed(2) : '', en ? en.notes || '' : '', ''] });
   });
   manual.forEach(m => {
     const hours = decHrs(m.actual_start, m.actual_end);

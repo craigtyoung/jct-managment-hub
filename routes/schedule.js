@@ -22,6 +22,18 @@ router.get('/week', (req, res) => {
   res.json({ start, end, assignments });
 });
 
+// GET which shift is actually live right now (or at a given date/time) —
+// honors per-date overrides and per-rule custom hours, not just a fixed
+// clock cutoff, so a shift starting earlier/later than the generic default
+// on a given day still reports correctly. Dashboard/checklist/AI context
+// should call this instead of guessing from the hour of day themselves.
+router.get('/current-shift', (req, res) => {
+  const now = db.nowLocal().split('T'); // ["YYYY-MM-DD", "HH:MM:SS"]
+  const date = req.query.date || now[0];
+  const time = req.query.time || now[1].slice(0, 5);
+  res.json(db.getCurrentShiftForDate(date, time));
+});
+
 // GET assignments for a single shift (used by checklist header)
 router.get('/shift', (req, res) => {
   const { date, shift } = req.query;

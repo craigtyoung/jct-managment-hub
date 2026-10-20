@@ -295,8 +295,8 @@ function buildContext(me) {
   const d = new Date();
   const dateStr = d.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const h = d.getHours();
-  const currentShift = h < 13 ? 'morning' : h < 19 ? 'afternoon' : 'closing';
+  const [today, nowTime] = db.nowLocal().split('T');
+  const currentShift = db.getCurrentShiftForDate(today, nowTime.slice(0, 5)).shift;
   return `Current context:\n- Date: ${dateStr}\n- Time: ${timeStr}\n- Current shift: ${currentShift}\n- Logged in as: ${me.name} (${me.role})`;
 }
 
