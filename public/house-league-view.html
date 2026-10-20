@@ -306,7 +306,7 @@
 
     function openSubRequest(){
       const playerSel = document.getElementById('sr-player');
-      playerSel.innerHTML = data.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
+      playerSel.innerHTML = '<option value="">— Select your name —</option>' + data.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
         .map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
       const weekSel = document.getElementById('sr-week');
       weekSel.innerHTML = allWeeksChrono().map(w => `<option value="${w.id}">${esc(w.label)} — Session ${w.session}</option>`).join('');

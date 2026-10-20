@@ -628,7 +628,7 @@
         return `
         <div class="sub-req-row" style="flex-direction:column;align-items:stretch;">
           <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-            <div><b>${esc(byId[r.player_id]||'Unknown player')}</b> — ${esc(weekById[r.week_id]||'Unknown week')}${r.note ? ` <span class="sub-req-note">"${esc(r.note)}"</span>` : ''}</div>
+            <div><b>${esc(byId[r.player_id]||'Unknown player')}</b> — ${esc(weekById[r.week_id]||'Unknown week')}${r.note ? ` <span class="sub-req-note">"${esc(r.note)}"</span>` : ''} <span class="sub-req-note">· requested ${fmtReqDateTime(r.created_at)}</span></div>
             <div class="sub-req-acts">
               <button class="btn-ghost" onclick="toggleWhoElse(${r.id})">${expanded?'Hide':'Who else?'}</button>
               <button class="btn-ghost" onclick="markSubReqNA(${r.id})" title="Confirm the player is out and dismiss">Mark NA</button>
@@ -678,6 +678,7 @@
         </div>`).join('');
     }
     function fmtNoteDate(iso){ try{ return new Date(iso).toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }catch(e){ return ''; } }
+    function fmtReqDateTime(iso){ try{ return new Date(iso).toLocaleString('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
     async function addHouseNote(){
       const input = document.getElementById('note-text');
       const content = input.value.trim();
