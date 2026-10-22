@@ -392,8 +392,8 @@
           <button class="ctx-arrow" onclick="shiftDate(1)" title="Next day"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg></button>
           <input type="date" id="date-picker" onchange="changeDate(this.value)" style="position:absolute;left:50%;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none">
         </div>
-        <button class="export-btn" onclick="exportCSV()">Export CSV</button>
-        <button class="export-btn" onclick="exportLegacyCSV()" title="Old balancing-sheet layout — day blocks side by side, same categories Jaime used">Export (Old Format)</button>
+        <button class="export-btn" onclick="exportLegacyCSV()" title="Old balancing-sheet layout — day blocks side by side, same categories Jaime used">Export CSV (Daily)</button>
+        <button class="export-btn cash-totals-only" onclick="exportLegacyMonthCSV()" title="Whole month, old balancing-sheet layout — every day stacked in one file">Export CSV (Monthly)</button>
       </div>
     </div>
 

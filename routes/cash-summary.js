@@ -272,14 +272,20 @@ function buildLegacyDayRows(summary) {
     const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.member || '');
     return [...vals, ''];
   });
+  const slotObjNameRow = (label, getArr) => blockRow(label, s => {
+    const arr = getArr(s) || [];
+    const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.name || '');
+    return [...vals, ''];
+  });
   const totalOnlyRow = (label, getTotal) => blockRow(label, s => ['', '', '', '', '', fmt(getTotal(s))]);
 
   const d = new Date(summary.date + 'T12:00:00');
   const dayName = d.toLocaleDateString('en-CA', { weekday: 'long' });
   const dateLabel = d.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
-  push([`${dayName}, ${dateLabel}`]);
-  blockRow('', s => ['Staff:', s.staff_name || '', '', '', '', '']);
-  blockRow('', () => ['1', '2', '3', '4', '5', 'Total']);
+  // Matches the old sheet's 2-row day header exactly: day name + staff name
+  // share one row, date + the 1-5/Total slot numbers share the next.
+  blockRow(dayName, s => [s.staff_name || '', '', '', '', '', '']);
+  blockRow(dateLabel, () => ['1', '2', '3', '4', '5', 'Total']);
 
   push(['PRO SHOP']);
   slotRow('Tennis Balls', s => s.pro_shop?.tennis_balls);
@@ -294,9 +300,13 @@ function buildLegacyDayRows(summary) {
   push([]);
 
   push(['COURT FEES']);
-  totalOnlyRow('Private Lesson Fees', s => sumByType(s, 'lesson'));
-  totalOnlyRow('Guests', s => sumByType(s, 'guest'));
-  totalOnlyRow('PAYG', s => sumByType(s, 'payg'));
+  const typeEntries = (s, t) => cfEntries(s).filter(e => e && e.type === t);
+  slotObjAmountRow('Private Lesson Fees', s => typeEntries(s, 'lesson'));
+  slotObjNameRow('', s => typeEntries(s, 'lesson'));
+  slotObjAmountRow('Guests', s => typeEntries(s, 'guest'));
+  slotObjNameRow('', s => typeEntries(s, 'guest'));
+  slotObjAmountRow('PAYG', s => typeEntries(s, 'payg'));
+  slotObjNameRow('', s => typeEntries(s, 'payg'));
   const cfTotal = s => sumByType(s, 'lesson') + sumByType(s, 'guest') + sumByType(s, 'payg');
   totalOnlyRow('Shift Total — Court Fees', cfTotal);
   push([]);
