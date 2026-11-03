@@ -2038,6 +2038,7 @@ function removeStaff(staffId) {
   if (idx === -1) return false;
   _data.staff.splice(idx, 1);
   scrubStaffFromSlots(id);   // clear ghost court/board assignments so the person can't linger
+  _data.shift_rules = (_data.shift_rules || []).filter(r => r.staff_id !== id); // stop generating office shifts for a deleted person
   save();
   return true;
 }
@@ -2050,6 +2051,11 @@ function setStaffActive(staffId, active) {
   const s = getStaffById(staffId);
   if (!s) return null;
   s.active = !!active;
+  // Disabling must actually remove them from the Academy board too — otherwise a
+  // pro stays cited in every class slot they were on and keeps surfacing on the
+  // schedule/timesheet/payroll even though they're off the active roster.
+  // Re-enabling does not restore old slot assignments; those get re-added by hand.
+  if (!active) scrubStaffFromSlots(parseInt(staffId));
   save();
   return _dirOut(s);
 }
@@ -2447,7 +2453,8 @@ function getAssignmentsForRange(startDate, endDate) {
   for (const [key, staffMap] of Object.entries(slotMap)) {
     const [date, shift] = key.split('|');
     for (const [, info] of staffMap) {
-      const s = _data.staff.find(x => x.id === info.staff_id) || {};
+      const s = _data.staff.find(x => x.id === info.staff_id);
+      if (!s || s.active === false) continue; // deleted or disabled — don't surface a ghost shift
       results.push({ ...info, date, shift, staff_name: s.name, staff_color: s.color, staff_role: s.role });
     }
   }
