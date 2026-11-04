@@ -776,6 +776,11 @@
        teaching assignments change. Craig and Jaime don't teach, so the whole card —
        not just the sign-in button — hides for them. */
     body.pro-mode:not(.can-self-checkin) #qci-card { display: none !important; }
+    /* Stringing tile in the pro dashboard: hidden unless the logged-in pro is on
+       the stringer allowlist (kept in sync with proshop.html's STRINGERS list) —
+       most pros have no reason to see it, but a pro who strings racquets has no
+       other way in since Pro Shop itself is pro-hide'd everywhere else. */
+    body.pro-mode:not(.is-stringer) .stringer-only { display: none !important; }
     /* Pro Mode nav trim — teaching pros don't need office-side sections at all
        (Bubble Monitoring, the redundant "Office Schedule" duplicate of Lesson
        Schedule, Programs, Facility, Pro Shop). Hidden only in pro-mode, so
@@ -1925,6 +1930,20 @@
           <div class="tile-desc">Log your hours and review your pay periods.</div>
         </a>
 
+        <a href="/proshop.html" class="tile t-green stringer-only">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <circle cx="10" cy="10" r="6"/>
+                <line x1="14.5" y1="14.5" x2="21" y2="21"/>
+              </svg>
+            </div>
+            <svg class="tile-arrow" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          <div class="tile-name">Stringing</div>
+          <div class="tile-desc">Log a racquet string and see what's still unpaid.</div>
+        </a>
+
         <a href="/ideas.html" class="tile t-green">
           <div class="tile-head">
             <div class="tile-icon">
@@ -2330,6 +2349,10 @@
       // signal for the OTHER case: a dual-role manager (David/Victor) who isn't
       // role 'pro' but is currently teaching a class.
       document.body.classList.toggle('can-self-checkin', me.role === 'pro' || !!me.is_pro);
+      // Stringing tile in the pro dashboard — same name-match allowlist as proshop.html's
+      // STRINGERS list, since Pro Shop otherwise has no entry point for a pro at all.
+      const STRINGER_NAMES = ['lil', 'matthew'];
+      document.body.classList.toggle('is-stringer', STRINGER_NAMES.some(n => String(me.name || '').toLowerCase().includes(n)));
       if (me.role === 'admin') { const ml = document.getElementById('nav-mail-setup'); if (ml) ml.style.display = ''; }
       let startMode;
       if (isPro) startMode = 'pro';
