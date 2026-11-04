@@ -5144,6 +5144,7 @@ const HL_LEAGUES = ['MHL', 'WHL'];
   if (!Array.isArray(_data[t])) { _data._seq[t] = 0; _data[t] = []; save(); }
 });
 if (!_data.hl_settings) { _data.hl_settings = { publicPasswordHash: null, publicTokens: [] }; save(); }
+if (!_data.hl_settings.publishedThrough) { _data.hl_settings.publishedThrough = {}; save(); }
 
 function hlParseCsvLine(line) {
   var cells = [], cur = '', inQ = false;
@@ -5531,15 +5532,40 @@ function issueHouseLeagueToken() {
 function checkHouseLeagueToken(token) {
   return (_data.hl_settings.publicTokens || []).some(function (t) { return t.token === token && t.exp > Date.now(); });
 }
+// Staff can fill pairings in ahead of time without them leaking to players — a
+// league only shows pairings for weeks at or before the one staff has explicitly
+// marked "visible through". Unset (new league, or never configured) means no
+// pairings are shown yet rather than guessing, since showing something wrong is
+// worse than a blank screen staff will notice and fix.
+function setHouseLeaguePublishedThrough(league, weekId) {
+  _data.hl_settings.publishedThrough = _data.hl_settings.publishedThrough || {};
+  _data.hl_settings.publishedThrough[league] = weekId ? parseInt(weekId) : null;
+  save();
+  return { ok: true };
+}
+function getHouseLeaguePublishedThrough(league) {
+  return (_data.hl_settings.publishedThrough || {})[league] || null;
+}
+
 function getHouseLeaguePublicData(league) {
   var grid = getHouseLeagueGrid(league);
+  var throughId = getHouseLeaguePublishedThrough(league);
+  var throughWeek = throughId ? grid.weeks.find(function (w) { return w.id === throughId; }) : null;
+  var visiblePairings = throughWeek
+    ? _data.hl_pairings.filter(function (p) {
+        if (p.league !== league) return false;
+        var w = grid.weeks.find(function (x) { return x.id === p.week_id; });
+        return !!w && w.order <= throughWeek.order;
+      })
+    : [];
   return {
     // No rating — that's for staff scheduling only, never shown to players.
     players: grid.players.filter(function (p) { return p.active !== false; })
       .map(function (p) { return { id: p.id, name: p.name, email: p.email, phone: p.phone }; }),
     weeks: grid.weeks,
     attendance: grid.attendance,
-    pairings: _data.hl_pairings.filter(function (p) { return p.league === league; }),
+    pairings: visiblePairings,
+    published_through: throughId,
   };
 }
 
