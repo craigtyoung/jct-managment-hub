@@ -106,20 +106,9 @@ router.put('/subs/:id', (req, res) => reply(res, db.updateHouseLeagueSub(req.par
 router.delete('/subs/:id', guard(isMgmt, 'Management only'), (req, res) => reply(res, db.deleteHouseLeagueSub(req.params.id)));
 
 // Public-view password — management only to view/change
-router.get('/settings', guard(isMgmt, 'Management only'), (req, res) => res.json({
-  hasPassword: db.hasHouseLeaguePassword(),
-  publishedThrough: { MHL: db.getHouseLeaguePublishedThrough('MHL'), WHL: db.getHouseLeaguePublishedThrough('WHL') },
-}));
+router.get('/settings', guard(isMgmt, 'Management only'), (req, res) => res.json({ hasPassword: db.hasHouseLeaguePassword() }));
 router.put('/settings/password', guard(isMgmt, 'Management only'),
   (req, res) => reply(res, db.setHouseLeaguePassword((req.body || {}).password)));
-
-// Pairings become visible to players only through this week (inclusive) — lets
-// staff build future weeks' pairings ahead of time without them going live early.
-router.put('/settings/published-through', guard(isMgmt, 'Management only'), (req, res) => {
-  const { league, weekId } = req.body || {};
-  if (!validLeague(league)) return res.status(400).json({ error: 'Unknown league' });
-  reply(res, db.setHouseLeaguePublishedThrough(league, weekId || null));
-});
 
 module.exports = router;
 

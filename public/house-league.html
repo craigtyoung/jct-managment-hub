@@ -371,12 +371,7 @@
             <button class="btn-add" onclick="savePassword()">Save password</button>
             <div style="margin-top:14px" id="pub-status"></div>
             <div style="margin-top:14px" class="link-box">Share this link with players: <b id="pub-link"></b></div>
-          </div>
-          <div class="card">
-            <div class="card-title">Pairings visible through</div>
-            <div class="page-sub" style="margin:0 0 10px">Players only see matches for this week and earlier. Build future weeks' pairings ahead of time without them going live — advance this once the new week is ready to post.</div>
-            <div class="fld" style="max-width:260px;margin-bottom:10px"><label>Current league: <b id="pt-league"></b></label><select id="pt-week"></select></div>
-            <button class="btn-add" onclick="savePublishedThrough()">Save</button>
+            <div style="margin-top:14px;font-size:12px;color:var(--text-3)">Build any week's pairings whenever you want — a match only becomes visible to players once it's scored. Nothing to publish or advance manually.</div>
           </div>
         </div>
 
@@ -1224,11 +1219,6 @@
       if (!d) return;
       document.getElementById('pub-status').textContent = d.hasPassword ? 'A shared password is set.' : 'No password set yet — players cannot view yet.';
       document.getElementById('pub-link').textContent = location.origin + '/house-league-view.html';
-      document.getElementById('pt-league').textContent = league;
-      const sel = document.getElementById('pt-week');
-      const publishedThrough = (d.publishedThrough || {})[league] || null;
-      sel.innerHTML = '<option value="">— none published yet —</option>' +
-        weeks.map(w => `<option value="${w.id}" ${w.id===publishedThrough?'selected':''}>${esc(w.label)}</option>`).join('');
     }
     async function savePassword(){
       const password = document.getElementById('pub-pw').value.trim();
@@ -1237,12 +1227,6 @@
       if (!d) return;
       document.getElementById('pub-pw').value = '';
       toast('Password saved'); loadSettings();
-    }
-    async function savePublishedThrough(){
-      const weekId = document.getElementById('pt-week').value || null;
-      const d = await jfetch('/api/house-league/settings/published-through', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ league, weekId }) });
-      if (!d) return;
-      toast(weekId ? 'Players can now see pairings through that week' : 'Pairings hidden from players'); loadSettings();
     }
 
     function showSection(id, btn){
