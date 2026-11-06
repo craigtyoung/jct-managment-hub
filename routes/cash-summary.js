@@ -355,7 +355,10 @@ function buildLegacyDayRows(summary) {
   blockRow(dayName, s => [s.staff_name || '', '', '', '', '', '']);
   blockRow(dateLabel, () => ['1', '2', '3', '4', '5', 'Total']);
 
-  push(['PRO SHOP']);
+  // No category header rows (PRO SHOP / COURT FEES / DRINKS & SNACKS) and no
+  // blank separators between categories -- the real template runs straight
+  // from one category's total into the next category's first row. The only
+  // blank row in the whole block is the gap before DAILY TOTALS, kept below.
   slotRow('Tennis Balls', s => s.pro_shop?.tennis_balls);
   slotObjAmountRow('Stringing', s => s.pro_shop?.stringing);
   slotObjMemberRow('', s => s.pro_shop?.stringing);
@@ -365,9 +368,7 @@ function buildLegacyDayRows(summary) {
   slotRow('Grips', s => s.pro_shop?.grips);
   const psTotal = s => sumArr(s.pro_shop?.tennis_balls) + sumObj(s.pro_shop?.stringing, 'amount') + sumArr(s.pro_shop?.accessories) + sumObj(s.pro_shop?.racquet_sales, 'amount') + sumArr(s.pro_shop?.grips);
   totalOnlyRow('Shift Total — Pro Shop', psTotal);
-  push([]);
 
-  push(['COURT FEES']);
   const typeEntries = (s, t) => cfEntries(s).filter(e => e && e.type === t);
   courtFeeAmountRow('Private Lesson Fees', s => typeEntries(s, 'lesson'));
   courtFeeNameRow('', s => typeEntries(s, 'lesson'));
@@ -375,14 +376,11 @@ function buildLegacyDayRows(summary) {
   courtFeeDoubleRow('PAYG', s => typeEntries(s, 'payg'));
   const cfTotal = s => sumByType(s, 'lesson') + sumByType(s, 'guest') + sumByType(s, 'payg');
   totalOnlyRow('Shift Total — Court Fees', cfTotal);
-  push([]);
 
-  push(['DRINKS & SNACKS']);
   slotRow('Drinks', s => s.drinks_snacks?.drinks);
   slotRow('Snacks', s => s.drinks_snacks?.snacks);
   const dsTotal = s => sumArr(s.drinks_snacks?.drinks) + sumArr(s.drinks_snacks?.snacks);
   totalOnlyRow('Shift Total — Drinks & Snacks', dsTotal);
-  push([]);
 
   totalOnlyRow('SHIFT TOTAL', s => psTotal(s) + cfTotal(s) + dsTotal(s));
   push([]);
