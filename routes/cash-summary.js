@@ -279,13 +279,9 @@ function buildLegacyDayRows(summary) {
   });
   const totalOnlyRow = (label, getTotal) => blockRow(label, s => ['', '', '', '', '', fmt(getTotal(s))]);
 
-  // Court-fee-specific slot rows: same fixed 5-slot shape as the rest of the
-  // sheet (layout never changes, paste target stays intact), but when a shift
-  // has more than 5 entries of a type (Guests/PAYG/Lessons can genuinely run
-  // past 5 on a busy shift, unlike Pro Shop's sub-categories), slot 5 becomes
-  // an overflow bucket: "+N more" and the summed remainder, instead of silently
-  // dropping entries 6+. The row's own Total column always reflects every
-  // entry regardless of how many get an individual slot.
+  // Private Lesson Fees: single 5-slot row in the original sheet. Slot 5
+  // becomes an overflow bucket ("+N more" + summed remainder) past 5 entries,
+  // instead of silently dropping entries 6+. Layout never changes size.
   const courtFeeAmountRow = (label, getArr) => blockRow(label, s => {
     const arr = getArr(s) || [];
     if (arr.length <= 5) {
@@ -307,6 +303,49 @@ function buildLegacyDayRows(summary) {
     vals.push(`+${arr.length - 4} more`);
     return [...vals, ''];
   });
+
+  // Guests and PAYG: the original sheet stacks TWO 5-slot rows per category
+  // (10 slots total), not one — this is what "pushes onto another line"
+  // means on the real template. Row 1 covers entries 1-5 with a blank Total
+  // cell (matches the original, which only shows the category total once,
+  // on row 2). Row 2 covers entries 6-10, with an overflow bucket in its
+  // own slot 5 (i.e. overall slot 10) if an 11th+ entry shows up in one
+  // shift — genuinely rare, but still visible instead of silently dropped.
+  const courtFeeDoubleRow = (label, getArr) => {
+    blockRow(label, s => {
+      const arr = (getArr(s) || []).slice(0, 5);
+      const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.amount != null ? fmt(Number(arr[i].amount)) : '');
+      return [...vals, ''];
+    });
+    blockRow('', s => {
+      const arr = (getArr(s) || []).slice(0, 5);
+      const vals = Array.from({ length: 5 }, (_, i) => arr[i]?.name || '');
+      return [...vals, ''];
+    });
+    blockRow(label, s => {
+      const full = getArr(s) || [];
+      const rest = full.slice(5);
+      if (rest.length <= 5) {
+        const vals = Array.from({ length: 5 }, (_, i) => rest[i]?.amount != null ? fmt(Number(rest[i].amount)) : '');
+        return [...vals, fmt(sumObj(full, 'amount'))];
+      }
+      const vals = rest.slice(0, 4).map(e => e?.amount != null ? fmt(Number(e.amount)) : '');
+      const overflowSum = rest.slice(4).reduce((a, e) => a + (e?.amount != null ? Number(e.amount) : 0), 0);
+      vals.push(fmt(overflowSum));
+      return [...vals, fmt(sumObj(full, 'amount'))];
+    });
+    blockRow('', s => {
+      const full = getArr(s) || [];
+      const rest = full.slice(5);
+      if (rest.length <= 5) {
+        const vals = Array.from({ length: 5 }, (_, i) => rest[i]?.name || '');
+        return [...vals, ''];
+      }
+      const vals = rest.slice(0, 4).map(e => e?.name || '');
+      vals.push(`+${rest.length - 4} more`);
+      return [...vals, ''];
+    });
+  };
 
   const d = new Date(summary.date + 'T12:00:00');
   const dayName = d.toLocaleDateString('en-CA', { weekday: 'long' });
@@ -332,10 +371,8 @@ function buildLegacyDayRows(summary) {
   const typeEntries = (s, t) => cfEntries(s).filter(e => e && e.type === t);
   courtFeeAmountRow('Private Lesson Fees', s => typeEntries(s, 'lesson'));
   courtFeeNameRow('', s => typeEntries(s, 'lesson'));
-  courtFeeAmountRow('Guests', s => typeEntries(s, 'guest'));
-  courtFeeNameRow('', s => typeEntries(s, 'guest'));
-  courtFeeAmountRow('PAYG', s => typeEntries(s, 'payg'));
-  courtFeeNameRow('', s => typeEntries(s, 'payg'));
+  courtFeeDoubleRow('Guests', s => typeEntries(s, 'guest'));
+  courtFeeDoubleRow('PAYG', s => typeEntries(s, 'payg'));
   const cfTotal = s => sumByType(s, 'lesson') + sumByType(s, 'guest') + sumByType(s, 'payg');
   totalOnlyRow('Shift Total — Court Fees', cfTotal);
   push([]);
